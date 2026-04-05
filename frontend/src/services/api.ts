@@ -1,15 +1,59 @@
 /**
  * API 服务层 - 百家乐分析预测系统
+ * 含 JWT 认证拦截器 + WebSocket 认证
  */
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+
+// ============ Token 工具函数 ============
+
+const TOKEN_KEY = 'admin_token';
+
+/** 获取存储的JWT token */
+export const getToken = (): string | null => {
+  return localStorage.getItem(TOKEN_KEY);
+};
+
+/** 保存token */
+export const setToken = (token: string): void => {
+  localStorage.setItem(TOKEN_KEY, token);
+};
+
+/** 清除token（登出） */
+export const clearToken = (): void => {
+  localStorage.removeItem(TOKEN_KEY);
+};
+
+// ============ Axios 实例 ============
 
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });
+
+// ====== 请求拦截器：自动附加 JWT Token ======
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ====== 响应拦截器：统一处理401错误 ======
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // token无效或过期，清除并提示重新登录
+      clearToken();
+      console.warn('认证失败(401)，请重新登录');
+    }
+    return Promise.reject(error);
+  },
+);
 
 // ====== 系统控制 ======
 
@@ -133,11 +177,14 @@ export const getRoadRawData = async (tableId: string, bootNumber?: number) => {
   return api.get('/roads/raw', { params });
 };
 
-// ====== WebSocket ======
+// ====== WebSocket（带可选token认证）======
 
 export const createWebSocket = (tableId: string): WebSocket => {
+  const token = getToken();
   const wsUrl = import.meta.env.VITE_WS_URL || `ws://localhost:8000/ws/${tableId}`;
-  const ws = new WebSocket(wsUrl);
+  // 有token则附加到URL查询参数
+  const urlWithToken = token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl;
+  const ws = new WebSocket(urlWithToken);
   return ws;
 };
 

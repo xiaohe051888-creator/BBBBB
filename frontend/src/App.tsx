@@ -12,6 +12,7 @@ import RoadMapPage from './pages/RoadMapPage';
 import BetRecordsPage from './pages/BetRecordsPage';
 import LogsPage from './pages/LogsPage';
 import AdminPage from './pages/AdminPage';
+import { getToken } from './services/api';
 
 // 侧边栏布局组件
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -127,7 +128,7 @@ const App: React.FC = () => {
             <Route path="/dashboard/:tableId/roadmap" element={<RoadMapPage />} />
             <Route path="/dashboard/:tableId/bets" element={<BetRecordsPage />} />
             <Route path="/dashboard/:tableId/logs" element={<LogsPage />} />
-            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin" element={getToken() ? <AdminPage /> : <Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppLayout>

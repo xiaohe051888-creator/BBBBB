@@ -12,11 +12,20 @@ import {
   LockOutlined, KeyOutlined, HistoryOutlined,
 } from '@ant-design/icons';
 import * as api from '../services/api';
+import { getToken, clearToken } from '../services/api';
 
 const AdminPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const token = (location.state as any)?.token;
+  // 优先从localStorage读取token（刷新页面后location.state会丢失）
+  const token = (location.state as any)?.token || getToken();
+  
+  // 未登录则重定向到首页
+  React.useEffect(() => {
+    if (!token) {
+      navigate('/');
+    }
+  }, [token, navigate]);
   
   const [activeTab, setActiveTab] = useState('ai');
   const [modelVersions, setModelVersions] = useState<any[]>([]);
@@ -91,6 +100,7 @@ const AdminPage: React.FC = () => {
         </Space>
         <Space>
           <Button icon={<KeyOutlined />} onClick={() => setChangePwdVisible(true)}>修改密码</Button>
+          <Button danger onClick={() => { clearToken(); navigate('/'); }}>退出登录</Button>
         </Space>
       </div>
 

@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
@@ -25,12 +25,33 @@ from app.models.schemas import (
 
 # ============ 认证工具函数 ============
 
-async def get_current_user(token: str = Query(..., alias="token")) -> dict:
-    """从query参数中提取并验证JWT token，返回用户信息"""
+def _extract_token(request: Request, query_token: Optional[str] = None) -> str:
+    """
+    从请求中提取 JWT token（支持两种方式）：
+    1. Authorization: Bearer <token>  (Header方式，前端axios拦截器使用)
+    2. ?token=<token>  (Query参数方式，WebSocket/兼容)
+    """
+    # 优先从Header读取
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return auth_header[7:]  # 去掉 "Bearer " 前缀
+    # 其次从Query参数
+    if query_token:
+        return query_token
+    raise HTTPException(401, "缺少认证凭证（需要Bearer Token或token参数）")
+
+
+async def get_current_user(
+    request: Request,
+    token: Optional[str] = Query(None, alias="token"),
+) -> dict:
+    """验证JWT token，支持Header Bearer和Query参数双模式"""
     from jose import jwt, JWTError
+
+    raw_token = _extract_token(request, token)
     try:
         payload = jwt.decode(
-            token,
+            raw_token,
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
         )

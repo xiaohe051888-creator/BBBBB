@@ -6,6 +6,7 @@ import { Button, Card, Typography, Modal, Input, message, Space } from 'antd';
 import { LoginOutlined, DesktopOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../services/api';
+import { getToken } from '../services/api';
 
 const { Title, Text } = Typography;
 
@@ -19,12 +20,24 @@ const StartPage: React.FC = () => {
   const handleStart = async (tableId: string) => {
     setLoading(tableId);
     try {
+      // 系统启动需要认证，检查是否有token
+      if (!getToken()) {
+        message.warning('请先登录后再启动系统');
+        setLoginVisible(true);
+        setLoading(null);
+        return;
+      }
       await api.startSystem(tableId);
       message.success(BUTTON_TEXTS.startSuccess.primary);
       // 进入首页同时自动触发智能选模
       navigate(`/dashboard/${tableId}`);
     } catch (err: any) {
-      message.error(err.response?.data?.detail || '启动失败，请重试');
+      if (err.response?.status === 401) {
+        message.warning('登录已过期，请重新登录');
+        setLoginVisible(true);
+      } else {
+        message.error(err.response?.data?.detail || '启动失败，请重试');
+      }
     } finally {
       setLoading(null);
     }
