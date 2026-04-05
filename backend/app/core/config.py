@@ -10,11 +10,17 @@ class Settings:
     # 应用配置
     APP_NAME: str = "百家乐分析预测系统"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
     
     # 服务器配置
     HOST: str = "0.0.0.0"
     PORT: int = 8000
+    
+    # 安全配置
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "change-me-in-production")
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_HOURS: int = 24
+    CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173")
     
     # 数据库配置
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/baccarat.db"
@@ -54,7 +60,7 @@ class Settings:
     AI_MODEL: str = "claude-sonnet-4-20250514"
     
     # 管理员配置
-    DEFAULT_ADMIN_PASSWORD: str = "8888"
+    DEFAULT_ADMIN_PASSWORD: str = os.getenv("ADMIN_DEFAULT_PASSWORD", "Admin@8888")
     MAX_LOGIN_ATTEMPTS: int = 5
     LOGIN_LOCKOUT_MINUTES: int = 10
     

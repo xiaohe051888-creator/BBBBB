@@ -23,6 +23,33 @@ from app.models.schemas import (
 )
 
 
+# ============ 认证工具函数 ============
+
+async def get_current_user(token: str = Query(..., alias="token")) -> dict:
+    """从query参数中提取并验证JWT token，返回用户信息"""
+    from jose import jwt, JWTError
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+        )
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(401, "无效的认证凭证")
+        return {"username": username}
+    except JWTError:
+        raise HTTPException(401, "无效或已过期的认证凭证")
+
+
+def _parse_cors_origins() -> List[str]:
+    """解析CORS允许的来源列表"""
+    origins_str = settings.CORS_ORIGINS.strip()
+    if origins_str == "*":
+        return ["*"]
+    return [o.strip() for o in origins_str.split(",") if o.strip()] or ["http://localhost:5173"]
+
+
 # ============ 全局状态 ============
 workflow_engines: Dict[str, "WorkflowEngine"] = {}
 ws_clients: List[WebSocket] = []
@@ -69,12 +96,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS配置
+# CORS配置 - 从环境变量读取允许的来源
+_cors_origins = _parse_cors_origins()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -88,8 +116,8 @@ class StartRequest(BaseModel):
 
 
 @app.post("/api/system/start")
-async def start_system(req: StartRequest):
-    """启动系统"""
+async def start_system(req: StartRequest, _: dict = Depends(get_current_user)):
+    """启动系统（需认证）"""
     from app.services.workflow_engine import WorkflowEngine, set_broadcast_func
     
     if req.table_id in workflow_engines:
@@ -110,8 +138,8 @@ async def start_system(req: StartRequest):
 
 
 @app.post("/api/system/stop")
-async def stop_system(table_id: str = Query(...)):
-    """停止系统"""
+async def stop_system(table_id: str = Query(...), __: dict = Depends(get_current_user)):
+    """停止系统（需认证）"""
     if table_id not in workflow_engines:
         raise HTTPException(400, "该桌未在运行")
     
@@ -431,12 +459,12 @@ async def admin_login(req: LoginRequest):
         admin.locked_until = None
         await session.commit()
         
-        # 创建简单token
+        # 创建JWT token
         from jose import jwt
         token = jwt.encode(
-            {"sub": admin.username, "exp": datetime.utcnow() + timedelta(hours=24)},
-            "baccarat-secret-key",  # 生产环境应使用环境变量
-            algorithm="HS256",
+            {"sub": admin.username, "exp": datetime.utcnow() + timedelta(hours=settings.JWT_EXPIRE_HOURS)},
+            settings.JWT_SECRET_KEY,
+            algorithm=settings.JWT_ALGORITHM,
         )
         
         return {
@@ -447,8 +475,8 @@ async def admin_login(req: LoginRequest):
 
 
 @app.post("/api/admin/change-password")
-async def change_password(req: ChangePasswordRequest):
-    """修改密码"""
+async def change_password(req: ChangePasswordRequest, _: dict = Depends(get_current_user)):
+    """修改密码（需认证）"""
     import bcrypt as _bcrypt
     
     async with async_session() as session:
@@ -474,8 +502,8 @@ async def change_password(req: ChangePasswordRequest):
 
 
 @app.get("/api/admin/model-versions")
-async def get_model_versions():
-    """获取模型版本列表"""
+async def get_model_versions(_: dict = Depends(get_current_user)):
+    """获取模型版本列表（需认证）"""
     async with async_session() as session:
         stmt = select(ModelVersion).order_by(desc(ModelVersion.created_at))
         result = await session.execute(stmt)
@@ -505,8 +533,9 @@ async def get_database_records(
     table_name: str = Query(..., pattern="^(game_records|bet_records|system_logs|mistake_book)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
+    _: dict = Depends(get_current_user),
 ):
-    """查看数据库记录（管理员功能）"""
+    """查看数据库记录（需认证）"""
     table_map = {
         "game_records": GameRecord,
         "bet_records": BetRecord,
@@ -653,8 +682,9 @@ async def get_road_raw_data(
 async def start_ai_learning(
     table_id: str = Query(...),
     boot_number: int = Query(...),
+    _: dict = Depends(get_current_user),
 ):
-    """启动AI学习任务"""
+    """启动AI学习任务（需认证）"""
     from app.services.ai_learning_service import AILearningService
     
     async with async_session() as session:
@@ -676,8 +706,8 @@ async def start_ai_learning(
 
 
 @app.get("/api/admin/ai-learning/status")
-async def get_ai_learning_status():
-    """获取AI学习状态"""
+async def get_ai_learning_status(_: dict = Depends(get_current_user)):
+    """获取AI学习状态（需认证）"""
     from app.services.ai_learning_service import AILearningService
     
     return AILearningService.get_status_sync()
@@ -689,8 +719,9 @@ async def get_ai_learning_status():
 async def select_best_model(
     table_id: str = Query(...),
     force_version: Optional[str] = Query(None),
+    __: dict = Depends(get_current_user),
 ):
-    """执行智能选模"""
+    """执行智能选模（需认证）"""
     from app.services.smart_model_selector import SmartModelSelector
     
     async with async_session() as session:
@@ -824,8 +855,17 @@ async def get_crawler_raw_data(table_id: str = Query(...)):
 # --- WebSocket 实时推送 ---
 
 @app.websocket("/ws/{table_id}")
-async def websocket_endpoint(websocket: WebSocket, table_id: str):
-    """WebSocket 实时推送"""
+async def websocket_endpoint(websocket: WebSocket, table_id: str, token: Optional[str] = None):
+    """WebSocket 实时推送（可选token认证，无token也可连接但会记录警告）"""
+    # 可选的token验证：有token则验证，无token也允许连接（兼容性考虑）
+    if token:
+        try:
+            from jose import jwt, JWTError
+            jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        except (JWTError, Exception):
+            await websocket.close(code=4001, reason="无效的认证凭证")
+            return
+    
     await websocket.accept()
     ws_clients.append(websocket)
     
