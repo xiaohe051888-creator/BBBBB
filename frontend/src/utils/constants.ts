@@ -175,9 +175,10 @@ export const STATUS_TEXTS: Record<string, { color: string; text: string }> = {
 // ====== 日志优先级颜色 ======
 
 export const PRIORITY_COLORS: Record<string, string> = {
-  P1: '#ff4d4f',  // 红色
-  P2: '#faad14',  // 橙色
-  P3: '#1890ff',  // 蓝色
+  P0: '#ff4d4f',  // 致命-红
+  P1: '#ff4d4f',  // 严重-红
+  P2: '#faad14',  // 警告-橙
+  P3: '#1890ff',  // 信息-蓝
 };
 
 // ====== 日志分类 ======

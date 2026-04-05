@@ -100,7 +100,7 @@ const StartPage: React.FC = () => {
           </Text>
         </div>
 
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <Button
             type="primary"
             size="large"

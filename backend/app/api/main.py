@@ -4,7 +4,7 @@ FastAPI 主应用 - 百家乐分析预测系统
 import asyncio
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Query
@@ -90,7 +90,7 @@ class StartRequest(BaseModel):
 @app.post("/api/system/start")
 async def start_system(req: StartRequest):
     """启动系统"""
-    from app.services.workflow_engine import WorkflowEngine
+    from app.services.workflow_engine import WorkflowEngine, set_broadcast_func
     
     if req.table_id in workflow_engines:
         raise HTTPException(400, "该桌已在运行中")
@@ -99,6 +99,9 @@ async def start_system(req: StartRequest):
     engine = WorkflowEngine(session)
     await engine.start(req.table_id)
     workflow_engines[req.table_id] = engine
+    
+    # 注册WebSocket广播桥接函数（让工作流引擎能推送数据到前端）
+    set_broadcast_func(broadcast_update)
     
     # 后台启动主循环
     asyncio.create_task(engine.run_main_loop())
@@ -179,8 +182,8 @@ async def get_game_records(
     boot_number: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    sort_by: str = Query("game_number", regex="^(game_number|profit_loss|bet_amount)$"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$"),
+    sort_by: str = Query("game_number", pattern="^(game_number|profit_loss|bet_amount)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
 ):
     """获取开奖记录（分页）"""
     async with async_session() as session:
@@ -499,7 +502,7 @@ async def get_model_versions():
 
 @app.get("/api/admin/database-records")
 async def get_database_records(
-    table_name: str = Query(..., regex="^(game_records|bet_records|system_logs|mistake_book)$"),
+    table_name: str = Query(..., pattern="^(game_records|bet_records|system_logs|mistake_book)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ):
@@ -530,6 +533,292 @@ async def get_database_records(
             data.append(row)
         
         return {"table": table_name, "data": data, "page": page, "page_size": page_size}
+
+
+# --- 走势图 API ---
+
+@app.get("/api/roads")
+async def get_road_maps(
+    table_id: str = Query(...),
+    boot_number: Optional[int] = Query(None),
+):
+    """获取五路走势图数据"""
+    from app.services.road_engine import UnifiedRoadEngine
+    
+    async with async_session() as session:
+        # 获取指定靴的开奖记录
+        query = select(GameRecord).where(
+            GameRecord.table_id == table_id,
+            GameRecord.result.in_(["庄", "闲"]),
+        ).order_by(GameRecord.game_number)
+        
+        if boot_number is not None:
+            query = query.where(GameRecord.boot_number == boot_number)
+        
+        result = await session.execute(query)
+        records = result.scalars().all()
+        
+        if not records:
+            return {
+                "table_id": table_id,
+                "boot_number": boot_number,
+                "total_games": 0,
+                "roads": {
+                    "大路": [],
+                    "珠盘路": [],
+                    "大眼仔路": [],
+                    "小路": [],
+                    "螳螂路": [],
+                },
+            }
+        
+        # 使用引擎重新计算五路（从历史记录重建状态）
+        engine = UnifiedRoadEngine()
+        for r in records:
+            engine.process_game(r.game_number, r.result)
+        
+        five_roads = engine.calculate_all_roads()
+        
+        def road_to_dict(road):
+            return {
+                "display_name": road.display_name,
+                "max_columns": road.max_columns,
+                "max_rows": road.max_rows,
+                "points": [
+                    {
+                        "game_number": p.game_number,
+                        "column": p.column,
+                        "row": p.row,
+                        "value": p.value,
+                        "is_new_column": p.is_new_column,
+                        "error_id": p.error_id,
+                    }
+                    for p in road.points
+                ],
+            }
+        
+        # 确定靴号
+        actual_boot = boot_number or (records[0].boot_number if records else 0)
+        
+        return {
+            "table_id": table_id,
+            "boot_number": actual_boot,
+            "total_games": len(records),
+            "roads": {
+                "大路": road_to_dict(five_roads.big_road),
+                "珠盘路": road_to_dict(five_roads.bead_road),
+                "大眼仔路": road_to_dict(five_roads.big_eye_boy),
+                "小路": road_to_dict(five_roads.small_road),
+                "螳螂路": road_to_dict(five_roads.cockroach_road),
+            },
+        }
+
+
+@app.get("/api/roads/raw")
+async def get_road_raw_data(
+    table_id: str = Query(...),
+    boot_number: Optional[int] = Query(None),
+):
+    """获取原始开奖结果列表（用于前端本地计算走势图）"""
+    async with async_session() as session:
+        query = select(GameRecord).where(GameRecord.table_id == table_id).order_by(GameRecord.game_number)
+        
+        if boot_number is not None:
+            query = query.where(GameRecord.boot_number == boot_number)
+        
+        result = await session.execute(query)
+        records = result.scalars().all()
+        
+        return {
+            "table_id": table_id,
+            "boot_number": boot_number or (records[0].boot_number if records else 0),
+            "total": len(records),
+            "data": [
+                {
+                    "game_number": r.game_number,
+                    "result": r.result,
+                    "result_time": r.result_time.isoformat() if r.result_time else None,
+                    "predict_direction": r.predict_direction,
+                    "predict_correct": r.predict_correct,
+                }
+                for r in records
+            ],
+        }
+
+
+
+# --- AI 学习 API ---
+
+@app.post("/api/admin/ai-learning/start")
+async def start_ai_learning(
+    table_id: str = Query(...),
+    boot_number: int = Query(...),
+):
+    """启动AI学习任务"""
+    from app.services.ai_learning_service import AILearningService
+    
+    async with async_session() as session:
+        service = AILearningService(session)
+        
+        # 检查是否已有任务在执行
+        status = await service.get_learning_status()
+        if status["is_learning"]:
+            raise HTTPException(400, f"学习任务正在执行中: {status['current_task']}")
+        
+        # 异步执行学习任务（不阻塞响应）
+        import asyncio
+        asyncio.create_task(service.start_learning(table_id, boot_number))
+        
+        return {
+            "status": "started",
+            "message": f"AI学习已启动，正在分析 {table_id} 第{boot_number}靴数据...",
+        }
+
+
+@app.get("/api/admin/ai-learning/status")
+async def get_ai_learning_status():
+    """获取AI学习状态"""
+    from app.services.ai_learning_service import AILearningService
+    
+    return AILearningService.get_status_sync()
+
+
+# --- 智能选模 API ---
+
+@app.post("/api/system/select-model")
+async def select_best_model(
+    table_id: str = Query(...),
+    force_version: Optional[str] = Query(None),
+):
+    """执行智能选模"""
+    from app.services.smart_model_selector import SmartModelSelector
+    
+    async with async_session() as session:
+        selector = SmartModelSelector(session)
+        result = await selector.select_best_model(table_id, force_version=force_version)
+        return result
+
+
+# --- AI 模型分析 API ---
+
+@app.get("/api/analysis/latest")
+async def get_latest_analysis(table_id: str = Query(...)):
+    """获取最新一局的AI三模型分析结果（从日志中提取）"""
+    async with async_session() as session:
+        # 查询最近的庄模型、闲模型、综合模型日志
+        from sqlalchemy import or_
+        
+        stmt = select(SystemLog).where(
+            SystemLog.table_id == table_id,
+            SystemLog.event_code.in_([
+                "LOG-MDL-001",  # 庄模型摘要刷新
+                "LOG-MDL-002",  # 闲模型摘要刷新  
+                "LOG-MDL-003",  # 综合结论生成
+            ]),
+        ).order_by(SystemLog.log_time.desc()).limit(10)
+        
+        result = await session.execute(stmt)
+        logs = result.scalars().all()
+        
+        banker_log = next((l for l in logs if l.event_code == "LOG-MDL-001"), None)
+        player_log = next((l for l in logs if l.event_code == "LOG-MDL-002"), None)
+        combined_log = next((l for l in logs if l.event_code == "LOG-MDL-003"), None)
+        
+        # 同时获取系统状态中的预测信息
+        state_stmt = select(SystemState).where(SystemState.table_id == table_id)
+        state_result = await session.execute(state_stmt)
+        state = state_result.scalar_one_or_none()
+        
+        return {
+            "table_id": table_id,
+            "banker_model": {
+                "summary": banker_log.description if banker_log else None,
+                "time": banker_log.log_time.isoformat() if banker_log else None,
+            },
+            "player_model": {
+                "summary": player_log.description if player_log else None,
+                "time": player_log.log_time.isoformat() if player_log else None,
+            },
+            "combined_model": {
+                "summary": combined_log.description if combined_log else None,
+                "confidence": (state.predict_confidence if state else None),
+                "bet_tier": (state.current_bet_tier if state else None),
+                "prediction": (state.predict_direction if state else None),
+                "time": combined_log.log_time.isoformat() if combined_log else None,
+            },
+            "has_data": bool(combined_log),
+        }
+
+
+# --- 采集控制 API ---
+
+@app.get("/api/crawler/status")
+async def get_crawler_status(table_id: str = Query(...)):
+    """获取采集器状态"""
+    from app.services.scraper_service import ScraperManager
+    
+    all_status = ScraperManager.get_status()
+    if table_id in all_status:
+        status = all_status[table_id]
+        # 获取 Lile333 特有信息
+        scraper = ScraperManager._scrapers.get(table_id)
+        extra = {}
+        if scraper and hasattr(scraper, '_cached_count'):
+            extra["cached_count"] = scraper._cached_count
+            extra["desk_id"] = getattr(scraper, 'desk_id', table_id)
+        return {"table_id": table_id, **status, **extra}
+    
+    return {
+        "table_id": table_id,
+        "type": "none",
+        "status": "未初始化",
+        "stability_score": 0,
+        "message": "该桌子尚未启动采集器，请先启动系统",
+    }
+
+
+@app.post("/api/crawler/test")
+async def test_crawler(table_id: str = Query(...)):
+    """手动触发一次采集测试"""
+    from app.services.scraper_service import ScraperManager
+    
+    try:
+        scraper = ScraperManager.get_scraper(table_id)
+        result = await scraper.detect_new_game()
+        
+        return {
+            "success": result.success,
+            "data": {
+                "game_number": result.data.game_number if result.data else None,
+                "result": result.data.result if result.data else None,
+                "raw_data": result.data.raw_data if result.data else None,
+            } if result.data else None,
+            "source": result.source,
+            "crawl_time": round(result.crawl_time, 2),
+            "error": result.error,
+        }
+    except Exception as e:
+        raise HTTPException(500, f"采集测试失败: {str(e)}")
+
+
+@app.get("/api/crawler/raw-data")
+async def get_crawler_raw_data(table_id: str = Query(...)):
+    """获取采集器原始数据（最近N局）"""
+    from app.services.scraper_service import ScraperManager
+    
+    scraper = ScraperManager._scrapers.get(table_id)
+    if not scraper or not hasattr(scraper, 'fetch_all_history'):
+        raise HTTPException(404, "该桌子无可用的采集器或不支持历史查询")
+    
+    try:
+        history = await scraper.fetch_all_history()
+        return {
+            "table_id": table_id,
+            "total": len(history),
+            "data": history[-20:],  # 最近20局
+        }
+    except Exception as e:
+        raise HTTPException(500, f"获取原始数据失败: {str(e)}")
 
 
 # --- WebSocket 实时推送 ---

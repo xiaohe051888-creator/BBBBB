@@ -3,7 +3,7 @@
  */
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -90,11 +90,115 @@ export const getDatabaseRecords = async (tableName: string, page: number = 1, pa
   return api.get('/admin/database-records', { params: { table_name: tableName, page, page_size: pageSize } });
 };
 
+// ====== 走势图 API ======
+
+export interface RoadPointData {
+  game_number: number;
+  column: number;
+  row: number;
+  value: string;
+  is_new_column: boolean;
+  error_id: string | null;
+}
+
+export interface SingleRoadData {
+  display_name: string;
+  max_columns: number;
+  max_rows: number;
+  points: RoadPointData[];
+}
+
+export interface FiveRoadsResponse {
+  table_id: string;
+  boot_number: number | null;
+  total_games: number;
+  roads: {
+    '大路': SingleRoadData;
+    '珠盘路': SingleRoadData;
+    '大眼仔路': SingleRoadData;
+    '小路': SingleRoadData;
+    '螳螂路': SingleRoadData;
+  };
+}
+
+export const getRoadMaps = async (tableId: string, bootNumber?: number) => {
+  const params: Record<string, any> = { table_id: tableId };
+  if (bootNumber !== undefined) params.boot_number = bootNumber;
+  return api.get('/roads', { params });
+};
+
+export const getRoadRawData = async (tableId: string, bootNumber?: number) => {
+  const params: Record<string, any> = { table_id: tableId };
+  if (bootNumber !== undefined) params.boot_number = bootNumber;
+  return api.get('/roads/raw', { params });
+};
+
 // ====== WebSocket ======
 
 export const createWebSocket = (tableId: string): WebSocket => {
-  const ws = new WebSocket(`ws://localhost:8000/ws/${tableId}`);
+  const wsUrl = import.meta.env.VITE_WS_URL || `ws://localhost:8000/ws/${tableId}`;
+  const ws = new WebSocket(wsUrl);
   return ws;
+};
+
+// ====== AI模型分析 ======
+
+export interface LatestAnalysis {
+  table_id: string;
+  banker_model: { summary: string | null; time: string | null };
+  player_model: { summary: string | null; time: string | null };
+  combined_model: { summary: string | null; confidence: number | null; bet_tier: string | null; prediction: string | null; time: string | null };
+  has_data: boolean;
+}
+
+export const getLatestAnalysis = async (tableId: string) => {
+  return api.get<LatestAnalysis>('/analysis/latest', { params: { table_id: tableId } });
+};
+
+// ====== 采集控制 ======
+
+export interface CrawlerStatus {
+  table_id: string;
+  type: string;
+  url: string;
+  last_game_number: number;
+  stability_score: number;
+  total_calls: number;
+  success_rate: number;
+  cached_count?: number;
+  desk_id?: string;
+  status?: string;
+  message?: string;
+}
+
+export interface CrawlerTestResult {
+  success: boolean;
+  data: {
+    game_number: number | null;
+    result: string | null;
+    raw_data: any;
+  } | null;
+  source: string;
+  crawl_time: number;
+  error: string | null;
+}
+
+export interface CrawlerRawData {
+  table_id: string;
+  total: number;
+  data: any[];
+}
+
+export const getCrawlerStatus = async (tableId: string) => {
+  return api.get<CrawlerStatus>('/crawler/status', { params: { table_id: tableId } });
+};
+
+export const testCrawler = async (tableId: string) => {
+  return api.post<CrawlerTestResult>('/crawler/test', null, { params: { table_id: tableId } });
+};
+
+export const getCrawlerRawData = async (tableId: string) => {
+  return api.get<CrawlerRawData>('/crawler/raw-data', { params: { table_id: tableId } });
 };
 
 export default api;

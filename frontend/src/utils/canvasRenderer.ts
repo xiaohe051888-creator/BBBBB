@@ -1,0 +1,187 @@
+/**
+ * 走势图 Canvas 渲染引擎 - 核心工具函数
+ * 提供通用的Canvas绑定、绘制和动画能力
+ */
+import type { RoadPoint, RoadData, RoadCanvasConfig } from '../types/road';
+import { ROAD_COLORS } from '../types/road';
+
+/**
+ * 获取点的显示颜色
+ * 大路/珠盘路: 庄=红, 闲=蓝
+ * 派生路(大眼仔/小路/螳螂): 延=红, 转=蓝
+ */
+export function getPointColor(value: string, isDerived: boolean = false): string {
+  if (isDerived) {
+    return value === '延' ? ROAD_COLORS.derived_red : ROAD_COLORS.derived_blue;
+  }
+  return value === '庄' ? ROAD_COLORS.banker : ROAD_COLORS.player;
+}
+
+/**
+ * 计算Canvas所需尺寸
+ */
+export function calcCanvasSize(
+  roadData: RoadData | null,
+  config: RoadCanvasConfig,
+): { width: number; height: number } {
+  const cols = roadData?.max_columns ? Math.max(roadData.max_columns, 1) : 1;
+  const rows = roadData?.max_rows ? Math.max(roadData.max_rows, 1) : 1;
+
+  const width = config.padding * 2 + cols * (config.cellSize + config.cellGap);
+  const height = config.padding * 2 + rows * (config.cellSize + config.cellGap);
+
+  return { width: Math.max(width, 200), height: Math.max(height, 100) };
+}
+
+/**
+ * 绘制单个圆点（庄/闲/延/转）
+ */
+export function drawCircle(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  color: string,
+  borderRadius: number,
+  errorMarked: boolean = false,
+): void {
+  ctx.save();
+
+  // 绘制圆角方形/圆形
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  if (borderRadius >= radius) {
+    // 接近圆形
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  } else {
+    // 圆角矩形
+    const halfSize = radius;
+    roundRect(ctx, cx - halfSize, cy - halfSize, halfSize * 2, halfSize * 2, borderRadius);
+  }
+  ctx.fill();
+
+  // 错误标记 - 右上角黄色三角
+  if (errorMarked) {
+    ctx.fillStyle = ROAD_COLORS.errorMark;
+    ctx.beginPath();
+    const markSize = radius * 0.4;
+    ctx.moveTo(cx + radius * 0.3, cy - radius * 0.5);
+    ctx.lineTo(cx + radius * 0.7, cy - radius * 0.1);
+    ctx.lineTo(cx + radius * 0.5, cy - radius * 0.3);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+/**
+ * 绘制圆角矩形路径
+ */
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/**
+ * 绘制网格线（辅助开发）
+ */
+export function drawGrid(
+  ctx: CanvasRenderingContext2D,
+  config: RoadCanvasConfig,
+  totalCols: number,
+  totalRows: number,
+): void {
+  ctx.save();
+  ctx.strokeStyle = ROAD_COLORS.gridLine;
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([2, 4]);
+
+  const cellW = config.cellSize + config.cellGap;
+  const offsetX = config.padding;
+  const offsetY = config.padding;
+
+  // 垂直线
+  for (let c = 0; c <= totalCols; c++) {
+    const x = offsetX + c * cellW - config.cellGap / 2;
+    ctx.beginPath();
+    ctx.moveTo(x, offsetY - 5);
+    ctx.lineTo(x, offsetY + totalRows * cellW + 5);
+    ctx.stroke();
+  }
+
+  // 水平线
+  for (let r = 0; r <= totalRows; r++) {
+    const y = offsetY + r * cellW - config.cellGap / 2;
+    ctx.beginPath();
+    ctx.moveTo(offsetX - 5, y);
+    ctx.lineTo(offsetX + totalCols * cellW + 5, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+/**
+ * 将RoadPoints转换为二维网格 Map<col, Map<row, RoadPoint>>
+ * 方便快速查找坐标对应的点
+ */
+export function buildPointGrid(points: RoadPoint[]): Map<number, Map<number, RoadPoint>> {
+  const grid = new Map<number, Map<number, RoadPoint>>();
+  for (const p of points) {
+    if (!grid.has(p.column)) {
+      grid.set(p.column, new Map());
+    }
+    grid.get(p.column)!.set(p.row, p);
+  }
+  return grid;
+}
+
+/**
+ * 绘制新点闪烁动画帧
+ */
+export function drawAnimatedCircle(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  baseRadius: number,
+  color: string,
+  borderRadius: number,
+  progress: number,       // 0->1 动画进度
+  errorMarked: boolean = false,
+): void {
+  ctx.save();
+
+  // 外发光效果（随progress衰减）
+  if (progress < 1) {
+    const glowAlpha = 0.5 * (1 - progress);
+    const glowRadius = baseRadius * (1 + progress * 0.8);
+    const gradient = ctx.createRadialGradient(cx, cy, baseRadius * 0.5, cx, cy, glowRadius);
+    gradient.addColorStop(0, color + Math.round(glowAlpha * 255).toString(16).padStart(2, '0'));
+    gradient.addColorStop(1, color + '00');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 实际圆点（轻微放大效果）
+  const scale = 1 + (1 - progress) * 0.3;
+  const actualRadius = baseRadius * scale;
+
+  ctx.globalAlpha = 0.7 + progress * 0.3;
+  drawCircle(ctx, cx, cy, actualRadius, color, borderRadius, errorMarked);
+
+  ctx.restore();
+}

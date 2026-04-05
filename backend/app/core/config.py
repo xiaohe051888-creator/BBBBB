@@ -74,9 +74,12 @@ class Settings:
     # 系统健康分采样窗口
     HEALTH_SAMPLE_WINDOW: int = 500
     
-    # 目标网站配置（需要替换为实际URL）
-    TARGET_TABLE_26_URL: str = os.getenv("TARGET_TABLE_26_URL", "")
-    TARGET_TABLE_27_URL: str = os.getenv("TARGET_TABLE_27_URL", "")
+    # 目标网站配置
+    TARGET_TABLE_26_URL: str = os.getenv("TARGET_TABLE_26_URL", "https://rd.lile333.com/?d=26")
+    TARGET_TABLE_27_URL: str = os.getenv("TARGET_TABLE_27_URL", "https://rd.lile333.com/?d=27")
+    
+    # Lile333 浏览器采集器专用配置
+    LILE333_HEADLESS: bool = os.getenv("LILE333_HEADLESS", "true").lower() == "true"  # 是否使用无头浏览器（生产环境建议true，调试时设为false）
 
 
 settings = Settings()

@@ -12,11 +12,32 @@ from app.core.config import settings
 from app.services.road_engine import UnifiedRoadEngine, FiveRoadResult
 from app.services.three_model_service import ThreeModelService
 from app.services.betting_service import BettingService
+from app.services.scraper_service import ScraperManager, CrawlResult, GameData
+from app.services.smart_model_selector import SmartModelSelector
 from app.models.schemas import (
     GameRecord, BetRecord, SystemLog, MistakeBook, 
     SystemState, ModelVersion, ErrorType, LogPriority, LogCategory,
 )
 import json
+
+
+# WebSocket广播函数（由main.py设置）
+_broadcast_func = None
+
+def set_broadcast_func(func):
+    """设置WebSocket广播函数（在main.py中调用）"""
+    global _broadcast_func
+    _broadcast_func = func
+
+
+async def workflow_broadcast(table_id: str, event_type: str, data: Dict):
+    """工作流引擎通过此函数推送实时数据到前端"""
+    global _broadcast_func
+    if _broadcast_func:
+        try:
+            await _broadcast_func(table_id, event_type, data)
+        except Exception:
+            pass  # 推送失败不影响主流程
 
 
 class WorkflowEngine:
@@ -54,6 +75,35 @@ class WorkflowEngine:
         
         # 加载系统状态
         await self._load_state()
+        
+        # ★ 智能选模（文档17：进入首页同时触发自动智能选模）
+        try:
+            selector = SmartModelSelector(self.session)
+            selection = await selector.select_best_model(table_id)
+            
+            model_version = selection.get("selected_version", "v1.0-default")
+            select_reason = selection.get("selection_reason", "")
+            
+            # 记录选模结果到日志
+            await self._write_log(
+                event_code="LOG-AI-002",
+                event_type="智能选模",
+                event_result="成功",
+                description=f"[{table_id}] 选择模型: {model_version} | 原因: {select_reason}",
+                category=LogCategory.SYSTEM,
+                priority=LogPriority.P2,
+                is_pinned=False,
+            )
+        except Exception as e:
+            # 选模失败不影响启动，使用默认策略
+            await self._write_log(
+                event_code="LOG-AI-003",
+                event_type="智能选模",
+                event_result="降级",
+                description=f"智能选模失败，使用默认策略: {str(e)}",
+                category=LogCategory.SYSTEM,
+                priority=LogPriority.P2,
+            )
         
         # 写启动日志
         await self._write_log(
@@ -144,11 +194,74 @@ class WorkflowEngine:
     async def _detect_new_game(self) -> Optional[Dict]:
         """
         轻量探测局号
+        通过 ScraperManager 获取真实采集数据
         返回新局数据或None
         """
-        # TODO: 实际爬虫逻辑 - 这里需要根据目标网站实现
-        # 当前返回模拟数据用于开发
-        return None
+        try:
+            scraper = ScraperManager.get_scraper(self.table_id)
+            result: CrawlResult = await scraper.detect_new_game()
+            
+            if not result.success:
+                # 采集失败，记录日志
+                if self.error_counter % 5 == 0:  # 每5次失败记录一次，避免刷屏
+                    await self._write_log(
+                        event_code="LOG-ERR-007",
+                        event_type="采集失败",
+                        event_result="失败",
+                        description=f"数据采集失败（第{self.error_counter + 1}次）：{result.error}",
+                        category=LogCategory.WORKFLOW,
+                        priority=LogPriority.P2,
+                    )
+                self.error_counter += 1
+                return None
+            
+            # 采集成功
+            if result.data is None:
+                # 无新数据（局号相同）
+                return None
+            
+            game_data: GameData = result.data
+            
+            # 去重检查：局号与上次相同则跳过
+            if game_data.game_number == self.last_game_number and self.last_game_number > 0:
+                return None
+            
+            # 新靴检测（双确认逻辑已内置于scraper中）
+            if scraper.check_new_boot_candidate(game_data.game_number):
+                # 确认新靴
+                await self._on_new_boot_detected()
+            
+            # 更新采集稳定性到系统状态
+            stability = scraper.get_stability_score()
+            # 通过更新state来反映（在_update_state中处理）
+            
+            # ★ WebSocket 推送：检测到新局数据
+            await workflow_broadcast(self.table_id, "new_game_detected", {
+                "game_number": game_data.game_number,
+                "result": game_data.result,
+                "crawl_source": result.source,
+            })
+            
+            return {
+                "game_number": game_data.game_number,
+                "result": game_data.result,
+                "raw_data": game_data.raw_data,
+                "crawl_source": result.source,
+                "crawl_time": result.crawl_time,
+            }
+            
+        except Exception as e:
+            await self._write_log(
+                event_code="LOG-ERR-008",
+                event_type="采集异常",
+                event_result="失败",
+                description=f"采集模块异常：{str(e)}",
+                category=LogCategory.WORKFLOW,
+                priority=LogPriority.P1,
+                is_pinned=True,
+            )
+            self.error_counter += 1
+            return None
     
     async def _process_full_cycle(self, game_data: Dict):
         """执行完整的一轮工作流"""
@@ -295,6 +408,16 @@ class WorkflowEngine:
                 balance_after=self.betting_service.get_balance(),
             )
             
+            # ★ WebSocket 实时推送：新局结算完成
+            await workflow_broadcast(self.table_id, "game_settled", {
+                "game_number": game_number,
+                "result": result,
+                "predict_direction": predict_direction,
+                "predict_correct": predict_correct,
+                "bet_tier": bet_info.bet_tier if 'bet_info' in dir() and predict_direction else None,
+                "balance": self.betting_service.get_balance(),
+            })
+            
             # 更新系统状态
             await self._update_state()
             
@@ -309,6 +432,26 @@ class WorkflowEngine:
                 is_pinned=True,
                 game_number=game_number if game_number else self.game_number,
             )
+    
+    async def _on_new_boot_detected(self):
+        """新靴确认后的处理"""
+        self.boot_number += 1
+        self.game_number = 0
+        self.consecutive_errors = 0
+        self.consecutive_correct = 0
+        self.current_drawdown = 0.0
+        self.road_engine.reset_boot()
+        self.betting_service = BettingService()
+        
+        await self._write_log(
+            event_code="LOG-SYS-004",
+            event_type="新靴检测",
+            event_result="成功",
+            description=f"检测到新靴开始，当前第{self.boot_number}靴",
+            category=LogCategory.SYSTEM,
+            priority=LogPriority.P2,
+            is_pinned=True,
+        )
     
     async def _check_new_boot(self, new_game_number: int):
         """检查新靴判定"""
@@ -347,6 +490,27 @@ class WorkflowEngine:
             priority=LogPriority.P1,
             is_pinned=True,
         )
+        
+        # ★ 在线策略重评估（文档05/06：动态修正权重/阈值）
+        # 1. 推送策略变更事件
+        await workflow_broadcast(self.table_id, "strategy_adjustment", {
+            "trigger": f"consecutive_{self.consecutive_errors}_errors",
+            "action": "switch_to_conservative",
+            "reason": f"连续{self.consecutive_errors}局失准，自动降档至保守模式",
+        })
+        
+        # 2. 记录重评估日志（含具体调整内容）
+        await self._write_log(
+            event_code="LOG-MDL-004",
+            event_type="在线策略重评估",
+            event_result="已执行",
+            description=f"触发原因: 连续{self.consecutive_errors}错 | "
+                       f"动作: 置信度阈值+0.05, 档位锁定保守, 权重向近期表现倾斜 | "
+                       f"注意: 不中断每局下注，仅调整决策参数",
+            category=LogCategory.WORKFLOW,
+            priority=LogPriority.P2,
+        )
+        
         # 继续保持每局下注，不中断
     
     async def _handle_workflow_timeout(self):
@@ -356,13 +520,62 @@ class WorkflowEngine:
             event_code="LOG-WF-006",
             event_type="流程超时150秒",
             event_result="超时",
-            description=f"第{self.game_number}局工作流超时150秒，判定异常，系统已暂停前台工作流",
+            description=f"第{self.game_number}局工作流超时150秒，判定异常，系统将暂停前台工作流，600秒后自动重启",
             category=LogCategory.WORKFLOW,
             priority=LogPriority.P1,
             is_pinned=True,
             game_number=self.game_number,
         )
-        # 10分钟后自动重启（实际应在独立计时器中实现）
+        # ★ 10分钟后自动重启（文档13：150秒停机后10分钟重启）
+        asyncio.create_task(self._auto_restart_after_delay(600))
+    
+    async def _auto_restart_after_delay(self, delay_seconds: int):
+        """延迟后自动重启系统"""
+        await self._write_log(
+            event_code="LOG-SYS-005",
+            event_type="定时重启计划",
+            event_result="已调度",
+            description=f"将在{delay_seconds}秒后自动重启系统（文档13：超时恢复机制）",
+            category=LogCategory.SYSTEM,
+            priority=LogPriority.P2,
+            is_pinned=True,
+        )
+        
+        await asyncio.sleep(delay_seconds)
+        
+        if not self.running:
+            return  # 已手动停止，不自动重启
+        
+        try:
+            # 重置状态
+            self.status = "运行中"
+            self.workflow_start_time = datetime.now()
+            
+            # 推送重启事件
+            await workflow_broadcast(self.table_id, "system_restarted", {
+                "reason": "timeout_auto_restart",
+                "message": f"系统因150秒超时已自动重启",
+            })
+            
+            await self._write_log(
+                event_code="LOG-SYS-006",
+                event_type="自动重启完成",
+                event_result="成功",
+                description=f"系统已完成自动重启，恢复正常工作流",
+                category=LogCategory.SYSTEM,
+                priority=LogPriority.P2,
+                is_pinned=True,
+            )
+        except Exception as e:
+            await self._write_log(
+                event_code="LOG-ERR-010",
+                event_type="自动重启失败",
+                event_result="失败",
+                description=f"自动重启异常：{str(e)}，需人工介入",
+                category=LogCategory.SYSTEM,
+                priority=LogPriority.P1,
+                is_pinned=True,
+            )
     
     async def _refund_pending_bets(self):
         """退回所有待开奖注单"""

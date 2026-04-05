@@ -105,7 +105,7 @@ const AdminPage: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 {/* AI学习 */}
                 <Card title="AI学习" style={{ gridColumn: 'span 2' }}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
+                  <Space orientation="vertical" style={{ width: '100%' }}>
                     <Descriptions size="small" bordered>
                       <Descriptions.Item label="学习条件">数据库历史有效局总量需达到200局</Descriptions.Item>
                       <Descriptions.Item label="学习范围">按靴执行，不跨靴混样</Descriptions.Item>

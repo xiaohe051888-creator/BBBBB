@@ -13,6 +13,8 @@ import {
   ArrowUpOutlined, ArrowDownOutlined, ClockCircleOutlined,
   DashboardOutlined, FileTextOutlined, ThunderboltOutlined,
   SafetyOutlined, ExportOutlined,
+  GlobalOutlined, SpiderChartOutlined, CheckCircleOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -21,6 +23,7 @@ import {
   STATUS_TEXTS, PRIORITY_COLORS, LOG_CATEGORIES,
   BET_STATUS_COLORS, EMPTY_STATES, DIALOG_TEXTS, BUTTON_TEXTS,
 } from '../utils/constants';
+import FiveRoadChart from '../components/roads/FiveRoadChart';
 
 interface SystemState {
   status: string;
@@ -94,6 +97,16 @@ interface AnalysisData {
   consistency_status: string;
 }
 
+// ====== 采集状态 ======
+
+interface CrawlerData {
+  status: api.CrawlerStatus | null;
+  lastTest: api.CrawlerTestResult | null;
+  rawHistory: any[];
+  loading: boolean;
+  testing: boolean;
+}
+
 const DashboardPage: React.FC = () => {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
@@ -107,6 +120,10 @@ const DashboardPage: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [games, setGames] = useState<GameRecord[]>([]);
   const [bets, setBets] = useState<BetRecord[]>([]);
+
+  // 走势图数据
+  const [roadData, setRoadData] = useState<api.FiveRoadsResponse | null>(null);
+  const [roadLoading, setRoadLoading] = useState(false);
   
   // 分页
   const [logPage, setLogPage] = useState(1);
@@ -119,11 +136,20 @@ const DashboardPage: React.FC = () => {
   
   // 计时器
   const [timer, setTimer] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   
   // WebSocket
   const wsRef = useRef<WebSocket | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // 采集状态
+  const [crawler, setCrawler] = useState<CrawlerData>({
+    status: null,
+    lastTest: null,
+    rawHistory: [],
+    loading: false,
+    testing: false,
+  });
 
   // ====== 数据加载 ======
 
@@ -167,24 +193,104 @@ const DashboardPage: React.FC = () => {
     } catch {}
   }, [tableId]);
 
+  // 加载走势图数据
+  const loadRoadData = useCallback(async () => {
+    if (!tableId) return;
+    setRoadLoading(true);
+    try {
+      const res = await api.getRoadMaps(tableId);
+      if (res.data && (res.data as any).roads) {
+        setRoadData(res.data as api.FiveRoadsResponse);
+      }
+    } catch {
+      console.log('走势图API暂无数据，使用模拟展示');
+      setRoadData(null);
+    } finally {
+      setRoadLoading(false);
+    }
+  }, [tableId]);
+
+  // 加载采集状态
+  const loadCrawlerStatus = useCallback(async () => {
+    if (!tableId) return;
+    try {
+      const res = await api.getCrawlerStatus(tableId);
+      setCrawler(prev => ({ ...prev, status: res.data }));
+    } catch {}
+  }, [tableId]);
+
+  // 加载AI模型分析结果
+  const loadLatestAnalysis = useCallback(async () => {
+    if (!tableId) return;
+    try {
+      const res = await api.getLatestAnalysis(tableId);
+      if (res.data && res.data.has_data) {
+        setAnalysis({
+          banker_summary: res.data.banker_model?.summary || '',
+          player_summary: res.data.player_model?.summary || '',
+          combined_summary: res.data.combined_model?.summary || '',
+          confidence: res.data.combined_model?.confidence || 0.5,
+          bet_tier: res.data.combined_model?.bet_tier || '标准',
+          consistency_status: 'normal',
+        });
+      }
+    } catch {}
+  }, [tableId]);
+
+  // 手动测试采集
+  const handleTestCrawler = async () => {
+    if (!tableId) return;
+    setCrawler(prev => ({ ...prev, testing: true }));
+    try {
+      const res = await api.testCrawler(tableId);
+      setCrawler(prev => ({
+        ...prev,
+        lastTest: res.data,
+        testing: false,
+      }));
+      if (res.data.success && res.data.data) {
+        message.success(`采集成功！第${res.data.data.game_number}局 ${res.data.data.result}`);
+      } else if (!res.data.success) {
+        message.warning(`采集完成但无新局数据`);
+      } else {
+        message.error(`采集失败：${res.data.error}`);
+      }
+    } catch (e: any) {
+      message.error('采集测试失败');
+      setCrawler(prev => ({ ...prev, testing: false }));
+    }
+  };
+
   useEffect(() => {
     loadSystemState();
     loadStats();
     loadLogs();
     loadGames();
     loadBets();
-  }, [loadSystemState, loadStats, loadLogs, loadGames, loadBets]);
+    loadRoadData();
+    loadCrawlerStatus();
+    loadLatestAnalysis();
+  }, [loadSystemState, loadStats, loadLogs, loadGames, loadBets, loadRoadData, loadCrawlerStatus, loadLatestAnalysis]);
 
-  // ====== 定时刷新 ======
+  // 走势图数据定时刷新（每10秒）
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadRoadData();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [loadRoadData]);
 
+  // 定时刷新（含采集状态+分析数据）
   useEffect(() => {
     const interval = setInterval(() => {
       loadSystemState();
       loadStats();
       loadLogs(logPage);
+      loadCrawlerStatus();
+      loadLatestAnalysis();
     }, 5000);
     return () => clearInterval(interval);
-  }, [loadSystemState, loadStats, loadLogs, logPage]);
+  }, [loadSystemState, loadStats, loadLogs, logPage, loadCrawlerStatus, loadLatestAnalysis]);
 
   // ====== 工作流计时器 ======
 
@@ -207,29 +313,53 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (!tableId) return;
-    const ws = api.createWebSocket(tableId);
-    wsRef.current = ws;
     
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'state_update') {
-        setSystemState(data.data);
-      } else if (data.type === 'log') {
-        loadLogs(1);
-      } else if (data.type === 'analysis') {
-        setAnalysis(data.data);
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    
+    const connectWS = () => {
+      try {
+        const ws = api.createWebSocket(tableId);
+        wsRef.current = ws;
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'state_update') {
+              setSystemState(data.data);
+            } else if (data.type === 'log') {
+              loadLogs(1);
+            } else if (data.type === 'analysis') {
+              setAnalysis(data.data);
+            }
+          } catch (e) {
+            // 忽略消息解析错误
+          }
+        };
+        
+        ws.onerror = () => {
+          console.warn('WebSocket连接错误，将在3秒后重试');
+        };
+        
+        ws.onclose = () => {
+          // 自动重连（延迟3秒）
+          reconnectTimer = setTimeout(() => {
+            connectWS();
+          }, 3000);
+        };
+      } catch (e) {
+        console.warn('WebSocket创建失败，将在5秒后重试');
+        reconnectTimer = setTimeout(() => {
+          connectWS();
+        }, 5000);
       }
     };
     
-    ws.onclose = () => {
-      // 自动重连
-      setTimeout(() => {
-        const newWs = api.createWebSocket(tableId!);
-        wsRef.current = newWs;
-      }, 3000);
-    };
+    connectWS();
     
-    return () => { ws.close(); };
+    return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (wsRef.current) wsRef.current.close();
+    };
   }, [tableId]);
 
   // ====== 操作 ======
@@ -352,7 +482,7 @@ const DashboardPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f2f5', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#0d1117', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
       {/* ====== 顶部状态栏（约10%高度）====== */}
       <div style={{
         background: 'linear-gradient(135deg, #001529 0%, #003a70 100%)',
@@ -412,47 +542,94 @@ const DashboardPage: React.FC = () => {
         </Space>
       </div>
 
+      {/* ====== 采集状态栏 ====== */}
+      <div style={{
+        background: '#161b22',
+        borderBottom: '1px solid #21262d',
+        padding: '8px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 16,
+        flexWrap: 'wrap',
+      }}>
+        <Space size="large">
+          <Space size={4}>
+            <GlobalOutlined style={{ color: '#58a6ff', fontSize: 14 }} />
+            <span style={{ fontSize: 13, color: '#8b949e' }}>数据源：</span>
+            <Tag
+              color={
+                crawler.status?.type === 'Lile333Scraper' ? 'blue' :
+                crawler.status?.type === 'MockScraper' ? 'green' :
+                crawler.status?.type ? 'orange' : 'default'
+              }
+              style={{ margin: 0 }}
+            >
+              {crawler.status?.type || '未连接'}
+            </Tag>
+          </Space>
+          <Space size={4}>
+            <SpiderChartOutlined style={{ color: crawler.status?.stability_score && crawler.status.stability_score >= 80 ? '#52c41a' : crawler.status?.stability_score && crawler.status.stability_score >= 50 ? '#faad14' : '#ff4d4f', fontSize: 13 }} />
+            <span style={{ fontSize: 13, color: '#8b949e' }}>稳定性：</span>
+            <span style={{
+              fontWeight: 700,
+              fontSize: 14,
+              color: (crawler.status?.stability_score ?? 0) >= 80 ? '#52c41a' : (crawler.status?.stability_score ?? 0) >= 50 ? '#faad14' : '#ff4d4f',
+            }}>
+              {(crawler.status?.stability_score ?? 0).toFixed(0)}分
+            </span>
+          </Space>
+          <Space size={4}>
+            <span style={{ fontSize: 12, color: '#666' }}>已采集</span>
+            <span style={{ fontSize: 13, color: '#e6edf3', fontWeight: 600 }}>{crawler.status?.cached_count ?? crawler.status?.last_game_number ?? 0}</span>
+            <span style={{ fontSize: 12, color: '#666' }}>局</span>
+          </Space>
+          <Space size={4}>
+            <span style={{ fontSize: 12, color: '#666' }}>成功率</span>
+            <span style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: (crawler.status?.success_rate ?? 100) >= 95 ? '#52c41a' : (crawler.status?.success_rate ?? 100) >= 80 ? '#faad14' : '#ff4d4f',
+            }}>
+              {(crawler.status?.success_rate ?? 100).toFixed(0)}%
+            </span>
+          </Space>
+        </Space>
+
+        <Space>
+          <Button
+            size="small"
+            icon={<ReloadOutlined spin={crawler.testing} />}
+            loading={crawler.testing}
+            onClick={handleTestCrawler}
+          >
+            手动采集
+          </Button>
+          {crawler.lastTest && (
+            <span style={{ fontSize: 11, color: '#666' }}>
+              上次: +{crawler.lastTest.crawl_time.toFixed(1)}s
+              {crawler.lastTest.data?.result && (
+                <Tag color={crawler.lastTest.data.result === '庄' ? '#ff4d4f' : crawler.lastTest.data.result === '闲' ? '#1890ff' : '#52c41a'} style={{ marginLeft: 4, fontSize: 10 }}>
+                  {crawler.lastTest.data.result}
+                </Tag>
+              )}
+            </span>
+          )}
+        </Space>
+      </div>
+
       {/* ====== 主体内容 ====== */}
       <div style={{ padding: 16, display: 'flex', gap: 16 }}>
         {/* ====== 左侧：5路走势图区域（约45%宽度）====== */}
         <div style={{ flex: '0 0 45%' }}>
-          {/* 5路走势图 */}
-          <Card title="五路走势图" size="small" style={{ marginBottom: 16, minHeight: 400 }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateRows: 'repeat(2, 1fr)',
-              gap: 12,
-            }}>
-              {/* 大路 - 占满顶部 */}
-              <div style={{
-                background: '#0a1628',
-                borderRadius: 8,
-                padding: 12,
-                minHeight: 180,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Empty description="大路 - 等待数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-              </div>
-
-              {/* 下方4路 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                {['珠盘路', '大眼仔路', '小路', '螳螂路'].map(road => (
-                  <div key={road} style={{
-                    background: '#0a1628',
-                    borderRadius: 8,
-                    padding: 8,
-                    minHeight: 80,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Empty description={road} image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* 5路走势图 - 使用Canvas渲染组件 */}
+          <Card title="五路走势图" size="small" style={{ marginBottom: 16, minHeight: 420 }}>
+            <FiveRoadChart
+              data={roadData?.roads ?? null}
+              loading={roadLoading}
+              useMockData={!roadData}  // 无真实数据时自动使用模拟数据
+              mockGameCount={40}
+            />
           </Card>
 
           {/* 本靴进度条 */}
@@ -481,24 +658,24 @@ const DashboardPage: React.FC = () => {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* 庄模型 */}
-                <div style={{ background: '#fff1f0', borderRadius: 8, padding: '8px 12px', borderLeft: '3px solid #ff4d4f' }}>
+                <div style={{ background: '#1c2128', borderRadius: 8, padding: '8px 12px', borderLeft: '3px solid #ff4d4f' }}>
                   <div style={{ fontWeight: 600, fontSize: 12, color: '#ff4d4f', marginBottom: 4 }}>庄模型</div>
-                  <div style={{ fontSize: 13, color: '#333' }}>{analysis.banker_summary || '暂无分析'}</div>
+                  <div style={{ fontSize: 13, color: '#e6edf3' }}>{analysis.banker_summary || '暂无分析'}</div>
                 </div>
                 {/* 闲模型 */}
-                <div style={{ background: '#e6f7ff', borderRadius: 8, padding: '8px 12px', borderLeft: '3px solid #1890ff' }}>
+                <div style={{ background: '#1c2128', borderRadius: 8, padding: '8px 12px', borderLeft: '3px solid #1890ff' }}>
                   <div style={{ fontWeight: 600, fontSize: 12, color: '#1890ff', marginBottom: 4 }}>闲模型</div>
-                  <div style={{ fontSize: 13, color: '#333' }}>{analysis.player_summary || '暂无分析'}</div>
+                  <div style={{ fontSize: 13, color: '#e6edf3' }}>{analysis.player_summary || '暂无分析'}</div>
                 </div>
                 {/* 综合模型 */}
-                <div style={{ background: '#f6ffed', borderRadius: 8, padding: '8px 12px', borderLeft: '3px solid #52c41a' }}>
+                <div style={{ background: '#1c2128', borderRadius: 8, padding: '8px 12px', borderLeft: '3px solid #52c41a' }}>
                   <div style={{ fontWeight: 600, fontSize: 12, color: '#52c41a', marginBottom: 4 }}>
                     综合模型
                     <Tag color={analysis.bet_tier === '保守' ? 'orange' : analysis.bet_tier === '进取' ? 'red' : 'blue'} style={{ marginLeft: 8, fontSize: 11 }}>
                       {analysis.bet_tier || '标准'}档
                     </Tag>
                   </div>
-                  <div style={{ fontSize: 13, color: '#333', fontWeight: 500 }}>
+                  <div style={{ fontSize: 13, color: '#e6edf3', fontWeight: 500 }}>
                     {analysis.combined_summary || '暂无分析'}
                   </div>
                 </div>
@@ -528,7 +705,7 @@ const DashboardPage: React.FC = () => {
                 />
               </Space>
             }
-            bodyStyle={{ padding: 0, maxHeight: 240, overflow: 'auto' }}
+            styles={{ body: { padding: 0, maxHeight: 240, overflow: 'auto' } }}
           >
             <Table
               dataSource={logs}
@@ -561,8 +738,8 @@ const DashboardPage: React.FC = () => {
             size="small"
             extra={
               <Space>
-                <Statistic title="准确率" value={stats?.accuracy || 0} suffix="%" valueStyle={{ fontSize: 14, color: (stats?.accuracy || 0) >= 55 ? '#ff4d4f' : '#52c41a' }} />
-                <Statistic title="总/中/错" value={`${stats?.total_games || 0}/${stats?.hit_count || 0}/${stats?.miss_count || 0}`} valueStyle={{ fontSize: 14 }} />
+                <Statistic title="准确率" value={stats?.accuracy || 0} suffix="%" styles={{ content: { fontSize: 14, color: (stats?.accuracy || 0) >= 55 ? '#ff4d4f' : '#52c41a' } }} />
+                <Statistic title="总/中/错" value={`${stats?.total_games || 0}/${stats?.hit_count || 0}/${stats?.miss_count || 0}`} styles={{ content: { fontSize: 14 } }} />
               </Space>
             }
           >
@@ -582,7 +759,7 @@ const DashboardPage: React.FC = () => {
       {/* 内联样式 */}
       <style>{`
         .log-pinned {
-          background-color: #fff7e6 !important;
+          background-color: rgba(250, 173, 20, 0.08) !important;
         }
         .ant-table-small .ant-table-cell {
           padding: 4px 8px !important;

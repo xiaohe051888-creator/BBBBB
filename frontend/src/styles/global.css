@@ -1,8 +1,10 @@
 /**
- * 全局样式 - 百家乐分析预测系统
+ * 全局样式 - 百家乐分析预测系统（卡片板块风格）
+ * 设计理念：深色专业风 + 卡片板块化 + 侧边栏导航
  */
 
-* {
+/* ====== CSS Reset ====== */
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -20,89 +22,592 @@ body {
     Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #f0f2f5;
+  background: #0d1117;
+  color: #e6edf3;
 }
 
-/* 滚动条美化 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+/* ====== 滚动条美化 ====== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #161b22; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #484f58; }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-/* 置顶日志样式 */
-.log-pinned {
-  background-color: #fff7e6 !important;
-}
-
-.log-pinned:hover {
-  background-color: #fff7e6 !important;
-}
-
-/* 卡片间距统一 */
+/* ====== Ant Design 深色主题覆盖 ====== */
 .ant-card {
-  border-radius: 8px !important;
+  background: #161b22 !important;
+  border: 1px solid #21262d !important;
+  border-radius: 12px !important;
+  color: #e6edf3 !important;
+}
+.ant-card-head {
+  border-bottom-color: #21262d !important;
+  color: #e6edf3 !important;
+}
+.ant-card-head-title {
+  color: #e6edf3 !important;
+  font-weight: 600 !important;
+}
+.ant-card-body {
+  padding: 16px !important;
 }
 
-/* 表格紧凑 */
+.ant-table {
+  background: transparent !important;
+  color: #e6edf3 !important;
+}
+.ant-table-thead > tr > th {
+  background: #1c2128 !important;
+  color: #8b949e !important;
+  border-bottom-color: #21262d !important;
+}
+.ant-table-tbody > tr > td {
+  background: #161b22 !important;
+  border-bottom-color: #21262d !important;
+  color: #c9d1d9 !important;
+}
+.ant-table-tbody > tr:hover > td {
+  background: #1c2128 !important;
+}
 .ant-table-small .ant-table-cell {
   padding: 4px 8px !important;
-  font-size: 12px;
+  font-size: 12.5px !important;
 }
 
-/* 标签间距 */
 .ant-tag {
-  margin-right: 0;
+  border-radius: 4px !important;
+  margin-right: 0 !important;
+  font-size: 12px !important;
 }
 
-/* 统计组件 */
+.ant-btn-text {
+  color: #8b949e !important;
+}
+.ant-btn-text:hover {
+  color: #58a6ff !important;
+  background: rgba(56, 139, 253, 0.08) !important;
+}
+
 .ant-statistic-content-value {
-  font-size: 14px !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #e6edf3 !important;
+}
+.ant-statistic-title {
+  color: #8b949e !important;
+  font-size: 12px !important;
 }
 
-/* 百家乐专用颜色 */
-.banker-color {
-  color: #ff4d4f;
+.ant-select-selector {
+  background: #1c2128 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+.ant-select-dropdown {
+  background: #1c2128 !important;
+  border: 1px solid #30363d !important;
 }
 
-.player-color {
-  color: #1890ff;
+.ant-modal-content {
+  background: #161b22 !important;
+}
+.ant-modal-header {
+  background: #161b22 !important;
+  border-bottom-color: #21262d !important;
+}
+.ant-modal-title { color: #e6edf3 !important; }
+
+.ant-input, .ant-input-password {
+  background: #0d1117 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+.ant-input-affix-wrapper {
+  background: #0d1117 !important;
+  border-color: #30363d !important;
+}
+.ant-tabs-tab {
+  color: #8b949e !important;
+}
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #58a6ff !important;
+}
+.ant-tabs-ink-bar {
+  background: #58a6ff !important;
 }
 
-.tie-color {
+/* ====== 布局框架 ====== */
+
+/* 主容器：侧边栏 + 内容区 */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 侧边栏 */
+.sidebar {
+  width: 200px;
+  min-width: 200px;
+  background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
+  border-right: 1px solid #21262d;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.sidebar-collapsed {
+  width: 56px;
+  min-width: 56px;
+}
+
+.sidebar-logo {
+  padding: 20px 16px;
+  text-align: center;
+  border-bottom: 1px solid #21262d;
+}
+
+.sidebar-logo h2 {
+  font-size: 15px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #58a6ff, #a371f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  letter-spacing: 1px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 8px;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #8b949e;
+  font-size: 13.5px;
+  font-weight: 500;
+  user-select: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item:hover {
+  background: rgba(56, 139, 253, 0.08);
+  color: #c9d1d9;
+}
+
+.nav-item.active {
+  background: rgba(56, 139, 253, 0.15);
+  color: #58a6ff;
+  font-weight: 600;
+}
+
+.nav-item .nav-icon {
+  font-size: 17px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-item .nav-text {
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-collapsed .nav-text { opacity: 0; }
+.sidebar-collapsed .sidebar-logo h2 { font-size: 0; }
+
+.sidebar-footer {
+  padding: 12px 8px;
+  border-top: 1px solid #21262d;
+}
+
+.sidebar-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #8b949e;
+  font-size: 12px;
+  border: 1px solid #21262d;
+  background: transparent;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(139, 148, 158, 0.1);
+  color: #c9d1d9;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0d1117;
+}
+
+/* ====== 顶部状态栏 ====== */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #161b22 0%, #1c2128 100%);
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.top-bar-center {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.timer-display {
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  min-width: 90px;
+  text-align: center;
+}
+
+/* ====== 页面内容滚动区 ====== */
+.page-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 24px;
+}
+
+/* ====== 卡片板块通用 ====== */
+.section-card {
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+
+.section-card:hover {
+  border-color: #30363d;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+
+.section-title .section-icon {
+  font-size: 16px;
+}
+
+/* ====== 首页卡片网格 ====== */
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.home-grid-full {
+  grid-column: 1 / -1;
+}
+
+/* ====== 状态指标卡片 ====== */
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 12px;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-1px);
+  border-color: #30363d;
+}
+
+.stat-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.stat-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-card-label {
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.stat-card-value {
+  font-size: 19px;
+  font-weight: 700;
+  color: #e6edf3;
+}
+
+/* ====== 智能分析板块 ====== */
+.analysis-model {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border-left: 3px solid;
+  transition: transform 0.15s;
+}
+
+.analysis-model:hover {
+  transform: translateX(2px);
+}
+
+.model-banker { background: rgba(255, 77, 79, 0.06); border-color: #ff4d4f; }
+.model-player { background: rgba(24, 144, 255, 0.06); border-color: #1890ff; }
+.model-combined { background: rgba(82, 196, 26, 0.06); border-color: #52c41a; }
+
+.model-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.model-name-banker { color: #ff7875; }
+.model-name-player { color: #69b1ff; }
+.model-name-combined { color: #95de64; }
+
+.model-content { font-size: 13px; color: #c9d1d9; line-height: 1.6; }
+
+/* ====== 工作流步骤条 ====== */
+.workflow-steps {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.wf-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #1c2128;
+  border: 1px solid #21262d;
+  color: #8b949e;
+  transition: all 0.3s;
+}
+
+.wf-step.active {
+  background: rgba(56, 139, 253, 0.12);
+  border-color: rgba(56, 139, 253, 0.3);
+  color: #58a6ff;
+}
+
+.wf-step.done {
+  background: rgba(82, 196, 26, 0.08);
+  border-color: rgba(82, 196, 26, 0.2);
   color: #52c41a;
 }
 
-/* 动画 */
+.wf-step.current {
+  background: rgba(88, 166, 255, 0.15);
+  border-color: #58a6ff;
+  color: #58a6ff;
+  animation: stepPulse 1.5s infinite;
+}
+
+@keyframes stepPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(88, 166, 255, 0.2); }
+  50% { box-shadow: 0 0 0 4px rgba(88, 166, 255, 0); }
+}
+
+.wf-arrow {
+  color: #30363d;
+  font-size: 12px;
+}
+
+/* ====== 5路走势图区域 ====== */
+.roadmap-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.roadmap-main {
+  /* 大路 - 占满宽度 */
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 260px;
+}
+
+.roadmap-sub {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.roadmap-mini {
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 160px;
+}
+
+.roadmap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.roadmap-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8b949e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.roadmap-canvas-area {
+  background: #161b22;
+  border-radius: 8px;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.roadmap-mini .roadmap-canvas-area {
+  min-height: 120px;
+}
+
+/* ====== 日志相关 ====== */
+.log-pinned { background-color: rgba(250, 173, 20, 0.06) !important; }
+.log-pinned td:first-child::before {
+  content: '📌';
+  margin-right: 6px;
+}
+
+/* ====== 百家乐专用颜色 ====== */
+.banker-color { color: #ff4d4f !important; }
+.player-color { color: #1890ff !important; }
+.tie-color { color: #52c41a !important; }
+
+/* ====== 动画 ====== */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.fade-in { animation: fadeIn 0.3s ease-out; }
 
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.slide-in-left { animation: slideInLeft 0.3s ease-out; }
+
+/* ====== 空状态覆盖 ====== */
+.ant-empty-description { color: #484f58 !important; }
+
+/* ====== 响应式 ====== */
+@media (max-width: 1200px) {
+  .home-grid { grid-template-columns: 1fr; }
+  .sidebar { width: 56px; min-width: 56px; }
+  .sidebar .nav-text { opacity: 0; }
+  .sidebar-logo h2 { font-size: 0; }
+  .top-bar { padding: 10px 16px; gap: 10px; }
+  .page-container { padding: 12px 16px; }
 }
 
-/* 响应式 */
-@media (max-width: 1200px) {
-  .dashboard-main {
-    flex-direction: column !important;
-  }
-  .dashboard-left {
-    flex: none !important;
-    width: 100% !important;
-  }
+@media (max-width: 768px) {
+  .top-bar { flex-direction: column; align-items: stretch; }
+  .top-bar-left, .top-bar-center, .topbar-right { justify-content: space-between; }
+  .roadmap-sub { grid-template-columns: 1fr; }
 }
