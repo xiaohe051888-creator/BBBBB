@@ -187,36 +187,48 @@ class UnifiedRoadEngine:
     
     def _calculate_derived_road(self, big_road: RoadData, road_type: str) -> RoadData:
         """
-        派生路算法（大眼仔路、小路、螳螂路）— 标准澳门/拉斯维加斯规则
+        派生路算法（大眼仔路、小路、螳螂路）— 标准澳门/拉斯维加斯两种情形法
         
         三条派生路都是从大路(Big Road)衍生出来的，排列规则与大路相同：
-        - 相同则往下排（延/红）
-        - 不同则换新列（转/蓝）
+        - 相同则往下排（红/延）
+        - 不同则换新列（蓝/转）
         
         颜色含义（不代表庄闲！）：
-        - 红(延) = 与前参照列结构相同（规律延续）
-        - 蓝(转) = 与前参照列结构不同（规律转折）
+        - 红(延) = 规律延续/模式一致
+        - 蓝(转) = 规律转折/模式断裂
         
-        === 核心判断规则（奇偶列法）===
+        === 核心判断规则（两种情形法）===
+
+        来源交叉验证 (5个国外权威网站):
+        - baccarat.net (Caroline Richardson, 2026)
+        - baccaratprotips.com (Greg Wilson, 2026)  
+        - gamblingforums.com (@Jimske, 2022)
+        - baccarattraining.com (Andy Nichols, 2025)
+        - livedealer.org (Microgaming团队, 2010-2024)
+
+        参数定义:
+        - k (周期/偏移): 大眼仔=1, 小路=2, 螳螂路=3
+        - m: 最新结果在大路中的行号(1-based, 从上到下)
+        - n: 最新结果在大路中的列号(1-based, 从左到右)
+        - p: 参考列(n-k)的图标总数(不含Tie)
+
+        === 情形A: 新列出现（m=1，大路开启新列）===
+        比较新列左边第1列 vs 左边第(k+1)列的**高度是否相等**
+        - 高度相等 → 红(延)
+        - 高度不等 → 蓝(转)
+
+        注: 这等价于livedealer.org的"虚拟反转法"
+             m=1时先反转结果计算再反转颜色
         
-        对于当前列 i（从offset开始），需要回看前面第offset列 (i-offset)：
-        
-        规则1 — 当前列为**偶数列**（从1开始计数）时：
-          比较当前列首行的row vs 参考列的长度（即行数）
-          - 若 current_row < ref_col_length → 参考列同行有值 → 红(延)
-          - 若 current_row >= ref_col_length → 参考列同行无值 → 蓝(转)
-        
-        规则2 — 当前列为**奇数列**时：
-          比较当前结果与前一个结果是否相同（跳过和局）
-          - 相同 → 红(延)
-          - 不同 → 蓝(转)
-        
-        起始位置（何时开始画第一个点）：
-        - 大眼仔路(offset=1): 从大路第2列开始（需要第1列作为参考）
-        - 小路(offset=2):     从大路第3列开始（需要第2列作为参考）
-        - 螳螂路(offset=3):   从大路第4列开始（需要第3列作为参考）
-        
-        参考: baccaratsmart.com, baccarat.net, gamblingforums.com
+        === 情形B: 延续当前列（m>=2，大路在当前列向下添加）===
+        从当前点位置向左移k格，再向上移1格，检查该位置**是否有值**
+        - 有值（同行有数据）→ 红(延)
+        - 无值（同行无数据）→ 蓝(转)
+
+        起始位置（需要足够的列才开始画）:
+        - 大眼仔路(k=1): 从大路第2列开始（第2列出现后才有第1个点）
+        - 小路(k=2):     从大路第3列开始
+        - 螳螂路(k=3):   从大路第4列开始
         """
         display_names = {
             "大眼仔路": "大眼仔路",
@@ -224,7 +236,7 @@ class UnifiedRoadEngine:
             "螳螂路": "螳螂路",
         }
         
-        # 派生路的比较列数偏移
+        # 派生路的比较列数偏移 k
         compare_offsets = {
             "大眼仔路": 1,
             "小路": 2,
@@ -236,122 +248,107 @@ class UnifiedRoadEngine:
         if not big_road.points or len(big_road.points) < 2:
             return road
         
-        offset = compare_offsets.get(road_type, 1)
+        k = compare_offsets.get(road_type, 1)
         
-        # 找到大路每列的所有点（按行号排序）
+        # === 构建大路网格索引 ===
+        # columns_points[col] = 该列所有点的列表(按row排序)
         columns_points: Dict[int, List[RoadPoint]] = {}
         for p in big_road.points:
             if p.column not in columns_points:
                 columns_points[p.column] = []
             columns_points[p.column].append(p)
-        
-        # 确保每列内部按row排序
         for col in columns_points:
             columns_points[col].sort(key=lambda x: x.row)
         
+        # 构建快速查找网格: grid[(col, row)] = point
+        grid: Dict[Tuple[int, int], RoadPoint] = {}
+        for p in big_road.points:
+            grid[(p.column, p.row)] = p
+        
         sorted_columns = sorted(columns_points.keys())
         
-        if len(sorted_columns) <= offset:
+        if len(sorted_columns) <= k:
             return road  # 列数不足，无法计算
         
-        # 构建结果序列（用于奇数列的"相同/不同"判断）
-        # 结果序列只包含庄/闲（不含和）
-        result_sequence: List[str] = []       # 庄/闲序列
-        col_for_result: List[int] = []       # 每个结果所属的大路列号
-        for col in sorted_columns:
-            for p in columns_points[col]:
-                result_sequence.append(p.value)
-                col_for_result.append(col)
+        # === 遍历大路每个有效结果点（不是只遍历每列的第一个！）===
+        # 派生路的每个点对应大路中从第(k+1)列开始的每一个结果
+        der_column = 0   # 派生路列号
+        der_row = 0      # 派生路行号
+        prev_value = None  # 上一个派生路值（用于判断换列）
         
-        column = 0
-        row = 0
-        prev_value = None
-        
-        # 遍历从 offset 列开始的每一列
-        for col_idx in range(offset, len(sorted_columns)):
-            current_col = sorted_columns[col_idx]
-            ref_col = sorted_columns[col_idx - offset]  # 参考列
+        for point in big_road.points:
+            # 当前点在大路中的坐标 (0-based)
+            m = point.row + 1      # 行号 (1-based, 用于算法判断)
+            n_0based = point.column  # 列号 (0-based)
             
-            if current_col not in columns_points or ref_col not in columns_points:
+            # 只处理从第k列开始的点（即大路第k+1列及之后）
+            if n_0based < k:
                 continue
             
-            current_first = columns_points[current_col][0]  # 当前列第一个点
-            ref_col_points = columns_points[ref_col]         # 参考列所有点
-            ref_col_length = len(ref_col_points)             # 参考列长度
+            # 参考列号 (向左偏移k列)
+            ref_col = n_0based - k
             
-            # === 奇偶列判断（1-based）===
-            # 当前列在派生路中的序号（1-based）
-            derived_col_position = col_idx - offset + 1  # 第1,2,3...个派生路列
+            if ref_col not in columns_points:
+                continue
             
-            if derived_col_position % 2 == 1:
-                # ===== 奇数列规则：比较当前结果与前一个结果是否相同 =====
-                # 找到current_first在result_sequence中的位置
-                try:
-                    idx = result_sequence.index(current_first.value, 
-                        max(0, sum(1 for c in col_for_result[:col_idx] for _ in [])) if False else 0)
-                    # 更简单的做法：找到当前点之前最近的一个有效结果的index
-                except (ValueError, TypeError):
-                    pass
+            ref_col_length = len(columns_points[ref_col])  # 参考列的长度p
+            
+            # === 两种情形判断 ===
+            is_new_in_big_road = (point.row == 0)  # 是否是大路的新列起始(m==1)
+            
+            if is_new_in_big_road:
+                # ===== 情形A: 新列出现 (m=1) =====
+                # 比较左边第1列 vs 左边第(k+1)列的高度
+                # 注意：当开启新列时，左边第1列就是 n_0based-1
                 
-                # 找当前点之前的最后一个结果
-                prev_result = None
-                for i in range(len(result_sequence) - 1, -1, -1):
-                    target_point = None
-                    # 在当前列中找当前first point之前的点
-                    found = False
-                    for cp in columns_points[current_col]:
-                        if cp.row < current_first.row:
-                            target_point = cp
-                            break
-                        elif cp == current_first:
-                            found = True
-                            break
-                    if target_point:
-                        prev_result = target_point.value
-                        break
+                left_col1 = n_0based - 1  # 新列紧邻的左边第1列
+                left_col_k1 = n_0based - (k + 1)  # 左边第(k+1)列
+                
+                if left_col1 in columns_points and left_col_k1 in columns_points:
+                    height1 = len(columns_points[left_col1])
+                    height_k1 = len(columns_points[left_col_k1])
                     
-                    # 在之前列中找最后一个点
-                    if not found or target_point is None:
-                        for prev_c in reversed(sorted_columns[:col_idx]):
-                            if columns_points[prev_c]:
-                                prev_result = columns_points[prev_c][-1].value
-                                break
-                        break
-                
-                if prev_result is not None and current_first.value == prev_result:
-                    derived_value = "延"   # 红 — 与前一结果相同
+                    if height1 == height_k1:
+                        derived_value = "延"   # 红 — 两列高度相等
+                    else:
+                        derived_value = "转"   # 蓝 — 两列高度不等
                 else:
-                    derived_value = "转"   # 蓝 — 与前一结果不同或无法比较
+                    # 参考列不存在时的fallback
+                    derived_value = "转"
             else:
-                # ===== 偶数列规则：比较当前列首行row vs 参考列长度 =====
-                if current_first.row < ref_col_length:
-                    # 参考列在当前首行位置有数据（同行有值）
-                    derived_value = "延"   # 红 — 结构相同/延伸
+                # ===== 情形B: 延续当前列 (m>=2) =====
+                # 从当前位置 向左移k格 再向上移1格
+                check_col = n_0based - k
+                check_row = point.row - 1  # 向上移1格
+                
+                if (check_col, check_row) in grid:
+                    # 该位置有值 → 同行有数据
+                    derived_value = "延"   # 红
                 else:
-                    # 参考列在当前首行位置无数据（需要换行才能到）
-                    derived_value = "转"   # 蓝 — 结构转折/跳变
+                    # 该位置无值 → 同行无数据
+                    derived_value = "转"   # 蓝
             
-            # 按大路规则排列派生路点：相同往下，不同换列
+            # === 按大路规则排列派生路点：相同往下，不同换列 ===
             is_new_col = False
             if prev_value is None:
                 is_new_col = True
             elif derived_value != prev_value:
-                column += 1
-                row = 0
+                der_column += 1
+                der_row = 0
                 is_new_col = True
             else:
-                row += 1
+                der_row += 1
             
-            error_id = self.error_map.get(current_first.game_number)
-            point = RoadPoint(
-                game_number=current_first.game_number,
-                column=column,
-                row=row,
+            error_id = self.error_map.get(point.game_number)
+            der_point = RoadPoint(
+                game_number=point.game_number,
+                column=der_column,
+                row=der_row,
                 value=derived_value,
                 is_new_column=is_new_col,
                 error_id=error_id,
             )
-            road.points.append(point)
+            road.points.append(der_point)
             prev_value = derived_value
         
         if road.points:
