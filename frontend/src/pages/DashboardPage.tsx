@@ -13,7 +13,7 @@ import {
   ArrowUpOutlined, ArrowDownOutlined, ClockCircleOutlined,
   DashboardOutlined, FileTextOutlined, ThunderboltOutlined,
   SafetyOutlined, ExportOutlined,
-  GlobalOutlined, SpiderChartOutlined, CheckCircleOutlined,
+  GlobalOutlined, ApartmentOutlined, CheckCircleOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -569,7 +569,7 @@ const DashboardPage: React.FC = () => {
             </Tag>
           </Space>
           <Space size={4}>
-            <SpiderChartOutlined style={{ color: crawler.status?.stability_score && crawler.status.stability_score >= 80 ? '#52c41a' : crawler.status?.stability_score && crawler.status.stability_score >= 50 ? '#faad14' : '#ff4d4f', fontSize: 13 }} />
+            <ApartmentOutlined style={{ color: crawler.status?.stability_score && crawler.status.stability_score >= 80 ? '#52c41a' : crawler.status?.stability_score && crawler.status.stability_score >= 50 ? '#faad14' : '#ff4d4f', fontSize: 13 }} />
             <span style={{ fontSize: 13, color: '#8b949e' }}>稳定性：</span>
             <span style={{
               fontWeight: 700,

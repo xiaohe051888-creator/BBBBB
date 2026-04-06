@@ -13,6 +13,7 @@ import {
   FilterOutlined, ExclamationCircleOutlined, ClockCircleOutlined,
   BellOutlined, BugOutlined, InfoCircleOutlined, CheckCircleOutlined,
   WarningOutlined, ThunderboltOutlined, FileTextOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -60,6 +61,44 @@ const LogsPage: React.FC = () => {
   // WebSocket实时推送
   const wsRef = useRef<WebSocket | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // ====== 导出功能 ======
+  const exportToCSV = () => {
+    if (!filteredLogs.length) { message.warning('暂无数据可导出'); return; }
+    const headers = ['时间', '局号', '事件编码', '事件类型', '结果', '优先级', '类别', '说明'];
+    const rows = filteredLogs.map(l => [
+      l.log_time ? dayjs(l.log_time).format('YYYY-MM-DD HH:mm:ss') : '',
+      l.game_number ?? '',
+      l.event_code,
+      l.event_type,
+      l.event_result,
+      l.priority,
+      l.category,
+      `"${(l.description || '').replace(/"/g, '""')}"`,
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    downloadFile(csv, `logs_${tableId}_${dayjs().format('YYYYMMDD_HHmmss')}.csv`, 'text/csv;charset=utf-8;');
+    message.success(`已导出 ${filteredLogs.length} 条日志（CSV）`);
+  };
+
+  const exportToJSON = () => {
+    if (!filteredLogs.length) { message.warning('暂无数据可导出'); return; }
+    const json = JSON.stringify(filteredLogs, null, 2);
+    downloadFile(json, `logs_${tableId}_${dayjs().format('YYYYMMDD_HHmmss')}.json`, 'application/json');
+    message.success(`已导出 ${filteredLogs.length} 条日志（JSON）`);
+  };
+
+  const downloadFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob(['\uFEFF' + content], { type: mimeType }); // BOM for Excel compatibility
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   // 加载日志
   const loadLogs = useCallback(async (p = page) => {
@@ -413,6 +452,12 @@ const LogsPage: React.FC = () => {
           />
           <Button icon={<ReloadOutlined />} size="small" onClick={() => loadLogs()}>
             刷新
+          </Button>
+          <Button icon={<DownloadOutlined />} size="small" onClick={exportToCSV} title="导出CSV">
+            CSV
+          </Button>
+          <Button icon={<DownloadOutlined />} size="small" onClick={exportToJSON} title="导出JSON">
+            JSON
           </Button>
         </Space>
       </div>

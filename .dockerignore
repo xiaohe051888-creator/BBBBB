@@ -1,0 +1,46 @@
+# ============================================
+# BBBBB - Docker 忽略文件
+# ============================================
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Node.js / 前端
+frontend/node_modules/
+frontend/dist/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 数据（通过 volume 持久化）
+data/*.db
+data/*.db-journal
+data/*.db-wal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# 文档（不需要进镜像）
+docs/
+*.md
+!README.md
+
+# 测试截图/临时文件
+*.png
+*.jpg
+!public/*

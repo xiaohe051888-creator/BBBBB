@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage';
 import RoadMapPage from './pages/RoadMapPage';
 import BetRecordsPage from './pages/BetRecordsPage';
 import LogsPage from './pages/LogsPage';
+import MistakeBookPage from './pages/MistakeBookPage';
 import AdminPage from './pages/AdminPage';
 import { getToken } from './services/api';
 
@@ -29,6 +30,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { key: 'roadmap', icon: '📊', label: '走势图', path: `/dashboard/:tableId/roadmap` },
     { key: 'bets', icon: '💰', label: '下注记录', path: `/dashboard/:tableId/bets` },
     { key: 'logs', icon: '📋', label: '实盘日志', path: `/dashboard/:tableId/logs` },
+    { key: 'mistakes', icon: '📓', label: '错题本', path: `/dashboard/:tableId/mistakes` },
   ];
 
   // 获取当前激活的 nav key
@@ -37,6 +39,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (path.includes('/roadmap')) return 'roadmap';
     if (path.includes('/bets')) return 'bets';
     if (path.includes('/logs')) return 'logs';
+    if (path.includes('/mistakes')) return 'mistakes';
     return 'home';
   };
 
@@ -51,6 +54,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       case 'roadmap': basePath = `/dashboard/${tableId}/roadmap`; break;
       case 'bets': basePath = `/dashboard/${tableId}/bets`; break;
       case 'logs': basePath = `/dashboard/${tableId}/logs`; break;
+      case 'mistakes': basePath = `/dashboard/${tableId}/mistakes`; break;
     }
     window.location.href = basePath; // 简单跳转
   };
@@ -128,6 +132,7 @@ const App: React.FC = () => {
             <Route path="/dashboard/:tableId/roadmap" element={<RoadMapPage />} />
             <Route path="/dashboard/:tableId/bets" element={<BetRecordsPage />} />
             <Route path="/dashboard/:tableId/logs" element={<LogsPage />} />
+            <Route path="/dashboard/:tableId/mistakes" element={<MistakeBookPage />} />
             <Route path="/admin" element={getToken() ? <AdminPage /> : <Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

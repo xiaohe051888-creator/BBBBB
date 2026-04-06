@@ -1,0 +1,26 @@
+# ============================================
+# BBBBB 生产环境 Docker Compose 覆盖配置
+# ============================================
+# 使用: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ============================================
+
+services:
+  bbbbb:
+    environment:
+      - DEBUG=false
+      # ⚠️ 以下变量必须通过 .env 文件或命令行传入真实值
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"

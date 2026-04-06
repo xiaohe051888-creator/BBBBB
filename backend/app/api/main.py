@@ -127,6 +127,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ============ 前端静态文件托管（Docker/生产模式） ============
+import os as _os
+
+_static_dir = _os.path.join(_os.path.dirname(__file__), "..", "static")
+if _os.path.isdir(_static_dir) and _os.listdir(_static_dir):
+    # 存在构建产物时，挂载静态文件 + SPA fallback
+    app.mount("/assets", StaticFiles(directory=_os.path.join(_static_dir, "assets")), name="static-assets")
+
+    from fastapi.responses import FileResponse
+
+    @app.get("/{full_path:path}")
+    async def spa_fallback(full_path: str):
+        """SPA fallback: 所有非 API / 非 static 路径返回 index.html"""
+        # 排除 API、WebSocket、静态资源路径
+        if full_path.startswith("api/") or full_path.startswith("ws") or full_path.startswith("assets/"):
+            raise HTTPException(404, f"路由不存在: /{full_path}")
+        index_path = _os.path.join(_static_dir, "index.html")
+        if _os.path.exists(index_path):
+            return FileResponse(index_path)
+        raise HTTPException(404, "前端未构建，请先运行 npm run build")
+
+    print(f"   📦 前端静态文件已挂载: {_static_dir}")
+
 
 # ============ API 路由 ============
 
@@ -731,7 +754,13 @@ async def get_ai_learning_status(_: dict = Depends(get_current_user)):
     """获取AI学习状态（需认证）"""
     from app.services.ai_learning_service import AILearningService
     
-    return AILearningService.get_status_sync()
+    # 返回类级别状态（不需要session实例）
+    return {
+        "is_learning": AILearningService._is_learning,
+        "current_task": AILearningService._current_task,
+        "min_samples": getattr(AILearningService, '_min_samples', 200),
+        "max_versions": getattr(AILearningService, '_max_versions', 5),
+    }
 
 
 # --- 智能选模 API ---

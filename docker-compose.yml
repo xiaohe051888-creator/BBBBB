@@ -1,0 +1,48 @@
+# ============================================
+# BBBBB 百家乐分析预测系统 - Docker Compose 编排
+# ============================================
+# 使用方法:
+#   开发模式:  docker compose up --build
+#   生产模式:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   停止:      docker compose down
+#   查看日志:  docker compose logs -f
+# ============================================
+
+services:
+  bbbbb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bbbbb-app
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      # --- 调试 ---
+      - DEBUG=${DEBUG:-false}
+      # --- 安全（生产环境必须修改！）---
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-in-production}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000}
+      # --- 管理员 ---
+      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:-Admin@8888}
+      # --- AI API ---
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AI_MODEL=${AI_MODEL:-claude-sonnet-4-20250514}
+      # --- 采集目标 ---
+      - TARGET_TABLE_26_URL=${TARGET_TABLE_26_URL:-https://rd.lile333.com/?d=26}
+      - TARGET_TABLE_27_URL=${TARGET_TABLE_27_URL:-https://rd.lile333.com/?d=27}
+      # --- 爬虫 ---
+      - LILE333_HEADLESS=${LILE333_HEADLESS:-true}
+    volumes:
+      # 数据持久化（数据库 + 日志）
+      - bbbbb-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/system/health?table_id=26"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  bbbbb-data:
+    driver: local

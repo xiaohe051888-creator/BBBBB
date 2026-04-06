@@ -28,3 +28,4 @@ Thumbs.db
 # Node (frontend)
 node_modules/
 dist/
+backend/app/static/

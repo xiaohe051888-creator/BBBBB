@@ -1,0 +1,36 @@
+# ============================================
+# BBBBB 百家乐分析预测系统 - Python 依赖
+# ============================================
+
+# Web 框架
+fastapi==0.128.8
+uvicorn[standard]==0.39.0
+python-multipart==0.0.18
+
+# 数据库
+sqlalchemy==2.0.49
+aiosqlite==0.22.1
+
+# 认证 & 安全
+python-jose[cryptography]==3.5.0
+bcrypt==5.0.0
+cryptography==46.0.6
+
+# 数据验证
+pydantic==2.12.5
+
+# HTTP 客户端（爬虫）
+aiohttp==3.10.5
+beautifulsoup4==4.14.3
+
+# AI 分析
+anthropic==0.89.0
+
+# 浏览器自动化（数据采集）
+playwright==1.58.0
+
+# 数据库迁移
+alembic==1.13.1
+
+# 异步工具
+aiofiles==23.2.1

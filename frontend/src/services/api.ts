@@ -202,6 +202,36 @@ export const getLatestAnalysis = async (tableId: string) => {
   return api.get<LatestAnalysis>('/analysis/latest', { params: { table_id: tableId } });
 };
 
+// ====== 错题本 ======
+
+export interface MistakeRecord {
+  id?: number;
+  table_id: string;
+  boot_number: number;
+  game_number: number;
+  error_id: string;
+  error_type: string;
+  predict_direction: string;
+  actual_result: string;
+  banker_summary: string | null;
+  player_summary: string | null;
+  combined_summary: string | null;
+  confidence: number | null;
+  road_snapshot: any | null;
+  analysis: string | null;
+  correction: string | null;
+  created_at?: string;
+}
+
+export const getMistakeRecords = async (params: {
+  table_id: string;
+  boot_number?: number;
+  page?: number;
+  page_size?: number;
+}) => {
+  return api.get('/admin/database-records', { params: { ...params, table_name: 'mistake_book' } });
+};
+
 // ====== 采集控制 ======
 
 export interface CrawlerStatus {
