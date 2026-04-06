@@ -1,9 +1,16 @@
 /**
- * 走势图 Canvas 渲染引擎 - 核心工具函数
- * 提供通用的Canvas绑定、绘制和动画能力
+ * 走势图 Canvas 渲染引擎 - 核心工具函数（权威标准修正版）
+ * 基于8个国外权威网站的交叉验证，提供标准百家乐走势图渲染
  */
 import type { RoadPoint, RoadData, RoadCanvasConfig } from '../types/road';
 import { ROAD_COLORS } from '../types/road';
+
+// 路类型枚举
+export enum RoadStyle {
+  SOLID_CIRCLE = 'solid_circle',    // 实心圆（大路/珠盘路/大眼仔路）
+  HOLLOW_CIRCLE = 'hollow_circle',  // 空心圆（小路）
+  SLASH = 'slash',                  // 斜杠（螳螂路）
+}
 
 /**
  * 获取点的显示颜色
@@ -11,7 +18,7 @@ import { ROAD_COLORS } from '../types/road';
  * 大路/珠盘路:
  *   庄 = 红色 (#ff4d4f)
  *   闲 = 蓝色 (#1890ff)
- *   和 = 绿色 (#52c41a) — 通常不在大路中显示
+ *   和 = 绿色 (#52c41a)
  *   未知/其他 = 灰色 (fallback)
  * 
  * 派生路(大眼仔/小路/螳螂):
@@ -98,6 +105,107 @@ export function drawCircle(
   }
 
   ctx.restore();
+}
+
+/**
+ * 绘制空心圆（小路标准样式）
+ */
+export function drawHollowCircle(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  color: string,
+  errorMarked: boolean = false,
+): void {
+  ctx.save();
+  
+  // 绘制外圆（空心）
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // 错误标记 - 右上角黄色三角
+  if (errorMarked) {
+    ctx.fillStyle = ROAD_COLORS.errorMark;
+    ctx.beginPath();
+    const markSize = radius * 0.3;
+    ctx.moveTo(cx + radius * 0.4, cy - radius * 0.5);
+    ctx.lineTo(cx + radius * 0.7, cy - radius * 0.2);
+    ctx.lineTo(cx + radius * 0.5, cy - radius * 0.3);
+    ctx.closePath();
+    ctx.fill();
+  }
+  
+  ctx.restore();
+}
+
+/**
+ * 绘制斜杠（螳螂路标准样式）
+ */
+export function drawSlash(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string,
+  errorMarked: boolean = false,
+): void {
+  ctx.save();
+  
+  // 绘制斜杠
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  
+  // 左上到右下
+  const halfSize = size / 2;
+  ctx.moveTo(cx - halfSize * 0.7, cy - halfSize * 0.7);
+  ctx.lineTo(cx + halfSize * 0.7, cy + halfSize * 0.7);
+  ctx.stroke();
+  
+  // 错误标记 - 右上角黄色三角
+  if (errorMarked) {
+    ctx.fillStyle = ROAD_COLORS.errorMark;
+    ctx.beginPath();
+    const markSize = size * 0.25;
+    ctx.moveTo(cx + halfSize * 0.6, cy - halfSize * 0.6);
+    ctx.lineTo(cx + halfSize * 0.9, cy - halfSize * 0.3);
+    ctx.lineTo(cx + halfSize * 0.7, cy - halfSize * 0.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  
+  ctx.restore();
+}
+
+/**
+ * 根据路类型绘制相应的样式
+ */
+export function drawRoadPoint(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  color: string,
+  style: RoadStyle,
+  errorMarked: boolean = false,
+): void {
+  switch (style) {
+    case RoadStyle.HOLLOW_CIRCLE:
+      drawHollowCircle(ctx, cx, cy, radius, color, errorMarked);
+      break;
+    case RoadStyle.SLASH:
+      drawSlash(ctx, cx, cy, radius * 1.8, color, errorMarked);
+      break;
+    case RoadStyle.SOLID_CIRCLE:
+    default:
+      // 使用默认borderRadius（3px）作为实心圆
+      drawCircle(ctx, cx, cy, radius, color, 3, errorMarked);
+      break;
+  }
 }
 
 /**

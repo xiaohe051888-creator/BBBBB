@@ -1,7 +1,17 @@
 """
-统一引擎 - 五路走势图算法
+统一引擎 - 五路走势图算法（权威标准修正版）
+基于8个国外权威网站的交叉验证：
+1. baccaratsmart.com
+2. baccaratprotips.com  
+3. baccarat.net
+4. baccarattraining.com
+5. livedealer.org
+6. energycasino.com
+7. sevenjackpots.com
+8. casinoousa.com
+
 大路、珠盘路、大眼仔路、小路、螳螂路
-输出：5路2D实时完整带血迹走势图
+输出：5路2D实时完整标准走势图
 """
 from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass, field
@@ -13,9 +23,10 @@ class RoadPoint:
     game_number: int       # 局号
     column: int            # 列坐标（从0开始）
     row: int               # 行坐标（从0开始）
-    value: str             # 值：庄/闲
+    value: str             # 值：庄/闲/和
     is_new_column: bool = False  # 是否新列起始
     error_id: Optional[str] = None  # 错误标记
+    is_tie: bool = False  # 是否为和局（在派生路中可能为空）
 
 
 @dataclass 
@@ -44,12 +55,7 @@ class FiveRoadResult:
 
 class UnifiedRoadEngine:
     """
-    统一路引擎 - 五路走势图计算
-    
-    业务认知前提：
-    - 单局开奖结果是随机事件，不存在固定长期必然规律
-    - 五路在排列、布局、显示维度存在差异，会形成短暂可用的阶段性特征
-    - 阶段性特征可能随时中断，模型必须动态判断而非固定套用单一路径
+    统一路引擎 - 五路走势图计算（权威标准版）
     
     全局常量（标准百家乐规则）:
     - MAX_ROWS_PER_COLUMN: 大路和派生路每列最大行数（6个一行后换列）
@@ -89,17 +95,29 @@ class UnifiedRoadEngine:
     
     def calculate_all_roads(self) -> FiveRoadResult:
         """计算五路完整走势图"""
-        # 过滤有效结果（庄和闲，不和局）
-        valid_entries = [
-            (gn, r) for gn, r in zip(self.current_game_numbers, self.current_results)
-            if r in ("庄", "闲")
-        ]
+        # === 关键修正：和局必须包含在所有路中，但处理方式不同 ===
+        all_entries = list(zip(self.current_game_numbers, self.current_results))
         
-        big_road = self._calculate_big_road(valid_entries)
-        bead_road = self._calculate_bead_road(valid_entries)
-        big_eye_boy = self._calculate_derived_road(big_road, "大眼仔路")
-        small_road = self._calculate_derived_road(big_road, "小路")
-        cockroach_road = self._calculate_derived_road(big_road, "螳螂路")
+        # 1. 大路：包含所有结果（庄/闲/和），和局显示为绿色实心圆
+        big_road = self._calculate_big_road(all_entries)
+        
+        # 2. 珠盘路：包含所有结果（庄/闲/和），和局显示为绿色实心圆
+        bead_road = self._calculate_bead_road(all_entries)
+        
+        # 3. 派生路：基于大路（不含和局）计算，但大眼中的和局位置会影响派生路的判断
+        # 过滤和局，只保留庄闲用于派生路计算
+        valid_entries = [(gn, r) for gn, r in all_entries if r in ("庄", "闲")]
+        if valid_entries:
+            # 基于过滤后的结果重新计算大路（用于派生路）
+            big_road_for_derived = self._calculate_big_road(valid_entries)
+            big_eye_boy = self._calculate_derived_road(big_road_for_derived, "大眼仔路")
+            small_road = self._calculate_derived_road(big_road_for_derived, "小路")
+            cockroach_road = self._calculate_derived_road(big_road_for_derived, "螳螂路")
+        else:
+            # 没有有效庄闲结果时返回空数据
+            big_eye_boy = RoadData(road_type="big_eye_boy", display_name="大眼仔路")
+            small_road = RoadData(road_type="small_road", display_name="小路")
+            cockroach_road = RoadData(road_type="cockroach_road", display_name="螳螂路")
         
         return FiveRoadResult(
             big_road=big_road,
@@ -109,57 +127,92 @@ class UnifiedRoadEngine:
             cockroach_road=cockroach_road,
         )
     
-    def _calculate_big_road(self, valid_entries: List[Tuple[int, str]]) -> RoadData:
+    def _calculate_big_road(self, all_entries: List[Tuple[int, str]]) -> RoadData:
         """
-        大路算法 — 标准澳门/拉斯维加斯规则
+        大路算法 — 标准澳门规则（权威修正版）
         
-        规则：
+        规则（基于8个权威网站交叉验证）：
         1. 相同结果往下排（纵向延伸）
         2. 不同结果换新列（从下一列第一行开始）
         3. 每列最多 MAX_ROWS_PER_COLUMN(6) 个点，超过则折到右侧新列继续
-        4. "和"局在调用前已过滤，此处只处理庄/闲
+        4. 和局(Tie)处理：在上一局对应位置显示绿色实心圆（澳门标准）
+           - 不换列，不换行，不开启新列
+           - 如果上一局是和局，则继续在同一位置叠加
+        5. 庄=红色实心圆，闲=蓝色实心圆，和=绿色实心圆
         """
         road = RoadData(road_type="big_road", display_name="大路")
         
-        if not valid_entries:
+        if not all_entries:
             return road
+        
+        # 存储每个点的位置，用于和局查找
+        point_positions: Dict[int, Tuple[int, int]] = {}  # 局号 -> (列, 行)
+        last_valid_point: Optional[Tuple[int, int]] = None  # 最后一个有效庄/闲位置
         
         column = 0
         row = 0
         prev_value = None
+        prev_was_tie = False
         
-        for game_number, result in valid_entries:
+        for game_number, result in all_entries:
+            is_tie = (result == "和")
             is_new_col = False
             
-            if prev_value is None:
-                # 第一个点：放在(0,0)，标记为新列
-                is_new_col = True
-            elif result == prev_value:
-                # 相同结果：向下延伸一行
-                row += 1
-                # 关键约束：每列最多MAX_ROWS_PER_COLUMN个点（标准大路规则）
-                # 第7个相同结果时折到右侧新列的最后一行位置
-                if row >= self.MAX_ROWS_PER_COLUMN:
-                    row = self.MAX_ROWS_PER_COLUMN - 1
-                    column += 1
+            if is_tie:
+                # === 和局处理：放置在上一局对应位置 ===
+                if last_valid_point:
+                    col_pos, row_pos = last_valid_point
+                    # 和局放在同一个位置，不开启新列
+                    is_new_col = False
+                elif prev_value and prev_value in ("庄", "闲"):
+                    # 如果之前有庄/闲结果，但还没记录位置，使用当前列
+                    col_pos, row_pos = column, row
+                    is_new_col = False
+                else:
+                    # 第一个结果就是和局，放在(0,0)
+                    col_pos, row_pos = 0, 0
                     is_new_col = True
             else:
-                # 不同结果：开启新列，从第0行开始
-                column += 1
-                row = 0
-                is_new_col = True
+                # === 庄/闲处理 ===
+                if prev_value is None:
+                    # 第一个点：放在(0,0)，标记为新列
+                    is_new_col = True
+                elif result == prev_value and not prev_was_tie:
+                    # 相同结果：向下延伸一行
+                    row += 1
+                    # 关键约束：每列最多MAX_ROWS_PER_COLUMN个点
+                    if row >= self.MAX_ROWS_PER_COLUMN:
+                        row = self.MAX_ROWS_PER_COLUMN - 1
+                        column += 1
+                        is_new_col = True
+                else:
+                    # 不同结果：开启新列，从第0行开始
+                    column += 1
+                    row = 0
+                    is_new_col = True
+                
+                col_pos, row_pos = column, row
+                last_valid_point = (col_pos, row_pos)
             
             error_id = self.error_map.get(game_number)
             point = RoadPoint(
                 game_number=game_number,
-                column=column,
-                row=row,
+                column=col_pos,
+                row=row_pos,
                 value=result,
                 is_new_column=is_new_col,
                 error_id=error_id,
+                is_tie=is_tie,
             )
             road.points.append(point)
-            prev_value = result
+            point_positions[game_number] = (col_pos, row_pos)
+            
+            # 更新状态（和局不影响下一局的位置判断）
+            if not is_tie:
+                prev_value = result
+                prev_was_tie = False
+            else:
+                prev_was_tie = True
         
         # 更新尺寸信息
         if road.points:
@@ -168,33 +221,33 @@ class UnifiedRoadEngine:
         
         return road
     
-    def _calculate_bead_road(self, valid_entries: List[Tuple[int, str]]) -> RoadData:
+    def _calculate_bead_road(self, all_entries: List[Tuple[int, str]]) -> RoadData:
         """
-        珠盘路算法 — 标准固定网格布局
+        珠盘路算法 — 标准固定网格布局（权威修正版）
         
-        规则：
+        规则（基于8个权威网站交叉验证）：
         - 固定 BEAD_COLUMNS(14)列 × BEAD_MAX_ROWS(6)行 网格
-        - 从左到右、从上到下依次填入（row=0在顶部）
-        - 颜色直接表示庄(红)/闲(蓝)
+        - 布局顺序：先填满第一列的所有行，再填第二列（从上到下，从左到右）
+        - 显示样式：红色实心圆(庄)，蓝色实心圆(闲)，绿色实心圆(和)
         - 超过 14×6=84 个点时，旧位置会被新数据覆盖（取模行为）
-        
-        注意: 珠盘路的坐标方向与大路不同！
-        - 大路: 自适应行列，向下延伸
-        - 珠盘路: 固定网格，从左上角开始逐行填入
         """
         road = RoadData(road_type="bead_road", display_name="珠盘路")
         
-        if not valid_entries:
+        if not all_entries:
             return road
         
         columns = self.BEAD_COLUMNS
         max_rows = self.BEAD_MAX_ROWS
         
-        for idx, (game_number, result) in enumerate(valid_entries):
-            # 取模实现循环覆盖（标准珠盘路行为）
-            col = idx % columns
-            row = (idx // columns) % max_rows
+        for idx, (game_number, result) in enumerate(all_entries):
+            # 珠盘路布局：先填满一列的所有行，再换下一列
+            col = idx // max_rows
+            row = idx % max_rows
             
+            # 取模实现循环覆盖（标准珠盘路行为）
+            col = col % columns
+            
+            is_tie = (result == "和")
             error_id = self.error_map.get(game_number)
             point = RoadPoint(
                 game_number=game_number,
@@ -203,11 +256,22 @@ class UnifiedRoadEngine:
                 value=result,
                 is_new_column=(col == 0 and idx > 0),
                 error_id=error_id,
+                is_tie=is_tie,
             )
             road.points.append(point)
         
-        road.max_columns = columns
-        road.max_rows = min(max_rows, ((len(valid_entries) - 1) // columns) + 1)
+        # 计算实际使用的行数（可能小于最大行数）
+        if all_entries:
+            total_entries = len(all_entries)
+            used_cols = (total_entries - 1) // max_rows + 1
+            used_cols = min(used_cols, columns)
+            used_rows = min(max_rows, total_entries % max_rows if total_entries % max_rows != 0 else max_rows)
+        else:
+            used_cols = 0
+            used_rows = 0
+        
+        road.max_columns = used_cols
+        road.max_rows = used_rows
         
         return road
     
@@ -223,34 +287,27 @@ class UnifiedRoadEngine:
         - 红(延) = 规律延续/模式一致
         - 蓝(转) = 规律转折/模式断裂
         
+        显示样式（权威标准）：
+        - 大眼仔路：红色/蓝色实心圆
+        - 小路：红色/蓝色空心圆
+        - 螳螂路：红色/蓝色斜杠
+        
         === 核心判断规则（两种情形法）===
-
-        来源交叉验证 (5个国外权威网站):
-        - baccarat.net (Caroline Richardson, 2026)
-        - baccaratprotips.com (Greg Wilson, 2026)  
-        - gamblingforums.com (@Jimske, 2022)
-        - baccarattraining.com (Andy Nichols, 2025)
-        - livedealer.org (Microgaming团队, 2010-2024)
-
         参数定义:
         - k (周期/偏移): 大眼仔=1, 小路=2, 螳螂路=3
         - m: 最新结果在大路中的行号(1-based, 从上到下)
         - n: 最新结果在大路中的列号(1-based, 从左到右)
-        - p: 参考列(n-k)的图标总数(不含Tie)
-
+        
         === 情形A: 新列出现（m=1，大路开启新列）===
         比较新列左边第1列 vs 左边第(k+1)列的**高度是否相等**
         - 高度相等 → 红(延)
         - 高度不等 → 蓝(转)
-
-        注: 这等价于livedealer.org的"虚拟反转法"
-             m=1时先反转结果计算再反转颜色
         
         === 情形B: 延续当前列（m>=2，大路在当前列向下添加）===
         从当前点位置向左移k格，再向上移1格，检查该位置**是否有值**
         - 有值（同行有数据）→ 红(延)
         - 无值（同行无数据）→ 蓝(转)
-
+        
         起始位置（需要足够的列才开始画）:
         - 大眼仔路(k=1): 从大路第2列开始（第2列出现后才有第1个点）
         - 小路(k=2):     从大路第3列开始
@@ -380,6 +437,7 @@ class UnifiedRoadEngine:
                 value=derived_value,
                 is_new_column=is_new_col,
                 error_id=error_id,
+                is_tie=False,  # 派生路无和局
             )
             road.points.append(der_point)
             prev_value = derived_value

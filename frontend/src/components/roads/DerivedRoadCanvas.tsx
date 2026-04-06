@@ -15,8 +15,9 @@ import { DERIVED_ROAD_CONFIG, ROAD_COLORS } from '../../types/road';
 import {
   calcCanvasSize,
   getPointColor,
-  drawCircle,
+  drawRoadPoint,
   drawGrid,
+  RoadStyle,
 } from '../../utils/canvasRenderer';
 
 interface DerivedRoadCanvasProps {
@@ -101,8 +102,18 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
       // isDerived=true 使用派生路颜色（延=红, 转=蓝）
       const color = getPointColor(point.value, true);
 
-      // 绘制圆点（比大路略小）
-      drawCircle(ctx, x, y, cellSize / 2 - 1, color, mergedConfig.borderRadius, !!point.error_id);
+      // ★ 权威标准：三种派生路使用不同的显示样式 ★
+      let roadStyle = RoadStyle.SOLID_CIRCLE; // 默认实心圆
+      
+      if (data.road_type === 'small_road') {
+        roadStyle = RoadStyle.HOLLOW_CIRCLE;  // 小路：空心圆
+      } else if (data.road_type === 'cockroach_road') {
+        roadStyle = RoadStyle.SLASH;          // 螳螂路：斜杠
+      }
+      // 大眼仔路保持默认（实心圆）
+
+      // 绘制相应样式的点
+      drawRoadPoint(ctx, x, y, cellSize / 2 - 1, color, roadStyle, !!point.error_id);
     }
   }, [data, mergedConfig, externalWidth, externalHeight]);
 
