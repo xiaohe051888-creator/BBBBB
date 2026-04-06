@@ -60,7 +60,6 @@ const RoadMapPage: React.FC = () => {
         setRoadData(res.data as api.FiveRoadsResponse);
       }
     } catch {
-      console.log('走势图API暂无数据，使用模拟展示');
       setRoadData(null);
     } finally {
       setLoading(false);
@@ -84,26 +83,11 @@ const RoadMapPage: React.FC = () => {
         }
       }
     } catch {
-      // 使用模拟数据
-      generateMockRawData();
+      // API请求失败时显示空数据（不使用模拟数据）
+    } finally {
+      setLoading(false);
     }
   }, [tableId, bootNumber]);
-
-  // 模拟原始数据
-  const generateMockRawData = () => {
-    const mock: RawGameRecord[] = [];
-    const results = ['庄', '闲'];
-    for (let i = 1; i <= 50; i++) {
-      mock.push({
-        game_number: i,
-        result: results[Math.floor(Math.random() * 2)],
-        result_time: dayjs().subtract(50 - i, 'minute').toISOString(),
-        predict_direction: i < 50 ? results[Math.floor(Math.random() * 2)] : null,
-        predict_correct: i < 50 ? Math.random() > 0.4 : null,
-      });
-    }
-    setRawData(mock);
-  };
 
   useEffect(() => {
     loadRoadData();
@@ -243,8 +227,6 @@ const RoadMapPage: React.FC = () => {
             <FiveRoadChart
               data={roadData?.roads ?? null}
               loading={loading}
-              useMockData={!roadData}  // 无真实数据时自动使用模拟数据
-              mockGameCount={50}
             />
             
             {/* 图例说明 */}

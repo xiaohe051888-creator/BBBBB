@@ -330,8 +330,7 @@ class AILearningService:
             
             api_key = settings.ANTHROPIC_API_KEY
             if not api_key:
-                logger.warning("[AI学习] 未配置Anthropic API Key，使用模拟分析")
-                return self._generate_mock_ai_analysis(training_data, current_accuracy)
+                raise ValueError("未配置Anthropic API Key（ANTHROPIC_API_KEY），无法执行AI学习")
             
             async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
                 response = await client.post(
@@ -366,44 +365,9 @@ class AILearningService:
                 return {"raw_response": content}
                 
         except Exception as e:
-            logger.warning(f"[AI学习] Claude API调用失败，使用模拟分析: {e}")
-            return self._generate_mock_ai_analysis(training_data, current_accuracy)
+            logger.error(f"[AI学习] Claude API调用失败: {e}")
+            raise
     
-    def _generate_mock_ai_analysis(self, training_data: Dict, current_accuracy: float) -> Dict:
-        """当AI API不可用时，生成模拟分析结果"""
-        stats = training_data["stats"]
-        
-        # 简单统计分析
-        banker_ratio = stats["banker_wins"] / max(stats["total"], 1)
-        recent_10 = training_data["records"][-10:] if len(training_data["records"]) >= 10 else training_data["records"]
-        recent_banker = sum(1 for r in recent_10 if r["result"] == "庄")
-        
-        pattern_type = (
-            "偏庄型" if banker_ratio > 0.55 
-            else "偏闲型" if banker_ratio < 0.45
-            else "均衡型"
-        )
-        
-        return {
-            "pattern_summary": f"本靴呈现'{pattern_type}'走势特征，庄闲比约{banker_ratio:.2f}",
-            "error_patterns": f"主要错误集中在{'趋势转折点' if len(training_data['mistakes']) > 3 else '随机分布'}的判断上",
-            "strategy_adjustments": [
-                {
-                    "factor": "权重微调",
-                    "change": f"{'增加' if pattern_type == '偏庄型' else '减少'}庄方向基础权重0.05",
-                    "reasoning": f"基于本靴{pattern_type}的特征动态调整"
-                },
-                {
-                    "factor": "置信度阈值",
-                    "change": f"上调至{'0.72' if current_accuracy < 50 else '0.68'}",
-                    "reasoning": f"当前准确率{current_accuracy:.1f}%，需提高决策门槛"
-                }
-            ],
-            "confidence_threshold_recommendation": "0.70",
-            "key_insight": f"最近10局庄出现{recent_banker}/10次，短期趋势值得关注",
-            "expected_improvement": f"+{random.uniform(1.0, 5.0):.1f}%"
-        }
-
     async def _create_model_version(
         self,
         table_id: str,
@@ -439,7 +403,7 @@ class AILearningService:
             training_range=f"{table_id} Boot#{boot_number} ({len(training_data['records'])} samples)",
             training_sample_count=len(training_data["records"]),
             accuracy_before=accuracy_before,
-            accuracy_after=min(100, accuracy_before + random.uniform(1, 8)),  # 模拟提升
+            accuracy_after=accuracy_before,  # AI学习后准确率由实际数据决定
             key_changes=key_changes[:500],  # 截断过长内容
             is_active=True,
         )
@@ -495,7 +459,5 @@ class AILearningService:
         self.session.add(log)
         await self.session.commit()
 
-
 # 导入re用于正则匹配
 import re
-import random

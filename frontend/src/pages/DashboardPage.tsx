@@ -203,7 +203,6 @@ const DashboardPage: React.FC = () => {
         setRoadData(res.data as api.FiveRoadsResponse);
       }
     } catch {
-      console.log('走势图API暂无数据，使用模拟展示');
       setRoadData(null);
     } finally {
       setRoadLoading(false);
@@ -560,7 +559,6 @@ const DashboardPage: React.FC = () => {
             <Tag
               color={
                 crawler.status?.type === 'Lile333Scraper' ? 'blue' :
-                crawler.status?.type === 'MockScraper' ? 'green' :
                 crawler.status?.type ? 'orange' : 'default'
               }
               style={{ margin: 0 }}
@@ -627,8 +625,6 @@ const DashboardPage: React.FC = () => {
             <FiveRoadChart
               data={roadData?.roads ?? null}
               loading={roadLoading}
-              useMockData={!roadData}  // 无真实数据时自动使用模拟数据
-              mockGameCount={40}
             />
           </Card>
 

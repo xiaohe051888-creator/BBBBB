@@ -4,8 +4,7 @@
 支持多种数据源接入：
 1. HTTP API 数据源（目标网站提供JSON/API接口）
 2. HTML 页面解析（目标网站需提供HTML页面）
-3. Mock 模拟数据源（开发/测试用）
-4. 手动数据输入（管理员手动录入）
+3. Lile333 浏览器采集器（Playwright路由拦截，生产模式）
 
 核心功能：
 - 轻量局号探测（每10秒一次）
@@ -18,7 +17,6 @@
 
 import asyncio
 import os
-import random
 import re
 import json
 import logging
@@ -451,105 +449,6 @@ class HtmlScraper(BaseScraper):
         return None
 
 
-class MockScraper(BaseScraper):
-    """
-    模拟数据采集器（开发/测试用）
-    
-    模拟真实百家乐开奖过程：
-    - 随机生成庄/闲结果（和约9.5%概率）
-    - 每10秒左右产生一局新数据
-    - 每60-70局自动换靴
-    - 支持可调参数控制生成速度和分布
-    """
-    
-    def __init__(self, table_id: str, boot_size_range: tuple = (55, 75)):
-        super().__init__(table_id, "")
-        self.boot_size_range = boot_size_range  # 每靴局数范围
-        self.current_game_in_boot: int = 0      # 当前靴已产生的局数
-        self.target_boot_size: int = random.randint(*boot_size_range)
-        self.mock_speed: float = 1.0           # 速度倍率（1.0=正常速度）
-        self.paused: bool = False              # 是否暂停
-        self._last_mock_time: float = 0        # 上次模拟时间
-        
-        # 初始化模拟状态
-        random.seed(datetime.now().timestamp())
-    
-    async def detect_new_game(self) -> CrawlResult:
-        start = asyncio.get_event_loop().time()
-        
-        if self.paused:
-            return CrawlResult(success=True, data=None, source="mock", crawl_time=0)
-        
-        # 模拟采集延迟（50-200ms）
-        await asyncio.sleep(random.uniform(0.05, 0.2))
-        
-        # 检查是否该产生新一局
-        current_time = asyncio.get_event_loop().time()
-        time_since_last = current_time - self._last_mock_time if self._last_mock_time > 0 else 999
-        
-        # 正常约10秒一局，受mock_speed影响
-        expected_interval = 10.0 / self.mock_speed
-        
-        if time_since_last < expected_interval * 0.8:
-            # 还没到时间，不产生新数据
-            return CrawlResult(success=True, data=None, source="mock", crawl_time=asyncio.get_event_loop().time() - start)
-        
-        # 产生新一局
-        self.current_game_in_boot += 1
-        game_number = self.current_game_in_boot
-        
-        # 检查换靴
-        if self.current_game_in_boot > self.target_boot_size:
-            # 重置新靴
-            self.current_game_in_boot = 1
-            game_number = 1
-            self.target_boot_size = random.randint(*self.boot_size_range)
-            logger.info(f"[Mock/{self.table_id}] 换靴！下一靴预计{self.target_boot_size}局")
-        
-        # 生成结果（庄~45.86%, 闲~44.62%, 和~9.52%）
-        roll = random.random()
-        if roll < 0.0952:
-            result = "和"
-        elif roll < 0.5438:
-            result = "庄"
-        else:
-            result = "闲"
-        
-        self._last_mock_time = current_time
-        
-        data = GameData(
-            game_number=game_number,
-            result=result,
-            raw_data={
-                "source": "mock",
-                "boot_progress": f"{self.current_game_in_boot}/{self.target_boot_size}",
-            }
-        )
-        
-        duration = asyncio.get_event_loop().time() - start
-        result = CrawlResult(
-            success=True, data=data, source="mock", crawl_time=duration,
-        )
-        self.record_crawl_result(result)
-        return result
-    
-    async def fetch_full_data(self) -> CrawlResult:
-        return await self.detect_new_game()
-    
-    def set_speed(self, speed: float):
-        """调整模拟速度（0.1-10.0）"""
-        self.mock_speed = max(0.1, min(10.0, speed))
-    
-    def pause(self):
-        """暂停模拟"""
-        self.paused = True
-    
-    def resume(self):
-        """恢复模拟"""
-        self.paused = False
-        self._last_mock_time = 0  # 重置计时器避免爆发
-
-
 # ============ 采集管理器 ============
 
 class ScraperManager:
@@ -565,34 +464,31 @@ class ScraperManager:
     _scrapers: Dict[str, BaseScraper] = {}
     
     @classmethod
-    def get_scraper(cls, table_id: str, use_mock: bool = False) -> BaseScraper:
+    def get_scraper(cls, table_id: str) -> BaseScraper:
         """获取指定桌子的采集器"""
         if table_id in cls._scrapers:
             return cls._scrapers[table_id]
         
-        if use_mock:
-            scraper = MockScraper(table_id)
+        # 检查是否为 Lile333 网站（rd.lile333.com）
+        url_26 = os.getenv("TARGET_TABLE_26_URL", "")
+        url_27 = os.getenv("TARGET_TABLE_27_URL", "")
+        
+        lile333_url = f"https://rd.lile333.com/?d={table_id}"
+        if (url_26 and 'lile333' in url_26) or (url_27 and 'lile333' in url_27) or lile333_url:
+            # 使用 Lile333 专用浏览器采集器
+            try:
+                from .lile333_scraper import Lile333Scraper
+                desk_id = int(table_id)
+                logger.info(f"[{table_id}] 使用Lile333浏览器采集器 (desk_id={desk_id})")
+                scraper = Lile333Scraper(table_id=table_id, desk_id=desk_id)
+            except ImportError as e:
+                logger.error(f"[{table_id}] Lile333采集器不可用({e})，请检查依赖配置")
+                raise RuntimeError(f"采集器初始化失败: {e}")
+            except Exception as e:
+                logger.error(f"[{table_id}] Lile333采集器初始化失败({e})")
+                raise RuntimeError(f"采集器初始化失败: {e}")
         else:
-            # 检查是否为 Lile333 网站（rd.lile333.com）
-            url_26 = os.getenv("TARGET_TABLE_26_URL", "")
-            url_27 = os.getenv("TARGET_TABLE_27_URL", "")
-            
-            lile333_url = f"https://rd.lile333.com/?d={table_id}"
-            if (url_26 and 'lile333' in url_26) or (url_27 and 'lile333' in url_27) or lile333_url:
-                # 使用 Lile333 专用浏览器采集器
-                try:
-                    from .lile333_scraper import Lile333Scraper
-                    desk_id = int(table_id)
-                    logger.info(f"[{table_id}] 使用Lile333浏览器采集器 (desk_id={desk_id})")
-                    scraper = Lile333Scraper(table_id=table_id, desk_id=desk_id)
-                except ImportError as e:
-                    logger.warning(f"[{table_id}] Lile333采集器不可用({e}), 回退到默认模式")
-                    scraper = cls._create_default_scraper(table_id)
-                except Exception as e:
-                    logger.error(f"[{table_id}] Lile333采集器初始化失败({e}), 回退到Mock")
-                    scraper = MockScraper(table_id)
-            else:
-                scraper = cls._create_default_scraper(table_id)
+            scraper = cls._create_default_scraper(table_id)
         
         cls._scrapers[table_id] = scraper
         return scraper
@@ -609,8 +505,7 @@ class ScraperManager:
             else:
                 scraper = HtmlScraper(table_id, url)
         else:
-            logger.info(f"[{table_id}] 未配置数据源URL，使用模拟数据模式")
-            scraper = MockScraper(table_id)
+            raise RuntimeError(f"[{table_id}] 未配置数据源URL（请设置环境变量TARGET_TABLE_{table_id}_URL）")
         
         return scraper
     

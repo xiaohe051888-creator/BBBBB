@@ -92,7 +92,7 @@ const BetRecordsPage: React.FC = () => {
       // 计算统计数据
       calcSummary(data);
     } catch {
-      generateMockBets();
+      // API请求失败时显示空数据（不使用模拟数据）
     } finally {
       setLoading(false);
     }
@@ -145,46 +145,6 @@ const BetRecordsPage: React.FC = () => {
       maxLoss: maxLoss === Infinity ? 0 : maxLoss,
       currentStreak,
     });
-  };
-
-  // 模拟数据（开发用）
-  const generateMockBets = () => {
-    const mockBets: BetRecord[] = [];
-    const directions = ['庄', '闲'];
-    const tiers = ['保守', '标准', '进取'];
-    const statuses = ['已结算', '待结算'];
-    let balance = 20000;
-
-    for (let i = 1; i <= 60; i++) {
-      const direction = directions[Math.floor(Math.random() * 2)];
-      const tier = tiers[Math.floor(Math.random() * 3)];
-      const amount = tier === '保守' ? 50 + Math.floor(Math.random() * 50)
-        : tier === '标准' ? 100 + Math.floor(Math.random() * 100)
-          : 200 + Math.floor(Math.random() * 200);
-      const result = directions[Math.floor(Math.random() * 2)];
-      const won = direction === result;
-      const pnl = won ? amount * 0.95 : -amount;  // 庄赢收5%佣金
-
-      mockBets.push({
-        id: i,
-        game_number: i,
-        bet_time: dayjs().subtract(60 - i, 'minute').toISOString(),
-        bet_direction: direction,
-        bet_amount: amount,
-        bet_tier: tier,
-        status: i < 55 ? '已结算' : '待结算',
-        game_result: i < 55 ? result : null,
-        error_id: null,
-        settlement_amount: i < 55 ? (amount + pnl) : null,
-        profit_loss: i < 55 ? pnl : null,
-        balance_before: balance,
-        balance_after: i < 55 ? (balance += pnl) : balance,
-        adapt_summary: i < 55 ? (won ? '预测正确，继续跟注' : '预测错误，调整策略') : null,
-      });
-    }
-
-    setBets(mockBets.reverse());
-    calcSummary(mockBets.reverse());
   };
 
   useEffect(() => {

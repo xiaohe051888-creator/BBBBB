@@ -9,131 +9,10 @@ import BeadRoadCanvas from './BeadRoadCanvas';
 import DerivedRoadCanvas from './DerivedRoadCanvas';
 import type { FiveRoadData, RoadData, RoadPoint } from '../../types/road';
 
-/** 模拟数据生成器（用于开发和演示） */
-export function generateMockFiveRoadData(gameCount: number = 30): FiveRoadData {
-  const results: string[] = [];
-  for (let i = 0; i < gameCount; i++) {
-    const rand = Math.random();
-    if (rand < 0.44) results.push('庄');
-    else if (rand < 0.88) results.push('闲');
-    else results.push('和');
-  }
-
-  // 大路算法
-  const bigRoadPoints: RoadData['points'] = [];
-  let column = 0, row = 0, prevValue: string | null = null;
-  
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    if (result === '和') continue;
-
-    let isNewCol = false;
-    if (prevValue === null) {
-      isNewCol = true;
-    } else if (result === prevValue) {
-      row += 1;
-      if (row >= 6) { row = 5; column += 1; isNewCol = true; }
-    } else {
-      column += 1; row = 0; isNewCol = true;
-    }
-
-    bigRoadPoints.push({
-      game_number: i + 1,
-      column,
-      row,
-      value: result,
-      is_new_column: isNewCol,
-      error_id: null,
-    });
-    prevValue = result;
-  }
-
-  // 珠盘路算法
-  const beadPoints: RoadData['points'] = [];
-  let validIdx = 0;
-  for (let i = 0; i < results.length; i++) {
-    if (results[i] === '和') continue;
-    beadPoints.push({
-      game_number: i + 1,
-      column: validIdx % 14,
-      row: Math.floor(validIdx / 14) % 6,
-      value: results[i],
-      is_new_column: validIdx > 0 && validIdx % 14 === 0,
-      error_id: null,
-    });
-    validIdx++;
-  }
-
-  // 派生路算法
-  function calcDerived(offset: number): RoadData['points'] {
-    const points: RoadData['points'] = [];
-    if (bigRoadPoints.length < offset + 1) return points;
-
-    const colMap = new Map<number, RoadPoint[]>();
-    for (const p of bigRoadPoints) {
-      if (!colMap.has(p.column)) colMap.set(p.column, []);
-      colMap.get(p.column)!.push(p);
-    }
-
-    const sortedCols = Array.from(colMap.keys()).sort((a, b) => a - b);
-    let dCol = 0, dRow = 0, prevVal: string | null = null;
-
-    for (let ci = offset; ci < sortedCols.length; ci++) {
-      const curCol = sortedCols[ci];
-      const prevCol = sortedCols[ci - offset];
-      const curFirst = colMap.get(curCol)?.[0];
-      const prevList = colMap.get(prevCol);
-      
-      if (!curFirst || !prevList) continue;
-
-      const derivedVal = curFirst.row < prevList.length ? '延' : '转';
-
-      let isNewCol = false;
-      if (prevVal === null) isNewCol = true;
-      else if (derivedVal !== prevVal) { dCol++; dRow = 0; isNewCol = true; }
-      else { dRow++; }
-
-      points.push({
-        game_number: curFirst.game_number,
-        column: dCol,
-        row: dRow,
-        value: derivedVal,
-        is_new_column: isNewCol,
-        error_id: null,
-      });
-      prevVal = derivedVal;
-    }
-    return points;
-  }
-
-  function getMaxDims(points: RoadData['points']) {
-    if (!points.length) return { max_columns: 0, max_rows: 0 };
-    return {
-      max_columns: Math.max(...points.map((p: { column: number; row: number }) => p.column)) + 1,
-      max_rows: Math.max(...points.map((p: { column: number; row: number }) => p.row)) + 1,
-    };
-  }
-
-  const bigDims = getMaxDims(bigRoadPoints);
-  const beadDims = { max_columns: 14, max_rows: Math.min(6, Math.ceil(beadPoints.length / 14)) };
-
-  return {
-    big_road: { road_type: 'big_road', display_name: '大路', points: bigRoadPoints, ...bigDims },
-    bead_road: { road_type: 'bead_road', display_name: '珠盘路', points: beadPoints, ...beadDims },
-    big_eye_boy: { road_type: 'big_eye_boy', display_name: '大眼仔路', points: calcDerived(1), ...getMaxDims(calcDerived(1)) },
-    small_road: { road_type: 'small_road', display_name: '小路', points: calcDerived(2), ...getMaxDims(calcDerived(2)) },
-    cockroach_road: { road_type: 'cockroach_road', display_name: '螳螂路', points: calcDerived(3), ...getMaxDims(calcDerived(3)) },
-  };
-}
-
 interface FiveRoadChartProps {
   /** API返回的五路数据（中文键）或标准 FiveRoadData（英文键） */
   data: Record<string, { display_name: string; max_columns: number; max_rows: number; points: RoadData['points'] }> | null;
   loading?: boolean;
-  /** 是否在无数据时使用模拟数据展示（开发模式） */
-  useMockData?: boolean;
-  /** 模拟数据局数 */
-  mockGameCount?: number;
 }
 
 /** 将中英文键的五路数据统一转换为 FiveRoadData 格式 */
@@ -180,20 +59,16 @@ function normalizeFiveRoadData(
 const FiveRoadChart: React.FC<FiveRoadChartProps> = ({
   data,
   loading = false,
-  useMockData = false,
-  mockGameCount = 35,
 }) => {
   const [displayData, setDisplayData] = useState<FiveRoadData | null>(data ? normalizeFiveRoadData(data) : null);
 
   useEffect(() => {
     if (data) {
       setDisplayData(normalizeFiveRoadData(data));
-    } else if (useMockData) {
-      setDisplayData(generateMockFiveRoadData(mockGameCount));
     } else {
       setDisplayData(null);
     }
-  }, [data, useMockData, mockGameCount]);
+  }, [data]);
 
   if (loading) {
     return (
