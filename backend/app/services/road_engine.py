@@ -50,7 +50,17 @@ class UnifiedRoadEngine:
     - 单局开奖结果是随机事件，不存在固定长期必然规律
     - 五路在排列、布局、显示维度存在差异，会形成短暂可用的阶段性特征
     - 阶段性特征可能随时中断，模型必须动态判断而非固定套用单一路径
+    
+    全局常量（标准百家乐规则）:
+    - MAX_ROWS_PER_COLUMN: 大路和派生路每列最大行数（6个一行后换列）
+    - BEAD_COLUMNS: 珠盘路固定列数（14）
+    - BEAD_MAX_ROWS: 珠盘路固定最大行数（6）
     """
+    
+    # === 标准规则常量 ===
+    MAX_ROWS_PER_COLUMN = 6   # 大路/派生路每列最多6个点（全球统一）
+    BEAD_COLUMNS = 14         # 珠盘路固定14列
+    BEAD_MAX_ROWS = 6         # 珠盘路固定6行
     
     def __init__(self):
         self.current_game_numbers: List[int] = []  # 当靴所有局号
@@ -101,8 +111,13 @@ class UnifiedRoadEngine:
     
     def _calculate_big_road(self, valid_entries: List[Tuple[int, str]]) -> RoadData:
         """
-        大路算法
-        规则：相同颜色一组最多6个，颜色变化必换列
+        大路算法 — 标准澳门/拉斯维加斯规则
+        
+        规则：
+        1. 相同结果往下排（纵向延伸）
+        2. 不同结果换新列（从下一列第一行开始）
+        3. 每列最多 MAX_ROWS_PER_COLUMN(6) 个点，超过则折到右侧新列继续
+        4. "和"局在调用前已过滤，此处只处理庄/闲
         """
         road = RoadData(road_type="big_road", display_name="大路")
         
@@ -117,18 +132,19 @@ class UnifiedRoadEngine:
             is_new_col = False
             
             if prev_value is None:
-                # 第一个点
+                # 第一个点：放在(0,0)，标记为新列
                 is_new_col = True
             elif result == prev_value:
-                # 相同，继续往下
+                # 相同结果：向下延伸一行
                 row += 1
-                # 最多6个一行（大路约束）
-                if row >= 6:
-                    row = 5
+                # 关键约束：每列最多MAX_ROWS_PER_COLUMN个点（标准大路规则）
+                # 第7个相同结果时折到右侧新列的最后一行位置
+                if row >= self.MAX_ROWS_PER_COLUMN:
+                    row = self.MAX_ROWS_PER_COLUMN - 1
                     column += 1
                     is_new_col = True
             else:
-                # 颜色变化，换列
+                # 不同结果：开启新列，从第0行开始
                 column += 1
                 row = 0
                 is_new_col = True
@@ -145,7 +161,7 @@ class UnifiedRoadEngine:
             road.points.append(point)
             prev_value = result
         
-        # 更新尺寸
+        # 更新尺寸信息
         if road.points:
             road.max_columns = max(p.column for p in road.points) + 1
             road.max_rows = max(p.row for p in road.points) + 1
@@ -154,18 +170,28 @@ class UnifiedRoadEngine:
     
     def _calculate_bead_road(self, valid_entries: List[Tuple[int, str]]) -> RoadData:
         """
-        珠盘路算法
-        规则：14列×6行，从左到右、从下到上依次填入，颜色不代表庄闲
+        珠盘路算法 — 标准固定网格布局
+        
+        规则：
+        - 固定 BEAD_COLUMNS(14)列 × BEAD_MAX_ROWS(6)行 网格
+        - 从左到右、从上到下依次填入（row=0在顶部）
+        - 颜色直接表示庄(红)/闲(蓝)
+        - 超过 14×6=84 个点时，旧位置会被新数据覆盖（取模行为）
+        
+        注意: 珠盘路的坐标方向与大路不同！
+        - 大路: 自适应行列，向下延伸
+        - 珠盘路: 固定网格，从左上角开始逐行填入
         """
         road = RoadData(road_type="bead_road", display_name="珠盘路")
         
         if not valid_entries:
             return road
         
-        columns = 14
-        max_rows = 6
+        columns = self.BEAD_COLUMNS
+        max_rows = self.BEAD_MAX_ROWS
         
         for idx, (game_number, result) in enumerate(valid_entries):
+            # 取模实现循环覆盖（标准珠盘路行为）
             col = idx % columns
             row = (idx // columns) % max_rows
             
@@ -329,6 +355,8 @@ class UnifiedRoadEngine:
                     derived_value = "转"   # 蓝
             
             # === 按大路规则排列派生路点：相同往下，不同换列 ===
+            # 重要：派生路的排列规则与大路完全相同！
+            # 包括每列最多 MAX_ROWS_PER_COLUMN(6) 个点的限制
             is_new_col = False
             if prev_value is None:
                 is_new_col = True
@@ -338,6 +366,11 @@ class UnifiedRoadEngine:
                 is_new_col = True
             else:
                 der_row += 1
+                # ★ 关键修复：派生路也必须遵守每列6行的限制！
+                if der_row >= self.MAX_ROWS_PER_COLUMN:
+                    der_row = self.MAX_ROWS_PER_COLUMN - 1
+                    der_column += 1
+                    is_new_col = True
             
             error_id = self.error_map.get(point.game_number)
             der_point = RoadPoint(

@@ -1,7 +1,19 @@
 /**
  * 走势图类型定义 - 百家乐分析预测系统
  * 与后端 road_engine.py 数据结构完全对齐
+ * 
+ * 标准规则常量:
+ * - MAX_ROWS_PER_COLUMN: 大路和派生路每列最大行数（6）
+ * - BEAD_COLUMNS: 珠盘路固定列数（14）
+ * - BEAD_MAX_ROWS: 珠盘路固定行数（6）
  */
+
+/** 标准规则常量 */
+export const ROAD_RULES = {
+  MAX_ROWS_PER_COLUMN: 6,   // 大路/派生路每列最多6个点
+  BEAD_COLUMNS: 14,         // 珠盘路固定14列
+  BEAD_MAX_ROWS: 6,         // 珠盘路固定6行
+} as const;
 
 /** 单个走势图上的点（对应后端 RoadPoint） */
 export interface RoadPoint {
@@ -67,6 +79,7 @@ export interface RoadCanvasConfig {
   showCoordinates: boolean;  // 是否显示坐标
   showGrid: boolean;         // 是否显示网格线
   animateNewPoint: boolean;  // 是否启用新点动画
+  animationDuration?: number;// 动画时长(ms)，默认600
 }
 
 /** 默认大路配置 */
@@ -79,6 +92,7 @@ export const BIG_ROAD_CONFIG: RoadCanvasConfig = {
   showCoordinates: false,
   showGrid: true,
   animateNewPoint: true,
+  animationDuration: 600,    // 动画时长(ms)
 };
 
 /** 默认珠盘路配置 */
@@ -91,6 +105,7 @@ export const BEAD_ROAD_CONFIG: RoadCanvasConfig = {
   showCoordinates: false,
   showGrid: true,
   animateNewPoint: false,
+  animationDuration: 0,
 };
 
 /** 默认派生路配置（大眼仔/小路/螳螂） */
@@ -103,4 +118,5 @@ export const DERIVED_ROAD_CONFIG: RoadCanvasConfig = {
   showCoordinates: false,
   showGrid: true,
   animateNewPoint: false,
+  animationDuration: 0,
 };

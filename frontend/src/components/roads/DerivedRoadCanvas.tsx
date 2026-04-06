@@ -11,7 +11,7 @@
  */
 import React, { useRef, useEffect, useCallback } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
-import { DERIVED_ROAD_CONFIG } from '../../types/road';
+import { DERIVED_ROAD_CONFIG, ROAD_COLORS } from '../../types/road';
 import {
   calcCanvasSize,
   getPointColor,
@@ -70,7 +70,7 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
     const displayHeight = canvasHeight / dpr;
 
     // 背景
-    ctx.fillStyle = '#0d1117';
+    ctx.fillStyle = ROAD_COLORS.background;
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
     if (!data || !data.points.length) {

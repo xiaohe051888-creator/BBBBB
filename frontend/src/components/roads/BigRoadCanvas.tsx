@@ -9,7 +9,7 @@
  */
 import React, { useRef, useEffect, useCallback } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
-import { BIG_ROAD_CONFIG } from '../../types/road';
+import { BIG_ROAD_CONFIG, ROAD_COLORS } from '../../types/road';
 import {
   calcCanvasSize,
   getPointColor,
@@ -79,7 +79,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     const displayHeight = canvasHeight / dpr;
 
     // 清空画布
-    ctx.fillStyle = '#0d1117';
+    ctx.fillStyle = ROAD_COLORS.background;
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
     if (!data || !data.points.length) {

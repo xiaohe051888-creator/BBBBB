@@ -1,15 +1,16 @@
 /**
  * 珠盘路 (Bead Road) Canvas 组件
  * 
- * 规则：
- * - 14列 × 6行 固定网格
- * - 从左到右、从下到上依次填入
- * - 颜色表示庄/闲（与大路一致）
- * - 数据超过84个(14*6)时循环覆盖
+ * 规则（标准百家乐）:
+ * - 固定 14列 × 6行 网格布局
+ * - 从左到右、从上到下依次填入（row=0在最上方一行）
+ * - 颜色直接表示庄/闲（庄=红, 闲=蓝）
+ * - 数据超过84个(14×6)时循环覆盖旧位置
+ * - 与大路的区别: 大路是自适应行列+向下延伸; 珠盘路是固定网格
  */
 import React, { useRef, useEffect, useCallback } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
-import { BEAD_ROAD_CONFIG } from '../../types/road';
+import { BEAD_ROAD_CONFIG, ROAD_COLORS } from '../../types/road';
 import {
   getPointColor,
   drawCircle,
@@ -51,9 +52,9 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
       canvasWidth = externalWidth * dpr;
       canvasHeight = externalHeight * dpr;
     } else {
-      // 珠盘路固定14列
+      // 珠盘路: 固定14列×6行网格（标准百家乐规则）
       const fixedCols = 14;
-      const fixedRows = Math.max(data?.max_rows ?? 1, 1);
+      const fixedRows = 6;  // ★ 固定6行，不依赖数据量
       const cellSize = mergedConfig.cellSize;
       const cellGap = mergedConfig.cellGap;
       const padding = mergedConfig.padding;
@@ -72,7 +73,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     const displayHeight = canvasHeight / dpr;
 
     // 背景
-    ctx.fillStyle = '#0d1117';
+    ctx.fillStyle = ROAD_COLORS.background;
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
     if (!data || !data.points.length) {
@@ -87,20 +88,19 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     const cellSize = mergedConfig.cellSize;
     const cellGap = mergedConfig.cellGap;
     const padding = mergedConfig.padding;
-    const fixedCols = 14;
-    const totalRows = Math.max(data.max_rows, 1);
+    const fixedCols = 14;       // 珠盘路固定14列
+    const fixedRows = 6;        // ★ 珠盘路固定6行（不管数据多少都画完整网格）
 
-    // 绘制网格
+    // 绘制网格（固定完整网格，不是只画有数据的部分）
     if (mergedConfig.showGrid) {
-      drawGrid(ctx, mergedConfig, fixedCols, totalRows);
+      drawGrid(ctx, mergedConfig, fixedCols, fixedRows);
     }
 
-    // 按坐标绘制点（珠盘路是固定14列网格布局）
+    // 按坐标绘制点
     for (const point of data.points) {
       if (point.column >= fixedCols) continue; // 超出范围的点不显示
 
       const x = padding + point.column * (cellSize + cellGap) + cellSize / 2;
-      // 珠盘路的row是从下往上排列的，但后端返回的已经是正确坐标，直接用即可
       const y = padding + point.row * (cellSize + cellGap) + cellSize / 2;
 
       const color = getPointColor(point.value, false);

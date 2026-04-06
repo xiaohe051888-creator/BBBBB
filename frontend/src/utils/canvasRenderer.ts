@@ -7,14 +7,39 @@ import { ROAD_COLORS } from '../types/road';
 
 /**
  * 获取点的显示颜色
- * 大路/珠盘路: 庄=红, 闲=蓝
- * 派生路(大眼仔/小路/螳螂): 延=红, 转=蓝
+ * 
+ * 大路/珠盘路:
+ *   庄 = 红色 (#ff4d4f)
+ *   闲 = 蓝色 (#1890ff)
+ *   和 = 绿色 (#52c41a) — 通常不在大路中显示
+ *   未知/其他 = 灰色 (fallback)
+ * 
+ * 派生路(大眼仔/小路/螳螂):
+ *   延(红) = 规律延续
+ *   转(蓝) = 规律转折
+ *   未知 = 灰色 (fallback)
  */
 export function getPointColor(value: string, isDerived: boolean = false): string {
-  if (isDerived) {
-    return value === '延' ? ROAD_COLORS.derived_red : ROAD_COLORS.derived_blue;
+  if (!value) {
+    return ROAD_COLORS.gridLine; // null/undefined → 灰色
   }
-  return value === '庄' ? ROAD_COLORS.banker : ROAD_COLORS.player;
+  
+  if (isDerived) {
+    if (value === '延') return ROAD_COLORS.derived_red;
+    if (value === '转') return ROAD_COLORS.derived_blue;
+    // 派生路异常值（理论上不应该出现）
+    console.warn(`[canvasRenderer] 异常派生路值: "${value}"，使用默认蓝色`);
+    return ROAD_COLORS.derived_blue;  // fallback to blue
+  }
+  
+  // 大路/珠盘路的值
+  if (value === '庄') return ROAD_COLORS.banker;
+  if (value === '闲') return ROAD_COLORS.player;
+  if (value === '和') return ROAD_COLORS.tie;
+  
+  // 非预期值（防御性处理）
+  console.warn(`[canvasRenderer] 异常大路值: "${value}"，使用默认灰色`);
+  return '#6e7681';  // 中性灰色
 }
 
 /**
