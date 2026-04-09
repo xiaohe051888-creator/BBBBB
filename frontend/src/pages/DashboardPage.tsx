@@ -37,7 +37,9 @@ import {
   useAnalysisQuery,
   usePlaceBetMutation,
   useRevealResultMutation,
+  useAddLogOptimistically,
 } from '../hooks';
+import * as api from '../services/api';
 
 // ====== 组件定义 ======
 
@@ -75,6 +77,51 @@ const DashboardPage: React.FC = () => {
   // Mutations
   const placeBetMutation = usePlaceBetMutation();
   const revealResultMutation = useRevealResultMutation();
+  const addLogOptimistically = useAddLogOptimistically();
+
+  // WebSocket 实时接收日志
+  useEffect(() => {
+    if (!tableId) return;
+
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isUnmounted = false;
+
+    const connectWS = () => {
+      if (isUnmounted) return;
+      try {
+        const ws = api.createWebSocket(tableId);
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'log' && data.data) {
+              // 实时添加新日志到缓存
+              addLogOptimistically(tableId, data.data);
+            }
+          } catch {
+            // WebSocket消息解析错误，忽略
+          }
+        };
+
+        ws.onclose = () => {
+          if (!isUnmounted) {
+            reconnectTimer = setTimeout(connectWS, 3000);
+          }
+        };
+      } catch {
+        if (!isUnmounted) {
+          reconnectTimer = setTimeout(connectWS, 5000);
+        }
+      }
+    };
+
+    connectWS();
+
+    return () => {
+      isUnmounted = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
+  }, [tableId, addLogOptimistically]);
 
   // 日志分类筛选
   const [logCategory, setLogCategory] = useState<string>('');
