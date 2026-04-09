@@ -16,7 +16,6 @@ from typing import Dict, Optional, List
 from dataclasses import dataclass, field
 from datetime import datetime
 import json
-import httpx
 from app.core.config import settings
 import aiohttp
 import asyncio

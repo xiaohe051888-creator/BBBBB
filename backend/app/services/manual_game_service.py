@@ -293,8 +293,9 @@ async def run_ai_analysis(
     # 调用AI三模型
     try:
         svc = ThreeModelService()
-        ai_result = await svc.predict_next_game(
-            history_summary=road_summary,
+        ai_result = await svc.analyze(
+            history_text=history_text,
+            road_summary=road_summary,
             mistake_book=mistake_text,
             game_number=sess.next_game_number,
         )

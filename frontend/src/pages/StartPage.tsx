@@ -1,14 +1,13 @@
 /**
- * 启动页 - 百家乐分析预测系统
+ * 启动页 - 百家乐分析预测系统（手动模式）
  * 设计风格：奢华赌场风格 + 现代极简主义
- * 目标用户：小白用户，无需专业知识即可操作
+ * 目标用户：手动输入开奖记录，AI分析预测
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Input, message } from 'antd';
 import { SafetyCertificateOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../services/api';
-import { getToken } from '../services/api';
 
 const StartPage: React.FC = () => {
   const [loading, setLoading] = useState<string | null>(null);
@@ -132,22 +131,14 @@ const StartPage: React.FC = () => {
   const handleStart = async (tableId: string) => {
     setLoading(tableId);
     try {
-      if (!getToken()) {
-        message.warning('请先登录后再启动系统');
-        setLoginVisible(true);
-        setLoading(null);
-        return;
-      }
-      await api.startSystem(tableId);
-      message.success('🎉 系统已启动');
-      navigate(`/dashboard/${tableId}`);
-    } catch (err: any) {
-      if (err.response?.status === 401) {
-        message.warning('登录已过期，请重新登录');
-        setLoginVisible(true);
-      } else {
-        message.error(err.response?.data?.detail || '启动失败，请重试');
-      }
+      // 检查系统健康状态
+      await api.getHealthScore(tableId);
+      message.success(`🎉 ${tableId}桌已就绪`);
+      // 跳转到上传页面
+      navigate(`/upload?table=${tableId}`);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : '连接失败，请检查后端服务';
+      message.error(errorMsg);
     } finally {
       setLoading(null);
     }
@@ -163,7 +154,7 @@ const StartPage: React.FC = () => {
       const res = await api.adminLogin('admin', password);
       const { must_change_password, token } = res.data;
 
-      localStorage.setItem('admin_token', token);
+      api.setToken(token);
 
       if (must_change_password) {
         message.warning('首次登录请修改默认密码');
@@ -173,8 +164,9 @@ const StartPage: React.FC = () => {
       }
 
       setLoginVisible(false);
-    } catch (err: any) {
-      message.error(err.response?.data?.detail || '登录失败');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : '登录失败';
+      message.error(errorMsg);
     } finally {
       setLoginLoading(false);
     }
@@ -256,7 +248,7 @@ const StartPage: React.FC = () => {
             fontWeight: 400,
             letterSpacing: '1.5px',
           }}>
-            智能三模型 · 实时五路分析 · AI深度学习
+            手动上传 · AI三模型分析 · 五路走势图
           </p>
         </div>
 
@@ -271,7 +263,7 @@ const StartPage: React.FC = () => {
           {[
             { icon: '🤖', text: 'AI三模型', desc: '满血预测' },
             { icon: '📊', text: '五路走势图', desc: '国际标准' },
-            { icon: '⚡', text: '实时分析', desc: '150秒轮次' },
+            { icon: '✏️', text: '手动输入', desc: '灵活上传' },
           ].map((feature, index) => (
             <div key={index} style={{
               textAlign: 'center',
@@ -325,10 +317,10 @@ const StartPage: React.FC = () => {
               <span style={{ fontSize: 26 }}>🔴</span>
               <div style={{ textAlign: 'left' }}>
                 <div style={{ color: '#fff', fontSize: 19, fontWeight: 700, letterSpacing: '0.5px' }}>
-                  {loading === '26' ? '⏳ 启动中...' : '26 桌'}
+                  {loading === '26' ? '⏳ 加载中...' : '26 桌'}
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, marginTop: 2 }}>
-                  主桌 · 高频数据流
+                  点击进入 · 手动上传开奖记录
                 </div>
               </div>
             </div>
@@ -360,10 +352,10 @@ const StartPage: React.FC = () => {
               <span style={{ fontSize: 26 }}>🔵</span>
               <div style={{ textAlign: 'left' }}>
                 <div style={{ color: '#fff', fontSize: 19, fontWeight: 700, letterSpacing: '0.5px' }}>
-                  {loading === '27' ? '⏳ 启动中...' : '27 桌'}
+                  {loading === '27' ? '⏳ 加载中...' : '27 桌'}
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, marginTop: 2 }}>
-                  副桌 · 备用数据源
+                  点击进入 · 手动上传开奖记录
                 </div>
               </div>
             </div>
@@ -399,16 +391,6 @@ const StartPage: React.FC = () => {
         maskStyle={{
           backdropFilter: 'blur(12px)',
           backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        }}
-        styles={{
-          content: {
-            borderRadius: 20,
-            background: 'linear-gradient(145deg, rgba(22, 29, 42, 0.98), rgba(15, 20, 31, 0.98))',
-            border: '1px solid rgba(255, 215, 0, 0.2)',
-            boxShadow: '0 25px 80px rgba(0, 0, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.06)',
-            padding: '36px 32px 32px',
-            maxWidth: 'calc(100vw - 32px)',
-          },
         }}
         width={420}
       >

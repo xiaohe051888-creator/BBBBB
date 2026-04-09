@@ -17,13 +17,13 @@
  * - 派生路: 红=延(规律延续), 蓝=转(规律转折) — 不代表庄闲！
  * - 错误标记: 黄色三角(▲)
  */
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Empty, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import BigRoadCanvas from './BigRoadCanvas';
 import BeadRoadCanvas from './BeadRoadCanvas';
 import DerivedRoadCanvas from './DerivedRoadCanvas';
-import type { FiveRoadData, RoadData, RoadPoint } from '../../types/road';
+import type { FiveRoadData, RoadData } from '../../types/road';
 import { ROAD_COLORS, ROAD_RULES } from '../../types/road';
 
 interface FiveRoadChartProps {
@@ -49,6 +49,7 @@ function normalizeFiveRoadData(
     '螳螂路': 'cockroach_road',
   };
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any = {};
   for (const [key, value] of Object.entries(data)) {
     const mappedKey = keyMap[key];
@@ -77,14 +78,12 @@ const FiveRoadChart: React.FC<FiveRoadChartProps> = ({
   data,
   loading = false,
 }) => {
-  const [displayData, setDisplayData] = useState<FiveRoadData | null>(data ? normalizeFiveRoadData(data) : null);
-
-  useEffect(() => {
+  // 使用useMemo替代useState + useEffect避免级联渲染问题
+  const displayData = useMemo(() => {
     if (data) {
-      setDisplayData(normalizeFiveRoadData(data));
-    } else {
-      setDisplayData(null);
+      return normalizeFiveRoadData(data);
     }
+    return null;
   }, [data]);
 
   if (loading) {

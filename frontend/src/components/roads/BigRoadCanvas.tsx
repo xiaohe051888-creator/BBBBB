@@ -7,7 +7,7 @@
  * - 每列最多6行（row: 0~5）
  * - 庄 = 红色圆, 闲 = 蓝色圆
  */
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
 import { BIG_ROAD_CONFIG, ROAD_COLORS } from '../../types/road';
 import {
@@ -39,7 +39,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
-  const mergedConfig = { ...BIG_ROAD_CONFIG, ...customConfig };
+  const mergedConfig = useMemo(() => ({ ...BIG_ROAD_CONFIG, ...customConfig }), [customConfig]);
 
   // 获取最新点的game_number，用于动画触发
   const lastGameNumber = useRef<number>(0);
@@ -165,6 +165,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
         cancelAnimationFrame(animFrameRef.current);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draw, data?.points.length]);
 
   // 窗口resize重绘

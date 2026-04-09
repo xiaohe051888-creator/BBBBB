@@ -22,15 +22,12 @@ cryptography==46.0.6
 # 数据验证
 pydantic==2.12.5
 
-# HTTP 客户端（爬虫 & AI API 调用）
+# HTTP 客户端（AI API 调用）
 aiohttp==3.10.5
 httpx==0.28.1
 beautifulsoup4==4.14.3
 
 # AI 分析（通过 httpx 直接调用 REST API，无需 SDK）
-
-# 浏览器自动化（数据采集）
-playwright==1.58.0
 
 # 数据库迁移
 alembic==1.13.1

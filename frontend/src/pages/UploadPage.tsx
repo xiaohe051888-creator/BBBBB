@@ -5,12 +5,11 @@
  * - 确认上传后，自动计算五路走势，触发AI分析预测下一局
  * - 支持快速填充、清空等辅助操作
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { message, Modal, Input } from 'antd';
 import { SafetyCertificateOutlined } from '@ant-design/icons';
 import * as api from '../services/api';
-import { getToken } from '../services/api';
 
 type GameResult = '庄' | '闲' | '和' | '';
 
@@ -20,6 +19,13 @@ const QUICK_FILLS: { label: string; pattern: GameResult[] }[] = [
   { label: '全闲', pattern: ['闲'] },
   { label: '交替', pattern: ['庄', '闲'] },
 ];
+
+// 数字映射
+const NUM_TO_RESULT: Record<string, GameResult> = {
+  '1': '庄',
+  '2': '闲',
+  '3': '和',
+};
 
 const RESULT_COLORS: Record<string, string> = {
   '庄': '#ff4d4f',
@@ -36,6 +42,8 @@ const RESULT_BG: Record<string, string> = {
 };
 
 const DEFAULT_ROWS = 66;
+const BEAD_ROWS = 6;  // 珠盘路固定6行
+const BEAD_COLS = 14; // 珠盘路固定14列（与后端和类型定义一致）
 
 const UploadPage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,13 +53,19 @@ const UploadPage: React.FC = () => {
   const [games, setGames] = useState<GameResult[]>(Array(DEFAULT_ROWS).fill(''));
   const [rowCount, setRowCount] = useState(DEFAULT_ROWS);
   const [tableId, setTableId] = useState<'26' | '27'>('26');
-  const [bootNumber, setBootNumber] = useState<number | undefined>(undefined);
+  const [bootNumber] = useState<number | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
 
   // 登录弹窗
   const [loginVisible, setLoginVisible] = useState(false);
   const [password, setPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+
+  // 数字填充弹窗
+  const [numberFillVisible, setNumberFillVisible] = useState(false);
+  const [numberInput, setNumberInput] = useState('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [numberFillLoading, setNumberFillLoading] = useState(false);
 
   // 粒子背景
   useEffect(() => {
@@ -143,6 +157,35 @@ const UploadPage: React.FC = () => {
     setGames(Array(rowCount).fill(''));
   };
 
+  // 数字填充处理
+  const handleNumberFill = () => {
+    if (!numberInput.trim()) {
+      message.warning('请输入数字序列');
+      return;
+    }
+
+    const validChars = numberInput.trim().replace(/[^123]/g, '');
+    if (validChars.length === 0) {
+      message.warning('请输入有效的数字（1=庄, 2=闲, 3=和）');
+      return;
+    }
+
+    // 限制填充数量不超过当前局数
+    const fillCount = Math.min(validChars.length, rowCount);
+    
+    setGames(prev => {
+      const next = [...prev];
+      for (let i = 0; i < fillCount; i++) {
+        next[i] = NUM_TO_RESULT[validChars[i]];
+      }
+      return next;
+    });
+
+    message.success(`已填充 ${fillCount} 局数据`);
+    setNumberFillVisible(false);
+    setNumberInput('');
+  };
+
   // 统计
   const filled = games.filter(g => g !== '').length;
   const bankerCount = games.filter(g => g === '庄').length;
@@ -178,23 +221,18 @@ const UploadPage: React.FC = () => {
       okButtonProps: { style: { background: 'linear-gradient(135deg,#ffd700,#f0b90b)', borderColor: '#ffd700', color: '#000', fontWeight: 700 } },
       centered: true,
       maskStyle: { backdropFilter: 'blur(8px)' },
-      styles: {
-        content: {
-          background: 'rgba(15,21,33,0.97)',
-          border: '1px solid rgba(255,215,0,0.2)',
-        },
-        header: { background: 'transparent' },
-      },
       onOk: async () => {
         setUploading(true);
         try {
-          const res = await api.uploadGameResults(tableId, validGames as api.GameUploadItem[], bootNumber);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const res = await api.uploadGameResults(tableId, validGames as any, bootNumber);
           if (res.data.success) {
             message.success(`✅ 上传成功！${res.data.uploaded}局数据已入库，AI分析进行中...`);
             navigate(`/dashboard/${tableId}`);
           }
-        } catch (err: any) {
-          message.error(err.response?.data?.detail || '上传失败，请重试');
+        } catch (err: unknown) {
+          const errorMsg = err instanceof Error ? err.message : '上传失败，请重试';
+          message.error(errorMsg);
           setUploading(false);
         }
       },
@@ -208,7 +246,7 @@ const UploadPage: React.FC = () => {
     try {
       const res = await api.adminLogin('admin', password);
       const { must_change_password, token } = res.data;
-      localStorage.setItem('admin_token', token);
+      api.setToken(token);
       if (must_change_password) {
         message.warning('首次登录请修改默认密码');
         navigate('/admin', { state: { mustChangePassword: true, token } });
@@ -216,8 +254,9 @@ const UploadPage: React.FC = () => {
         navigate('/admin', { state: { token } });
       }
       setLoginVisible(false);
-    } catch (err: any) {
-      message.error(err.response?.data?.detail || '登录失败');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : '登录失败';
+      message.error(errorMsg);
     } finally {
       setLoginLoading(false);
     }
@@ -272,152 +311,413 @@ const UploadPage: React.FC = () => {
           </p>
         </div>
 
-        {/* 控制栏 */}
+        {/* 控制栏 - 重新排版 */}
         <div style={{
-          display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 20px', borderRadius: 16, marginBottom: 16,
-          background: 'rgba(22,29,42,0.85)', border: '1px solid rgba(255,255,255,0.08)',
-        }}>
-          {/* 桌台选择 */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', minWidth: 36 }}>桌台</span>
-            {(['26', '27'] as const).map(t => (
-              <button key={t} onClick={() => setTableId(t)} style={{
-                padding: '6px 16px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14,
-                background: tableId === t
-                  ? (t === '26' ? 'linear-gradient(135deg,#dc3545,#c41d33)' : 'linear-gradient(135deg,#1890ff,#096dd9)')
-                  : 'rgba(255,255,255,0.05)',
-                color: tableId === t ? '#fff' : 'rgba(255,255,255,0.5)',
-                boxShadow: tableId === t ? (t === '26' ? '0 4px 16px rgba(220,53,69,0.3)' : '0 4px 16px rgba(24,144,255,0.3)') : 'none',
-                transition: 'all 0.2s',
-              }}>
-                {t}桌
-              </button>
-            ))}
-          </div>
-
-          {/* 局数控制 */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', minWidth: 30 }}>局数</span>
-            <button onClick={() => handleRowCountChange(rowCount - 1)} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#ffd700', minWidth: 30, textAlign: 'center' }}>{rowCount}</span>
-            <button onClick={() => handleRowCountChange(rowCount + 1)} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
-            <button onClick={() => handleRowCountChange(66)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(255,215,0,0.3)', background: 'rgba(255,215,0,0.06)', color: '#ffd700', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>满66局</button>
-          </div>
-
-          {/* 快捷填充 */}
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', minWidth: 36 }}>快填</span>
-            {QUICK_FILLS.map(f => (
-              <button key={f.label} onClick={() => handleQuickFill(f.pattern)} style={{
-                padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 12,
-              }}>
-                {f.label}
-              </button>
-            ))}
-            <button onClick={handleClear} style={{
-              padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(255,77,79,0.3)',
-              background: 'rgba(255,77,79,0.06)', color: '#ff7875', cursor: 'pointer', fontSize: 12,
-            }}>
-              清空
-            </button>
-          </div>
-        </div>
-
-        {/* 统计条 */}
-        <div style={{
-          display: 'flex', gap: 16, padding: '10px 20px', borderRadius: 12, marginBottom: 12,
-          background: 'rgba(22,29,42,0.6)', border: '1px solid rgba(255,255,255,0.05)',
-          flexWrap: 'wrap', alignItems: 'center',
-        }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>已填 <strong style={{ color: '#ffd700', fontSize: 15 }}>{filled}</strong>/{rowCount}局</span>
-          <span style={{ fontSize: 12, color: RESULT_COLORS['庄'] }}>庄 <strong>{bankerCount}</strong></span>
-          <span style={{ fontSize: 12, color: RESULT_COLORS['闲'] }}>闲 <strong>{playerCount}</strong></span>
-          <span style={{ fontSize: 12, color: RESULT_COLORS['和'] }}>和 <strong>{tieCount}</strong></span>
-          {filled > 0 && (
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 'auto' }}>
-              点击格子切换结果：庄 → 闲 → 和 → 空
-            </span>
-          )}
-        </div>
-
-        {/* 游戏格子网格 */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))',
-          gap: 8,
-          padding: '16px',
-          borderRadius: 16,
-          background: 'rgba(22,29,42,0.85)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          padding: '20px 24px',
+          borderRadius: 20,
           marginBottom: 20,
-          maxHeight: 520,
-          overflowY: 'auto',
+          background: 'linear-gradient(145deg, rgba(22,29,42,0.9), rgba(15,21,33,0.9))',
+          border: '1px solid rgba(255,215,0,0.1)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
         }}>
-          {games.map((result, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleCellClick(idx)}
-              style={{
-                height: 56,
-                borderRadius: 10,
-                border: `1.5px solid ${result ? RESULT_COLORS[result] : 'rgba(255,255,255,0.1)'}`,
-                background: result ? RESULT_BG[result] : 'rgba(255,255,255,0.03)',
-                cursor: 'pointer',
+          {/* 第一行：桌台 + 局数 */}
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* 桌台选择 */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>桌台</span>
+              {(['26', '27'] as const).map(t => (
+                <button key={t} onClick={() => setTableId(t)} style={{
+                  padding: '8px 20px',
+                  borderRadius: 12,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  background: tableId === t
+                    ? (t === '26' ? 'linear-gradient(135deg,#ff4d4f,#dc3545)' : 'linear-gradient(135deg,#1890ff,#096dd9)')
+                    : 'rgba(255,255,255,0.06)',
+                  color: tableId === t ? '#fff' : 'rgba(255,255,255,0.5)',
+                  boxShadow: tableId === t ? (t === '26' ? '0 4px 16px rgba(255,77,79,0.35)' : '0 4px 16px rgba(24,144,255,0.35)') : 'none',
+                  transition: 'all 0.2s',
+                }}>
+                  {t}桌
+                </button>
+              ))}
+            </div>
+
+            {/* 局数控制 */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>局数</span>
+              <div style={{
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: 2,
-                transition: 'all 0.15s',
-                outline: 'none',
-                position: 'relative',
-              }}
-            >
-              {/* 局号 */}
-              <span style={{
-                fontSize: 10, color: 'rgba(255,255,255,0.3)',
-                position: 'absolute', top: 4, left: 6,
+                gap: 8,
+                padding: '4px',
+                borderRadius: 12,
+                background: 'rgba(0,0,0,0.2)',
+                border: '1px solid rgba(255,255,255,0.06)',
               }}>
-                {idx + 1}
-              </span>
-              {/* 结果 */}
-              {result ? (
+                <button onClick={() => handleRowCountChange(rowCount - 1)} style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.15s',
+                }}>−</button>
                 <span style={{
                   fontSize: 18,
-                  fontWeight: 800,
-                  color: RESULT_COLORS[result],
-                  textShadow: `0 0 10px ${RESULT_COLORS[result]}60`,
+                  fontWeight: 700,
+                  color: '#ffd700',
+                  minWidth: 36,
+                  textAlign: 'center',
+                  textShadow: '0 0 10px rgba(255,215,0,0.3)',
+                }}>{rowCount}</span>
+                <button onClick={() => handleRowCountChange(rowCount + 1)} style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.15s',
+                }}>+</button>
+              </div>
+              <button onClick={() => handleRowCountChange(66)} style={{
+                padding: '8px 16px',
+                borderRadius: 10,
+                border: '1px solid rgba(255,215,0,0.25)',
+                background: 'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.04))',
+                color: '#ffd700',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                transition: 'all 0.15s',
+              }}>满66局</button>
+            </div>
+          </div>
+
+          {/* 第二行：快捷填充 + 数字填充 */}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* 快捷填充 */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>快捷</span>
+              {QUICK_FILLS.map(f => (
+                <button key={f.label} onClick={() => handleQuickFill(f.pattern)} style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: 'rgba(255,255,255,0.65)',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  transition: 'all 0.15s',
                 }}>
-                  {result}
-                </span>
-              ) : (
-                <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.12)', fontWeight: 300 }}>·</span>
-              )}
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 分隔线 */}
+            <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
+
+            {/* 数字填充按钮 */}
+            <button
+              onClick={() => setNumberFillVisible(true)}
+              style={{
+                padding: '8px 18px',
+                borderRadius: 10,
+                border: '1px solid rgba(114,46,209,0.4)',
+                background: 'linear-gradient(135deg, rgba(114,46,209,0.15), rgba(114,46,209,0.05))',
+                color: '#b37feb',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.15s',
+              }}
+            >
+              <span>🔢</span>
+              <span>数字填充</span>
             </button>
-          ))}
+
+            {/* 清空按钮 */}
+            <button onClick={handleClear} style={{
+              padding: '8px 18px',
+              borderRadius: 10,
+              border: '1px solid rgba(255,77,79,0.3)',
+              background: 'rgba(255,77,79,0.06)',
+              color: '#ff7875',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 500,
+              marginLeft: 'auto',
+              transition: 'all 0.15s',
+            }}>
+              🗑️ 清空
+            </button>
+          </div>
         </div>
 
-        {/* 操作按钮 */}
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {/* 统计条 - 重新设计 */}
+        <div style={{
+          display: 'flex',
+          gap: 20,
+          padding: '16px 24px',
+          borderRadius: 16,
+          marginBottom: 20,
+          background: 'linear-gradient(90deg, rgba(22,29,42,0.8), rgba(30,40,60,0.8))',
+          border: '1px solid rgba(255,255,255,0.06)',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+            {/* 总进度 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: `conic-gradient(#ffd700 ${filled / rowCount * 360}deg, rgba(255,255,255,0.08) 0deg)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+              }}>
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: 'rgba(15,21,33,0.9)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#ffd700' }}>{filled}</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>已填/总局</span>
+                <span style={{ fontSize: 14, color: '#fff', fontWeight: 600 }}>{filled}/{rowCount}</span>
+              </div>
+            </div>
+
+            {/* 分隔线 */}
+            <div style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.08)' }} />
+
+            {/* 各结果统计 */}
+            <div style={{ display: 'flex', gap: 16 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'rgba(255,77,79,0.08)',
+                border: '1px solid rgba(255,77,79,0.15)',
+              }}>
+                <span style={{ fontSize: 12, color: '#ff7875' }}>庄</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#ff4d4f' }}>{bankerCount}</span>
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'rgba(24,144,255,0.08)',
+                border: '1px solid rgba(24,144,255,0.15)',
+              }}>
+                <span style={{ fontSize: 12, color: '#69c0ff' }}>闲</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#1890ff' }}>{playerCount}</span>
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'rgba(82,196,26,0.08)',
+                border: '1px solid rgba(82,196,26,0.15)',
+              }}>
+                <span style={{ fontSize: 12, color: '#95de64' }}>和</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#52c41a' }}>{tieCount}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 操作提示 */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 14px',
+            borderRadius: 8,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+              💡 点击圆圈切换：庄 → 闲 → 和 → 空
+            </span>
+          </div>
+        </div>
+
+        {/* 珠盘路面板 - 6行×11列 - 重新设计 */}
+        <div style={{
+          padding: '24px 28px',
+          borderRadius: 24,
+          background: 'linear-gradient(145deg, rgba(22,29,42,0.9), rgba(15,21,33,0.9))',
+          border: '1px solid rgba(255,215,0,0.08)',
+          marginBottom: 24,
+          boxShadow: '0 12px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
+        }}>
+          {/* 珠盘路网格 - 按列渲染 */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 8,
+            justifyContent: 'center',
+          }}>
+            {Array.from({ length: BEAD_COLS }).map((_, colIdx) => (
+              <div key={colIdx} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}>
+                {Array.from({ length: BEAD_ROWS }).map((_, rowIdx) => {
+                  // 计算局号：第1列是1-6，第2列是7-12，以此类推
+                  const gameIdx = colIdx * BEAD_ROWS + rowIdx;
+                  const result = games[gameIdx] || '';
+                  const gameNumber = gameIdx + 1;
+
+                  // 如果超出当前设置的局数，显示为禁用状态
+                  const isDisabled = gameIdx >= rowCount;
+
+                  return (
+                    <button
+                      key={rowIdx}
+                      onClick={() => !isDisabled && handleCellClick(gameIdx)}
+                      disabled={isDisabled}
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: '50%',
+                        border: `2px solid ${isDisabled ? 'rgba(255,255,255,0.04)' : (result ? RESULT_COLORS[result] : 'rgba(255,255,255,0.12)')}`,
+                        background: isDisabled
+                          ? 'rgba(255,255,255,0.02)'
+                          : (result ? RESULT_BG[result] : 'linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))'),
+                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        outline: 'none',
+                        position: 'relative',
+                        opacity: isDisabled ? 0.25 : 1,
+                        boxShadow: result
+                          ? `0 4px 16px ${RESULT_COLORS[result]}30, inset 0 1px 0 rgba(255,255,255,0.1)`
+                          : '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)',
+                      }}
+                    >
+                      {/* 局号或结果显示 */}
+                      {result ? (
+                        <span style={{
+                          fontSize: 20,
+                          fontWeight: 800,
+                          color: RESULT_COLORS[result],
+                          textShadow: `0 0 12px ${RESULT_COLORS[result]}60`,
+                        }}>
+                          {result}
+                        </span>
+                      ) : (
+                        <span style={{
+                          fontSize: isDisabled ? 13 : 16,
+                          fontWeight: isDisabled ? 400 : 700,
+                          color: isDisabled ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.35)',
+                        }}>
+                          {gameNumber}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          {/* 列号标注 */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 8,
+            justifyContent: 'center',
+            marginTop: 12,
+          }}>
+            {Array.from({ length: BEAD_COLS }).map((_, colIdx) => (
+              <div key={colIdx} style={{
+                width: 56,
+                textAlign: 'center',
+                fontSize: 11,
+                color: 'rgba(255,255,255,0.2)',
+                fontWeight: 500,
+              }}>
+                {colIdx + 1}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 操作按钮 - 重新设计 */}
+        <div style={{
+          display: 'flex',
+          gap: 16,
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          padding: '24px',
+          borderRadius: 20,
+          background: 'linear-gradient(145deg, rgba(22,29,42,0.6), rgba(15,21,33,0.6))',
+          border: '1px solid rgba(255,255,255,0.05)',
+        }}>
           {/* 查看仪表盘（不上传） */}
           <button
             onClick={() => navigate(`/dashboard/${tableId}`)}
             style={{
-              padding: '14px 28px',
-              borderRadius: 14,
-              border: '1px solid rgba(255,255,255,0.15)',
-              background: 'rgba(255,255,255,0.06)',
-              color: 'rgba(255,255,255,0.7)',
+              padding: '16px 32px',
+              borderRadius: 16,
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+              color: 'rgba(255,255,255,0.8)',
               cursor: 'pointer',
               fontSize: 15,
               fontWeight: 600,
-              minWidth: 140,
+              minWidth: 160,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
               transition: 'all 0.2s',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
             }}
           >
-            📊 查看仪表盘
+            <span>📊</span>
+            <span>查看仪表盘</span>
           </button>
 
           {/* 确认上传 */}
@@ -425,31 +725,55 @@ const UploadPage: React.FC = () => {
             onClick={handleUpload}
             disabled={uploading || filled === 0}
             style={{
-              padding: '14px 36px',
-              borderRadius: 14,
+              padding: '16px 40px',
+              borderRadius: 16,
               border: 'none',
               background: filled === 0
                 ? 'rgba(255,255,255,0.06)'
                 : 'linear-gradient(135deg, #ffd700 0%, #f0b90b 50%, #d4a017 100%)',
               color: filled === 0 ? 'rgba(255,255,255,0.3)' : '#000',
               cursor: filled === 0 ? 'not-allowed' : 'pointer',
-              fontSize: 16,
+              fontSize: 17,
               fontWeight: 800,
-              minWidth: 180,
-              boxShadow: filled > 0 ? '0 6px 24px rgba(255,215,0,0.35)' : 'none',
+              minWidth: 200,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: filled > 0 ? '0 8px 32px rgba(255,215,0,0.4)' : 'none',
               transition: 'all 0.2s',
               opacity: uploading ? 0.7 : 1,
               letterSpacing: '0.5px',
             }}
           >
-            {uploading ? '⏳ 上传中...' : `✅ 确认上传 (${filled}局)`}
+            {uploading ? (
+              <>
+                <span>⏳</span>
+                <span>上传中...</span>
+              </>
+            ) : (
+              <>
+                <span>✅</span>
+                <span>确认上传 ({filled}局)</span>
+              </>
+            )}
           </button>
         </div>
 
         {/* 操作提示 */}
-        <div style={{ marginTop: 24, textAlign: 'center' }}>
-          <SafetyCertificateOutlined style={{ color: 'rgba(82,196,26,0.5)', fontSize: 13 }} />
-          <span style={{ marginLeft: 6, color: 'rgba(255,255,255,0.22)', fontSize: 11, letterSpacing: '0.3px' }}>
+        <div style={{
+          marginTop: 28,
+          textAlign: 'center',
+          padding: '12px 24px',
+          borderRadius: 12,
+          background: 'rgba(82,196,26,0.06)',
+          border: '1px solid rgba(82,196,26,0.12)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          margin: '28px auto 0',
+        }}>
+          <SafetyCertificateOutlined style={{ color: 'rgba(82,196,26,0.7)', fontSize: 14 }} />
+          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, letterSpacing: '0.3px' }}>
             仿真验证系统 · 不涉及真实下注 · 数据仅供学习研究
           </span>
         </div>
@@ -462,15 +786,6 @@ const UploadPage: React.FC = () => {
         footer={null}
         centered
         maskStyle={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
-        styles={{
-          content: {
-            borderRadius: 20,
-            background: 'linear-gradient(145deg, rgba(22,29,42,0.98), rgba(15,20,31,0.98))',
-            border: '1px solid rgba(255,215,0,0.2)',
-            boxShadow: '0 25px 80px rgba(0,0,0,0.6), 0 0 60px rgba(255,215,0,0.06)',
-            padding: '36px 32px 32px',
-          },
-        }}
         width={420}
       >
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
@@ -486,7 +801,6 @@ const UploadPage: React.FC = () => {
           size="large"
           autoFocus
           style={{ height: 50, borderRadius: 12, fontSize: 15 }}
-          styles={{ input: { color: '#fff' } }}
         />
         <button
           className="login-gold-btn"
@@ -496,6 +810,207 @@ const UploadPage: React.FC = () => {
         >
           {loginLoading ? '⏳ 验证中...' : '🔑 登录进入管理面板'}
         </button>
+      </Modal>
+
+      {/* 数字填充弹窗 */}
+      <Modal
+        open={numberFillVisible}
+        onCancel={() => { setNumberFillVisible(false); setNumberInput(''); }}
+        footer={null}
+        centered
+        maskStyle={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
+        width={480}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(114,46,209,0.2), rgba(114,46,209,0.08))',
+            border: '1px solid rgba(114,46,209,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+            fontSize: 28,
+          }}>
+            🔢
+          </div>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#fff' }}>数字填充</h2>
+          <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
+            输入数字序列快速填充开奖结果
+          </p>
+        </div>
+
+        {/* 说明卡片 */}
+        <div style={{
+          display: 'flex',
+          gap: 12,
+          justifyContent: 'center',
+          marginBottom: 20,
+          padding: '12px 16px',
+          borderRadius: 12,
+          background: 'rgba(0,0,0,0.25)',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              background: 'rgba(255,77,79,0.15)',
+              border: '1px solid rgba(255,77,79,0.3)',
+              color: '#ff7875',
+              fontSize: 12,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>1</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>= 庄</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              background: 'rgba(24,144,255,0.15)',
+              border: '1px solid rgba(24,144,255,0.3)',
+              color: '#69c0ff',
+              fontSize: 12,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>2</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>= 闲</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              background: 'rgba(82,196,26,0.15)',
+              border: '1px solid rgba(82,196,26,0.3)',
+              color: '#95de64',
+              fontSize: 12,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>3</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>= 和</span>
+          </div>
+        </div>
+
+        {/* 输入框 */}
+        <div style={{ marginBottom: 20 }}>
+          <Input
+            value={numberInput}
+            onChange={e => {
+              // 只允许输入1、2、3
+              const val = e.target.value.replace(/[^123]/g, '').slice(0, rowCount);
+              setNumberInput(val);
+            }}
+            onPressEnter={handleNumberFill}
+            placeholder={`请输入数字序列，例如：11132211（最多${rowCount}位）`}
+            size="large"
+            autoFocus
+            style={{
+              height: 56,
+              borderRadius: 14,
+              fontSize: 18,
+              fontFamily: 'monospace',
+              letterSpacing: '2px',
+              textAlign: 'center',
+            }}
+            styles={{ input: { color: '#fff' } }}
+          />
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginTop: 10,
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.35)',
+          }}>
+            <span>已输入 {numberInput.length} 位</span>
+            <span>最多 {rowCount} 位</span>
+          </div>
+        </div>
+
+        {/* 预览 */}
+        {numberInput.length > 0 && (
+          <div style={{
+            marginBottom: 20,
+            padding: '14px 18px',
+            borderRadius: 12,
+            background: 'rgba(0,0,0,0.2)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>预览</div>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 6,
+              fontSize: 14,
+            }}>
+              {numberInput.split('').map((num, idx) => (
+                <span key={idx} style={{
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  background: RESULT_BG[NUM_TO_RESULT[num]],
+                  border: `1px solid ${RESULT_COLORS[NUM_TO_RESULT[num]]}`,
+                  color: RESULT_COLORS[NUM_TO_RESULT[num]],
+                  fontWeight: 600,
+                  minWidth: 32,
+                  textAlign: 'center',
+                }}>
+                  {NUM_TO_RESULT[num]}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 按钮 */}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button
+            onClick={() => { setNumberFillVisible(false); setNumberInput(''); }}
+            style={{
+              flex: 1,
+              padding: '14px 24px',
+              borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(255,255,255,0.05)',
+              color: 'rgba(255,255,255,0.7)',
+              cursor: 'pointer',
+              fontSize: 15,
+              fontWeight: 600,
+            }}
+          >
+            取消
+          </button>
+          <button
+            onClick={handleNumberFill}
+            disabled={!numberInput.trim()}
+            style={{
+              flex: 1,
+              padding: '14px 24px',
+              borderRadius: 12,
+              border: 'none',
+              background: numberInput.trim()
+                ? 'linear-gradient(135deg, #722ed1, #531dab)'
+                : 'rgba(255,255,255,0.08)',
+              color: numberInput.trim() ? '#fff' : 'rgba(255,255,255,0.3)',
+              cursor: numberInput.trim() ? 'pointer' : 'not-allowed',
+              fontSize: 15,
+              fontWeight: 700,
+              boxShadow: numberInput.trim() ? '0 4px 16px rgba(114,46,209,0.35)' : 'none',
+            }}
+          >
+            确认填充
+          </button>
+        </div>
       </Modal>
     </div>
   );

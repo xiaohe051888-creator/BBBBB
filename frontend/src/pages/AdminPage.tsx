@@ -1,24 +1,26 @@
 /**
- * 管理员页面 - AI学习 & 数据库查看
+ * 管理员页面 - AI学习 & 数据库查看（手动模式）
+ * 移除爬虫相关功能，专注AI模型管理和数据查看
  */
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Card, Button, Table, Tag, Space, Statistic, Input, Modal, message,
-  Select, Progress, Descriptions, Tabs, Empty,
+  Card, Button, Table, Tag, Space, Input, Modal, message,
+  Select, Tabs, Empty, Statistic, Row, Col, Divider,
 } from 'antd';
 import {
   ExperimentOutlined, DatabaseOutlined, ArrowLeftOutlined,
-  LockOutlined, KeyOutlined, HistoryOutlined,
+  KeyOutlined, RobotOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import * as api from '../services/api';
-import { getToken, clearToken } from '../services/api';
+import { clearToken } from '../services/api';
 
 const AdminPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  // 优先从localStorage读取token（刷新页面后location.state会丢失）
-  const token = (location.state as any)?.token || getToken();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const token = (location.state as any)?.token || api.getToken();
   
   // 未登录则重定向到首页
   React.useEffect(() => {
@@ -28,15 +30,22 @@ const AdminPage: React.FC = () => {
   }, [token, navigate]);
   
   const [activeTab, setActiveTab] = useState('ai');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [modelVersions, setModelVersions] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [dbRecords, setDbRecords] = useState<any[]>([]);
   const [dbTable, setDbTable] = useState('game_records');
   const [dbPage, setDbPage] = useState(1);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [aiLearningStatus, setAiLearningStatus] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [threeModelStatus, setThreeModelStatus] = useState<any>(null);
   
   // 修改密码弹窗
   const [changePwdVisible, setChangePwdVisible] = useState(false);
   const [oldPwd, setOldPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mustChange, setMustChange] = useState((location.state as any)?.mustChangePassword || false);
   
   // 强制修改密码
@@ -48,19 +57,46 @@ const AdminPage: React.FC = () => {
     try {
       const res = await api.getModelVersions();
       setModelVersions(res.data.data || []);
-    } catch {}
+    } catch {
+      // 加载失败，静默处理
+    }
   };
 
   const loadDbRecords = async () => {
     try {
       const res = await api.getDatabaseRecords(dbTable, dbPage);
       setDbRecords(res.data.data || []);
-    } catch {}
+    } catch {
+      // 加载失败，静默处理
+    }
+  };
+
+  const loadAiLearningStatus = async () => {
+    try {
+      const res = await api.getAiLearningStatus();
+      setAiLearningStatus(res.data);
+    } catch {
+      // 加载失败，静默处理
+    }
+  };
+
+  const loadThreeModelStatus = async () => {
+    try {
+      const res = await api.getThreeModelStatus();
+      setThreeModelStatus(res.data);
+    } catch {
+      // 加载失败，静默处理
+    }
   };
 
   useEffect(() => {
-    if (activeTab === 'ai') loadModelVersions();
+    if (activeTab === 'ai') {
+      loadModelVersions();
+      loadAiLearningStatus();
+      loadThreeModelStatus();
+    }
     if (activeTab === 'db') loadDbRecords();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, dbTable, dbPage]);
 
   const handleChangePassword = async () => {
@@ -73,8 +109,9 @@ const AdminPage: React.FC = () => {
       message.success('密码修改成功');
       setChangePwdVisible(false);
       setMustChange(false);
-    } catch (err: any) {
-      message.error(err.response?.data?.detail || '修改失败');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : '修改失败';
+      message.error(errorMsg);
     }
   };
 
@@ -97,6 +134,7 @@ const AdminPage: React.FC = () => {
         <div className="page-nav-left">
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>返回启动页</Button>
           <span className="page-nav-title">管理员后台</span>
+          <Tag color="blue">手动模式</Tag>
         </div>
         <div className="page-nav-right">
           <Button icon={<KeyOutlined />} onClick={() => setChangePwdVisible(true)}>修改密码</Button>
@@ -110,20 +148,92 @@ const AdminPage: React.FC = () => {
         items={[
           {
             key: 'ai',
-            label: <span><ExperimentOutlined /> AI大模型</span>,
+            label: <span><RobotOutlined /> AI大模型</span>,
             children: (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* 三模型状态 */}
+                <Card title="三模型状态">
+                  {threeModelStatus ? (
+                    <Row gutter={[16, 16]}>
+                      <Col span={8}>
+                        <Card size="small" style={{ borderLeft: '3px solid #ff4d4f', background: 'rgba(255,77,79,0.04)' }}>
+                          <div style={{ fontWeight: 700, color: '#ff4d4f', marginBottom: 8 }}>🔴 庄模型</div>
+                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                            {threeModelStatus.models?.banker?.provider} · {threeModelStatus.models?.banker?.model}
+                          </div>
+                          <div style={{ marginTop: 8 }}>
+                            {threeModelStatus.models?.banker?.api_key_set ? (
+                              <Tag color="success" icon={<CheckCircleOutlined />}>已配置</Tag>
+                            ) : (
+                              <Tag color="error">未配置</Tag>
+                            )}
+                          </div>
+                        </Card>
+                      </Col>
+                      <Col span={8}>
+                        <Card size="small" style={{ borderLeft: '3px solid #1890ff', background: 'rgba(24,144,255,0.04)' }}>
+                          <div style={{ fontWeight: 700, color: '#1890ff', marginBottom: 8 }}>🔵 闲模型</div>
+                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                            {threeModelStatus.models?.player?.provider} · {threeModelStatus.models?.player?.model}
+                          </div>
+                          <div style={{ marginTop: 8 }}>
+                            {threeModelStatus.models?.player?.api_key_set ? (
+                              <Tag color="success" icon={<CheckCircleOutlined />}>已配置</Tag>
+                            ) : (
+                              <Tag color="error">未配置</Tag>
+                            )}
+                          </div>
+                        </Card>
+                      </Col>
+                      <Col span={8}>
+                        <Card size="small" style={{ borderLeft: '3px solid #52c41a', background: 'rgba(82,196,26,0.04)' }}>
+                          <div style={{ fontWeight: 700, color: '#52c41a', marginBottom: 8 }}>🧠 综合模型</div>
+                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                            {threeModelStatus.models?.combined?.provider} · {threeModelStatus.models?.combined?.model}
+                          </div>
+                          <div style={{ marginTop: 8 }}>
+                            {threeModelStatus.models?.combined?.api_key_set ? (
+                              <Tag color="success" icon={<CheckCircleOutlined />}>已配置</Tag>
+                            ) : (
+                              <Tag color="error">未配置</Tag>
+                            )}
+                          </div>
+                        </Card>
+                      </Col>
+                    </Row>
+                  ) : (
+                    <Empty description="加载中..." />
+                  )}
+                </Card>
+
                 {/* AI学习 */}
                 <Card title="AI学习">
-                  <Space orientation="vertical" style={{ width: '100%' }}>
-                    <Descriptions size="small" bordered>
-                      <Descriptions.Item label="学习条件">数据库历史有效局总量需达到200局</Descriptions.Item>
-                      <Descriptions.Item label="学习范围">按靴执行，不跨靴混样</Descriptions.Item>
-                      <Descriptions.Item label="版本限制">最多保留5个版本</Descriptions.Item>
-                    </Descriptions>
-                    <Button type="primary" icon={<ExperimentOutlined />} size="large">
-                      开始AI学习
+                  <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Statistic title="学习条件" value="200局" suffix="历史数据" />
+                      </Col>
+                      <Col span={8}>
+                        <Statistic title="学习范围" value="按靴" suffix="不跨靴" />
+                      </Col>
+                      <Col span={8}>
+                        <Statistic title="版本限制" value="5个" suffix="最多保留" />
+                      </Col>
+                    </Row>
+                    <Divider style={{ margin: '12px 0', borderColor: 'rgba(255,255,255,0.06)' }} />
+                    <Button 
+                      type="primary" 
+                      icon={<ExperimentOutlined />} 
+                      size="large"
+                      disabled={aiLearningStatus?.is_learning}
+                    >
+                      {aiLearningStatus?.is_learning ? '学习中...' : '开始AI学习'}
                     </Button>
+                    {aiLearningStatus?.is_learning && (
+                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                        当前任务：{aiLearningStatus.current_task}
+                      </div>
+                    )}
                   </Space>
                 </Card>
 

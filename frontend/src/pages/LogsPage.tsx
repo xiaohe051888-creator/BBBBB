@@ -11,14 +11,13 @@ import {
 import {
   ArrowLeftOutlined, ReloadOutlined, SearchOutlined,
   FilterOutlined, ExclamationCircleOutlined, ClockCircleOutlined,
-  BellOutlined, BugOutlined, InfoCircleOutlined, CheckCircleOutlined,
-  WarningOutlined, ThunderboltOutlined, FileTextOutlined,
+  WarningOutlined, FileTextOutlined, CheckCircleOutlined,
   DownloadOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import * as api from '../services/api';
-import { PRIORITY_COLORS, LOG_CATEGORIES, STATUS_TEXTS } from '../utils/constants';
+import { PRIORITY_COLORS, LOG_CATEGORIES } from '../utils/constants';
 
 interface LogEntry {
   id: number;
@@ -60,7 +59,7 @@ const LogsPage: React.FC = () => {
 
   // WebSocket实时推送
   const wsRef = useRef<WebSocket | null>(null);
-  const logsEndRef = useRef<HTMLDivElement>(null);
+  // const logsEndRef = useRef<HTMLDivElement>(null); // 暂不使用
 
   // ====== 导出功能 ======
   const exportToCSV = () => {
@@ -149,7 +148,9 @@ const LogsPage: React.FC = () => {
             if (data.type === 'log') {
               setLogs(prev => [data.data, ...prev].slice(0, 500));
             }
-          } catch (e) { /* ignore */ }
+          } catch {
+            // WebSocket消息解析错误，忽略
+          }
         };
 
         ws.onclose = () => {
@@ -157,7 +158,7 @@ const LogsPage: React.FC = () => {
             reconnectTimer = setTimeout(connectWS, 3000);
           }
         };
-      } catch (e) {
+      } catch {
         if (!isUnmounted) {
           reconnectTimer = setTimeout(connectWS, 5000);
         }
@@ -283,12 +284,12 @@ const LogsPage: React.FC = () => {
       title: '操作',
       width: 50,
       fixed: 'right' as const,
-      render: (_: any, r: LogEntry) => (
+      render: (_: unknown, record: LogEntry) => (
         <Button
           type="link"
           size="small"
           style={{ padding: 0 }}
-          onClick={() => { setSelectedLog(r); setDetailModalOpen(true); }}
+          onClick={() => { setSelectedLog(record); setDetailModalOpen(true); }}
         >
           详情
         </Button>

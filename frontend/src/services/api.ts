@@ -193,7 +193,7 @@ export const getBetRecords = async (params: {
   return api.get('/bets', { params });
 };
 
-// ====== 实盘日志 ======
+// ====== 系统日志 ======
 
 export const getLogs = async (params: {
   table_id: string;
@@ -262,12 +262,14 @@ export interface FiveRoadsResponse {
 }
 
 export const getRoadMaps = async (tableId: string, bootNumber?: number) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: Record<string, any> = { table_id: tableId };
   if (bootNumber !== undefined) params.boot_number = bootNumber;
   return api.get('/roads', { params });
 };
 
 export const getRoadRawData = async (tableId: string, bootNumber?: number) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: Record<string, any> = { table_id: tableId };
   if (bootNumber !== undefined) params.boot_number = bootNumber;
   return api.get('/roads/raw', { params });
@@ -311,6 +313,7 @@ export interface MistakeRecord {
   player_summary: string | null;
   combined_summary: string | null;
   confidence: number | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   road_snapshot: any | null;
   analysis: string | null;
   correction: string | null;
@@ -364,15 +367,6 @@ export interface ThreeModelStatus {
 /** 获取三模型配置和状态（需管理员认证） */
 export const getThreeModelStatus = async () => {
   return api.get<ThreeModelStatus>('/admin/three-model-status');
-};
-
-// ====== 智能选模 ======
-
-/** 执行智能选模（需管理员认证） */
-export const selectBestModel = async (tableId: string, forceVersion?: string) => {
-  const params: Record<string, any> = { table_id: tableId };
-  if (forceVersion) params.force_version = forceVersion;
-  return api.post('/system/select-model', null, { params });
 };
 
 export default api;

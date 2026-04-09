@@ -110,7 +110,8 @@ export function drawCircle(
   if (errorMarked) {
     ctx.fillStyle = ROAD_COLORS.errorMark;
     ctx.beginPath();
-    const markSize = radius * 0.4;
+    // const markSize = radius * 0.4;
+    void (radius * 0.4); // 使用radius避免未使用警告
     ctx.moveTo(cx + radius * 0.3, cy - radius * 0.5);
     ctx.lineTo(cx + radius * 0.7, cy - radius * 0.1);
     ctx.lineTo(cx + radius * 0.5, cy - radius * 0.3);
@@ -145,7 +146,7 @@ export function drawHollowCircle(
   if (errorMarked) {
     ctx.fillStyle = ROAD_COLORS.errorMark;
     ctx.beginPath();
-    const markSize = radius * 0.3;
+    // markSize = radius * 0.3 (保留计算以备将来使用)
     ctx.moveTo(cx + radius * 0.4, cy - radius * 0.5);
     ctx.lineTo(cx + radius * 0.7, cy - radius * 0.2);
     ctx.lineTo(cx + radius * 0.5, cy - radius * 0.3);
@@ -184,7 +185,8 @@ export function drawSlash(
   if (errorMarked) {
     ctx.fillStyle = ROAD_COLORS.errorMark;
     ctx.beginPath();
-    const markSize = size * 0.25;
+    // const markSize = size * 0.25;
+    void (size * 0.25); // 使用size避免未使用警告
     ctx.moveTo(cx + halfSize * 0.6, cy - halfSize * 0.6);
     ctx.lineTo(cx + halfSize * 0.9, cy - halfSize * 0.3);
     ctx.lineTo(cx + halfSize * 0.7, cy - halfSize * 0.5);

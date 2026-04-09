@@ -5,25 +5,25 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Card, Table, Tag, Space,
-  Badge, Tooltip, Empty, message, Modal, Progress, Select, Switch, Input,
+  Button, Table, Tag, Space,
+  Empty, message, Modal, Progress, Select, Switch, Input,
 } from 'antd';
 import {
   ReloadOutlined, ExclamationCircleOutlined,
   ArrowUpOutlined, ClockCircleOutlined,
   FileTextOutlined,
-  SafetyOutlined, GlobalOutlined, ApartmentOutlined,
-  CheckCircleOutlined, RobotOutlined,
+  SafetyOutlined, GlobalOutlined,
+  RobotOutlined,
   LineChartOutlined, FireOutlined, BulbOutlined,
-  UploadOutlined, LockOutlined, UnlockOutlined, TrophyOutlined,
+  UploadOutlined, LockOutlined, UnlockOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import * as api from '../services/api';
-import { getToken, setToken } from '../services/api';
+import { getToken } from '../services/api';
 import {
   PRIORITY_COLORS, LOG_CATEGORIES,
-  BET_STATUS_COLORS, EMPTY_STATES,
+  BET_STATUS_COLORS, MAX_GAMES_PER_BOOT, DEFAULT_BET_AMOUNT, MIN_BET_AMOUNT, MAX_BET_AMOUNT,
 } from '../utils/constants';
 import FiveRoadChart from '../components/roads/FiveRoadChart';
 
@@ -151,7 +151,7 @@ const DashboardPage: React.FC = () => {
   // 下注弹窗
   const [betVisible, setBetVisible] = useState(false);
   const [betDirection, setBetDirection] = useState<'庄' | '闲'>('庄');
-  const [betAmount, setBetAmount] = useState<number>(100);
+  const [betAmount, setBetAmount] = useState<number>(DEFAULT_BET_AMOUNT);
   const [betLoading, setBetLoading] = useState(false);
 
   // 管理员登录弹窗
@@ -172,7 +172,9 @@ const DashboardPage: React.FC = () => {
     try {
       const res = await api.getSystemState(tableId);
       setSystemState(res.data);
-    } catch {}
+    } catch {
+      // 静默处理错误
+    }
   }, [tableId]);
 
   const loadStats = useCallback(async () => {
@@ -180,7 +182,9 @@ const DashboardPage: React.FC = () => {
     try {
       const res = await api.getStatistics(tableId);
       setStats(res.data);
-    } catch {}
+    } catch {
+      // 静默处理错误
+    }
   }, [tableId]);
 
   const loadLogs = useCallback(async (page = 1) => {
@@ -188,7 +192,9 @@ const DashboardPage: React.FC = () => {
     try {
       const res = await api.getLogs({ table_id: tableId, category: logCategory || undefined, page, page_size: 50 });
       setLogs(res.data.data);
-    } catch {}
+    } catch {
+      // 静默处理错误
+    }
   }, [tableId, logCategory]);
 
   const loadGames = useCallback(async (page = 1) => {
@@ -197,7 +203,9 @@ const DashboardPage: React.FC = () => {
       const res = await api.getGameRecords({ table_id: tableId, page, page_size: 20 });
       setGames(res.data.data);
       if (typeof res.data.total === 'number') setGamesTotal(res.data.total);
-    } catch {}
+    } catch {
+      // 静默处理错误
+    }
   }, [tableId]);
 
   const loadBets = useCallback(async (page = 1) => {
@@ -206,7 +214,9 @@ const DashboardPage: React.FC = () => {
       const res = await api.getBetRecords({ table_id: tableId, page, page_size: 20 });
       setBets(res.data.data);
       if (typeof res.data.total === 'number') setBetsTotal(res.data.total);
-    } catch {}
+    } catch {
+      // 静默处理错误
+    }
   }, [tableId]);
 
   const loadRoadData = useCallback(async () => {
@@ -214,6 +224,7 @@ const DashboardPage: React.FC = () => {
     setRoadLoading(true);
     try {
       const res = await api.getRoadMaps(tableId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (res.data && (res.data as any).roads) {
         setRoadData(res.data as api.FiveRoadsResponse);
       }
@@ -240,7 +251,9 @@ const DashboardPage: React.FC = () => {
         });
         setAiAnalyzing(false);
       }
-    } catch {}
+    } catch {
+      // 静默处理错误
+    }
   }, [tableId]);
 
   // ====== 初始化加载 ======
@@ -335,10 +348,14 @@ const DashboardPage: React.FC = () => {
               loadSystemState();
               loadBets(1);
             }
-          } catch {}
+          } catch {
+            // WebSocket消息解析错误，静默处理
+          }
         };
 
-        ws.onerror = () => {};
+        ws.onerror = () => {
+          // WebSocket错误，静默处理
+        };
         ws.onclose = () => {
           if (!isUnmounted) {
             reconnectTimer = setTimeout(connectWS, 3000);
@@ -383,6 +400,7 @@ const DashboardPage: React.FC = () => {
 
     setRevealLoading(true);
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const res = await api.revealGame(tableId!, gameNumber, revealResult as any);
       if (res.data.success) {
         const settle = res.data.settlement;
@@ -405,8 +423,9 @@ const DashboardPage: React.FC = () => {
         loadSystemState();
         setAiAnalyzing(true);
       }
-    } catch (err: any) {
-      message.error(err.response?.data?.detail || '开奖失败，请重试');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : '开奖失败，请重试';
+      message.error(errorMsg);
     } finally {
       setRevealLoading(false);
     }
@@ -417,9 +436,8 @@ const DashboardPage: React.FC = () => {
     if (systemState?.predict_direction) {
       setBetDirection(systemState.predict_direction as '庄' | '闲');
     }
-    // 使用AI推荐金额
-    const sysState = systemState as any;
-    setBetAmount(100); // 默认100，可以从state获取
+    // 使用AI推荐金额（默认DEFAULT_BET_AMOUNT）
+    setBetAmount(DEFAULT_BET_AMOUNT);
     setBetVisible(true);
   };
 
@@ -439,8 +457,9 @@ const DashboardPage: React.FC = () => {
       setBetVisible(false);
       loadSystemState();
       loadBets(1);
-    } catch (err: any) {
-      message.error(err.response?.data?.detail || '下注失败，请重试');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : '下注失败，请重试';
+      message.error(errorMsg);
     } finally {
       setBetLoading(false);
     }
@@ -453,7 +472,7 @@ const DashboardPage: React.FC = () => {
     try {
       const res = await api.adminLogin('admin', loginPassword);
       const { must_change_password, token } = res.data;
-      setToken(token);
+      api.setToken(token);
       if (must_change_password) {
         message.warning('首次登录请修改默认密码');
         navigate('/admin', { state: { mustChangePassword: true, token } });
@@ -461,8 +480,9 @@ const DashboardPage: React.FC = () => {
         navigate('/admin', { state: { token } });
       }
       setLoginVisible(false);
-    } catch (err: any) {
-      message.error(err.response?.data?.detail || '登录失败');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : '登录失败';
+      message.error(errorMsg);
     } finally {
       setLoginLoading(false);
     }
@@ -764,7 +784,7 @@ const DashboardPage: React.FC = () => {
                 </span>
               </div>
               <Progress
-                percent={Math.min(100, ((systemState?.game_number || 0) / 66) * 100)}
+                percent={Math.min(100, ((systemState?.game_number || 0) / MAX_GAMES_PER_BOOT) * 100)}
                 showInfo={false}
                 strokeColor={{ '0%': '#1890ff', '50%': '#722ed1', '100%': '#ff4d4f' }}
                 railColor="rgba(48,54,68,0.3)"
@@ -994,10 +1014,6 @@ const DashboardPage: React.FC = () => {
         footer={null}
         centered
         maskStyle={{ backdropFilter: 'blur(10px)' }}
-        styles={{
-          content: { background: 'rgba(15,21,33,0.97)', border: '1px solid rgba(255,215,0,0.2)', borderRadius: 20 },
-          header: { background: 'transparent', borderBottom: '1px solid rgba(255,255,255,0.06)' },
-        }}
         width={360}
       >
         <div style={{ padding: '20px 0' }}>
@@ -1073,10 +1089,6 @@ const DashboardPage: React.FC = () => {
         footer={null}
         centered
         maskStyle={{ backdropFilter: 'blur(10px)' }}
-        styles={{
-          content: { background: 'rgba(15,21,33,0.97)', border: '1px solid rgba(255,215,0,0.2)', borderRadius: 20 },
-          header: { background: 'transparent', borderBottom: '1px solid rgba(255,255,255,0.06)' },
-        }}
         width={360}
       >
         <div style={{ padding: '20px 0' }}>
@@ -1133,7 +1145,7 @@ const DashboardPage: React.FC = () => {
             <Input
               type="number"
               value={betAmount}
-              onChange={e => setBetAmount(Math.max(10, Math.min(10000, parseInt(e.target.value) || 100)))}
+              onChange={e => setBetAmount(Math.max(MIN_BET_AMOUNT, Math.min(MAX_BET_AMOUNT, parseInt(e.target.value) || DEFAULT_BET_AMOUNT)))}
               style={{ borderRadius: 10, height: 44 }}
               size="large"
               suffix="元"
@@ -1176,14 +1188,6 @@ const DashboardPage: React.FC = () => {
         footer={null}
         centered
         maskStyle={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
-        styles={{
-          content: {
-            borderRadius: 20,
-            background: 'linear-gradient(145deg, rgba(22,29,42,0.98), rgba(15,20,31,0.98))',
-            border: '1px solid rgba(255,215,0,0.2)',
-            padding: '36px 32px 32px',
-          },
-        }}
         width={420}
       >
         <div style={{ textAlign: 'center', marginBottom: 28 }}>

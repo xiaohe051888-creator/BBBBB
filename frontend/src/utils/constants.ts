@@ -1,5 +1,5 @@
 /**
- * 智能分析文案模板 - 百家乐分析预测系统
+ * 智能分析文案模板 - 百家乐分析预测系统（手动模式）
  * 严格遵循20号文档定义的模板规范
  */
 
@@ -50,29 +50,24 @@ export const ERROR_PROMPTS = {
 
 export const EMPTY_STATES = {
   noData: {
-    main: '暂无数据，系统正在等待开奖。',
-    guide: '请保持页面开启，检测到新局后将自动开始分析。',
-    sub: '若长时间无变化，可检查网络或重新选桌。',
+    main: '暂无数据，请先上传开奖记录。',
+    guide: '点击"上传数据"按钮，手动输入开奖结果开始分析。',
+    sub: '支持1-66局批量上传，上传后自动计算五路走势图。',
   },
   waitingResult: {
     main: '等待开奖中',
-    guide: '当前局尚未结束，系统会在开奖后自动刷新预测。',
-    sub: '你可以先查看上一局智能分析与实盘日志。',
+    guide: '当前局尚未结束，请在开奖后输入结果完成结算。',
+    sub: '你可以先查看当前AI分析和五路走势图。',
   },
   networkError: {
     main: '网络波动，正在自动重试。',
     guide: '系统不会中断当前流程，恢复后将自动补齐数据。',
-    sub: '若持续波动，请检查网络后点击"继续运行"。',
+    sub: '若持续波动，请检查网络后刷新页面。',
   },
   aiLearning: {
     main: 'AI学习进行中，部分操作已锁定。',
     guide: '学习完成后将自动解锁，并显示学习总结与版本信息。',
     sub: '你可继续查看日志、开奖记录和当前局状态。',
-  },
-  shuffleWait: {
-    main: '当前处于洗牌等待。',
-    guide: '系统每10分钟自动探测一次，检测到新局将自动恢复运行。',
-    sub: '无需手动操作，可保持页面待机。',
   },
 } as const;
 
@@ -80,9 +75,9 @@ export const EMPTY_STATES = {
 
 export const BUTTON_TEXTS = {
   startSuccess: {
-    primary: '系统已启动',
-    secondary: '当前桌台连接正常，正在进入实时分析。',
-    log: '查看启动日志',
+    primary: '系统已就绪',
+    secondary: '当前桌台数据加载完成，可以开始分析。',
+    log: '查看操作日志',
   },
   strategySwitch: {
     conservative: '切到保守档',
@@ -96,7 +91,7 @@ export const BUTTON_TEXTS = {
     secondary: '继续观察',
     recovering: '系统正在恢复，请稍候。',
     success: '恢复完成，已回到正常分析流程。',
-    fail: '恢复失败，建议重新选桌后再启动。',
+    fail: '恢复失败，建议重新加载页面。',
   },
   recalc: {
     primary: '已完成重算',
@@ -110,10 +105,10 @@ export const BUTTON_TEXTS = {
 
 export const DIALOG_TEXTS = {
   stopConfirm: {
-    title: '确认停止系统',
-    content: '停止后将暂停实时分析，是否继续？',
-    ok: '确认停止',
-    cancel: '继续运行',
+    title: '确认重置数据',
+    content: '重置后将清空当前桌台的所有数据，是否继续？',
+    ok: '确认重置',
+    cancel: '取消',
   },
   recalcConfirm: {
     title: '确认重新计算',
@@ -129,8 +124,8 @@ export const DIALOG_TEXTS = {
   },
   recoveryFail: {
     title: '恢复失败',
-    content: '本次自动恢复未成功，建议点击"重新选桌"后再启动。',
-    primary: '重新选桌',
+    content: '本次自动恢复未成功，建议重新加载页面后再试。',
+    primary: '重新加载',
     secondary: '继续观察',
     supplement: '系统已保留当前日志，便于后续排查。',
   },
@@ -149,17 +144,15 @@ export const LOG_TEMPLATES = {
     `连续${count}局预测错误，已切换保守金额策略`,
   hitRecovery: (amount: number) =>
     `命中恢复，下注金额按梯度回升至${amount}`,
-  newGame: (gameNumber: number) =>
-    `检测到新局号${gameNumber}，开奖数据采集完成`,
+  uploadComplete: (count: number, tableId: string) =>
+    `上传完成，${tableId}桌新增${count}局开奖记录`,
   analysisDone: (gameNumber: number, direction: string, confidence: number) =>
     `第${gameNumber}局分析完成，预测${direction}，置信度${(confidence * 100).toFixed(0)}%`,
   settleDone: (gameNumber: number, result: string, profitLoss: number) =>
     `第${gameNumber}局结算完成，结果${result}，盈亏${profitLoss > 0 ? '+' : ''}${profitLoss}`,
-  timeoutRefund: (gameNumber: number, amount: number) =>
-    `第${gameNumber}局超过5分钟未开奖，已自动退回${amount}`,
-  workflowTimeout: (gameNumber: number, step: string) =>
-    `第${gameNumber}局工作流超时150秒，判定异常，异常环节${step}，已执行自动暂停`,
-};
+  manualInput: (gameNumber: number, result: string) =>
+    `第${gameNumber}局手动输入开奖结果：${result}`,
+} as const;
 
 // ====== 状态文案 ======
 
@@ -169,11 +162,11 @@ export const STATUS_TEXTS: Record<string, { color: string; text: string }> = {
   strategy_review: { color: '#faad14', text: '策略重评估中' },
   error: { color: '#ff4d4f', text: '异常处理中' },
   stopped: { color: '#d9d9d9', text: '已停止' },
-  shuffle_wait: { color: '#8c8c8c', text: '洗牌等待' },
-  // 手动模式新增状态
+  // 手动模式状态
   ai_analyzing: { color: '#722ed1', text: 'AI分析中' },
   pending_bet: { color: '#faad14', text: '等待下注' },
   pending_reveal: { color: '#1890ff', text: '等待开奖' },
+  idle: { color: '#8c8c8c', text: '空闲' },
 };
 
 // ====== 手动模式状态文案 ======
@@ -215,14 +208,15 @@ export const PRIORITY_COLORS: Record<string, string> = {
   P3: '#1890ff',  // 信息-蓝
 };
 
-// ====== 日志分类 ======
+// ====== 日志分类（手动模式） ======
 
 export const LOG_CATEGORIES = [
   { label: '全部', value: '' },
   { label: '系统状态', value: '系统状态' },
   { label: '操作记录', value: '操作记录' },
-  { label: '工作流事件', value: '工作流事件' },
+  { label: 'AI分析', value: 'AI分析' },
   { label: '资金事件', value: '资金事件' },
+  { label: '开奖记录', value: '开奖记录' },
 ];
 
 // ====== 下注状态颜色 ======
@@ -233,3 +227,33 @@ export const BET_STATUS_COLORS: Record<string, string> = {
   '异常退回': '#faad14',
   '数据异常': '#ff4d4f',
 };
+
+// ====== 游戏结果颜色 ======
+
+export const RESULT_COLORS: Record<string, string> = {
+  '庄': '#ff4d4f',
+  '闲': '#1890ff',
+  '和': '#52c41a',
+  '': 'rgba(255,255,255,0.15)',
+};
+
+export const RESULT_BG: Record<string, string> = {
+  '庄': 'rgba(255,77,79,0.12)',
+  '闲': 'rgba(24,144,255,0.12)',
+  '和': 'rgba(82,196,26,0.12)',
+  '': 'rgba(255,255,255,0.04)',
+};
+
+// ====== 游戏常量 ======
+
+/** 每靴最大局数 */
+export const MAX_GAMES_PER_BOOT = 66;
+
+/** 默认下注金额 */
+export const DEFAULT_BET_AMOUNT = 100;
+
+/** 最小下注金额 */
+export const MIN_BET_AMOUNT = 10;
+
+/** 最大下注金额 */
+export const MAX_BET_AMOUNT = 10000;

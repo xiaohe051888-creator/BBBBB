@@ -6,21 +6,20 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Statistic,
-  Select, DatePicker, Input, Tooltip, Modal, Spin, Empty,
-  Segmented, Progress, message, Badge, Descriptions,
+  Select, Input, Tooltip, Modal, Spin, Empty,
+  Progress, Badge, Descriptions,
 } from 'antd';
 import {
   ArrowLeftOutlined, ReloadOutlined, SearchOutlined,
-  FilterOutlined, DownloadOutlined, DollarOutlined,
-  RiseOutlined, FallOutlined, QuestionCircleOutlined,
-  TrophyOutlined, WarningOutlined, CheckCircleOutlined,
+  FilterOutlined, DollarOutlined,
+  RiseOutlined, FallOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import * as api from '../services/api';
-import { BET_STATUS_COLORS, STATUS_TEXTS } from '../utils/constants';
+import { BET_STATUS_COLORS } from '../utils/constants';
 
-const { RangePicker } = DatePicker;
+// const { RangePicker } = DatePicker; // 暂不使用
 
 interface BetRecord {
   id?: number;
@@ -91,9 +90,9 @@ const BetRecordsPage: React.FC = () => {
 
       // 计算统计数据
       calcSummary(data);
-    } catch {
-      // API请求失败时显示空数据（不使用模拟数据）
-    } finally {
+          } catch {
+            // API请求失败时显示空数据（不使用模拟数据）
+          } finally {
       setLoading(false);
     }
   }, [tableId, page, pageSize]);
@@ -223,7 +222,7 @@ const BetRecordsPage: React.FC = () => {
       width: 90,
       sorter: (a, b) => (a.profit_loss || 0) - (b.profit_loss || 0),
       render: (v: number | null) =>
-        v !== null ? (
+        v !== null && v !== undefined ? (
           <span style={{
             color: v > 0 ? '#ff4d4f' : v < 0 ? '#52c41a' : undefined,
             fontWeight: 700,
@@ -236,7 +235,7 @@ const BetRecordsPage: React.FC = () => {
     {
       title: '余额变动',
       width: 140,
-      render: (_: any, r: BetRecord) => (
+      render: (_: unknown, r: BetRecord) => (
         <Tooltip title={`${r.balance_before?.toLocaleString()} → ${r.balance_after?.toLocaleString()}`}>
           <span style={{ fontSize: 12 }}>
             ¥{r.balance_before?.toLocaleString()} → ¥{r.balance_after?.toLocaleString()}
@@ -248,7 +247,7 @@ const BetRecordsPage: React.FC = () => {
       title: '操作',
       width: 60,
       fixed: 'right' as const,
-      render: (_: any, r: BetRecord) => (
+      render: (_: unknown, r: BetRecord) => (
         <Button
           type="link"
           size="small"
@@ -341,7 +340,7 @@ const BetRecordsPage: React.FC = () => {
                 success={{ percent: 0 }}
                 strokeColor="#ff4d4f"
                 trailColor="#52c41a"
-                format={(percent) => `${summary.winCount}胜 / ${summary.lossCount}负`}
+                format={() => `${summary.winCount}胜 / ${summary.lossCount}负`}
               />
             </div>
             <Space size={4}>
@@ -473,13 +472,15 @@ const BetRecordsPage: React.FC = () => {
               {selectedBet.bet_time ? dayjs(selectedBet.bet_time).format('YYYY-MM-DD HH:mm:ss') : '-'}
             </Descriptions.Item>
             <Descriptions.Item label="下注方向">
-              <Tag color={selectedBet.bet_direction === '庄' ? '#ff4d4f' : '#1890ff'}>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              <Tag color={(selectedBet.bet_direction as any) === '庄' ? '#ff4d4f' : '#1890ff'}>
                 {selectedBet.bet_direction}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="下注金额">¥{selectedBet.bet_amount.toLocaleString()}</Descriptions.Item>
             <Descriptions.Item label="下注档位">
-              <Tag color={selectedBet.bet_tier === '保守' ? 'orange' : selectedBet.bet_tier === '进取' ? 'red' : 'blue'}>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              <Tag color={(selectedBet.bet_tier as any) === '保守' ? 'orange' : (selectedBet.bet_tier as any) === '进取' ? 'red' : 'blue'}>
                 {selectedBet.bet_tier}
               </Tag>
             </Descriptions.Item>

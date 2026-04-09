@@ -3,7 +3,7 @@
 仿真下注验证，不向目标网站执行真实下注
 """
 from typing import Dict, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 from dataclasses import dataclass
 from app.core.config import settings
 

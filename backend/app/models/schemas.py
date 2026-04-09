@@ -260,7 +260,7 @@ class SystemState(Base):
     balance = Column(Float, default=20000.0)
     consecutive_errors = Column(Integer, default=0, comment="连续失准次数")
     health_score = Column(Float, default=100.0, comment="系统健康分")
-    crawl_stability = Column(Float, default=100.0, comment="采集稳定性")
+    data_integrity = Column(Float, default=100.0, comment="数据完整性")
     model_stability = Column(Float, default=100.0, comment="模型稳定性")
     settlement_consistency = Column(Float, default=100.0, comment="结算一致性")
     workflow_start_time = Column(DateTime, nullable=True, comment="本轮工作流开始时间")

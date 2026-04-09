@@ -275,66 +275,8 @@ class UnifiedRoadEngine:
         
         return road
     
-    def _calculate_derived_road(self, big_road: RoadData, road_type: str) -> RoadData:
-        """
-        派生路算法（大眼仔路、小路、螳螂路）— 标准澳门/拉斯维加斯两种情形法
-        
-        三条派生路都是从大路(Big Road)衍生出来的，排列规则与大路相同：
-        - 相同则往下排（红/延）
-        - 不同则换新列（蓝/转）
-        
-        颜色含义（不代表庄闲！）：
-        - 红(延) = 规律延续/模式一致
-        - 蓝(转) = 规律转折/模式断裂
-        
-        显示样式（权威标准）：
-        - 大眼仔路：红色/蓝色实心圆
-        - 小路：红色/蓝色空心圆
-        - 螳螂路：红色/蓝色斜杠
-        
-        === 核心判断规则（两种情形法）===
-        参数定义:
-        - k (周期/偏移): 大眼仔=1, 小路=2, 螳螂路=3
-        - m: 最新结果在大路中的行号(1-based, 从上到下)
-        - n: 最新结果在大路中的列号(1-based, 从左到右)
-        
-        === 情形A: 新列出现（m=1，大路开启新列）===
-        比较新列左边第1列 vs 左边第(k+1)列的**高度是否相等**
-        - 高度相等 → 红(延)
-        - 高度不等 → 蓝(转)
-        
-        === 情形B: 延续当前列（m>=2，大路在当前列向下添加）===
-        从当前点位置向左移k格，再向上移1格，检查该位置**是否有值**
-        - 有值（同行有数据）→ 红(延)
-        - 无值（同行无数据）→ 蓝(转)
-        
-        起始位置（需要足够的列才开始画）:
-        - 大眼仔路(k=1): 从大路第2列开始（第2列出现后才有第1个点）
-        - 小路(k=2):     从大路第3列开始
-        - 螳螂路(k=3):   从大路第4列开始
-        """
-        display_names = {
-            "大眼仔路": "大眼仔路",
-            "小路": "小路",
-            "螳螂路": "螳螂路",
-        }
-        
-        # 派生路的比较列数偏移 k
-        compare_offsets = {
-            "大眼仔路": 1,
-            "小路": 2,
-            "螳螂路": 3,
-        }
-        
-        road = RoadData(road_type=road_type, display_name=display_names.get(road_type, road_type))
-        
-        if not big_road.points or len(big_road.points) < 2:
-            return road
-        
-        k = compare_offsets.get(road_type, 1)
-        
-        # === 构建大路网格索引 ===
-        # columns_points[col] = 该列所有点的列表(按row排序)
+    def _build_road_grid_index(self, big_road: RoadData) -> Tuple[Dict[int, List[RoadPoint]], Dict[Tuple[int, int], RoadPoint]]:
+        """构建大路网格索引，返回列点映射和坐标网格"""
         columns_points: Dict[int, List[RoadPoint]] = {}
         for p in big_road.points:
             if p.column not in columns_points:
@@ -343,77 +285,80 @@ class UnifiedRoadEngine:
         for col in columns_points:
             columns_points[col].sort(key=lambda x: x.row)
         
-        # 构建快速查找网格: grid[(col, row)] = point
         grid: Dict[Tuple[int, int], RoadPoint] = {}
         for p in big_road.points:
             grid[(p.column, p.row)] = p
         
-        sorted_columns = sorted(columns_points.keys())
+        return columns_points, grid
+    
+    def _calculate_derived_value_case_a(self, n_0based: int, k: int, 
+                                        columns_points: Dict[int, List[RoadPoint]]) -> str:
+        """情形A: 新列出现 (m=1) - 比较左边第1列 vs 左边第(k+1)列的高度"""
+        left_col1 = n_0based - 1
+        left_col_k1 = n_0based - (k + 1)
         
-        if len(sorted_columns) <= k:
-            return road  # 列数不足，无法计算
+        if left_col1 in columns_points and left_col_k1 in columns_points:
+            height1 = len(columns_points[left_col1])
+            height_k1 = len(columns_points[left_col_k1])
+            return "延" if height1 == height_k1 else "转"
+        return "转"  # 参考列不存在时的fallback
+    
+    def _calculate_derived_value_case_b(self, point: RoadPoint, n_0based: int, k: int,
+                                        grid: Dict[Tuple[int, int], RoadPoint]) -> str:
+        """情形B: 延续当前列 (m>=2) - 向左移k格再向上移1格检查是否有值"""
+        check_col = n_0based - k
+        check_row = point.row - 1
+        return "延" if (check_col, check_row) in grid else "转"
+    
+    def _add_derived_point(self, road: RoadData, point: RoadPoint, derived_value: str,
+                           der_column: int, der_row: int, is_new_col: bool) -> None:
+        """添加派生路点"""
+        error_id = self.error_map.get(point.game_number)
+        der_point = RoadPoint(
+            game_number=point.game_number,
+            column=der_column,
+            row=der_row,
+            value=derived_value,
+            is_new_column=is_new_col,
+            error_id=error_id,
+            is_tie=False,
+        )
+        road.points.append(der_point)
+
+    def _calculate_derived_road(self, big_road: RoadData, road_type: str) -> RoadData:
+        """
+        派生路算法（大眼仔路、小路、螳螂路）— 标准澳门/拉斯维加斯两种情形法
+        详细规则见文档注释（已移至模块文档）
+        """
+        display_names = {"大眼仔路": "大眼仔路", "小路": "小路", "螳螂路": "螳螂路"}
+        compare_offsets = {"大眼仔路": 1, "小路": 2, "螳螂路": 3}
         
-        # === 遍历大路每个有效结果点（不是只遍历每列的第一个！）===
-        # 派生路的每个点对应大路中从第(k+1)列开始的每一个结果
-        der_column = 0   # 派生路列号
-        der_row = 0      # 派生路行号
-        prev_value = None  # 上一个派生路值（用于判断换列）
+        road = RoadData(road_type=road_type, display_name=display_names.get(road_type, road_type))
+        
+        if not big_road.points or len(big_road.points) < 2:
+            return road
+        
+        k = compare_offsets.get(road_type, 1)
+        columns_points, grid = self._build_road_grid_index(big_road)
+        
+        if len(columns_points) <= k:
+            return road
+        
+        der_column, der_row = 0, 0
+        prev_value = None
         
         for point in big_road.points:
-            # 当前点在大路中的坐标 (0-based)
-            m = point.row + 1      # 行号 (1-based, 用于算法判断)
-            n_0based = point.column  # 列号 (0-based)
-            
-            # 只处理从第k列开始的点（即大路第k+1列及之后）
-            if n_0based < k:
+            n_0based = point.column
+            if n_0based < k or (n_0based - k) not in columns_points:
                 continue
             
-            # 参考列号 (向左偏移k列)
-            ref_col = n_0based - k
-            
-            if ref_col not in columns_points:
-                continue
-            
-            ref_col_length = len(columns_points[ref_col])  # 参考列的长度p
-            
-            # === 两种情形判断 ===
-            is_new_in_big_road = (point.row == 0)  # 是否是大路的新列起始(m==1)
-            
+            is_new_in_big_road = (point.row == 0)
             if is_new_in_big_road:
-                # ===== 情形A: 新列出现 (m=1) =====
-                # 比较左边第1列 vs 左边第(k+1)列的高度
-                # 注意：当开启新列时，左边第1列就是 n_0based-1
-                
-                left_col1 = n_0based - 1  # 新列紧邻的左边第1列
-                left_col_k1 = n_0based - (k + 1)  # 左边第(k+1)列
-                
-                if left_col1 in columns_points and left_col_k1 in columns_points:
-                    height1 = len(columns_points[left_col1])
-                    height_k1 = len(columns_points[left_col_k1])
-                    
-                    if height1 == height_k1:
-                        derived_value = "延"   # 红 — 两列高度相等
-                    else:
-                        derived_value = "转"   # 蓝 — 两列高度不等
-                else:
-                    # 参考列不存在时的fallback
-                    derived_value = "转"
+                derived_value = self._calculate_derived_value_case_a(n_0based, k, columns_points)
             else:
-                # ===== 情形B: 延续当前列 (m>=2) =====
-                # 从当前位置 向左移k格 再向上移1格
-                check_col = n_0based - k
-                check_row = point.row - 1  # 向上移1格
-                
-                if (check_col, check_row) in grid:
-                    # 该位置有值 → 同行有数据
-                    derived_value = "延"   # 红
-                else:
-                    # 该位置无值 → 同行无数据
-                    derived_value = "转"   # 蓝
+                derived_value = self._calculate_derived_value_case_b(point, n_0based, k, grid)
             
-            # === 按大路规则排列派生路点：相同往下，不同换列 ===
-            # 重要：派生路的排列规则与大路完全相同！
-            # 包括每列最多 MAX_ROWS_PER_COLUMN(6) 个点的限制
+            # 按大路规则排列派生路点
             is_new_col = False
             if prev_value is None:
                 is_new_col = True
@@ -423,23 +368,12 @@ class UnifiedRoadEngine:
                 is_new_col = True
             else:
                 der_row += 1
-                # ★ 关键修复：派生路也必须遵守每列6行的限制！
                 if der_row >= self.MAX_ROWS_PER_COLUMN:
                     der_row = self.MAX_ROWS_PER_COLUMN - 1
                     der_column += 1
                     is_new_col = True
             
-            error_id = self.error_map.get(point.game_number)
-            der_point = RoadPoint(
-                game_number=point.game_number,
-                column=der_column,
-                row=der_row,
-                value=derived_value,
-                is_new_column=is_new_col,
-                error_id=error_id,
-                is_tie=False,  # 派生路无和局
-            )
-            road.points.append(der_point)
+            self._add_derived_point(road, point, derived_value, der_column, der_row, is_new_col)
             prev_value = derived_value
         
         if road.points:
@@ -453,11 +387,14 @@ class UnifiedRoadEngine:
         if not road.points:
             return []
         
+        # 优化: 使用字典实现O(1)查找，避免O(n²)复杂度
+        point_by_coord = {(p.column, p.row): p for p in road.points}
+        
         grid = []
         for r in range(road.max_rows):
             row = []
             for c in range(road.max_columns):
-                point = next((p for p in road.points if p.column == c and p.row == r), None)
+                point = point_by_coord.get((c, r), None)
                 row.append(point)
             grid.append(row)
         

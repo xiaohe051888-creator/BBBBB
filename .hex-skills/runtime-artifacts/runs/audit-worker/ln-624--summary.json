@@ -1,0 +1,90 @@
+{
+  "worker": "ln-624-code-quality-auditor",
+  "category": "Code Quality",
+  "score": 7.2,
+  "score_max": 10,
+  "issues_total": 18,
+  "severity_breakdown": {
+    "critical": 0,
+    "high": 5,
+    "medium": 8,
+    "low": 5
+  },
+  "checks_performed": [
+    "cyclomatic_complexity",
+    "deep_nesting",
+    "long_methods",
+    "god_classes",
+    "too_many_params",
+    "quadratic_algorithms",
+    "n_plus_one",
+    "magic_numbers",
+    "method_signatures",
+    "cascade_depth"
+  ],
+  "key_findings": [
+    {
+      "type": "god_class",
+      "file": "backend/app/api/main.py",
+      "lines": 1063,
+      "severity": "high",
+      "message": "单文件包含15+个API端点，违反单一职责原则"
+    },
+    {
+      "type": "god_class",
+      "file": "frontend/src/pages/DashboardPage.tsx",
+      "lines": 1220,
+      "severity": "high",
+      "message": "组件过于庞大，包含10+个功能区域"
+    },
+    {
+      "type": "god_class",
+      "file": "frontend/src/pages/UploadPage.tsx",
+      "lines": 1020,
+      "severity": "high",
+      "message": "组件过于庞大，包含8+个功能区域"
+    },
+    {
+      "type": "security",
+      "file": "backend/app/core/config.py",
+      "line": 85,
+      "severity": "high",
+      "message": "硬编码默认密码 '8888'"
+    },
+    {
+      "type": "security",
+      "file": "backend/app/core/config.py",
+      "line": 20,
+      "severity": "high",
+      "message": "硬编码JWT密钥 'change-me-in-production'"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "P1",
+      "action": "移除硬编码敏感配置",
+      "files": ["backend/app/core/config.py"],
+      "effort": "1小时"
+    },
+    {
+      "priority": "P1",
+      "action": "拆分main.py为多个路由模块",
+      "files": ["backend/app/api/main.py"],
+      "effort": "2-3小时"
+    },
+    {
+      "priority": "P2",
+      "action": "前端组件拆分",
+      "files": ["frontend/src/pages/DashboardPage.tsx", "frontend/src/pages/UploadPage.tsx"],
+      "effort": "4-6小时"
+    },
+    {
+      "priority": "P2",
+      "action": "添加正式单元测试",
+      "files": ["backend/tests/"],
+      "effort": "6-8小时"
+    }
+  ],
+  "report_path": ".hex-skills/runtime-artifacts/audit-report/ln-624--global.md",
+  "timestamp": "2026-04-09T18:50:00Z"
+}

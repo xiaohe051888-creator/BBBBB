@@ -293,7 +293,3 @@ class SmartModelSelector:
         if state:
             state.current_model_version = result["selected_version"]
             await self.session.commit()
-
-
-# 导入random
-import random

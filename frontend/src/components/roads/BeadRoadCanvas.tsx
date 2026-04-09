@@ -8,12 +8,11 @@
  * - 数据超过84个(14×6)时循环覆盖旧位置
  * - 与大路的区别: 大路是自适应行列+向下延伸; 珠盘路是固定网格
  */
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
 import { BEAD_ROAD_CONFIG, ROAD_COLORS } from '../../types/road';
 import {
   getPointColor,
-  drawCircle,
   drawGrid,
 } from '../../utils/canvasRenderer';
 
@@ -35,7 +34,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
   style,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mergedConfig = { ...BEAD_ROAD_CONFIG, ...customConfig };
+  const mergedConfig = useMemo(() => ({ ...BEAD_ROAD_CONFIG, ...customConfig }), [customConfig]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -132,10 +131,10 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
       if (point.error_id) {
         ctx.fillStyle = ROAD_COLORS.errorMark;
         ctx.beginPath();
-        const markSize = (cellSize / 2 - 1) * 0.4;
-        ctx.moveTo(x + (cellSize / 2 - 1) * 0.3, y - (cellSize / 2 - 1) * 0.5);
-        ctx.lineTo(x + (cellSize / 2 - 1) * 0.7, y - (cellSize / 2 - 1) * 0.1);
-        ctx.lineTo(x + (cellSize / 2 - 1) * 0.5, y - (cellSize / 2 - 1) * 0.3);
+        const radius = cellSize / 2 - 1;
+        ctx.moveTo(x + radius * 0.3, y - radius * 0.5);
+        ctx.lineTo(x + radius * 0.7, y - radius * 0.1);
+        ctx.lineTo(x + radius * 0.5, y - radius * 0.3);
         ctx.closePath();
         ctx.fill();
       }

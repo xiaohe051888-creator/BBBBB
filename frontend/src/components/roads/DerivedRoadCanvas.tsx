@@ -9,7 +9,7 @@
  *   - 转(蓝) = 转折/与前参照列同行无值
  * - 比较偏移量: 大眼仔=1, 小路=2, 螳螂=3
  */
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
 import { DERIVED_ROAD_CONFIG, ROAD_COLORS } from '../../types/road';
 import {
@@ -38,7 +38,7 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
   style,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mergedConfig = { ...DERIVED_ROAD_CONFIG, ...customConfig };
+  const mergedConfig = useMemo(() => ({ ...DERIVED_ROAD_CONFIG, ...customConfig }), [customConfig]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;

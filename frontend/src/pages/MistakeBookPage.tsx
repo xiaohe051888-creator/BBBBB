@@ -12,11 +12,11 @@ import {
 import {
   ArrowLeftOutlined, ReloadOutlined, SearchOutlined,
   FilterOutlined, ExperimentOutlined, WarningOutlined,
-  CheckCircleOutlined, BulbOutlined, ThunderboltOutlined,
-  QuestionCircleOutlined, AimOutlined,
+  BulbOutlined, ThunderboltOutlined, CheckCircleOutlined,
+  AimOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
+// import dayjs from 'dayjs'; // 暂不使用
 import * as api from '../services/api';
 import type { MistakeRecord } from '../services/api';
 
@@ -71,6 +71,7 @@ const MistakeBookPage: React.FC = () => {
       });
       // 后端返回的 data 是字典数组，需要映射为 MistakeRecord
       const rawData = res.data.data || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapped: MistakeRecord[] = rawData.map((r: any) => ({
         id: r.id,
         table_id: r.table_id,
@@ -177,14 +178,14 @@ const MistakeBookPage: React.FC = () => {
     {
       title: '预测→实际',
       width: 110,
-      render: (_: any, r: MistakeRecord) => (
+      render: (_: unknown, record: MistakeRecord) => (
         <Space size={2}>
-          <Tag color={r.predict_direction === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 11 }}>
-            {r.predict_direction}
+          <Tag color={record.predict_direction === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 11 }}>
+            {record.predict_direction}
           </Tag>
           <span style={{ color: '#ff4d4f', fontWeight: 700 }}>✗</span>
-          <Tag color={r.actual_result === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 11 }}>
-            {r.actual_result}
+          <Tag color={record.actual_result === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 11 }}>
+            {record.actual_result}
           </Tag>
         </Space>
       ),
@@ -231,11 +232,11 @@ const MistakeBookPage: React.FC = () => {
       title: '操作',
       width: 60,
       fixed: 'right' as const,
-      render: (_: any, r: MistakeRecord) => (
+      render: (_: unknown, record: MistakeRecord) => (
         <Button
           type="link"
           size="small"
-          onClick={() => { setSelectedMistake(r); setDetailModalOpen(true); }}
+          onClick={() => { setSelectedMistake(record); setDetailModalOpen(true); }}
         >
           详情
         </Button>

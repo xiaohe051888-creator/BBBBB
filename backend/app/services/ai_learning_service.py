@@ -22,6 +22,7 @@ AI学习与模型版本管理服务 - 百家乐分析预测系统
 import asyncio
 import json
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
@@ -458,6 +459,3 @@ class AILearningService:
         )
         self.session.add(log)
         await self.session.commit()
-
-# 导入re用于正则匹配
-import re

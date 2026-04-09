@@ -6,17 +6,17 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Card, Select, Space, Tag, Table,
-  Statistic, Segmented, Tooltip, Spin, Empty, message,
+  Statistic, Tooltip, Spin, Empty,
 } from 'antd';
 import {
-  ArrowLeftOutlined, ReloadOutlined, FullscreenOutlined,
-  DownloadOutlined, InfoCircleOutlined, LineChartOutlined,
+  ArrowLeftOutlined, ReloadOutlined,
+  InfoCircleOutlined, LineChartOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import * as api from '../services/api';
 import FiveRoadChart from '../components/roads/FiveRoadChart';
-import { ROAD_COLORS } from '../types/road';
+// import { ROAD_COLORS } from '../types/road'; // 暂不使用
 
 interface RawGameRecord {
   game_number: number;
@@ -56,6 +56,7 @@ const RoadMapPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.getRoadMaps(tableId, bootNumber);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (res.data && (res.data as any).roads) {
         setRoadData(res.data as api.FiveRoadsResponse);
       }
@@ -71,14 +72,14 @@ const RoadMapPage: React.FC = () => {
     if (!tableId) return;
     try {
       const res = await api.getRoadRawData(tableId, bootNumber);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (res.data && (res.data as any).data) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setRawData((res.data as any).data);
         // 提取靴号选项
-        const boots = new Set<number>();
-        (res.data as any).data.forEach((r: RawGameRecord) => {
-          // 从结果时间推断或使用固定逻辑
-        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((res.data as any).boot_number) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setBootOptions([{ label: `第${(res.data as any).boot_number}靴`, value: (res.data as any).boot_number }]);
         }
       }
@@ -188,15 +189,16 @@ const RoadMapPage: React.FC = () => {
         </div>
 
         <div className="page-nav-right">
-          <Segmented
+          <Select
             size="small"
             value={activeTab}
-            onChange={(v) => setActiveTab(v as any)}
+            onChange={(v) => setActiveTab(v as 'chart' | 'raw' | 'analysis')}
             options={[
               { label: '📊 走势图', value: 'chart' },
               { label: '📋 数据', value: 'raw' },
               { label: '🔍 分析', value: 'analysis' },
             ]}
+            style={{ width: 140 }}
           />
           <Button icon={<ReloadOutlined />} size="small" onClick={() => { loadRoadData(); loadRawData(); }}>
             刷新
