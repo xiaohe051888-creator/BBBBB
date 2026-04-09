@@ -85,8 +85,8 @@ async def _write_log(
     category: str = "工作流事件",
     priority: str = "P3",
     source_module: str = "ManualGameService",
-):
-    """写入系统日志"""
+) -> SystemLog:
+    """写入系统日志并广播到WebSocket"""
     log = SystemLog(
         log_time=datetime.now(),
         table_id=table_id,
@@ -101,6 +101,25 @@ async def _write_log(
         source_module=source_module,
     )
     session.add(log)
+    
+    # 立即刷新以获取ID
+    await session.flush()
+    
+    # 广播日志到WebSocket（实时推送）
+    await _broadcast(table_id, "log", {
+        "id": log.id,
+        "log_time": log.log_time.isoformat() if log.log_time else None,
+        "game_number": log.game_number,
+        "event_code": log.event_code,
+        "event_type": log.event_type,
+        "event_result": log.event_result,
+        "description": log.description,
+        "category": log.category,
+        "priority": log.priority,
+        "is_pinned": log.is_pinned,
+    })
+    
+    return log
 
 
 async def _get_or_create_state(db: AsyncSession, table_id: str) -> SystemState:
