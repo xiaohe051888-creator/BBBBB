@@ -23,8 +23,10 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import BigRoadCanvas from './BigRoadCanvas';
 import BeadRoadCanvas from './BeadRoadCanvas';
 import DerivedRoadCanvas from './DerivedRoadCanvas';
+import RoadLegend from './RoadLegend';
+import RoadCard from './RoadCard';
 import type { FiveRoadData, RoadData } from '../../types/road';
-import { ROAD_COLORS, ROAD_RULES } from '../../types/road';
+import { ROAD_RULES } from '../../types/road';
 
 interface FiveRoadChartProps {
   /** API返回的五路数据（中文键）或标准 FiveRoadData（英文键） */
@@ -123,23 +125,10 @@ const FiveRoadChart: React.FC<FiveRoadChartProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* ===== 大路 - 占满顶部（最重要的一条路）===== */}
-      <div style={{
-        background: ROAD_COLORS.background,
-        borderRadius: 8,
-        padding: 10,
-        minHeight: 200,
-        overflow: 'auto',
-        border: '1px solid #21262d',
-      }}>
-        <div style={{ 
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: 12, 
-          color: '#8b949e', 
-          marginBottom: 8,
-          fontWeight: 600,
-        }}>
+      <RoadCard
+        fullWidth
+        minHeight={200}
+        title={
           <span>
             <span style={{ marginRight: 6 }}>📊</span>
             <span>大路 Big Road</span>
@@ -154,93 +143,49 @@ const FiveRoadChart: React.FC<FiveRoadChartProps> = ({
               </span>
             )}
           </span>
-          <span style={{ fontSize: 11, fontWeight: 400, color: '#484f58' }}>
-            规则: 同色纵向排列(最多{ROAD_RULES.MAX_ROWS_PER_COLUMN}个) · 换色换新列
-          </span>
-        </div>
+        }
+        extra={`规则: 同色纵向排列(最多${ROAD_RULES.MAX_ROWS_PER_COLUMN}个) · 换色换新列`}
+      >
         <BigRoadCanvas data={displayData.big_road} width={undefined} height={200} />
-      </div>
+      </RoadCard>
 
       {/* ===== 下方4路（2×2网格布局）===== */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {/* 珠盘路 */}
-        <div style={{ background: ROAD_COLORS.background, borderRadius: 8, padding: 8, minHeight: 130, overflow: 'hidden', border: '1px solid #21262d' }}>
-          <div style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-            <span>🔴 珠盘路 Bead</span>
-            <span style={{ fontSize: 10, fontWeight: 400, color: '#484f58', marginLeft: 'auto' }}>
-              {ROAD_RULES.BEAD_COLUMNS}×{ROAD_RULES.BEAD_MAX_ROWS}固定网格
-            </span>
-          </div>
+        <RoadCard
+          title={<span>🔴 珠盘路 Bead</span>}
+          extra={`${ROAD_RULES.BEAD_COLUMNS}×${ROAD_RULES.BEAD_MAX_ROWS}固定网格`}
+        >
           <BeadRoadCanvas data={displayData.bead_road} height={110} />
-        </div>
+        </RoadCard>
 
         {/* 大眼仔路 */}
-        <div style={{ background: ROAD_COLORS.background, borderRadius: 8, padding: 8, minHeight: 130, overflow: 'hidden', border: '1px solid #21262d' }}>
-          <div style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-            <span>👁️ 大眼仔路 BigEye</span>
-            <span style={{ fontSize: 10, fontWeight: 400, color: '#484f58', marginLeft: 'auto' }}>
-              offset=1 · {displayData.big_eye_boy?.points.length || 0}点
-            </span>
-          </div>
+        <RoadCard
+          title={<span>👁️ 大眼仔路 BigEye</span>}
+          extra={`offset=1 · ${displayData.big_eye_boy?.points.length || 0}点`}
+        >
           <DerivedRoadCanvas data={displayData.big_eye_boy} height={110} />
-        </div>
+        </RoadCard>
 
         {/* 小路 */}
-        <div style={{ background: ROAD_COLORS.background, borderRadius: 8, padding: 8, minHeight: 130, overflow: 'hidden', border: '1px solid #21262d' }}>
-          <div style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-            <span>📐 小路 Small</span>
-            <span style={{ fontSize: 10, fontWeight: 400, color: '#484f58', marginLeft: 'auto' }}>
-              offset=2 · {displayData.small_road?.points.length || 0}点
-            </span>
-          </div>
+        <RoadCard
+          title={<span>📐 小路 Small</span>}
+          extra={`offset=2 · ${displayData.small_road?.points.length || 0}点`}
+        >
           <DerivedRoadCanvas data={displayData.small_road} height={110} />
-        </div>
+        </RoadCard>
 
         {/* 螳螂路 */}
-        <div style={{ background: ROAD_COLORS.background, borderRadius: 8, padding: 8, minHeight: 130, overflow: 'hidden', border: '1px solid #21262d' }}>
-          <div style={{ fontSize: 11, color: '#8b949e', marginBottom: 6, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-            <span>🦗 螳螂路 Cockroach</span>
-            <span style={{ fontSize: 10, fontWeight: 400, color: '#484f58', marginLeft: 'auto' }}>
-              offset=3 · {displayData.cockroach_road?.points.length || 0}点
-            </span>
-          </div>
+        <RoadCard
+          title={<span>🦗 螳螂路 Cockroach</span>}
+          extra={`offset=3 · ${displayData.cockroach_road?.points.length || 0}点`}
+        >
           <DerivedRoadCanvas data={displayData.cockroach_road} height={110} />
-        </div>
+        </RoadCard>
       </div>
 
       {/* ===== 图例说明（统一、清晰）===== */}
-      <div style={{ 
-        display: 'flex', 
-        gap: 20, 
-        justifyContent: 'center',
-        padding: '8px 12px',
-        background: '#0d1117',
-        borderRadius: 6,
-        border: '1px solid #21262d',
-        flexWrap: 'wrap',
-        fontSize: 11,
-      }}>
-        <span>
-          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: ROAD_COLORS.banker, marginRight: 5, verticalAlign: 'middle' }} /> 
-          庄(Banker)
-        </span>
-        <span>
-          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: ROAD_COLORS.player, marginRight: 5, verticalAlign: 'middle' }} /> 
-          闲(Player)
-        </span>
-        <span style={{ borderLeft: '1px solid #30363d', paddingLeft: 16 }}>
-          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: ROAD_COLORS.derived_red, marginRight: 5, verticalAlign: 'middle' }} /> 
-          延(Red)
-        </span>
-        <span>
-          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%,', background: ROAD_COLORS.derived_blue, marginRight: 5, verticalAlign: 'middle' }} /> 
-          转(Blue)
-        </span>
-        <span style={{ borderLeft: '1px solid #30363d', paddingLeft: 16 }}>
-          <span style={{ display: 'inline-block', width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderBottom: '8px solid ' + ROAD_COLORS.errorMark, marginRight: 5, verticalAlign: 'middle' }} /> 
-          错误
-        </span>
-      </div>
+      <RoadLegend />
     </div>
   );
 };

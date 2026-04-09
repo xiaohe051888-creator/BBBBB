@@ -1,0 +1,375 @@
+/**
+ * 游戏状态管理 Hook
+ * 统一管理游戏相关的状态和数据加载
+ */
+import { useState, useCallback, useEffect } from 'react';
+import * as api from '../services/api';
+
+// ====== 类型定义 ======
+
+export interface SystemState {
+  status: string;
+  boot_number: number;
+  game_number: number;
+  current_game_result: string | null;
+  predict_direction: string | null;
+  predict_confidence: number | null;
+  current_model_version: string | null;
+  current_bet_tier: string;
+  balance: number;
+  consecutive_errors: number;
+  health_score: number;
+  pending_bet: {
+    direction: string;
+    amount: number;
+    tier: string;
+    game_number: number;
+    time: string | null;
+  } | null;
+  next_game_number: number;
+}
+
+export interface GameRecord {
+  game_number: number;
+  result: string;
+  result_time: string | null;
+  predict_direction: string | null;
+  predict_correct: boolean | null;
+  error_id: string | null;
+  settlement_status: string | null;
+  profit_loss: number;
+  balance_after: number;
+}
+
+export interface BetRecord {
+  game_number: number;
+  bet_time: string | null;
+  bet_direction: string;
+  bet_amount: number;
+  bet_tier: string;
+  status: string;
+  game_result: string | null;
+  error_id: string | null;
+  settlement_amount: number | null;
+  profit_loss: number | null;
+  balance_before: number;
+  balance_after: number;
+  adapt_summary: string | null;
+}
+
+export interface LogEntry {
+  id: number;
+  log_time: string;
+  game_number: number | null;
+  event_code: string;
+  event_type: string;
+  event_result: string;
+  description: string;
+  category: string;
+  priority: string;
+  is_pinned: boolean;
+}
+
+export interface Stats {
+  total_games: number;
+  hit_count: number;
+  miss_count: number;
+  accuracy: number;
+  balance: number;
+}
+
+export interface AnalysisData {
+  banker_summary: string;
+  player_summary: string;
+  combined_summary: string;
+  confidence: number;
+  bet_tier: string;
+  prediction: string | null;
+  bet_amount: number | null;
+}
+
+interface UseGameStateOptions {
+  tableId: string | undefined;
+  autoRefresh?: boolean;
+  refreshInterval?: number;
+}
+
+interface UseGameStateReturn {
+  // 系统状态
+  systemState: SystemState | null;
+  stats: Stats | null;
+  analysis: AnalysisData | null;
+  aiAnalyzing: boolean;
+  setAiAnalyzing: (value: boolean) => void;
+
+  // 数据列表
+  logs: LogEntry[];
+  games: GameRecord[];
+  bets: BetRecord[];
+  gamesTotal: number;
+  betsTotal: number;
+
+  // 分页
+  gamePage: number;
+  betPage: number;
+  setGamePage: (page: number) => void;
+  setBetPage: (page: number) => void;
+
+  // 走势图
+  roadData: api.FiveRoadsResponse | null;
+  roadLoading: boolean;
+
+  // 操作方法
+  loadSystemState: () => Promise<void>;
+  loadStats: () => Promise<void>;
+  loadLogs: (page?: number, category?: string) => Promise<void>;
+  loadGames: (page?: number) => Promise<void>;
+  loadBets: (page?: number) => Promise<void>;
+  loadRoadData: () => Promise<void>;
+  loadLatestAnalysis: () => Promise<void>;
+  refreshAll: () => Promise<void>;
+}
+
+/**
+ * 游戏状态管理 Hook
+ * @param options 配置选项
+ * @returns 游戏状态和操作方法
+ */
+export const useGameState = (options: UseGameStateOptions): UseGameStateReturn => {
+  const { tableId, autoRefresh = true, refreshInterval = 5000 } = options;
+
+  // 系统状态
+  const [systemState, setSystemState] = useState<SystemState | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+
+  // 数据列表
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [games, setGames] = useState<GameRecord[]>([]);
+  const [bets, setBets] = useState<BetRecord[]>([]);
+  const [gamesTotal, setGamesTotal] = useState(0);
+  const [betsTotal, setBetsTotal] = useState(0);
+
+  // 分页
+  const [gamePage, setGamePage] = useState(1);
+  const [betPage, setBetPage] = useState(1);
+
+  // 走势图
+  const [roadData, setRoadData] = useState<api.FiveRoadsResponse | null>(null);
+  const [roadLoading, setRoadLoading] = useState(false);
+
+  // 日志分类（内部状态）
+  const [logCategory] = useState<string>('');
+
+  // ====== 数据加载方法 ======
+
+  const loadSystemState = useCallback(async () => {
+    if (!tableId) return;
+    try {
+      const res = await api.getSystemState(tableId);
+      setSystemState(res.data);
+    } catch {
+      // 静默处理错误
+    }
+  }, [tableId]);
+
+  const loadStats = useCallback(async () => {
+    if (!tableId) return;
+    try {
+      const res = await api.getStatistics(tableId);
+      setStats(res.data);
+    } catch {
+      // 静默处理错误
+    }
+  }, [tableId]);
+
+  const loadLogs = useCallback(
+    async (page = 1, category?: string) => {
+      if (!tableId) return;
+      try {
+        const cat = category ?? logCategory;
+        const res = await api.getLogs({
+          table_id: tableId,
+          category: cat || undefined,
+          page,
+          page_size: 50,
+        });
+        setLogs(res.data.data);
+      } catch {
+        // 静默处理错误
+      }
+    },
+    [tableId, logCategory]
+  );
+
+  const loadGames = useCallback(
+    async (page = 1) => {
+      if (!tableId) return;
+      try {
+        const res = await api.getGameRecords({
+          table_id: tableId,
+          page,
+          page_size: 20,
+        });
+        setGames(res.data.data);
+        if (typeof res.data.total === 'number') setGamesTotal(res.data.total);
+      } catch {
+        // 静默处理错误
+      }
+    },
+    [tableId]
+  );
+
+  const loadBets = useCallback(
+    async (page = 1) => {
+      if (!tableId) return;
+      try {
+        const res = await api.getBetRecords({
+          table_id: tableId,
+          page,
+          page_size: 20,
+        });
+        setBets(res.data.data);
+        if (typeof res.data.total === 'number') setBetsTotal(res.data.total);
+      } catch {
+        // 静默处理错误
+      }
+    },
+    [tableId]
+  );
+
+  const loadRoadData = useCallback(async () => {
+    if (!tableId) return;
+    setRoadLoading(true);
+    try {
+      const res = await api.getRoadMaps(tableId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (res.data && (res.data as any).roads) {
+        setRoadData(res.data as api.FiveRoadsResponse);
+      }
+    } catch {
+      setRoadData(null);
+    } finally {
+      setRoadLoading(false);
+    }
+  }, [tableId]);
+
+  const loadLatestAnalysis = useCallback(async () => {
+    if (!tableId) return;
+    try {
+      const res = await api.getLatestAnalysis(tableId);
+      if (res.data && res.data.has_data) {
+        setAnalysis({
+          banker_summary: res.data.banker_model?.summary || '',
+          player_summary: res.data.player_model?.summary || '',
+          combined_summary: res.data.combined_model?.summary || '',
+          confidence: res.data.combined_model?.confidence || 0.5,
+          bet_tier: res.data.combined_model?.bet_tier || '标准',
+          prediction: res.data.combined_model?.prediction || null,
+          bet_amount: null,
+        });
+        setAiAnalyzing(false);
+      }
+    } catch {
+      // 静默处理错误
+    }
+  }, [tableId]);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([
+      loadSystemState(),
+      loadStats(),
+      loadLogs(),
+      loadGames(gamePage),
+      loadBets(betPage),
+      loadRoadData(),
+      loadLatestAnalysis(),
+    ]);
+  }, [
+    loadSystemState,
+    loadStats,
+    loadLogs,
+    loadGames,
+    loadBets,
+    loadRoadData,
+    loadLatestAnalysis,
+    gamePage,
+    betPage,
+  ]);
+
+  // ====== 自动刷新 ======
+
+  useEffect(() => {
+    if (!autoRefresh || !tableId) return;
+
+    // 初始加载
+    refreshAll();
+
+    // 定时刷新
+    const interval = setInterval(() => {
+      loadSystemState();
+      loadStats();
+      loadLogs();
+      loadLatestAnalysis();
+    }, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [
+    autoRefresh,
+    tableId,
+    refreshInterval,
+    refreshAll,
+    loadSystemState,
+    loadStats,
+    loadLogs,
+    loadLatestAnalysis,
+  ]);
+
+  // 走势图独立刷新（10秒）
+  useEffect(() => {
+    if (!tableId) return;
+    const interval = setInterval(() => {
+      loadRoadData();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [tableId, loadRoadData]);
+
+  return {
+    // 系统状态
+    systemState,
+    stats,
+    analysis,
+    aiAnalyzing,
+    setAiAnalyzing,
+
+    // 数据列表
+    logs,
+    games,
+    bets,
+    gamesTotal,
+    betsTotal,
+
+    // 分页
+    gamePage,
+    betPage,
+    setGamePage,
+    setBetPage,
+
+    // 走势图
+    roadData,
+    roadLoading,
+
+    // 操作方法
+    loadSystemState,
+    loadStats,
+    loadLogs,
+    loadGames,
+    loadBets,
+    loadRoadData,
+    loadLatestAnalysis,
+    refreshAll,
+  };
+};
+
+export default useGameState;

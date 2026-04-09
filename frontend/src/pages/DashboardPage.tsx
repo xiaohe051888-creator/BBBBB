@@ -2,14 +2,14 @@
  * 主仪表盘页面 - 百家乐分析预测系统（手动模式）
  * 流程：上传数据 → AI预测 → 用户下注 → 等待开奖 → 输入结果 → 结算 → 预测下一局
  */
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Table, Tag, Space,
+  Button, Tag, Space,
   Empty, message, Progress, Select, Switch,
 } from 'antd';
 import {
-  ReloadOutlined, ExclamationCircleOutlined,
+  ReloadOutlined,
   ArrowUpOutlined, ClockCircleOutlined,
   FileTextOutlined,
   SafetyOutlined, GlobalOutlined,
@@ -17,99 +17,13 @@ import {
   LineChartOutlined, FireOutlined, BulbOutlined,
   UploadOutlined, LockOutlined, UnlockOutlined,
 } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
 import * as api from '../services/api';
 import { getToken } from '../services/api';
-import {
-  PRIORITY_COLORS, LOG_CATEGORIES,
-  BET_STATUS_COLORS, MAX_GAMES_PER_BOOT, DEFAULT_BET_AMOUNT,
-} from '../utils/constants';
-import FiveRoadChart from '../components/roads/FiveRoadChart';
+import { LOG_CATEGORIES, MAX_GAMES_PER_BOOT, DEFAULT_BET_AMOUNT } from '../utils/constants';
+import { FiveRoadChart } from '../components/roads';
 import { BetModal, RevealModal, LoginModal } from '../components/dashboard';
-
-// ====== 类型定义 ======
-
-interface SystemState {
-  status: string;
-  boot_number: number;
-  game_number: number;
-  current_game_result: string | null;
-  predict_direction: string | null;
-  predict_confidence: number | null;
-  current_model_version: string | null;
-  current_bet_tier: string;
-  balance: number;
-  consecutive_errors: number;
-  health_score: number;
-  pending_bet: {
-    direction: string;
-    amount: number;
-    tier: string;
-    game_number: number;
-    time: string | null;
-  } | null;
-  next_game_number: number;
-}
-
-interface LogEntry {
-  id: number;
-  log_time: string;
-  game_number: number | null;
-  event_code: string;
-  event_type: string;
-  event_result: string;
-  description: string;
-  category: string;
-  priority: string;
-  is_pinned: boolean;
-}
-
-interface GameRecord {
-  game_number: number;
-  result: string;
-  result_time: string | null;
-  predict_direction: string | null;
-  predict_correct: boolean | null;
-  error_id: string | null;
-  settlement_status: string | null;
-  profit_loss: number;
-  balance_after: number;
-}
-
-interface BetRecord {
-  game_number: number;
-  bet_time: string | null;
-  bet_direction: string;
-  bet_amount: number;
-  bet_tier: string;
-  status: string;
-  game_result: string | null;
-  error_id: string | null;
-  settlement_amount: number | null;
-  profit_loss: number | null;
-  balance_before: number;
-  balance_after: number;
-  adapt_summary: string | null;
-}
-
-interface Stats {
-  total_games: number;
-  hit_count: number;
-  miss_count: number;
-  accuracy: number;
-  balance: number;
-}
-
-interface AnalysisData {
-  banker_summary: string;
-  player_summary: string;
-  combined_summary: string;
-  confidence: number;
-  bet_tier: string;
-  prediction: string | null;
-  bet_amount: number | null;
-}
+import { GameTable, BetTable, LogTable } from '../components/tables';
+import { useAdminLogin, useGameState, useWaitTimer } from '../hooks';
 
 // ====== 组件定义 ======
 
@@ -117,32 +31,40 @@ const DashboardPage: React.FC = () => {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
 
-  // 系统状态
-  const [systemState, setSystemState] = useState<SystemState | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
+  // 使用游戏状态管理 Hook
+  const {
+    systemState,
+    stats,
+    analysis,
+    aiAnalyzing,
+    setAiAnalyzing,
+    logs,
+    games,
+    bets,
+    gamesTotal,
+    betsTotal,
+    gamePage,
+    betPage,
+    setGamePage,
+    setBetPage,
+    roadData,
+    roadLoading,
+    loadRoadData,
+    loadGames,
+    loadBets,
+    loadStats,
+    // loadLogs, // 保留但暂时未使用
+    loadSystemState,
+    // loadLatestAnalysis, // 保留但暂时未使用
+  } = useGameState({ tableId });
 
-  // 数据列表
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [games, setGames] = useState<GameRecord[]>([]);
-  const [bets, setBets] = useState<BetRecord[]>([]);
-  const [gamesTotal, setGamesTotal] = useState(0);
-  const [betsTotal, setBetsTotal] = useState(0);
-
-  // 走势图数据
-  const [roadData, setRoadData] = useState<api.FiveRoadsResponse | null>(null);
-  const [roadLoading, setRoadLoading] = useState(false);
-
-  // 分页与筛选
-  const [logPage] = useState(1);
-  const [gamePage, setGamePage] = useState(1);
-  const [betPage, setBetPage] = useState(1);
+  // 日志分类筛选
   const [logCategory, setLogCategory] = useState<string>('');
   const [autoScroll, setAutoScroll] = useState(true);
 
-  // 计时器（等待开奖）
-  const [waitSeconds, setWaitSeconds] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  // 等待开奖计时器
+  const hasPendingBet = !!systemState?.pending_bet;
+  const { seconds: waitSeconds } = useWaitTimer({ enabled: hasPendingBet });
 
   // 开奖弹窗
   const [revealVisible, setRevealVisible] = useState(false);
@@ -155,232 +77,16 @@ const DashboardPage: React.FC = () => {
   const [betAmount, setBetAmount] = useState<number>(DEFAULT_BET_AMOUNT);
   const [betLoading, setBetLoading] = useState(false);
 
-  // 管理员登录弹窗
-  const [loginVisible, setLoginVisible] = useState(false);
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
-
-  // AI分析loading状态
-  const [aiAnalyzing, setAiAnalyzing] = useState(false);
-
-  // WebSocket
-  const wsRef = useRef<WebSocket | null>(null);
-
-  // ====== 数据加载 ======
-
-  const loadSystemState = useCallback(async () => {
-    if (!tableId) return;
-    try {
-      const res = await api.getSystemState(tableId);
-      setSystemState(res.data);
-    } catch {
-      // 静默处理错误
-    }
-  }, [tableId]);
-
-  const loadStats = useCallback(async () => {
-    if (!tableId) return;
-    try {
-      const res = await api.getStatistics(tableId);
-      setStats(res.data);
-    } catch {
-      // 静默处理错误
-    }
-  }, [tableId]);
-
-  const loadLogs = useCallback(async (page = 1) => {
-    if (!tableId) return;
-    try {
-      const res = await api.getLogs({ table_id: tableId, category: logCategory || undefined, page, page_size: 50 });
-      setLogs(res.data.data);
-    } catch {
-      // 静默处理错误
-    }
-  }, [tableId, logCategory]);
-
-  const loadGames = useCallback(async (page = 1) => {
-    if (!tableId) return;
-    try {
-      const res = await api.getGameRecords({ table_id: tableId, page, page_size: 20 });
-      setGames(res.data.data);
-      if (typeof res.data.total === 'number') setGamesTotal(res.data.total);
-    } catch {
-      // 静默处理错误
-    }
-  }, [tableId]);
-
-  const loadBets = useCallback(async (page = 1) => {
-    if (!tableId) return;
-    try {
-      const res = await api.getBetRecords({ table_id: tableId, page, page_size: 20 });
-      setBets(res.data.data);
-      if (typeof res.data.total === 'number') setBetsTotal(res.data.total);
-    } catch {
-      // 静默处理错误
-    }
-  }, [tableId]);
-
-  const loadRoadData = useCallback(async () => {
-    if (!tableId) return;
-    setRoadLoading(true);
-    try {
-      const res = await api.getRoadMaps(tableId);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (res.data && (res.data as any).roads) {
-        setRoadData(res.data as api.FiveRoadsResponse);
-      }
-    } catch {
-      setRoadData(null);
-    } finally {
-      setRoadLoading(false);
-    }
-  }, [tableId]);
-
-  const loadLatestAnalysis = useCallback(async () => {
-    if (!tableId) return;
-    try {
-      const res = await api.getLatestAnalysis(tableId);
-      if (res.data && res.data.has_data) {
-        setAnalysis({
-          banker_summary: res.data.banker_model?.summary || '',
-          player_summary: res.data.player_model?.summary || '',
-          combined_summary: res.data.combined_model?.summary || '',
-          confidence: res.data.combined_model?.confidence || 0.5,
-          bet_tier: res.data.combined_model?.bet_tier || '标准',
-          prediction: res.data.combined_model?.prediction || null,
-          bet_amount: null,
-        });
-        setAiAnalyzing(false);
-      }
-    } catch {
-      // 静默处理错误
-    }
-  }, [tableId]);
-
-  // ====== 初始化加载 ======
-
-  useEffect(() => {
-    loadSystemState();
-    loadStats();
-    loadLogs();
-    loadGames();
-    loadBets();
-    loadRoadData();
-    loadLatestAnalysis();
-  }, [loadSystemState, loadStats, loadLogs, loadGames, loadBets, loadRoadData, loadLatestAnalysis]);
-
-  // 定时刷新（5秒）
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadSystemState();
-      loadStats();
-      loadLogs(logPage);
-      loadLatestAnalysis();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [loadSystemState, loadStats, loadLogs, logPage, loadLatestAnalysis]);
-
-  // 走势图刷新（10秒）
-  useEffect(() => {
-    const interval = setInterval(() => { loadRoadData(); }, 10000);
-    return () => clearInterval(interval);
-  }, [loadRoadData]);
-
-  // 等待开奖计时器
-  useEffect(() => {
-    if (systemState?.pending_bet) {
-      if (!timerRef.current) {
-        setWaitSeconds(0);
-        timerRef.current = setInterval(() => {
-          setWaitSeconds(prev => prev + 1);
-        }, 1000);
-      }
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = undefined;
-        setWaitSeconds(0);
-      }
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [systemState?.pending_bet]);
-
-  // WebSocket实时连接
-  useEffect(() => {
-    if (!tableId) return;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let isUnmounted = false;
-
-    const connectWS = () => {
-      if (isUnmounted) return;
-      try {
-        const ws = api.createWebSocket(tableId);
-        wsRef.current = ws;
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'state_update') {
-              setSystemState(prev => ({ ...prev, ...data.data }));
-            } else if (data.type === 'log') {
-              loadLogs(1);
-            } else if (data.type === 'analysis') {
-              const d = data.data;
-              setAnalysis({
-                banker_summary: d.banker_summary || '',
-                player_summary: d.player_summary || '',
-                combined_summary: d.combined_summary || '',
-                confidence: d.confidence || 0.5,
-                bet_tier: d.bet_tier || '标准',
-                prediction: d.predict_direction || null,
-                bet_amount: d.bet_amount || null,
-              });
-              setAiAnalyzing(false);
-              loadSystemState();
-            } else if (data.type === 'game_revealed') {
-              loadRoadData();
-              loadGames(1);
-              loadBets(1);
-              loadStats();
-              setAiAnalyzing(true); // 开奖后等待下一局分析
-            } else if (data.type === 'bet_placed') {
-              loadSystemState();
-              loadBets(1);
-            }
-          } catch {
-            // WebSocket消息解析错误，静默处理
-          }
-        };
-
-        ws.onerror = () => {
-          // WebSocket错误，静默处理
-        };
-        ws.onclose = () => {
-          if (!isUnmounted) {
-            reconnectTimer = setTimeout(connectWS, 3000);
-          }
-        };
-      } catch {
-        if (!isUnmounted) {
-          reconnectTimer = setTimeout(connectWS, 5000);
-        }
-      }
-    };
-
-    connectWS();
-
-    return () => {
-      isUnmounted = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (wsRef.current) {
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [tableId, loadLogs, loadRoadData, loadGames, loadBets, loadStats, loadSystemState]);
+  // 管理员登录 Hook
+  const {
+    visible: loginVisible,
+    password: loginPassword,
+    loading: loginLoading,
+    openLogin,
+    closeLogin,
+    setPassword: setLoginPassword,
+    handleLogin: handleAdminLogin,
+  } = useAdminLogin();
 
   // ====== 操作方法 ======
 
@@ -466,29 +172,6 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // 管理员登录
-  const handleAdminLogin = async () => {
-    if (!loginPassword) return;
-    setLoginLoading(true);
-    try {
-      const res = await api.adminLogin('admin', loginPassword);
-      const { must_change_password, token } = res.data;
-      api.setToken(token);
-      if (must_change_password) {
-        message.warning('首次登录请修改默认密码');
-        navigate('/admin', { state: { mustChangePassword: true, token } });
-      } else {
-        navigate('/admin', { state: { token } });
-      }
-      setLoginVisible(false);
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : '登录失败';
-      message.error(errorMsg);
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
   // 状态颜色
   const getStatusColor = (status: string) => {
     if (status === '等待开奖') return '#faad14';
@@ -505,67 +188,7 @@ const DashboardPage: React.FC = () => {
   };
 
   // 是否有待开奖注单
-  const hasPendingBet = !!systemState?.pending_bet;
   const pendingGameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
-
-  // 表格列定义
-  const gameColumns: ColumnsType<GameRecord> = [
-    { title: '局号', dataIndex: 'game_number', width: 60 },
-    {
-      title: '结果', dataIndex: 'result', width: 70,
-      render: (v: string) => (
-        <Tag color={v === '庄' ? '#ff4d4f' : v === '闲' ? '#1890ff' : '#52c41a'} style={{ fontWeight: 700 }}>{v}</Tag>
-      ),
-    },
-    { title: '预测', dataIndex: 'predict_direction', width: 60 },
-    {
-      title: '正确', dataIndex: 'predict_correct', width: 55,
-      render: (v: boolean | null) => v === null ? '-' : v ? <Tag color="success">✓</Tag> : <Tag color="error">✗</Tag>,
-    },
-    {
-      title: '盈亏', dataIndex: 'profit_loss', width: 75,
-      render: (v: number) => <span style={{ color: v > 0 ? '#ff4d4f' : v < 0 ? '#52c41a' : undefined, fontWeight: 600 }}>{v > 0 ? '+' : ''}{v?.toFixed(0)}</span>,
-    },
-  ];
-
-  const betColumns: ColumnsType<BetRecord> = [
-    { title: '局号', dataIndex: 'game_number', width: 55 },
-    {
-      title: '方向', dataIndex: 'bet_direction', width: 55,
-      render: (v: string) => <Tag color={v === '庄' ? '#ff4d4f' : '#1890ff'}>{v}</Tag>,
-    },
-    { title: '金额', dataIndex: 'bet_amount', width: 65 },
-    {
-      title: '状态', dataIndex: 'status', width: 75,
-      render: (v: string) => <Tag color={BET_STATUS_COLORS[v]}>{v}</Tag>,
-    },
-    {
-      title: '盈亏', dataIndex: 'profit_loss', width: 75,
-      render: (v: number | null) => v !== null ? (
-        <span style={{ color: v > 0 ? '#ff4d4f' : v < 0 ? '#52c41a' : undefined, fontWeight: 600 }}>
-          {v > 0 ? '+' : ''}{v?.toFixed(0)}
-        </span>
-      ) : '-',
-    },
-  ];
-
-  const logColumns: ColumnsType<LogEntry> = [
-    {
-      title: '时间', dataIndex: 'log_time', width: 65,
-      render: (v: string) => v ? dayjs(v).format('HH:mm:ss') : '',
-    },
-    { title: '局', dataIndex: 'game_number', width: 40, render: (v: number | null) => v ?? '-' },
-    {
-      title: '事件', dataIndex: 'event_type', width: 90,
-      render: (v: string, record: LogEntry) => (
-        <Space size={4}>
-          {record.is_pinned && <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />}
-          <span style={{ color: PRIORITY_COLORS[record.priority] || '#1890ff', fontSize: 12 }}>{v}</span>
-        </Space>
-      ),
-    },
-    { title: '说明', dataIndex: 'description', ellipsis: true, render: (v: string) => <span style={{ fontSize: 12 }}>{v}</span> },
-  ];
 
   // ====== 渲染 ======
 
@@ -683,7 +306,7 @@ const DashboardPage: React.FC = () => {
               ) : (
                 <Button
                   icon={<LockOutlined />}
-                  onClick={() => setLoginVisible(true)}
+                  onClick={openLogin}
                   style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)', borderRadius: 8 }}
                 >
                   登录
@@ -759,7 +382,7 @@ const DashboardPage: React.FC = () => {
               <span className="section-title">📊 五路走势图</span>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', padding: '2px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }}>
-                  大路 · 珠盘 · 大眼仔 · 小路 · 螳螂
+                  大路 · 珠盘路 · 大眼仔路 · 小路 · 螳螂路
                 </span>
                 <Button
                   icon={<ReloadOutlined />}
@@ -945,16 +568,7 @@ const DashboardPage: React.FC = () => {
               </Space>
             </div>
             <div className="log-table-wrapper data-card-body">
-              <Table
-                dataSource={logs}
-                columns={logColumns}
-                rowKey="id"
-                size="small"
-                pagination={false}
-                scroll={{ y: 200 }}
-                locale={{ emptyText: '暂无日志' }}
-                rowClassName={(record) => record.is_pinned ? 'log-pinned-row' : ''}
-              />
+              <LogTable data={logs} scrollY={200} />
             </div>
           </div>
 
@@ -965,14 +579,11 @@ const DashboardPage: React.FC = () => {
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>💰 下注记录</span>
               </div>
               <div className="data-card-body">
-                <Table
-                  dataSource={bets}
-                  columns={betColumns}
-                  rowKey={(r, i) => `${r.game_number}-${i}`}
-                  size="small"
-                  pagination={{ current: betPage, pageSize: 5, total: betsTotal || bets.length, onChange: setBetPage, size: 'small' }}
-                  scroll={{ y: 160 }}
-                  locale={{ emptyText: '暂无记录' }}
+                <BetTable
+                  data={bets}
+                  page={betPage}
+                  total={betsTotal}
+                  onPageChange={setBetPage}
                 />
               </div>
             </div>
@@ -988,14 +599,11 @@ const DashboardPage: React.FC = () => {
                 </Space>
               </div>
               <div className="data-card-body">
-                <Table
-                  dataSource={games}
-                  columns={gameColumns}
-                  rowKey="game_number"
-                  size="small"
-                  pagination={{ current: gamePage, pageSize: 5, total: gamesTotal || games.length, onChange: setGamePage, size: 'small' }}
-                  scroll={{ y: 160 }}
-                  locale={{ emptyText: '暂无记录' }}
+                <GameTable
+                  data={games}
+                  page={gamePage}
+                  total={gamesTotal}
+                  onPageChange={setGamePage}
                 />
               </div>
             </div>
@@ -1031,7 +639,7 @@ const DashboardPage: React.FC = () => {
       {/* ====== 管理员登录弹窗 ====== */}
       <LoginModal
         visible={loginVisible}
-        onCancel={() => { setLoginVisible(false); setLoginPassword(''); }}
+        onCancel={closeLogin}
         password={loginPassword}
         setPassword={setLoginPassword}
         onLogin={handleAdminLogin}
