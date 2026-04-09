@@ -1,6 +1,6 @@
-# BBBBB — 百家乐走势分析与预测系统
+# BBBBB — 百家乐走势分析与预测系统（手动模式 v2.0.0）
 
-> 一套基于真实桌面数据采集、五路走势图分析、三AI大模型协作预测的智能辅助系统。
+> 一套基于手动数据录入、五路走势图分析、三AI大模型协作预测的智能辅助系统。
 
 ---
 
@@ -20,16 +20,19 @@
 
 ## 项目简介
 
-BBBBB 是一套**百家乐走势分析与预测系统**，核心流程：
+BBBBB 是一套**百家乐走势分析与预测系统**（v2.0.0 手动模式），核心流程：
 
 ```
-采集真实牌局数据 → 清洗去重 → 生成五路走势图 → 三模型 AI 分析预测 → 记录入库 → 模拟跟注决策 → 开奖结算复盘
+手动输入开奖记录 → 生成五路走势图 → 三模型 AI 分析预测 → 用户下注决策 → 输入开奖结果 → 结算复盘 → 自动分析下一局
 ```
 
-- 支持 lile333.com **26桌、27桌**实时数据采集
-- 基于权威五路走势图算法（大路、珠盘路、大眼仔路、小路、蟑螂路）
-- 三 AI 大模型协作预测：**OpenAI GPT-4o-mini**（庄模型）+ **Claude Sonnet 4**（闲模型）+ **Gemini 1.5 Flash**（综合模型）
-- 完整的错题本、模型版本管理与 AI 学习机制
+- **手动数据录入**：支持批量上传 1-66 局开奖记录
+- **多桌台支持**：可同时管理 26桌、27桌 等多个桌台数据
+- **权威五路走势图**：大路、珠盘路、大眼仔路、小路、蟑螂路
+- **三 AI 大模型协作预测**：**OpenAI GPT-4o-mini**（庄模型）+ **Claude Sonnet 4**（闲模型）+ **Gemini 1.5 Flash**（综合模型）
+- **完整的错题本、模型版本管理与 AI 学习机制**
+
+> 📝 **v2.0.0 更新说明**：系统已从自动爬虫采集模式全面重构为纯手动输入模式，移除了所有自动采集相关代码，专注于手动数据录入与AI分析预测。
 
 ---
 
@@ -38,7 +41,7 @@ BBBBB 是一套**百家乐走势分析与预测系统**，核心流程：
 ```
 ┌─────────────────────────────────────────────────┐
 │                前端 (React + Vite)               │
-│  启动页 → 仪表盘 → 走势图 → 分析板块 → 管理员页  │
+│  启动页 → 上传页 → 仪表盘 → 分析板块 → 管理员页  │
 │                   端口: 5173                     │
 └──────────────────┬──────────────────────────────┘
                    │  REST API + WebSocket
@@ -47,14 +50,14 @@ BBBBB 是一套**百家乐走势分析与预测系统**，核心流程：
 │                   端口: 8000                     │
 │                                                 │
 │  ┌──────────────┐   ┌──────────────────────────┐│
-│  │  采集模块    │   │     工作流引擎            ││
-│  │ Lile333      │   │  loop_engine.py          ││
-│  │ Scraper      │   │  150s 超时保护           ││
+│  │  手动游戏    │   │     三模型服务            ││
+│  │ 服务         │   │  庄模型 / 闲模型 / 综合  ││
+│  │ manual_game  │   │                          ││
 │  └──────┬───────┘   └────────────┬─────────────┘│
 │         │                        │              │
 │  ┌──────▼───────┐   ┌────────────▼─────────────┐│
-│  │  五路引擎    │   │     三模型服务            ││
-│  │ road_engine  │   │  庄模型 / 闲模型 / 综合  ││
+│  │  五路引擎    │   │     AI学习服务            ││
+│  │ road_engine  │   │  ai_learning_service     ││
 │  └──────────────┘   └──────────────────────────┘│
 │                                                 │
 │  ┌──────────────────────────────────────────────┤
@@ -67,10 +70,11 @@ BBBBB 是一套**百家乐走势分析与预测系统**，核心流程：
 
 ## 功能特性
 
-### 数据采集
-- Playwright 无头浏览器驱动，10 秒轮询一次
-- 自动检测新靴（洗牌），按靴号隔离历史数据
-- 最多保存全库最近 1000 局记录
+### 手动数据录入
+- **批量上传**：支持 1-66 局开奖记录一次性上传
+- **珠盘路输入界面**：6×11 网格布局，直观输入庄/闲/和
+- **多桌台管理**：支持 26桌、27桌等多个桌台独立数据
+- **自动检测新靴**：按靴号隔离历史数据，最多保存 1000 局记录
 
 ### 五路走势图
 严格遵循 baccarat.net 等权威网站的国际标准算法：
@@ -86,14 +90,19 @@ BBBBB 是一套**百家乐走势分析与预测系统**，核心流程：
 > ⚠️ 下三路颜色**不代表庄闲**，代表走势的延续/转折规律
 
 ### 三模型 AI 预测
-- 庄模型（OpenAI）：负责庄向证据分析
-- 闲模型（Anthropic）：负责闲向证据分析  
-- 综合模型（Gemini）：汇总两侧证据，输出最终预测 + 置信度
+- **庄模型（OpenAI）**：负责庄向证据分析
+- **闲模型（Anthropic）**：负责闲向证据分析  
+- **综合模型（Gemini）**：汇总两侧证据，输出最终预测 + 置信度
 - **永不降级**：分析预测必须满血三模型，全部通过 httpx 直接调用 REST API
+
+### 完整游戏流程
+```
+上传开奖记录 → AI三模型分析 → 用户下注 → 等待开奖 → 输入结果 → 结算 → 自动分析下一局
+```
 
 ### 管理员系统
 - JWT 认证，默认密码 `8888`（首次登录必须改密）
-- 功能：AI 学习触发、模型版本管理、数据库查看、系统启停
+- 功能：AI 学习触发、模型版本管理、数据库查看、三模型状态监控
 - 最多保留 5 个模型版本，智能切换
 
 ---
@@ -103,7 +112,6 @@ BBBBB 是一套**百家乐走势分析与预测系统**，核心流程：
 ### 前置要求
 - Python 3.10+
 - Node.js 18+
-- Playwright 浏览器（`playwright install chromium`）
 
 ### 方式一：手动启动
 
@@ -114,11 +122,9 @@ cd backend
 # 安装依赖
 pip install -r requirements.txt
 
-# 安装 Playwright 浏览器
-playwright install chromium
-
 # 配置环境变量（复制并编辑）
 cp .env.example .env
+# 编辑 .env 填入三个 AI 模型的 API 密钥
 
 # 启动后端
 python main.py
@@ -167,18 +173,15 @@ GEMINI_API_BASE=https://generativelanguage.googleapis.com/v1beta
 OFOX_API_BASE=https://api.ofox.ai/v1
 OFOX_API_KEY=ofox-xxx
 
-# ===== 安全配置 =====
+# ===== 安全配置（生产环境必须修改）=====
 JWT_SECRET_KEY=your-secret-key-change-in-production
 ADMIN_DEFAULT_PASSWORD=8888
-
-# ===== 采集配置 =====
-TARGET_TABLE_26_URL=https://rd.lile333.com/?d=26
-TARGET_TABLE_27_URL=https://rd.lile333.com/?d=27
-LILE333_HEADLESS=true
 
 # ===== 跨域配置 =====
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
+
+> ⚠️ **安全提示**：`JWT_SECRET_KEY` 和 `ADMIN_DEFAULT_PASSWORD` 在生产环境中必须通过环境变量传入，不要使用默认值！
 
 ---
 
@@ -193,11 +196,14 @@ CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 | GET | `/api/system/health` | 系统健康状态 |
 | GET | `/api/system/state` | 系统运行状态 |
 | GET | `/api/games` | 游戏记录列表（分页） |
+| POST | `/api/games/upload` | 上传开奖记录 |
+| POST | `/api/games/bet` | 下注 |
+| POST | `/api/games/reveal` | 揭晓开奖结果 |
+| GET | `/api/games/current-state` | 获取当前游戏状态 |
 | GET | `/api/stats` | 统计数据 |
 | GET | `/api/roads` | 五路走势图数据 |
 | GET | `/api/roads/raw` | 原始走势数据 |
 | GET | `/api/analysis/latest` | 最新 AI 分析结果 |
-| GET | `/api/crawler/status` | 爬虫运行状态 |
 | GET | `/api/logs` | 系统日志 |
 | GET | `/api/bets` | 下注记录 |
 | WS  | `/ws/{table_id}` | WebSocket 实时推送 |
@@ -213,9 +219,9 @@ CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 | POST | `/api/admin/ai-learning/start` | 触发 AI 学习 |
 | GET | `/api/admin/ai-learning/status` | AI 学习状态 |
 | GET | `/api/admin/three-model-status` | 三模型健康状态 |
-| POST | `/api/system/start` | 启动系统 |
-| POST | `/api/system/stop` | 停止系统 |
 | POST | `/api/system/select-model` | 切换模型版本 |
+
+> 📝 **v2.0.0 变更**：移除了 `/api/system/start`、`/api/system/stop`、`/api/crawler/*` 等爬虫相关 API
 
 ---
 
@@ -224,31 +230,25 @@ CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
 BBBBB/
 ├── backend/                    # Python FastAPI 后端
-│   ├── main.py                 # 应用入口
+│   ├── main.py                 # 应用入口（FastAPI 主应用）
 │   ├── requirements.txt        # Python 依赖
 │   ├── .env.example            # 环境变量模板
 │   └── app/
 │       ├── api/                # API 路由
-│       │   ├── system.py       # 系统状态接口
-│       │   ├── games.py        # 游戏记录接口
-│       │   ├── analysis.py     # 分析预测接口
-│       │   ├── admin.py        # 管理员接口
-│       │   └── websocket.py    # WebSocket 接口
+│       │   └── main.py         # 所有 API 端点（集中式）
 │       ├── core/
 │       │   ├── config.py       # 全局配置
 │       │   └── database.py     # 数据库初始化
 │       ├── models/             # SQLAlchemy ORM 模型
-│       ├── services/
-│       │   ├── lile333_scraper.py      # 核心爬虫（Playwright）
-│       │   ├── road_engine.py          # 五路走势图引擎
-│       │   ├── three_model_service.py  # 三模型 AI 服务
-│       │   ├── workflow_engine.py      # 主工作流引擎
-│       │   ├── ai_learning_service.py  # AI 学习服务
-│       │   ├── betting_service.py      # 模拟跟注服务
-│       │   ├── smart_model_selector.py # 智能模型选择器
-│       │   └── deprecated/             # 已废弃文件（勿删，备用）
-│       └── utils/
-│           └── loop_engine.py          # 主循环引擎（100s 监控）
+│       │   └── schemas.py      # 数据模型定义
+│       └── services/
+│           ├── manual_game_service.py  # 手动游戏服务（核心）
+│           ├── road_engine.py          # 五路走势图引擎
+│           ├── three_model_service.py  # 三模型 AI 服务
+│           ├── ai_learning_service.py  # AI 学习服务
+│           ├── betting_service.py      # 下注服务
+│           ├── smart_model_selector.py # 智能模型选择器
+│           └── deprecated/             # 已废弃文件（备用）
 │
 ├── frontend/                   # React + TypeScript 前端
 │   ├── package.json
@@ -256,15 +256,18 @@ BBBBB/
 │   └── src/
 │       ├── App.tsx
 │       ├── pages/              # 7 个页面
-│       │   ├── StartPage/      # 启动页（选桌号 / 管理员入口）
-│       │   ├── Dashboard/      # 主仪表盘
-│       │   ├── AdminPage/      # 管理员功能页
-│       │   ├── MistakeBook/    # 错题本页
-│       │   └── ...
+│       │   ├── StartPage.tsx   # 启动页（选桌号 / 管理员入口）
+│       │   ├── UploadPage.tsx  # 数据上传页（手动输入核心）
+│       │   ├── DashboardPage.tsx  # 主仪表盘
+│       │   ├── AdminPage.tsx   # 管理员功能页
+│       │   ├── MistakeBookPage.tsx  # 错题本页
+│       │   ├── BetRecordsPage.tsx   # 下注记录页
+│       │   └── RoadMapPage.tsx      # 走势图详情页
 │       ├── components/         # 共享组件
+│       │   └── roads/          # 五路走势图组件
 │       ├── services/           # API 调用层
 │       ├── hooks/              # 自定义 Hooks
-│       └── types/              # TypeScript 类型定义
+│       └── utils/              # 工具函数
 │
 ├── docs/                       # 开发文档（21 份）
 │   ├── 00-主文档-总索引.md
@@ -272,6 +275,7 @@ BBBBB/
 │   ├── ...
 │   └── 20-智能分析板块实施与文案模板.md
 │
+├── scripts/                    # 测试脚本（44个）
 ├── docker-compose.yml          # Docker 编排
 └── README.md                   # 本文件
 ```
@@ -282,12 +286,11 @@ BBBBB/
 
 | 层 | 技术 |
 |----|------|
-| 前端框架 | React 18 + TypeScript + Vite |
-| UI 组件库 | Ant Design |
+| 前端框架 | React 19 + TypeScript + Vite |
+| UI 组件库 | Ant Design 6 |
 | 后端框架 | FastAPI + Python 3.10+ |
 | 数据库 | SQLite + SQLAlchemy 2.0 (async) |
 | 实时通信 | WebSocket (FastAPI) |
-| 数据采集 | Playwright（无头 Chromium） |
 | AI 接入 | httpx 直调 REST API（无 SDK 依赖） |
 | 容器化 | Docker + docker-compose |
 | 认证 | JWT (python-jose) |
@@ -308,6 +311,10 @@ BBBBB/
 - 默认密码：`8888`
 - 首次登录后**必须修改**
 
+### 版本历史
+- **v2.0.0** (2026-04-09): 全面重构为手动模式，移除爬虫自动采集
+- **v1.0.0** (2026-04-07): 初始版本，支持自动爬虫采集
+
 ---
 
-*文档版本：v1.0.0 | 最后更新：2026-04-09*
+*文档版本：v2.0.0 | 最后更新：2026-04-09*
