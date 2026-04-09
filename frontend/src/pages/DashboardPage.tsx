@@ -6,7 +6,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Table, Tag, Space,
-  Empty, message, Modal, Progress, Select, Switch, Input,
+  Empty, message, Progress, Select, Switch,
 } from 'antd';
 import {
   ReloadOutlined, ExclamationCircleOutlined,
@@ -23,9 +23,10 @@ import * as api from '../services/api';
 import { getToken } from '../services/api';
 import {
   PRIORITY_COLORS, LOG_CATEGORIES,
-  BET_STATUS_COLORS, MAX_GAMES_PER_BOOT, DEFAULT_BET_AMOUNT, MIN_BET_AMOUNT, MAX_BET_AMOUNT,
+  BET_STATUS_COLORS, MAX_GAMES_PER_BOOT, DEFAULT_BET_AMOUNT,
 } from '../utils/constants';
 import FiveRoadChart from '../components/roads/FiveRoadChart';
+import { BetModal, RevealModal, LoginModal } from '../components/dashboard';
 
 // ====== 类型定义 ======
 
@@ -1003,217 +1004,39 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* ====== 开奖弹窗 ====== */}
-      <Modal
-        open={revealVisible}
+      <RevealModal
+        visible={revealVisible}
         onCancel={() => setRevealVisible(false)}
-        title={
-          <div style={{ color: '#ffd700', fontSize: 16, fontWeight: 700 }}>
-            🎯 请输入第 {pendingGameNumber} 局开奖结果
-          </div>
-        }
-        footer={null}
-        centered
-        maskStyle={{ backdropFilter: 'blur(10px)' }}
-        width={360}
-      >
-        <div style={{ padding: '20px 0' }}>
-          {/* 三个选项 */}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
-            {(['庄', '和', '闲'] as const).map(r => (
-              <button
-                key={r}
-                onClick={() => setRevealResult(r)}
-                style={{
-                  width: 90,
-                  height: 90,
-                  borderRadius: 16,
-                  border: `2px solid ${revealResult === r
-                    ? (r === '庄' ? '#ff4d4f' : r === '闲' ? '#1890ff' : '#52c41a')
-                    : 'rgba(255,255,255,0.1)'}`,
-                  background: revealResult === r
-                    ? (r === '庄' ? 'rgba(255,77,79,0.15)' : r === '闲' ? 'rgba(24,144,255,0.15)' : 'rgba(82,196,26,0.15)')
-                    : 'rgba(255,255,255,0.04)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  transition: 'all 0.2s',
-                  transform: revealResult === r ? 'scale(1.06)' : 'scale(1)',
-                  boxShadow: revealResult === r
-                    ? (r === '庄' ? '0 0 20px rgba(255,77,79,0.3)' : r === '闲' ? '0 0 20px rgba(24,144,255,0.3)' : '0 0 20px rgba(82,196,26,0.3)')
-                    : 'none',
-                }}
-              >
-                <span style={{ fontSize: 28, fontWeight: 900, color: r === '庄' ? '#ff4d4f' : r === '闲' ? '#1890ff' : '#52c41a' }}>{r}</span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                  {r === '庄' ? 'Banker' : r === '闲' ? 'Player' : 'Tie'}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {/* 确认按钮 */}
-          <Button
-            block
-            size="large"
-            loading={revealLoading}
-            disabled={!revealResult}
-            onClick={handleConfirmReveal}
-            style={{
-              background: revealResult ? 'linear-gradient(135deg,#ffd700,#f0b90b)' : 'rgba(255,255,255,0.06)',
-              border: 'none',
-              color: revealResult ? '#000' : 'rgba(255,255,255,0.3)',
-              fontWeight: 700,
-              fontSize: 16,
-              height: 52,
-              borderRadius: 14,
-              boxShadow: revealResult ? '0 4px 20px rgba(255,215,0,0.3)' : 'none',
-            }}
-          >
-            {revealLoading ? '结算中...' : '✅ 确认开奖'}
-          </Button>
-        </div>
-      </Modal>
+        result={revealResult}
+        setResult={setRevealResult}
+        onConfirm={handleConfirmReveal}
+        loading={revealLoading}
+        gameNumber={pendingGameNumber}
+      />
 
       {/* ====== 下注弹窗 ====== */}
-      <Modal
-        open={betVisible}
+      <BetModal
+        visible={betVisible}
         onCancel={() => setBetVisible(false)}
-        title={
-          <div style={{ color: '#ffd700', fontSize: 16, fontWeight: 700 }}>
-            💰 下注第 {systemState?.next_game_number} 局
-          </div>
-        }
-        footer={null}
-        centered
-        maskStyle={{ backdropFilter: 'blur(10px)' }}
-        width={360}
-      >
-        <div style={{ padding: '20px 0' }}>
-          {/* AI推荐提示 */}
-          {analysis?.prediction && (
-            <div style={{ padding: '10px 14px', background: 'rgba(255,215,0,0.06)', borderRadius: 10, border: '1px solid rgba(255,215,0,0.15)', marginBottom: 20, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-              🤖 AI推荐下注 <strong style={{ color: '#ffd700' }}>{analysis.prediction}</strong>，
-              置信度 <strong style={{ color: '#ffd700' }}>{((analysis.confidence || 0) * 100).toFixed(0)}%</strong>，
-              建议档位 <strong style={{ color: '#ffd700' }}>{analysis.bet_tier}</strong>
-            </div>
-          )}
-
-          {/* 方向选择 */}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 20 }}>
-            {(['庄', '闲'] as const).map(d => (
-              <button
-                key={d}
-                onClick={() => setBetDirection(d)}
-                style={{
-                  flex: 1,
-                  height: 72,
-                  borderRadius: 14,
-                  border: `2px solid ${betDirection === d ? (d === '庄' ? '#ff4d4f' : '#1890ff') : 'rgba(255,255,255,0.1)'}`,
-                  background: betDirection === d
-                    ? (d === '庄' ? 'rgba(255,77,79,0.15)' : 'rgba(24,144,255,0.15)')
-                    : 'rgba(255,255,255,0.04)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s',
-                  transform: betDirection === d ? 'scale(1.04)' : 'scale(1)',
-                }}
-              >
-                <span style={{ fontSize: 24, fontWeight: 900, color: d === '庄' ? '#ff4d4f' : '#1890ff' }}>{d}</span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{d === '庄' ? 'Banker' : 'Player'}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* 金额输入 */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>下注金额（10~10000，10的倍数）</div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              {[50, 100, 200, 500].map(amt => (
-                <button key={amt} onClick={() => setBetAmount(amt)} style={{
-                  flex: 1, height: 32, borderRadius: 8, border: `1px solid ${betAmount === amt ? '#ffd700' : 'rgba(255,255,255,0.1)'}`,
-                  background: betAmount === amt ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.04)',
-                  color: betAmount === amt ? '#ffd700' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                }}>{amt}</button>
-              ))}
-            </div>
-            <Input
-              type="number"
-              value={betAmount}
-              onChange={e => setBetAmount(Math.max(MIN_BET_AMOUNT, Math.min(MAX_BET_AMOUNT, parseInt(e.target.value) || DEFAULT_BET_AMOUNT)))}
-              style={{ borderRadius: 10, height: 44 }}
-              size="large"
-              suffix="元"
-            />
-          </div>
-
-          {/* 余额提示 */}
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 16, textAlign: 'center' }}>
-            当前余额：<strong style={{ color: '#73d13d' }}>¥{(systemState?.balance || 0).toLocaleString()}</strong>
-            {betAmount > 0 && <span style={{ marginLeft: 8 }}>→ 下注后余额：<strong style={{ color: '#fff' }}>¥{((systemState?.balance || 0) - betAmount).toLocaleString()}</strong></span>}
-          </div>
-
-          <Button
-            block
-            size="large"
-            loading={betLoading}
-            onClick={handleConfirmBet}
-            style={{
-              background: betDirection === '庄'
-                ? 'linear-gradient(135deg,#ff4d4f,#cf1322)'
-                : 'linear-gradient(135deg,#1890ff,#0050b3)',
-              border: 'none',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 16,
-              height: 52,
-              borderRadius: 14,
-              boxShadow: betDirection === '庄' ? '0 4px 20px rgba(255,77,79,0.3)' : '0 4px 20px rgba(24,144,255,0.3)',
-            }}
-          >
-            {betLoading ? '下注中...' : `✅ 确认下注 ${betDirection} ${betAmount}元`}
-          </Button>
-        </div>
-      </Modal>
+        betDirection={betDirection}
+        setBetDirection={setBetDirection}
+        betAmount={betAmount}
+        setBetAmount={setBetAmount}
+        onConfirm={handleConfirmBet}
+        loading={betLoading}
+        balance={systemState?.balance || 0}
+        analysis={analysis}
+      />
 
       {/* ====== 管理员登录弹窗 ====== */}
-      <Modal
-        open={loginVisible}
+      <LoginModal
+        visible={loginVisible}
         onCancel={() => { setLoginVisible(false); setLoginPassword(''); }}
-        footer={null}
-        centered
-        maskStyle={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
-        width={420}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ fontSize: 44, marginBottom: 10 }}>🔐</div>
-          <h2 style={{ margin: 0, fontSize: 21, fontWeight: 700, color: '#fff' }}>管理员登录</h2>
-          <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>仅限授权人员访问</p>
-        </div>
-        <Input.Password
-          value={loginPassword}
-          onChange={e => setLoginPassword(e.target.value)}
-          onPressEnter={handleAdminLogin}
-          placeholder="请输入管理员密码"
-          size="large"
-          autoFocus
-          style={{ height: 50, borderRadius: 12, fontSize: 15 }}
-          styles={{ input: { color: '#fff' } }}
-        />
-        <button
-          className="login-gold-btn"
-          onClick={handleAdminLogin}
-          disabled={loginLoading || !loginPassword}
-          style={{ opacity: loginLoading ? 0.7 : 1, marginTop: 16 }}
-        >
-          {loginLoading ? '⏳ 验证中...' : '🔑 登录进入管理面板'}
-        </button>
-      </Modal>
+        password={loginPassword}
+        setPassword={setLoginPassword}
+        onLogin={handleAdminLogin}
+        loading={loginLoading}
+      />
 
     </div>
   );
