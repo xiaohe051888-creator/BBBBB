@@ -16,6 +16,7 @@ interface UseSystemStateQueryOptions {
 
 export const useSystemStateQuery = (options: UseSystemStateQueryOptions) => {
   const { tableId, enabled = true } = options;
+  const queryClient = useQueryClient();
 
   return useQuery<SystemState | null>({
     queryKey: tableId ? queryKeys.systemState(tableId) : ['systemState', ''],
@@ -25,9 +26,15 @@ export const useSystemStateQuery = (options: UseSystemStateQueryOptions) => {
       return res.data;
     },
     enabled: !!tableId && enabled,
-    // 系统状态需要更频繁刷新
-    staleTime: 3000,
+    // 乐观UI：使用缓存数据立即显示
+    placeholderData: () => {
+      if (!tableId) return null;
+      return queryClient.getQueryData(queryKeys.systemState(tableId)) || null;
+    },
+    // 后台每5秒静默刷新
     refetchInterval: 5000,
+    // 数据变化时平滑过渡，不闪烁
+    notifyOnChangeProps: ['data', 'error'],
   });
 };
 
@@ -190,6 +197,7 @@ interface UseAnalysisQueryOptions {
 
 export const useAnalysisQuery = (options: UseAnalysisQueryOptions) => {
   const { tableId, enabled = true } = options;
+  const queryClient = useQueryClient();
 
   return useQuery<AnalysisData | null>({
     queryKey: tableId ? queryKeys.analysis(tableId) : ['analysis', ''],
@@ -210,7 +218,12 @@ export const useAnalysisQuery = (options: UseAnalysisQueryOptions) => {
       return null;
     },
     enabled: !!tableId && enabled,
-    staleTime: 5000,
+    // 乐观UI：使用缓存数据立即显示
+    placeholderData: () => {
+      if (!tableId) return null;
+      return queryClient.getQueryData(queryKeys.analysis(tableId)) || null;
+    },
+    notifyOnChangeProps: ['data', 'error'],
   });
 };
 

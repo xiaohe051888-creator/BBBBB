@@ -2,7 +2,7 @@
  * 主仪表盘页面 - 百家乐分析预测系统（手动模式）
  * 流程：上传数据 → AI预测 → 用户下注 → 等待开奖 → 输入结果 → 结算 → 预测下一局
  * 
- * 优化：使用 React Query 全局缓存层 + 骨架屏 Loading
+ * 优化：乐观UI策略 - 数据立即显示，后台静默刷新，零等待体验
  */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -27,7 +27,7 @@ import { GameTable, BetTable, LogTable } from '../components/tables';
 import {
   useAdminLogin,
   useWaitTimer,
-  // React Query Hooks (带全局缓存)
+  // React Query Hooks (乐观UI - 零等待)
   useSystemStateQuery,
   useStatsQuery,
   useLogsQuery,
@@ -38,7 +38,6 @@ import {
   usePlaceBetMutation,
   useRevealResultMutation,
 } from '../hooks';
-import { SkeletonDashboard, SkeletonStatCard, SkeletonTable, SkeletonRoadMap } from '../components/ui/Skeleton';
 
 // ====== 组件定义 ======
 
@@ -46,14 +45,15 @@ const DashboardPage: React.FC = () => {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
 
-  // ====== React Query 数据获取（带全局缓存）======
-  const { data: systemState, isLoading: systemStateLoading } = useSystemStateQuery({ tableId });
-  const { data: stats, isLoading: statsLoading } = useStatsQuery({ tableId });
-  const { data: analysis, isLoading: analysisLoading } = useAnalysisQuery({ tableId });
-  const { data: logsData, isLoading: logsLoading } = useLogsQuery({ tableId, pageSize: 50 });
-  const { data: gamesData, isLoading: gamesLoading } = useGamesQuery({ tableId, page: 1 });
-  const { data: betsData, isLoading: betsLoading } = useBetsQuery({ tableId, page: 1 });
-  const { data: roadData, isLoading: roadLoading } = useRoadsQuery({ tableId });
+  // ====== React Query 数据获取（乐观UI - 零等待）======
+  // 使用 placeholderData 确保数据立即显示，后台静默刷新
+  const { data: systemState } = useSystemStateQuery({ tableId });
+  const { data: stats } = useStatsQuery({ tableId });
+  const { data: analysis, isFetching: analysisFetching } = useAnalysisQuery({ tableId });
+  const { data: logsData } = useLogsQuery({ tableId, pageSize: 50 });
+  const { data: gamesData } = useGamesQuery({ tableId, page: 1 });
+  const { data: betsData } = useBetsQuery({ tableId, page: 1 });
+  const { data: roadData } = useRoadsQuery({ tableId });
 
   // 提取数据
   const logs = logsData?.logs || [];
@@ -66,11 +66,11 @@ const DashboardPage: React.FC = () => {
   const [gamePage, setGamePage] = useState(1);
   const [betPage, setBetPage] = useState(1);
 
-  // AI分析状态
-  const [aiAnalyzing, setAiAnalyzing] = useState(analysisLoading);
+  // AI分析状态 - 使用isFetching检测后台刷新状态
+  const [aiAnalyzing, setAiAnalyzing] = useState(analysisFetching);
   useEffect(() => {
-    setAiAnalyzing(analysisLoading);
-  }, [analysisLoading]);
+    setAiAnalyzing(analysisFetching);
+  }, [analysisFetching]);
 
   // Mutations
   const placeBetMutation = usePlaceBetMutation();
@@ -195,13 +195,8 @@ const DashboardPage: React.FC = () => {
   const pendingGameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
 
   // ====== 渲染 ======
-
-  // 全局加载状态（首次加载时显示骨架屏）
-  const isInitialLoading = systemStateLoading && !systemState;
-
-  if (isInitialLoading) {
-    return <SkeletonDashboard />;
-  }
+  // 乐观UI：始终立即渲染，不显示骨架屏
+  // 数据从缓存读取，后台静默刷新
 
   return (
     <div className="dashboard-container">
@@ -398,17 +393,13 @@ const DashboardPage: React.FC = () => {
                 <Button
                   icon={<ReloadOutlined />}
                   size="small"
-                  loading={roadLoading}
                   style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
                 />
               </div>
             </div>
             <div style={{ padding: '8px 12px 12px' }}>
-              {roadLoading && !roadData ? (
-                <SkeletonRoadMap />
-              ) : (
-                <FiveRoadChart data={roadData?.roads ?? null} loading={roadLoading} />
-              )}
+              {/* 乐观UI：立即渲染，无骨架屏 */}
+              <FiveRoadChart data={roadData?.roads ?? null} />
             </div>
           </div>
 
@@ -429,28 +420,19 @@ const DashboardPage: React.FC = () => {
                 size={['100%', 8]}
               />
               <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
-                {statsLoading ? (
-                <>
-                  <SkeletonStatCard />
-                  <SkeletonStatCard />
-                  <SkeletonStatCard />
-                </>
-              ) : (
-                <>
-                  <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(82,196,26,0.05)', border: '1px solid rgba(82,196,26,0.1)' }}>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>总局数</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#73d13d' }}>{stats?.total_games || 0}</div>
-                  </div>
-                  <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.1)' }}>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>准确率</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#ffd700' }}>{stats?.accuracy || 0}%</div>
-                  </div>
-                  <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(255,77,79,0.05)', border: '1px solid rgba(255,77,79,0.1)' }}>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>连续失准</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#ff7875' }}>{systemState?.consecutive_errors || 0}</div>
-                  </div>
-                </>
-              )}
+                {/* 乐观UI：立即渲染统计数据，无骨架屏 */}
+                <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(82,196,26,0.05)', border: '1px solid rgba(82,196,26,0.1)' }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>总局数</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#73d13d' }}>{stats?.total_games || 0}</div>
+                </div>
+                <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.1)' }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>准确率</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#ffd700' }}>{stats?.accuracy || 0}%</div>
+                </div>
+                <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(255,77,79,0.05)', border: '1px solid rgba(255,77,79,0.1)' }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>连续失准</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#ff7875' }}>{systemState?.consecutive_errors || 0}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -592,11 +574,8 @@ const DashboardPage: React.FC = () => {
               </Space>
             </div>
             <div className="log-table-wrapper data-card-body">
-              {logsLoading && logs.length === 0 ? (
-                <SkeletonTable rows={5} columns={4} />
-              ) : (
-                <LogTable data={logs} scrollY={200} />
-              )}
+              {/* 乐观UI：立即渲染日志表格 */}
+              <LogTable data={logs} scrollY={200} />
             </div>
           </div>
 
@@ -607,16 +586,13 @@ const DashboardPage: React.FC = () => {
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>💰 下注记录</span>
               </div>
               <div className="data-card-body">
-                {betsLoading && bets.length === 0 ? (
-                  <SkeletonTable rows={4} columns={5} />
-                ) : (
-                  <BetTable
-                    data={bets}
-                    page={betPage}
-                    total={betsTotal}
-                    onPageChange={setBetPage}
-                  />
-                )}
+                {/* 乐观UI：立即渲染下注记录 */}
+                <BetTable
+                  data={bets}
+                  page={betPage}
+                  total={betsTotal}
+                  onPageChange={setBetPage}
+                />
               </div>
             </div>
 
@@ -631,16 +607,13 @@ const DashboardPage: React.FC = () => {
                 </Space>
               </div>
               <div className="data-card-body">
-                {gamesLoading && games.length === 0 ? (
-                  <SkeletonTable rows={4} columns={5} />
-                ) : (
-                  <GameTable
-                    data={games}
-                    page={gamePage}
-                    total={gamesTotal}
-                    onPageChange={setGamePage}
-                  />
-                )}
+                {/* 乐观UI：立即渲染开奖记录 */}
+                <GameTable
+                  data={games}
+                  page={gamePage}
+                  total={gamesTotal}
+                  onPageChange={setGamePage}
+                />
               </div>
             </div>
           </div>

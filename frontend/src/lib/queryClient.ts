@@ -1,24 +1,26 @@
 /**
  * React Query 客户端配置
- * 全局缓存层 - 统一管理数据获取和缓存
+ * 乐观UI策略 - 数据永不过期，立即显示，后台静默刷新
  */
 import { QueryClient } from '@tanstack/react-query';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // 数据缓存时间：5分钟
-      staleTime: 5 * 60 * 1000,
-      // 数据保留时间：10分钟
-      gcTime: 10 * 60 * 1000,
-      // 失败时重试3次
-      retry: 3,
-      // 重试间隔递增
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      // 窗口重新聚焦时刷新数据
-      refetchOnWindowFocus: true,
-      // 网络重连时刷新数据
+      // 数据永不过期 - 始终立即显示缓存数据
+      staleTime: Infinity,
+      // 数据保留30分钟
+      gcTime: 30 * 60 * 1000,
+      // 失败时重试2次
+      retry: 2,
+      // 重试间隔
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      // 窗口重新聚焦时不刷新（避免干扰用户）
+      refetchOnWindowFocus: false,
+      // 网络重连时刷新
       refetchOnReconnect: true,
+      // 挂载时始终使用缓存数据，后台静默刷新
+      refetchOnMount: 'always',
     },
     mutations: {
       // 失败时重试1次
