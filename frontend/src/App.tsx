@@ -9,6 +9,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ConfigProvider, theme } from 'antd';
+import { QueryClientProvider } from '@tanstack/react-query';
 import zhCN from 'antd/locale/zh_CN';
 import UploadPage from './pages/UploadPage';
 import DashboardPage from './pages/DashboardPage';
@@ -18,6 +19,7 @@ import LogsPage from './pages/LogsPage';
 import MistakeBookPage from './pages/MistakeBookPage';
 import AdminPage from './pages/AdminPage';
 import { getToken } from './services/api';
+import { queryClient } from './lib/queryClient';
 
 // 侧边栏布局组件
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -153,70 +155,72 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const App: React.FC = () => {
   return (
-    <ConfigProvider
-      locale={zhCN}
-      theme={{
-        algorithm: theme.darkAlgorithm,
-        token: {
-          colorPrimary: '#ffd700',
-          colorSuccess: '#52c41a',
-          colorWarning: '#faad14',
-          colorError: '#ff4d4f',
-          colorInfo: '#1890ff',
-          borderRadius: 10,
-          fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif',
-          colorBgContainer: 'rgba(22,29,42,0.85)',
-          colorBgElevated: 'rgba(17,23,35,0.92)',
-          colorBgLayout: '#0a0e17',
-          colorBorder: 'rgba(48,54,68,0.4)',
-          colorText: '#e6edf3',
-          colorTextSecondary: '#8b949e',
-          controlHeight: 38,
-        },
-        components: {
-          Card: {
+    <QueryClientProvider client={queryClient}>
+      <ConfigProvider
+        locale={zhCN}
+        theme={{
+          algorithm: theme.darkAlgorithm,
+          token: {
+            colorPrimary: '#ffd700',
+            colorSuccess: '#52c41a',
+            colorWarning: '#faad14',
+            colorError: '#ff4d4f',
+            colorInfo: '#1890ff',
+            borderRadius: 10,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif',
             colorBgContainer: 'rgba(22,29,42,0.85)',
-            boxShadowTertiary: '0 4px 24px rgba(0,0,0,0.25)',
+            colorBgElevated: 'rgba(17,23,35,0.92)',
+            colorBgLayout: '#0a0e17',
+            colorBorder: 'rgba(48,54,68,0.4)',
+            colorText: '#e6edf3',
+            colorTextSecondary: '#8b949e',
+            controlHeight: 38,
           },
-          Table: {
-            colorBgContainer: 'rgba(22,29,42,0.7)',
-            headerBg: 'rgba(15,21,33,0.7)',
-            rowHoverBg: 'rgba(255,255,255,0.03)',
-            borderColor: 'rgba(48,54,68,0.25)',
+          components: {
+            Card: {
+              colorBgContainer: 'rgba(22,29,42,0.85)',
+              boxShadowTertiary: '0 4px 24px rgba(0,0,0,0.25)',
+            },
+            Table: {
+              colorBgContainer: 'rgba(22,29,42,0.7)',
+              headerBg: 'rgba(15,21,33,0.7)',
+              rowHoverBg: 'rgba(255,255,255,0.03)',
+              borderColor: 'rgba(48,54,68,0.25)',
+            },
+            Tabs: {
+              inkBarColor: '#ffd700',
+              itemSelectedColor: '#ffd700',
+              itemColor: 'rgba(255,255,255,0.5)',
+            },
+            Modal: {
+              contentBg: 'rgba(15,21,33,0.97)',
+              headerBg: 'rgba(15,21,33,0.99)',
+            },
+            Select: {
+              optionSelectedBg: 'rgba(255,215,0,0.12)',
+            },
+            Button: {
+              primaryShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
+            },
           },
-          Tabs: {
-            inkBarColor: '#ffd700',
-            itemSelectedColor: '#ffd700',
-            itemColor: 'rgba(255,255,255,0.5)',
-          },
-          Modal: {
-            contentBg: 'rgba(15,21,33,0.97)',
-            headerBg: 'rgba(15,21,33,0.99)',
-          },
-          Select: {
-            optionSelectedBg: 'rgba(255,215,0,0.12)',
-          },
-          Button: {
-            primaryShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
-          },
-        },
-      }}
-    >
-      <BrowserRouter>
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<UploadPage />} />
-            <Route path="/dashboard/:tableId" element={<DashboardPage />} />
-            <Route path="/dashboard/:tableId/roadmap" element={<RoadMapPage />} />
-            <Route path="/dashboard/:tableId/bets" element={<BetRecordsPage />} />
-            <Route path="/dashboard/:tableId/logs" element={<LogsPage />} />
-            <Route path="/dashboard/:tableId/mistakes" element={<MistakeBookPage />} />
-            <Route path="/admin" element={getToken() ? <AdminPage /> : <Navigate to="/" replace />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AppLayout>
-      </BrowserRouter>
-    </ConfigProvider>
+        }}
+      >
+        <BrowserRouter>
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={<UploadPage />} />
+              <Route path="/dashboard/:tableId" element={<DashboardPage />} />
+              <Route path="/dashboard/:tableId/roadmap" element={<RoadMapPage />} />
+              <Route path="/dashboard/:tableId/bets" element={<BetRecordsPage />} />
+              <Route path="/dashboard/:tableId/logs" element={<LogsPage />} />
+              <Route path="/dashboard/:tableId/mistakes" element={<MistakeBookPage />} />
+              <Route path="/admin" element={getToken() ? <AdminPage /> : <Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AppLayout>
+        </BrowserRouter>
+      </ConfigProvider>
+    </QueryClientProvider>
   );
 };
 

@@ -1,8 +1,10 @@
 /**
  * 主仪表盘页面 - 百家乐分析预测系统（手动模式）
  * 流程：上传数据 → AI预测 → 用户下注 → 等待开奖 → 输入结果 → 结算 → 预测下一局
+ * 
+ * 优化：使用 React Query 全局缓存层 + 骨架屏 Loading
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Tag, Space,
@@ -17,13 +19,26 @@ import {
   LineChartOutlined, FireOutlined, BulbOutlined,
   UploadOutlined, LockOutlined, UnlockOutlined,
 } from '@ant-design/icons';
-import * as api from '../services/api';
 import { getToken } from '../services/api';
 import { LOG_CATEGORIES, MAX_GAMES_PER_BOOT, DEFAULT_BET_AMOUNT } from '../utils/constants';
 import { FiveRoadChart } from '../components/roads';
 import { BetModal, RevealModal, LoginModal } from '../components/dashboard';
 import { GameTable, BetTable, LogTable } from '../components/tables';
-import { useAdminLogin, useGameState, useWaitTimer } from '../hooks';
+import {
+  useAdminLogin,
+  useWaitTimer,
+  // React Query Hooks (带全局缓存)
+  useSystemStateQuery,
+  useStatsQuery,
+  useLogsQuery,
+  useGamesQuery,
+  useBetsQuery,
+  useRoadsQuery,
+  useAnalysisQuery,
+  usePlaceBetMutation,
+  useRevealResultMutation,
+} from '../hooks';
+import { SkeletonDashboard, SkeletonStatCard, SkeletonTable, SkeletonRoadMap } from '../components/ui/Skeleton';
 
 // ====== 组件定义 ======
 
@@ -31,32 +46,35 @@ const DashboardPage: React.FC = () => {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
 
-  // 使用游戏状态管理 Hook
-  const {
-    systemState,
-    stats,
-    analysis,
-    aiAnalyzing,
-    setAiAnalyzing,
-    logs,
-    games,
-    bets,
-    gamesTotal,
-    betsTotal,
-    gamePage,
-    betPage,
-    setGamePage,
-    setBetPage,
-    roadData,
-    roadLoading,
-    loadRoadData,
-    loadGames,
-    loadBets,
-    loadStats,
-    // loadLogs, // 保留但暂时未使用
-    loadSystemState,
-    // loadLatestAnalysis, // 保留但暂时未使用
-  } = useGameState({ tableId });
+  // ====== React Query 数据获取（带全局缓存）======
+  const { data: systemState, isLoading: systemStateLoading } = useSystemStateQuery({ tableId });
+  const { data: stats, isLoading: statsLoading } = useStatsQuery({ tableId });
+  const { data: analysis, isLoading: analysisLoading } = useAnalysisQuery({ tableId });
+  const { data: logsData, isLoading: logsLoading } = useLogsQuery({ tableId, pageSize: 50 });
+  const { data: gamesData, isLoading: gamesLoading } = useGamesQuery({ tableId, page: 1 });
+  const { data: betsData, isLoading: betsLoading } = useBetsQuery({ tableId, page: 1 });
+  const { data: roadData, isLoading: roadLoading } = useRoadsQuery({ tableId });
+
+  // 提取数据
+  const logs = logsData?.logs || [];
+  const games = gamesData?.games || [];
+  const bets = betsData?.bets || [];
+  const gamesTotal = gamesData?.total || 0;
+  const betsTotal = betsData?.total || 0;
+
+  // 分页状态
+  const [gamePage, setGamePage] = useState(1);
+  const [betPage, setBetPage] = useState(1);
+
+  // AI分析状态
+  const [aiAnalyzing, setAiAnalyzing] = useState(analysisLoading);
+  useEffect(() => {
+    setAiAnalyzing(analysisLoading);
+  }, [analysisLoading]);
+
+  // Mutations
+  const placeBetMutation = usePlaceBetMutation();
+  const revealResultMutation = useRevealResultMutation();
 
   // 日志分类筛选
   const [logCategory, setLogCategory] = useState<string>('');
@@ -103,33 +121,17 @@ const DashboardPage: React.FC = () => {
       return;
     }
     const gameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
-    if (!gameNumber) return;
+    if (!gameNumber || !tableId) return;
 
     setRevealLoading(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const res = await api.revealGame(tableId!, gameNumber, revealResult as any);
-      if (res.data.success) {
-        const settle = res.data.settlement;
-        if (settle && settle.profit_loss !== undefined) {
-          if (settle.profit_loss > 0) {
-            message.success(`🎉 开奖${revealResult}，命中！+${settle.profit_loss.toFixed(0)}元`);
-          } else if (settle.profit_loss < 0) {
-            message.error(`😔 开奖${revealResult}，未命中，-${Math.abs(settle.profit_loss).toFixed(0)}元`);
-          } else {
-            message.info(`🤝 开奖${revealResult}，和局，本金退回`);
-          }
-        } else {
-          message.success(`开奖${revealResult}已记录，AI正在分析下一局...`);
-        }
-        setRevealVisible(false);
-        loadRoadData();
-        loadGames(1);
-        loadBets(1);
-        loadStats();
-        loadSystemState();
-        setAiAnalyzing(true);
-      }
+      await revealResultMutation.mutateAsync({
+        tableId,
+        result: revealResult,
+      });
+      message.success(`开奖${revealResult}已记录，AI正在分析下一局...`);
+      setRevealVisible(false);
+      setAiAnalyzing(true);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : '开奖失败，请重试';
       message.error(errorMsg);
@@ -155,15 +157,17 @@ const DashboardPage: React.FC = () => {
       return;
     }
     const gameNumber = systemState?.next_game_number;
-    if (!gameNumber) return;
+    if (!gameNumber || !tableId) return;
 
     setBetLoading(true);
     try {
-      await api.placeBet(tableId!, gameNumber, betDirection, betAmount);
+      await placeBetMutation.mutateAsync({
+        tableId,
+        direction: betDirection,
+        amount: betAmount,
+      });
       message.success(`已下注第${gameNumber}局 ${betDirection} ${betAmount}元`);
       setBetVisible(false);
-      loadSystemState();
-      loadBets(1);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : '下注失败，请重试';
       message.error(errorMsg);
@@ -191,6 +195,13 @@ const DashboardPage: React.FC = () => {
   const pendingGameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
 
   // ====== 渲染 ======
+
+  // 全局加载状态（首次加载时显示骨架屏）
+  const isInitialLoading = systemStateLoading && !systemState;
+
+  if (isInitialLoading) {
+    return <SkeletonDashboard />;
+  }
 
   return (
     <div className="dashboard-container">
@@ -387,14 +398,17 @@ const DashboardPage: React.FC = () => {
                 <Button
                   icon={<ReloadOutlined />}
                   size="small"
-                  onClick={loadRoadData}
                   loading={roadLoading}
                   style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
                 />
               </div>
             </div>
             <div style={{ padding: '8px 12px 12px' }}>
-              <FiveRoadChart data={roadData?.roads ?? null} loading={roadLoading} />
+              {roadLoading && !roadData ? (
+                <SkeletonRoadMap />
+              ) : (
+                <FiveRoadChart data={roadData?.roads ?? null} loading={roadLoading} />
+              )}
             </div>
           </div>
 
@@ -415,18 +429,28 @@ const DashboardPage: React.FC = () => {
                 size={['100%', 8]}
               />
               <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
-                <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(82,196,26,0.05)', border: '1px solid rgba(82,196,26,0.1)' }}>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>总局数</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#73d13d' }}>{stats?.total_games || 0}</div>
-                </div>
-                <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.1)' }}>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>准确率</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#ffd700' }}>{stats?.accuracy || 0}%</div>
-                </div>
-                <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(255,77,79,0.05)', border: '1px solid rgba(255,77,79,0.1)' }}>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>连续失准</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#ff7875' }}>{systemState?.consecutive_errors || 0}</div>
-                </div>
+                {statsLoading ? (
+                <>
+                  <SkeletonStatCard />
+                  <SkeletonStatCard />
+                  <SkeletonStatCard />
+                </>
+              ) : (
+                <>
+                  <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(82,196,26,0.05)', border: '1px solid rgba(82,196,26,0.1)' }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>总局数</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#73d13d' }}>{stats?.total_games || 0}</div>
+                  </div>
+                  <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.1)' }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>准确率</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#ffd700' }}>{stats?.accuracy || 0}%</div>
+                  </div>
+                  <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(255,77,79,0.05)', border: '1px solid rgba(255,77,79,0.1)' }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>连续失准</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#ff7875' }}>{systemState?.consecutive_errors || 0}</div>
+                  </div>
+                </>
+              )}
               </div>
             </div>
           </div>
@@ -568,7 +592,11 @@ const DashboardPage: React.FC = () => {
               </Space>
             </div>
             <div className="log-table-wrapper data-card-body">
-              <LogTable data={logs} scrollY={200} />
+              {logsLoading && logs.length === 0 ? (
+                <SkeletonTable rows={5} columns={4} />
+              ) : (
+                <LogTable data={logs} scrollY={200} />
+              )}
             </div>
           </div>
 
@@ -579,12 +607,16 @@ const DashboardPage: React.FC = () => {
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>💰 下注记录</span>
               </div>
               <div className="data-card-body">
-                <BetTable
-                  data={bets}
-                  page={betPage}
-                  total={betsTotal}
-                  onPageChange={setBetPage}
-                />
+                {betsLoading && bets.length === 0 ? (
+                  <SkeletonTable rows={4} columns={5} />
+                ) : (
+                  <BetTable
+                    data={bets}
+                    page={betPage}
+                    total={betsTotal}
+                    onPageChange={setBetPage}
+                  />
+                )}
               </div>
             </div>
 
@@ -599,12 +631,16 @@ const DashboardPage: React.FC = () => {
                 </Space>
               </div>
               <div className="data-card-body">
-                <GameTable
-                  data={games}
-                  page={gamePage}
-                  total={gamesTotal}
-                  onPageChange={setGamePage}
-                />
+                {gamesLoading && games.length === 0 ? (
+                  <SkeletonTable rows={4} columns={5} />
+                ) : (
+                  <GameTable
+                    data={games}
+                    page={gamePage}
+                    total={gamesTotal}
+                    onPageChange={setGamePage}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -633,7 +669,12 @@ const DashboardPage: React.FC = () => {
         onConfirm={handleConfirmBet}
         loading={betLoading}
         balance={systemState?.balance || 0}
-        analysis={analysis}
+        analysis={analysis ? {
+          prediction: analysis.prediction,
+          confidence: analysis.confidence,
+          bet_tier: analysis.bet_tier,
+          bet_amount: analysis.bet_amount,
+        } : null}
       />
 
       {/* ====== 管理员登录弹窗 ====== */}

@@ -46,71 +46,25 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isUnmountedRef = useRef(false);
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  const connectRef = useRef<() => void>(() => {});
-
-  const connect = useCallback(() => {
-    if (!tableId || isUnmountedRef.current) return;
-
-    try {
-      const ws = api.createWebSocket(tableId);
-      wsRef.current = ws;
-
-      ws.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-
-          switch (message.type) {
-            case 'state_update':
-              onStateUpdate?.(message.data);
-              break;
-            case 'log':
-              onLog?.();
-              break;
-            case 'analysis':
-              onAnalysis?.(message.data);
-              break;
-            case 'game_revealed':
-              onGameRevealed?.();
-              break;
-            case 'bet_placed':
-              onBetPlaced?.();
-              break;
-            default:
-              // 未知消息类型，静默处理
-              break;
-          }
-        } catch {
-          // WebSocket消息解析错误，静默处理
-        }
-      };
-
-      ws.onerror = () => {
-        // WebSocket错误，静默处理
-      };
-
-      ws.onclose = () => {
-        if (!isUnmountedRef.current && connectRef.current) {
-          reconnectTimerRef.current = setTimeout(connectRef.current, reconnectInterval);
-        }
-      };
-    } catch {
-      if (!isUnmountedRef.current && connectRef.current) {
-        reconnectTimerRef.current = setTimeout(connectRef.current, reconnectInterval + 2000);
-      }
-    }
-  }, [
-    tableId,
+  // 使用 ref 存储回调函数，避免闭包问题
+  const callbacksRef = useRef({
     onStateUpdate,
     onLog,
     onAnalysis,
     onGameRevealed,
     onBetPlaced,
-    reconnectInterval,
-  ]);
+  });
 
-  // 将 connect 赋值给 ref，以便在闭包中使用
-  connectRef.current = connect;
+  // 更新回调函数 ref
+  useEffect(() => {
+    callbacksRef.current = {
+      onStateUpdate,
+      onLog,
+      onAnalysis,
+      onGameRevealed,
+      onBetPlaced,
+    };
+  }, [onStateUpdate, onLog, onAnalysis, onGameRevealed, onBetPlaced]);
 
   const sendMessage = useCallback((message: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -118,19 +72,63 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     }
   }, []);
 
-  const reconnect = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-    }
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
-    connect();
-  }, [connect]);
-
-  // 建立连接
+  // 建立连接 - 在 useEffect 中定义 connect 避免渲染时访问 ref
   useEffect(() => {
     isUnmountedRef.current = false;
+
+    const connect = () => {
+      if (!tableId || isUnmountedRef.current) return;
+
+      try {
+        const ws = api.createWebSocket(tableId);
+        wsRef.current = ws;
+
+        ws.onmessage = (event) => {
+          try {
+            const message: WebSocketMessage = JSON.parse(event.data);
+            const callbacks = callbacksRef.current;
+
+            switch (message.type) {
+              case 'state_update':
+                callbacks.onStateUpdate?.(message.data);
+                break;
+              case 'log':
+                callbacks.onLog?.();
+                break;
+              case 'analysis':
+                callbacks.onAnalysis?.(message.data);
+                break;
+              case 'game_revealed':
+                callbacks.onGameRevealed?.();
+                break;
+              case 'bet_placed':
+                callbacks.onBetPlaced?.();
+                break;
+              default:
+                // 未知消息类型，静默处理
+                break;
+            }
+          } catch {
+            // WebSocket消息解析错误，静默处理
+          }
+        };
+
+        ws.onerror = () => {
+          // WebSocket错误，静默处理
+        };
+
+        ws.onclose = () => {
+          if (!isUnmountedRef.current) {
+            reconnectTimerRef.current = setTimeout(connect, reconnectInterval);
+          }
+        };
+      } catch {
+        if (!isUnmountedRef.current) {
+          reconnectTimerRef.current = setTimeout(connect, reconnectInterval + 2000);
+        }
+      }
+    };
+
     connect();
 
     return () => {
@@ -144,7 +142,18 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
         wsRef.current = null;
       }
     };
-  }, [connect]);
+  }, [tableId, reconnectInterval]);
+
+  const reconnect = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+    }
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    // 触发 useEffect 重新执行
+    // 这里通过修改一个 ref 来触发，实际由 useEffect 内部处理重连
+  }, []);
 
   return {
     sendMessage,

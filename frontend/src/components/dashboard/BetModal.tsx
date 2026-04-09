@@ -17,8 +17,8 @@ interface BetModalProps {
   balance: number;
   analysis: {
     prediction: string | null;
-    confidence: number | null;
-    bet_tier: string | null;
+    confidence: number;
+    bet_tier: string;
     bet_amount: number | null;
   } | null;
 }
