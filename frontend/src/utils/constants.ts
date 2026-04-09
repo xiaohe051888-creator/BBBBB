@@ -170,7 +170,41 @@ export const STATUS_TEXTS: Record<string, { color: string; text: string }> = {
   error: { color: '#ff4d4f', text: '异常处理中' },
   stopped: { color: '#d9d9d9', text: '已停止' },
   shuffle_wait: { color: '#8c8c8c', text: '洗牌等待' },
+  // 手动模式新增状态
+  ai_analyzing: { color: '#722ed1', text: 'AI分析中' },
+  pending_bet: { color: '#faad14', text: '等待下注' },
+  pending_reveal: { color: '#1890ff', text: '等待开奖' },
 };
+
+// ====== 手动模式状态文案 ======
+
+export const MANUAL_STATUS_TEXTS = {
+  waitingBet: (gameNumber: number) => `等待第${gameNumber}局下注`,
+  waitingReveal: (gameNumber: number) => `等待第${gameNumber}局开奖`,
+  aiAnalyzing: (gameNumber: number) => `AI正在分析第${gameNumber}局`,
+  betPlaced: (gameNumber: number, direction: string, amount: number) =>
+    `第${gameNumber}局已下注${direction} ${amount}，等待开奖`,
+  revealPrompt: (gameNumber: number) => `请输入第${gameNumber}局开奖结果`,
+  settlementDone: (gameNumber: number, result: string, profit: number) =>
+    `第${gameNumber}局结算完成，结果${result}，${profit >= 0 ? '盈利' : '亏损'}${Math.abs(profit)}`,
+} as const;
+
+// ====== 开奖按钮文案 ======
+
+export const REVEAL_BUTTON_TEXTS = {
+  idle: '开奖',
+  waiting: '等待开奖中...',
+  confirm: '确认开奖',
+  processing: '结算中...',
+} as const;
+
+// ====== 下注选项 ======
+
+export const BET_DIRECTIONS = [
+  { value: '庄', label: '庄', color: '#ff4d4f', bgColor: 'rgba(255,77,79,0.12)' },
+  { value: '闲', label: '闲', color: '#1890ff', bgColor: 'rgba(24,144,255,0.12)' },
+  { value: '和', label: '和', color: '#52c41a', bgColor: 'rgba(82,196,26,0.12)' },
+] as const;
 
 // ====== 日志优先级颜色 ======
 

@@ -1,5 +1,5 @@
 /**
- * API 服务层 - 百家乐分析预测系统
+ * API 服务层 - 百家乐分析预测系统（手动模式）
  * 含 JWT 认证拦截器 + WebSocket 认证
  */
 import axios from 'axios';
@@ -29,7 +29,7 @@ export const clearToken = (): void => {
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 10000,
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -47,7 +47,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // token无效或过期，清除并提示重新登录
       clearToken();
       console.warn('认证失败(401)，请重新登录');
     }
@@ -55,15 +54,7 @@ api.interceptors.response.use(
   },
 );
 
-// ====== 系统控制 ======
-
-export const startSystem = async (tableId: string) => {
-  return api.post('/system/start', { table_id: tableId });
-};
-
-export const stopSystem = async (tableId: string) => {
-  return api.post('/system/stop', null, { params: { table_id: tableId } });
-};
+// ====== 系统状态 ======
 
 export const getSystemState = async (tableId: string) => {
   return api.get('/system/state', { params: { table_id: tableId } });
@@ -71,6 +62,111 @@ export const getSystemState = async (tableId: string) => {
 
 export const getHealthScore = async (tableId: string) => {
   return api.get('/system/health', { params: { table_id: tableId } });
+};
+
+// ====== 手动游戏 API ======
+
+export interface GameUploadItem {
+  game_number: number;
+  result: '庄' | '闲' | '和';
+}
+
+export interface UploadResponse {
+  success: boolean;
+  uploaded: number;
+  boot_number: number;
+  max_game_number: number;
+  next_game_number: number;
+  message: string;
+}
+
+export interface RevealResponse {
+  success: boolean;
+  game_number: number;
+  result: string;
+  predict_direction: string | null;
+  predict_correct: boolean | null;
+  settlement: {
+    status: string;
+    profit_loss: number;
+    settlement_amount: number;
+    reason: string;
+  };
+  balance: number;
+  next_game_number: number;
+  message: string;
+}
+
+export interface CurrentGameState {
+  table_id: string;
+  status: string;
+  boot_number: number;
+  next_game_number: number;
+  predict_direction: string | null;
+  predict_confidence: number | null;
+  predict_bet_tier: string | null;
+  predict_bet_amount: number | null;
+  pending_bet: {
+    direction: string;
+    amount: number;
+    tier: string;
+    game_number: number;
+    time: string | null;
+  } | null;
+  balance: number;
+  consecutive_errors: number;
+  analysis: {
+    banker_summary: string | null;
+    player_summary: string | null;
+    combined_summary: string | null;
+    time: string | null;
+  } | null;
+}
+
+/** 手动上传批量开奖记录（最多66局），上传后自动触发AI分析 */
+export const uploadGameResults = async (
+  tableId: string,
+  games: GameUploadItem[],
+  bootNumber?: number,
+) => {
+  return api.post<UploadResponse>('/games/upload', {
+    table_id: tableId,
+    games,
+    boot_number: bootNumber,
+  });
+};
+
+/** 下注 */
+export const placeBet = async (
+  tableId: string,
+  gameNumber: number,
+  direction: '庄' | '闲',
+  amount: number,
+) => {
+  return api.post('/games/bet', {
+    table_id: tableId,
+    game_number: gameNumber,
+    direction,
+    amount,
+  });
+};
+
+/** 开奖 - 输入结果，触发结算和下一局分析 */
+export const revealGame = async (
+  tableId: string,
+  gameNumber: number,
+  result: '庄' | '闲' | '和',
+) => {
+  return api.post<RevealResponse>('/games/reveal', {
+    table_id: tableId,
+    game_number: gameNumber,
+    result,
+  });
+};
+
+/** 获取当前游戏状态（内存态） */
+export const getCurrentGameState = async (tableId: string) => {
+  return api.get<CurrentGameState>('/games/current-state', { params: { table_id: tableId } });
 };
 
 // ====== 开奖记录 ======
@@ -182,10 +278,8 @@ export const getRoadRawData = async (tableId: string, bootNumber?: number) => {
 export const createWebSocket = (tableId: string): WebSocket => {
   const token = getToken();
   const wsUrl = import.meta.env.VITE_WS_URL || `ws://localhost:8000/ws/${tableId}`;
-  // 有token则附加到URL查询参数
   const urlWithToken = token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl;
-  const ws = new WebSocket(urlWithToken);
-  return ws;
+  return new WebSocket(urlWithToken);
 };
 
 // ====== AI模型分析 ======
@@ -232,52 +326,6 @@ export const getMistakeRecords = async (params: {
   return api.get('/admin/database-records', { params: { ...params, table_name: 'mistake_book' } });
 };
 
-// ====== 采集控制 ======
-
-export interface CrawlerStatus {
-  table_id: string;
-  type: string;
-  url: string;
-  last_game_number: number;
-  stability_score: number;
-  total_calls: number;
-  success_rate: number;
-  cached_count?: number;
-  desk_id?: string;
-  status?: string;
-  message?: string;
-}
-
-export interface CrawlerTestResult {
-  success: boolean;
-  data: {
-    game_number: number | null;
-    result: string | null;
-    raw_data: any;
-  } | null;
-  source: string;
-  crawl_time: number;
-  error: string | null;
-}
-
-export interface CrawlerRawData {
-  table_id: string;
-  total: number;
-  data: any[];
-}
-
-export const getCrawlerStatus = async (tableId: string) => {
-  return api.get<CrawlerStatus>('/crawler/status', { params: { table_id: tableId } });
-};
-
-export const testCrawler = async (tableId: string) => {
-  return api.post<CrawlerTestResult>('/crawler/test', null, { params: { table_id: tableId } });
-};
-
-export const getCrawlerRawData = async (tableId: string) => {
-  return api.get<CrawlerRawData>('/crawler/raw-data', { params: { table_id: tableId } });
-};
-
 // ====== AI 学习控制 ======
 
 export interface AILearningStatus {
@@ -305,27 +353,9 @@ export interface ThreeModelStatus {
   status: 'ready' | 'incomplete';
   all_api_keys_configured: boolean;
   models: {
-    banker: {
-      name: string;
-      provider: string;
-      model: string;
-      api_key_set: boolean;
-      role: string;
-    };
-    player: {
-      name: string;
-      provider: string;
-      model: string;
-      api_key_set: boolean;
-      role: string;
-    };
-    combined: {
-      name: string;
-      provider: string;
-      model: string;
-      api_key_set: boolean;
-      role: string;
-    };
+    banker: { name: string; provider: string; model: string; api_key_set: boolean; role: string };
+    player: { name: string; provider: string; model: string; api_key_set: boolean; role: string };
+    combined: { name: string; provider: string; model: string; api_key_set: boolean; role: string };
   };
   smart_router_enabled: boolean;
   fallback_policy: string;

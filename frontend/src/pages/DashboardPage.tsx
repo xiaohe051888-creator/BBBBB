@@ -1,34 +1,29 @@
 /**
- * 主仪表盘页面 - 百家乐分析预测系统
- * 设计风格：奢华赌场风格 + 现代极简主义
- * 布局：顶部状态栏 + 智能分析 + 五路走势图 + 实盘日志 + 数据记录区
- * 
- * 文档规范遵循：
- * - 09-前端信息架构.md：顶部关键信息卡、智能分析板块、五路图、日志展示
- * - 20-智能分析板块实施与文案模板.md：三模型输出格式、一致性约束
- * - 12-前端用户体验规范.md：小白可见可懂、全中文
+ * 主仪表盘页面 - 百家乐分析预测系统（手动模式）
+ * 流程：上传数据 → AI预测 → 用户下注 → 等待开奖 → 输入结果 → 结算 → 预测下一局
  */
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Card, Statistic, Table, Tag, Space,
-  Badge, Tooltip, Segmented, Empty, message, Modal, Progress, Select, Switch, Tabs,
+  Button, Card, Table, Tag, Space,
+  Badge, Tooltip, Empty, message, Modal, Progress, Select, Switch, Input,
 } from 'antd';
 import {
-  StopOutlined, ReloadOutlined, ExclamationCircleOutlined,
-  ArrowUpOutlined, ArrowDownOutlined, ClockCircleOutlined,
-  DashboardOutlined, FileTextOutlined, ThunderboltOutlined,
-  SafetyOutlined, ExportOutlined, GlobalOutlined, ApartmentOutlined,
-  CheckCircleOutlined, WarningOutlined, EyeOutlined, RobotOutlined,
-  ExperimentOutlined, LineChartOutlined, FireOutlined, BulbOutlined,
-  ArrowLeftOutlined,
+  ReloadOutlined, ExclamationCircleOutlined,
+  ArrowUpOutlined, ClockCircleOutlined,
+  FileTextOutlined,
+  SafetyOutlined, GlobalOutlined, ApartmentOutlined,
+  CheckCircleOutlined, RobotOutlined,
+  LineChartOutlined, FireOutlined, BulbOutlined,
+  UploadOutlined, LockOutlined, UnlockOutlined, TrophyOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import * as api from '../services/api';
+import { getToken, setToken } from '../services/api';
 import {
-  STATUS_TEXTS, PRIORITY_COLORS, LOG_CATEGORIES,
-  BET_STATUS_COLORS, EMPTY_STATES, DIALOG_TEXTS, BUTTON_TEXTS,
+  PRIORITY_COLORS, LOG_CATEGORIES,
+  BET_STATUS_COLORS, EMPTY_STATES,
 } from '../utils/constants';
 import FiveRoadChart from '../components/roads/FiveRoadChart';
 
@@ -46,6 +41,14 @@ interface SystemState {
   balance: number;
   consecutive_errors: number;
   health_score: number;
+  pending_bet: {
+    direction: string;
+    amount: number;
+    tier: string;
+    game_number: number;
+    time: string | null;
+  } | null;
+  next_game_number: number;
 }
 
 interface LogEntry {
@@ -103,15 +106,8 @@ interface AnalysisData {
   combined_summary: string;
   confidence: number;
   bet_tier: string;
-  consistency_status: string;
-}
-
-interface CrawlerData {
-  status: api.CrawlerStatus | null;
-  lastTest: api.CrawlerTestResult | null;
-  rawHistory: any[];
-  loading: boolean;
-  testing: boolean;
+  prediction: string | null;
+  bet_amount: number | null;
 }
 
 // ====== 组件定义 ======
@@ -119,12 +115,12 @@ interface CrawlerData {
 const DashboardPage: React.FC = () => {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
-  
+
   // 系统状态
   const [systemState, setSystemState] = useState<SystemState | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
-  
+
   // 数据列表
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [games, setGames] = useState<GameRecord[]>([]);
@@ -135,33 +131,41 @@ const DashboardPage: React.FC = () => {
   // 走势图数据
   const [roadData, setRoadData] = useState<api.FiveRoadsResponse | null>(null);
   const [roadLoading, setRoadLoading] = useState(false);
-  
+
   // 分页与筛选
-  const [logPage, setLogPage] = useState(1);
+  const [logPage] = useState(1);
   const [gamePage, setGamePage] = useState(1);
   const [betPage, setBetPage] = useState(1);
   const [logCategory, setLogCategory] = useState<string>('');
   const [autoScroll, setAutoScroll] = useState(true);
-  const [activeMainTab, setActiveMainTab] = useState('analysis');
-  
-  // 计时器
-  const [timer, setTimer] = useState(0);
+
+  // 计时器（等待开奖）
+  const [waitSeconds, setWaitSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
-  
+
+  // 开奖弹窗
+  const [revealVisible, setRevealVisible] = useState(false);
+  const [revealResult, setRevealResult] = useState<'庄' | '闲' | '和' | ''>('');
+  const [revealLoading, setRevealLoading] = useState(false);
+
+  // 下注弹窗
+  const [betVisible, setBetVisible] = useState(false);
+  const [betDirection, setBetDirection] = useState<'庄' | '闲'>('庄');
+  const [betAmount, setBetAmount] = useState<number>(100);
+  const [betLoading, setBetLoading] = useState(false);
+
+  // 管理员登录弹窗
+  const [loginVisible, setLoginVisible] = useState(false);
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  // AI分析loading状态
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+
   // WebSocket
   const wsRef = useRef<WebSocket | null>(null);
-  const logsEndRef = useRef<HTMLDivElement>(null);
 
-  // 采集状态
-  const [crawler, setCrawler] = useState<CrawlerData>({
-    status: null,
-    lastTest: null,
-    rawHistory: [],
-    loading: false,
-    testing: false,
-  });
-
-  // ====== 数据加载方法 ======
+  // ====== 数据加载 ======
 
   const loadSystemState = useCallback(async () => {
     if (!tableId) return;
@@ -220,14 +224,6 @@ const DashboardPage: React.FC = () => {
     }
   }, [tableId]);
 
-  const loadCrawlerStatus = useCallback(async () => {
-    if (!tableId) return;
-    try {
-      const res = await api.getCrawlerStatus(tableId);
-      setCrawler(prev => ({ ...prev, status: res.data }));
-    } catch {}
-  }, [tableId]);
-
   const loadLatestAnalysis = useCallback(async () => {
     if (!tableId) return;
     try {
@@ -239,35 +235,13 @@ const DashboardPage: React.FC = () => {
           combined_summary: res.data.combined_model?.summary || '',
           confidence: res.data.combined_model?.confidence || 0.5,
           bet_tier: res.data.combined_model?.bet_tier || '标准',
-          consistency_status: 'normal',
+          prediction: res.data.combined_model?.prediction || null,
+          bet_amount: null,
         });
+        setAiAnalyzing(false);
       }
     } catch {}
   }, [tableId]);
-
-  // 手动测试采集
-  const handleTestCrawler = async () => {
-    if (!tableId) return;
-    setCrawler(prev => ({ ...prev, testing: true }));
-    try {
-      const res = await api.testCrawler(tableId);
-      setCrawler(prev => ({
-        ...prev,
-        lastTest: res.data,
-        testing: false,
-      }));
-      if (res.data.success && res.data.data) {
-        message.success(`采集成功！第${res.data.data.game_number}局 ${res.data.data.result}`);
-      } else if (!res.data.success) {
-        message.warning(`采集完成但无新局数据`);
-      } else {
-        message.error(`采集失败：${res.data.error}`);
-      }
-    } catch (e: any) {
-      message.error('采集测试失败');
-      setCrawler(prev => ({ ...prev, testing: false }));
-    }
-  };
 
   // ====== 初始化加载 ======
 
@@ -278,154 +252,274 @@ const DashboardPage: React.FC = () => {
     loadGames();
     loadBets();
     loadRoadData();
-    loadCrawlerStatus();
     loadLatestAnalysis();
-  }, [loadSystemState, loadStats, loadLogs, loadGames, loadBets, loadRoadData, loadCrawlerStatus, loadLatestAnalysis]);
+  }, [loadSystemState, loadStats, loadLogs, loadGames, loadBets, loadRoadData, loadLatestAnalysis]);
 
-  // 走势图定时刷新
-  useEffect(() => {
-    const interval = setInterval(() => { loadRoadData(); }, 10000);
-    return () => clearInterval(interval);
-  }, [loadRoadData]);
-
-  // 系统状态定时刷新
+  // 定时刷新（5秒）
   useEffect(() => {
     const interval = setInterval(() => {
       loadSystemState();
       loadStats();
       loadLogs(logPage);
-      loadCrawlerStatus();
       loadLatestAnalysis();
     }, 5000);
     return () => clearInterval(interval);
-  }, [loadSystemState, loadStats, loadLogs, logPage, loadCrawlerStatus, loadLatestAnalysis]);
+  }, [loadSystemState, loadStats, loadLogs, logPage, loadLatestAnalysis]);
 
-  // 工作流计时器
+  // 走势图刷新（10秒）
   useEffect(() => {
-    if (systemState?.status === '运行中') {
-      setTimer(0);
-      timerRef.current = setInterval(() => {
-        setTimer(prev => prev >= 150 ? prev : prev + 1);
-      }, 1000);
+    const interval = setInterval(() => { loadRoadData(); }, 10000);
+    return () => clearInterval(interval);
+  }, [loadRoadData]);
+
+  // 等待开奖计时器
+  useEffect(() => {
+    if (systemState?.pending_bet) {
+      if (!timerRef.current) {
+        setWaitSeconds(0);
+        timerRef.current = setInterval(() => {
+          setWaitSeconds(prev => prev + 1);
+        }, 1000);
+      }
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = undefined;
+        setWaitSeconds(0);
+      }
     }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [systemState?.status]);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [systemState?.pending_bet]);
 
   // WebSocket实时连接
   useEffect(() => {
     if (!tableId) return;
-    
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let isUnmounted = false;
-    
+
     const connectWS = () => {
       if (isUnmounted) return;
       try {
         const ws = api.createWebSocket(tableId);
         wsRef.current = ws;
-        
+
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            if (data.type === 'state_update') setSystemState(data.data);
-            else if (data.type === 'log') loadLogs(1);
-            else if (data.type === 'analysis') setAnalysis(data.data);
-          } catch (e) { /* ignore */ }
+            if (data.type === 'state_update') {
+              setSystemState(prev => ({ ...prev, ...data.data }));
+            } else if (data.type === 'log') {
+              loadLogs(1);
+            } else if (data.type === 'analysis') {
+              const d = data.data;
+              setAnalysis({
+                banker_summary: d.banker_summary || '',
+                player_summary: d.player_summary || '',
+                combined_summary: d.combined_summary || '',
+                confidence: d.confidence || 0.5,
+                bet_tier: d.bet_tier || '标准',
+                prediction: d.predict_direction || null,
+                bet_amount: d.bet_amount || null,
+              });
+              setAiAnalyzing(false);
+              loadSystemState();
+            } else if (data.type === 'game_revealed') {
+              loadRoadData();
+              loadGames(1);
+              loadBets(1);
+              loadStats();
+              setAiAnalyzing(true); // 开奖后等待下一局分析
+            } else if (data.type === 'bet_placed') {
+              loadSystemState();
+              loadBets(1);
+            }
+          } catch {}
         };
-        
-        ws.onerror = () => console.warn('WebSocket连接错误');
-        
+
+        ws.onerror = () => {};
         ws.onclose = () => {
           if (!isUnmounted) {
             reconnectTimer = setTimeout(connectWS, 3000);
           }
         };
-      } catch (e) {
+      } catch {
         if (!isUnmounted) {
           reconnectTimer = setTimeout(connectWS, 5000);
         }
       }
     };
-    
+
     connectWS();
-    
+
     return () => {
       isUnmounted = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (wsRef.current) {
-        wsRef.current.onclose = null; // 阻止close事件触发重连
+        wsRef.current.onclose = null;
         wsRef.current.close();
         wsRef.current = null;
       }
     };
-  }, [tableId, loadLogs]);
+  }, [tableId, loadLogs, loadRoadData, loadGames, loadBets, loadStats, loadSystemState]);
 
-  // 操作方法
-  const handleStop = () => {
-    Modal.confirm({
-      ...DIALOG_TEXTS.stopConfirm,
-      onOk: async () => {
-        try {
-          await api.stopSystem(tableId!);
-          message.success('系统已停止');
-        } catch (error: any) {
-          // 停止失败（如系统未在运行），仅提示但不阻止返回
-          message.warning(error.response?.data?.detail || error.message);
+  // ====== 操作方法 ======
+
+  // 打开开奖弹窗
+  const handleOpenReveal = () => {
+    setRevealResult('');
+    setRevealVisible(true);
+  };
+
+  // 确认开奖
+  const handleConfirmReveal = async () => {
+    if (!revealResult) {
+      message.warning('请选择开奖结果');
+      return;
+    }
+    const gameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
+    if (!gameNumber) return;
+
+    setRevealLoading(true);
+    try {
+      const res = await api.revealGame(tableId!, gameNumber, revealResult as any);
+      if (res.data.success) {
+        const settle = res.data.settlement;
+        if (settle && settle.profit_loss !== undefined) {
+          if (settle.profit_loss > 0) {
+            message.success(`🎉 开奖${revealResult}，命中！+${settle.profit_loss.toFixed(0)}元`);
+          } else if (settle.profit_loss < 0) {
+            message.error(`😔 开奖${revealResult}，未命中，-${Math.abs(settle.profit_loss).toFixed(0)}元`);
+          } else {
+            message.info(`🤝 开奖${revealResult}，和局，本金退回`);
+          }
+        } else {
+          message.success(`开奖${revealResult}已记录，AI正在分析下一局...`);
         }
-        navigate('/');
-      },
-    });
+        setRevealVisible(false);
+        loadRoadData();
+        loadGames(1);
+        loadBets(1);
+        loadStats();
+        loadSystemState();
+        setAiAnalyzing(true);
+      }
+    } catch (err: any) {
+      message.error(err.response?.data?.detail || '开奖失败，请重试');
+    } finally {
+      setRevealLoading(false);
+    }
   };
 
-  // 返回选桌页面
-  const handleBackToSelect = () => {
-    navigate('/');
+  // 打开下注弹窗（使用AI推荐）
+  const handleOpenBet = () => {
+    if (systemState?.predict_direction) {
+      setBetDirection(systemState.predict_direction as '庄' | '闲');
+    }
+    // 使用AI推荐金额
+    const sysState = systemState as any;
+    setBetAmount(100); // 默认100，可以从state获取
+    setBetVisible(true);
   };
 
-  // 状态信息
-  const statusInfo = systemState ? STATUS_TEXTS[systemState.status] || STATUS_TEXTS.stopped : STATUS_TEXTS.stopped;
+  // 确认下注
+  const handleConfirmBet = async () => {
+    if (!betDirection) {
+      message.warning('请选择下注方向');
+      return;
+    }
+    const gameNumber = systemState?.next_game_number;
+    if (!gameNumber) return;
+
+    setBetLoading(true);
+    try {
+      await api.placeBet(tableId!, gameNumber, betDirection, betAmount);
+      message.success(`已下注第${gameNumber}局 ${betDirection} ${betAmount}元`);
+      setBetVisible(false);
+      loadSystemState();
+      loadBets(1);
+    } catch (err: any) {
+      message.error(err.response?.data?.detail || '下注失败，请重试');
+    } finally {
+      setBetLoading(false);
+    }
+  };
+
+  // 管理员登录
+  const handleAdminLogin = async () => {
+    if (!loginPassword) return;
+    setLoginLoading(true);
+    try {
+      const res = await api.adminLogin('admin', loginPassword);
+      const { must_change_password, token } = res.data;
+      setToken(token);
+      if (must_change_password) {
+        message.warning('首次登录请修改默认密码');
+        navigate('/admin', { state: { mustChangePassword: true, token } });
+      } else {
+        navigate('/admin', { state: { token } });
+      }
+      setLoginVisible(false);
+    } catch (err: any) {
+      message.error(err.response?.data?.detail || '登录失败');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  // 状态颜色
+  const getStatusColor = (status: string) => {
+    if (status === '等待开奖') return '#faad14';
+    if (status === '等待下注') return '#52c41a';
+    if (status === '分析中') return '#1890ff';
+    return 'rgba(255,255,255,0.5)';
+  };
+
+  const getStatusDot = (status: string) => {
+    if (status === '等待开奖') return '#faad14';
+    if (status === '等待下注') return '#52c41a';
+    if (status === '分析中') return '#1890ff';
+    return '#8b949e';
+  };
+
+  // 是否有待开奖注单
+  const hasPendingBet = !!systemState?.pending_bet;
+  const pendingGameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
 
   // 表格列定义
   const gameColumns: ColumnsType<GameRecord> = [
     { title: '局号', dataIndex: 'game_number', width: 60 },
     {
-      title: '开奖结果', dataIndex: 'result', width: 80,
+      title: '结果', dataIndex: 'result', width: 70,
       render: (v: string) => (
-        <Tag color={v === '庄' ? '#ff4d4f' : v === '闲' ? '#1890ff' : '#52c41a'} style={{ fontWeight: 600 }}>{v}</Tag>
+        <Tag color={v === '庄' ? '#ff4d4f' : v === '闲' ? '#1890ff' : '#52c41a'} style={{ fontWeight: 700 }}>{v}</Tag>
       ),
     },
     { title: '预测', dataIndex: 'predict_direction', width: 60 },
     {
-      title: '正确', dataIndex: 'predict_correct', width: 60,
+      title: '正确', dataIndex: 'predict_correct', width: 55,
       render: (v: boolean | null) => v === null ? '-' : v ? <Tag color="success">✓</Tag> : <Tag color="error">✗</Tag>,
     },
     {
-      title: '盈亏', dataIndex: 'profit_loss', width: 80,
+      title: '盈亏', dataIndex: 'profit_loss', width: 75,
       render: (v: number) => <span style={{ color: v > 0 ? '#ff4d4f' : v < 0 ? '#52c41a' : undefined, fontWeight: 600 }}>{v > 0 ? '+' : ''}{v?.toFixed(0)}</span>,
     },
-    { title: '余额', dataIndex: 'balance_after', width: 100, render: (v: number) => v?.toLocaleString() },
   ];
 
   const betColumns: ColumnsType<BetRecord> = [
-    { title: '局号', dataIndex: 'game_number', width: 60 },
+    { title: '局号', dataIndex: 'game_number', width: 55 },
     {
-      title: '方向', dataIndex: 'bet_direction', width: 60,
+      title: '方向', dataIndex: 'bet_direction', width: 55,
       render: (v: string) => <Tag color={v === '庄' ? '#ff4d4f' : '#1890ff'}>{v}</Tag>,
     },
-    { title: '金额', dataIndex: 'bet_amount', width: 70 },
+    { title: '金额', dataIndex: 'bet_amount', width: 65 },
     {
-      title: '档位', dataIndex: 'bet_tier', width: 60,
-      render: (v: string) => <Tag color={v === '保守' ? 'orange' : v === '进取' ? 'red' : 'blue'}>{v}</Tag>,
-    },
-    {
-      title: '状态', dataIndex: 'status', width: 80,
+      title: '状态', dataIndex: 'status', width: 75,
       render: (v: string) => <Tag color={BET_STATUS_COLORS[v]}>{v}</Tag>,
     },
-    { title: '结果', dataIndex: 'game_result', width: 60 },
     {
-      title: '盈亏', dataIndex: 'profit_loss', width: 80,
+      title: '盈亏', dataIndex: 'profit_loss', width: 75,
       render: (v: number | null) => v !== null ? (
         <span style={{ color: v > 0 ? '#ff4d4f' : v < 0 ? '#52c41a' : undefined, fontWeight: 600 }}>
           {v > 0 ? '+' : ''}{v?.toFixed(0)}
@@ -436,114 +530,83 @@ const DashboardPage: React.FC = () => {
 
   const logColumns: ColumnsType<LogEntry> = [
     {
-      title: '时间', dataIndex: 'log_time', width: 70,
+      title: '时间', dataIndex: 'log_time', width: 65,
       render: (v: string) => v ? dayjs(v).format('HH:mm:ss') : '',
     },
-    { title: '局号', dataIndex: 'game_number', width: 50, render: (v: number | null) => v ?? '-' },
+    { title: '局', dataIndex: 'game_number', width: 40, render: (v: number | null) => v ?? '-' },
     {
       title: '事件', dataIndex: 'event_type', width: 90,
       render: (v: string, record: LogEntry) => (
         <Space size={4}>
           {record.is_pinned && <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />}
-          <span style={{ color: PRIORITY_COLORS[record.priority] || '#1890ff' }}>{v}</span>
+          <span style={{ color: PRIORITY_COLORS[record.priority] || '#1890ff', fontSize: 12 }}>{v}</span>
         </Space>
       ),
     },
-    { title: '说明', dataIndex: 'description', ellipsis: true },
-    {
-      title: '优先级', dataIndex: 'priority', width: 55,
-      render: (v: string) => <Tag color={PRIORITY_COLORS[v]} style={{ fontSize: 11 }}>{v}</Tag>,
-    },
+    { title: '说明', dataIndex: 'description', ellipsis: true, render: (v: string) => <span style={{ fontSize: 12 }}>{v}</span> },
   ];
 
   // ====== 渲染 ======
 
   return (
     <div className="dashboard-container">
-      
-      {/* ====== 顶部状态栏（文档09：顶部关键信息卡）====== */}
+
+      {/* ====== 顶部状态栏 ====== */}
       <div className="top-status-bar">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          
+
           {/* 左侧：系统状态 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {/* 系统状态指示 */}
+            {/* 状态指示 */}
             <div className="info-card-mini">
-              <div className="status-indicator-dot" style={{
-                backgroundColor: statusInfo.color === '#52c41a' ? '#52c41a' :
-                                   statusInfo.color === '#ff4d4f' ? '#ff4d4f' : '#faad14'
-              }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
-                {statusInfo.text}
+              <div className="status-indicator-dot" style={{ backgroundColor: getStatusDot(systemState?.status || '空闲') }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: getStatusColor(systemState?.status || '') }}>
+                {systemState?.status || '空闲'}
               </span>
             </div>
 
             {/* 桌台信息 */}
             <div className="info-card-mini">
-              <GlobalOutlined style={{ fontSize: 15, color: '#58a6ff' }} />
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+              <GlobalOutlined style={{ fontSize: 14, color: '#58a6ff' }} />
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
                 <strong style={{ color: '#ffd700', marginRight: 4 }}>{tableId}桌</strong>
-                · 第{systemState?.boot_number || 0}靴 · 第{systemState?.game_number || 0}局
+                · 第{systemState?.boot_number || 0}靴
+                · 已{systemState?.game_number || 0}局
               </span>
             </div>
 
             {/* 模型版本 */}
             <div className="info-card-mini">
-              <RobotOutlined style={{ fontSize: 15, color: '#b37feb' }} />
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+              <RobotOutlined style={{ fontSize: 14, color: '#b37feb' }} />
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                 {systemState?.current_model_version || 'v1.0'}
               </span>
             </div>
           </div>
 
-          {/* 中间：当前局 & 预测局（文档09核心要求）- 移动端隐藏 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }} className="hide-on-mobile">
-            {/* 当前局 */}
-            <div style={{
-              background: 'rgba(255,255,255,0.04)',
-              borderRadius: 12,
-              padding: '10px 20px',
-              textAlign: 'center',
-              minWidth: 160,
-            }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 3 }}>
-                🎲 当前局
-              </div>
-              <div style={{ fontSize: 19, fontWeight: 800, color: '#fff' }}>
+          {/* 中间：当前/预测局（仅PC端）*/}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }} className="hide-on-mobile">
+            <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 140 }}>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, marginBottom: 2 }}>🎲 当前局</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>
                 第{systemState?.game_number || 0}局
                 {systemState?.current_game_result && (
-                  <Tag
-                    color={systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff'}
-                    style={{ marginLeft: 10, fontSize: 15, fontWeight: 800, borderRadius: 6 }}
-                  >
+                  <Tag color={systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff'}
+                    style={{ marginLeft: 8, fontWeight: 800, borderRadius: 6 }}>
                     {systemState.current_game_result}
                   </Tag>
                 )}
               </div>
             </div>
 
-            {/* 分隔箭头 */}
-            <ArrowUpOutlined style={{ fontSize: 18, color: 'rgba(255,215,0,0.5)', rotate: '45deg' }} />
+            <ArrowUpOutlined style={{ fontSize: 16, color: 'rgba(255,215,0,0.4)', transform: 'rotate(45deg)' }} />
 
-            {/* 预测局 */}
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(255,215,0,0.06), rgba(255,215,0,0.02))',
-              borderRadius: 12,
-              padding: '10px 20px',
-              textAlign: 'center',
-              minWidth: 180,
-              border: '1px solid rgba(255,215,0,0.12)',
-            }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,215,0,0.65)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 3 }}>
-                🔮 预测局
-              </div>
-              <div style={{ fontSize: 19, fontWeight: 800, color: '#ffd666' }}>
-                第{(systemState?.game_number || 0) + 1}局
+            <div style={{ background: 'linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,215,0,0.02))', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 170, border: '1px solid rgba(255,215,0,0.1)' }}>
+              <div style={{ fontSize: 10, color: 'rgba(255,215,0,0.6)', letterSpacing: 1.5, marginBottom: 2 }}>🔮 预测下一局</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#ffd666' }}>
+                第{systemState?.next_game_number || (systemState?.game_number || 0) + 1}局
                 {systemState?.predict_direction && (
-                  <Tag
-                    color="gold"
-                    style={{ marginLeft: 10, fontSize: 15, fontWeight: 800, borderRadius: 6, background: 'linear-gradient(135deg,#ffd700,#f0b90b)' }}
-                  >
+                  <Tag color="gold" style={{ marginLeft: 8, fontWeight: 800, borderRadius: 6, background: 'linear-gradient(135deg,#ffd700,#f0b90b)' }}>
                     {systemState.predict_direction}
                   </Tag>
                 )}
@@ -551,38 +614,12 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 右侧：计时器 & 余额 & 健康分 & 操作 */}
+          {/* 右侧：余额 + 健康分 + 操作 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            
-            {/* 工作流计时器 */}
-            <Tooltip title={`工作流计时 / 150秒上限${timer >= 140 ? ' ⚠️ 即将超时' : ''}`}>
-              <div className="timer-ring" style={{ cursor: 'default' }}>
-                <svg width="52" height="52">
-                  <circle cx="26" cy="26" r="23" fill="none" stroke="rgba(48,54,68,0.5)" strokeWidth="4" />
-                  <circle
-                    cx="26" cy="26" r="23"
-                    fill="none"
-                    stroke={
-                      timer >= 130 ? '#ff4d4f' :
-                      timer >= 100 ? '#faad14' :
-                      timer >= 70 ? '#1890ff' : '#52c41a'
-                    }
-                    strokeWidth="4"
-                    strokeDasharray={`${(timer / 150) * 144.5} 144.5`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="timer-value" style={{
-                  color: timer >= 130 ? '#ff4d4f' : timer >= 100 ? '#faad14' : '#e6edf3'
-                }}>
-                  {timer}s
-                </span>
-              </div>
-            </Tooltip>
 
             {/* 余额 */}
             <div className="info-card-mini">
-              <span style={{ fontSize: 18 }}>💰</span>
+              <span style={{ fontSize: 17 }}>💰</span>
               <div>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>余额</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#73d13d' }}>
@@ -593,137 +630,123 @@ const DashboardPage: React.FC = () => {
 
             {/* 健康分 */}
             <div className="info-card-mini">
-              <SafetyOutlined style={{ fontSize: 15, color:
-                (systemState?.health_score ?? 100) >= 85 ? '#52c41a' :
-                (systemState?.health_score ?? 100) >= 70 ? '#faad14' : '#ff4d4f'
-              }} />
+              <SafetyOutlined style={{ fontSize: 14, color: (systemState?.health_score ?? 100) >= 85 ? '#52c41a' : '#faad14' }} />
               <div>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>健康分</div>
-                <div style={{
-                  fontSize: 14, fontWeight: 700,
-                  color: (systemState?.health_score ?? 100) >= 85 ? '#52c41a' :
-                         (systemState?.health_score ?? 100) >= 70 ? '#faad14' : '#ff4d4f'
-                }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: (systemState?.health_score ?? 100) >= 85 ? '#52c41a' : '#faad14' }}>
                   {(systemState?.health_score ?? 100).toFixed(0)}%
                 </div>
               </div>
             </div>
 
-            {/* 返回选桌 + 停止按钮 */}
+            {/* 操作按钮 */}
             <Space size={8}>
+              {/* 返回上传页 */}
               <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={handleBackToSelect}
-                style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)' }}
+                icon={<UploadOutlined />}
+                onClick={() => navigate('/')}
+                style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)', borderRadius: 8 }}
               >
-                返回选桌
+                上传数据
               </Button>
-              <Button
-                danger
-                icon={<StopOutlined />}
-                onClick={handleStop}
-                className="btn-stop-danger"
-              >
-                停止系统
-              </Button>
+
+              {/* 管理员登录/进入 */}
+              {getToken() ? (
+                <Button
+                  icon={<UnlockOutlined />}
+                  onClick={() => navigate('/admin')}
+                  style={{ background: 'rgba(255,215,0,0.08)', borderColor: 'rgba(255,215,0,0.3)', color: '#ffd700', borderRadius: 8 }}
+                >
+                  管理员
+                </Button>
+              ) : (
+                <Button
+                  icon={<LockOutlined />}
+                  onClick={() => setLoginVisible(true)}
+                  style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)', borderRadius: 8 }}
+                >
+                  登录
+                </Button>
+              )}
             </Space>
           </div>
         </div>
       </div>
 
-      {/* ====== 采集状态栏 ====== */}
-      <div className="crawler-bar">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      {/* ====== 等待开奖状态栏（有待开奖注单时显示）====== */}
+      {hasPendingBet && (
+        <div style={{
+          padding: '12px 20px',
+          background: 'linear-gradient(135deg, rgba(250,173,20,0.12), rgba(250,173,20,0.06))',
+          borderBottom: '1px solid rgba(250,173,20,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <Space size={4}>
-              <GlobalOutlined style={{ color: '#58a6ff', fontSize: 14 }} />
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>数据源</span>
-              <Tag color={
-                crawler.status?.type === 'Lile333Scraper' ? 'blue' :
-                crawler.status?.type ? 'orange' : 'default'
-              } style={{ margin: 0, fontSize: 12 }}>
-                {crawler.status?.type || '未连接'}
-              </Tag>
-            </Space>
-
-            <Space size={4}>
-              <ApartmentOutlined style={{
-                color: (crawler.status?.stability_score ?? 0) >= 80 ? '#52c41a' :
-                       (crawler.status?.stability_score ?? 0) >= 50 ? '#faad14' : '#ff4d4f',
-                fontSize: 13
-              }} />
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>稳定性</span>
-              <strong style={{
-                fontSize: 13,
-                color: (crawler.status?.stability_score ?? 0) >= 80 ? '#52c41a' :
-                      (crawler.status?.stability_score ?? 0) >= 50 ? '#faad14' : '#ff4d4f',
-              }}>
-                {(crawler.status?.stability_score ?? 0).toFixed(0)}分
-              </strong>
-            </Space>
-
-            <Space size={4}>
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>已采集</span>
-              <strong style={{ fontSize: 14, color: '#e6edf3' }}>
-                {crawler.status?.cached_count ?? crawler.status?.last_game_number ?? 0}
-              </strong>
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>局</span>
-            </Space>
-
-            <Space size={4}>
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>成功率</span>
-              <strong style={{
-                fontSize: 13,
-                color: (crawler.status?.success_rate ?? 100) >= 95 ? '#52c41a' :
-                      (crawler.status?.success_rate ?? 100) >= 80 ? '#faad14' : '#ff4d4f',
-              }}>
-                {(crawler.status?.success_rate ?? 100).toFixed(0)}%
-              </strong>
-            </Space>
+            <ClockCircleOutlined style={{ color: '#faad14', fontSize: 18, animation: 'pulse-glow 1.5s infinite' }} />
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#faad14' }}>
+              等待第 {pendingGameNumber} 局开奖中
+            </span>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+              已等待 {waitSeconds}秒
+            </span>
+            {systemState?.pending_bet && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Tag color={systemState.pending_bet.direction === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontWeight: 700, fontSize: 13 }}>
+                  已下注{systemState.pending_bet.direction}
+                </Tag>
+                <Tag color="gold" style={{ fontWeight: 700 }}>
+                  {systemState.pending_bet.amount}元
+                </Tag>
+                <Tag color="blue">{systemState.pending_bet.tier}档</Tag>
+              </div>
+            )}
           </div>
 
-          <Space>
-            <Button
-              size="small"
-              icon={<ReloadOutlined spin={crawler.testing} />}
-              loading={crawler.testing}
-              onClick={handleTestCrawler}
-              style={{ borderRadius: 8 }}
-            >
-              手动采集
-            </Button>
-            {crawler.lastTest && (
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-                上次: +{crawler.lastTest.crawl_time.toFixed(1)}s
-                {crawler.lastTest.data?.result && (
-                  <Tag color={
-                    crawler.lastTest.data.result === '庄' ? '#ff4d4f' :
-                    crawler.lastTest.data.result === '闲' ? '#1890ff' : '#52c41a'
-                  } style={{ marginLeft: 4, fontSize: 10 }}>
-                    {crawler.lastTest.data.result}
-                  </Tag>
-                )}
-              </span>
-            )}
-          </Space>
+          <Button
+            type="primary"
+            size="large"
+            onClick={handleOpenReveal}
+            style={{
+              background: 'linear-gradient(135deg, #faad14, #f0961a)',
+              border: 'none',
+              fontWeight: 700,
+              fontSize: 15,
+              borderRadius: 10,
+              boxShadow: '0 4px 20px rgba(250,173,20,0.4)',
+              padding: '0 28px',
+            }}
+          >
+            🎯 开奖
+          </Button>
         </div>
-      </div>
+      )}
 
       {/* ====== 主体内容区 ====== */}
       <div className="dashboard-main-grid" style={{ padding: 16, display: 'flex', gap: 16 }}>
-        
-        {/* ====== 左侧面板（约46%）====== */}
+
+        {/* ====== 左侧面板 ====== */}
         <div className="left-panel" style={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          
-          {/* 五路走势图（文档04+09：五路2D血迹图，国际标准） */}
+
+          {/* 五路走势图 */}
           <div className="road-chart-card" style={{ minHeight: 420 }}>
             <div className="section-header">
               <LineChartOutlined style={{ color: '#722ed1', fontSize: 18 }} />
               <span className="section-title">📊 五路走势图</span>
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', padding: '2px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }}>
                   大路 · 珠盘 · 大眼仔 · 小路 · 螳螂
                 </span>
+                <Button
+                  icon={<ReloadOutlined />}
+                  size="small"
+                  onClick={loadRoadData}
+                  loading={roadLoading}
+                  style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
+                />
               </div>
             </div>
             <div style={{ padding: '8px 12px 12px' }}>
@@ -731,53 +754,44 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 本靴进度条（文档09） */}
+          {/* 本靴进度条 */}
           <div className="data-card">
             <div style={{ padding: '12px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
-                  🎯 本靴进度
-                </span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>🎯 本靴进度</span>
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
                   第{systemState?.game_number || 0}局 / 预计50-70局
                 </span>
               </div>
               <Progress
-                percent={Math.min(100, ((systemState?.game_number || 0) / 60) * 100)}
+                percent={Math.min(100, ((systemState?.game_number || 0) / 66) * 100)}
                 showInfo={false}
-                strokeColor={{
-                  '0%': '#1890ff',
-                  '50%': '#722ed1',
-                  '100%': '#ff4d4f',
-                }}
-                railColor='rgba(48,54,68,0.3)'
+                strokeColor={{ '0%': '#1890ff', '50%': '#722ed1', '100%': '#ff4d4f' }}
+                railColor="rgba(48,54,68,0.3)"
                 size={['100%', 8]}
-                style={{ borderRadius: 4 }}
               />
-              
-              {/* 连续正确/错误统计 */}
               <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
                 <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(82,196,26,0.05)', border: '1px solid rgba(82,196,26,0.1)' }}>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>连续正确</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#73d13d' }}>
-                    {systemState?.consecutive_errors === 0 ? stats?.hit_count || 0 : 0}
-                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>总局数</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#73d13d' }}>{stats?.total_games || 0}</div>
+                </div>
+                <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.1)' }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>准确率</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#ffd700' }}>{stats?.accuracy || 0}%</div>
                 </div>
                 <div style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(255,77,79,0.05)', border: '1px solid rgba(255,77,79,0.1)' }}>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>连续失准</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#ff7875' }}>
-                    {systemState?.consecutive_errors || 0}
-                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#ff7875' }}>{systemState?.consecutive_errors || 0}</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ====== 右侧主信息区（约54%）====== */}
+        {/* ====== 右侧面板 ====== */}
         <div className="right-panel" style={{ flex: '1 1 500px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          
-          {/* ====== 智能分析板块（文档09+20：首页首屏必须展示）====== */}
+
+          {/* 智能分析板块 */}
           <div className="analysis-card" style={{ minHeight: 240 }}>
             <div className="section-header">
               <BulbOutlined style={{ color: '#fadb14', fontSize: 18 }} />
@@ -790,74 +804,63 @@ const DashboardPage: React.FC = () => {
                     percent={(analysis.confidence || 0) * 100}
                     size={34}
                     format={() => `${((analysis.confidence || 0) * 100).toFixed(0)}%`}
-                    strokeColor={(analysis.confidence || 0) >= 0.7 ? '#52c41a' : (analysis.confidence || 0) >= 0.5 ? '#faad14' : '#ff4d4f'}
-                    trailColor='rgba(48,54,68,0.3)'
+                    strokeColor={(analysis.confidence || 0) >= 0.7 ? '#52c41a' : '#faad14'}
+                    trailColor="rgba(48,54,68,0.3)"
                     strokeWidth={3}
                     style={{ fontSize: 10 }}
                   />
-                  <Tag
-                    color={analysis.bet_tier === '保守' ? 'orange' : analysis.bet_tier === '进取' ? 'red' : 'blue'}
-                    style={{ borderRadius: 12, fontSize: 11, fontWeight: 600 }}
-                  >
+                  <Tag color={analysis.bet_tier === '保守' ? 'orange' : analysis.bet_tier === '进取' ? 'red' : 'blue'}
+                    style={{ borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
                     {analysis.bet_tier || '标准'}档
                   </Tag>
                 </div>
               )}
             </div>
-            
-            {!analysis ? (
-              <div style={{ textAlign: 'center', padding: '36px 0', color: 'rgba(255,255,255,0.3)' }}>
-                <Empty
-                  description={EMPTY_STATES.noData.main}
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  styles={{ image: { filter: 'grayscale(1)', opacity: 0.3 } }}
-                />
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', marginTop: 8 }}>
-                  {EMPTY_STATES.noData.guide}
-                </div>
+
+            {aiAnalyzing ? (
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                <div style={{ fontSize: 28, marginBottom: 12, animation: 'pulse-glow 1.5s infinite' }}>🤖</div>
+                <div style={{ color: '#1890ff', fontSize: 14, fontWeight: 600 }}>AI三模型正在分析中...</div>
+                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 6 }}>庄模型 · 闲模型 · 综合模型</div>
+              </div>
+            ) : !analysis ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.3)' }}>
+                <Empty description="暂无分析数据" image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  styles={{ image: { filter: 'grayscale(1)', opacity: 0.3 } }} />
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', marginTop: 8 }}>请先上传开奖记录</div>
               </div>
             ) : (
-              <div style={{ padding: '4px 20px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                
-                {/* 庄模型分析（文档05+20：只输出庄向证据链） */}
+              <div style={{ padding: '4px 16px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+                {/* 庄模型 */}
                 <div className="model-block model-block-banker">
-                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
                     <span className="model-icon-badge">🔴</span>
-                    <span style={{ fontWeight: 700, fontSize: 13, color: '#ff4d4f', letterSpacing: 0.3 }}>
-                      庄模型
-                    </span>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: '#ff4d4f' }}>庄模型</span>
                     <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,77,79,0.5)', background: 'rgba(255,77,79,0.08)', padding: '1px 8px', borderRadius: 8 }}>
                       OpenAI GPT-4o mini
                     </span>
                   </div>
-                  <p className="analysis-text">
-                    {analysis.banker_summary || '暂无庄向分析...'}
-                  </p>
+                  <p className="analysis-text">{analysis.banker_summary || '暂无庄向分析...'}</p>
                 </div>
 
-                {/* 闲模型分析（文档05+20：只输出闲向证据链） */}
+                {/* 闲模型 */}
                 <div className="model-block model-block-player">
-                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
                     <span className="model-icon-badge">🔵</span>
-                    <span style={{ fontWeight: 700, fontSize: 13, color: '#1890ff', letterSpacing: 0.3 }}>
-                      闲模型
-                    </span>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: '#1890ff' }}>闲模型</span>
                     <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(24,144,255,0.5)', background: 'rgba(24,144,255,0.08)', padding: '1px 8px', borderRadius: 8 }}>
                       Claude Sonnet 4
                     </span>
                   </div>
-                  <p className="analysis-text">
-                    {analysis.player_summary || '暂无闲向分析...'}
-                  </p>
+                  <p className="analysis-text">{analysis.player_summary || '暂无闲向分析...'}</p>
                 </div>
 
-                {/* 综合模型分析（文档05+20：融合证据输出最终预测） */}
+                {/* 综合模型 */}
                 <div className="model-block model-block-combined" style={{ marginBottom: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
                     <span className="model-icon-badge">🧠</span>
-                    <span style={{ fontWeight: 700, fontSize: 13, color: '#52c41a', letterSpacing: 0.3 }}>
-                      综合模型
-                    </span>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: '#52c41a' }}>综合模型</span>
                     <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(82,196,26,0.5)', background: 'rgba(82,196,26,0.08)', padding: '1px 8px', borderRadius: 8 }}>
                       Gemini Flash
                     </span>
@@ -866,31 +869,57 @@ const DashboardPage: React.FC = () => {
                     {analysis.combined_summary || '暂无综合分析...'}
                   </p>
                 </div>
+
+                {/* 下注按钮 */}
+                {analysis.prediction && !hasPendingBet && (
+                  <div style={{ marginTop: 8, display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    <Button
+                      type="primary"
+                      size="large"
+                      onClick={handleOpenBet}
+                      style={{
+                        background: analysis.prediction === '庄'
+                          ? 'linear-gradient(135deg,#ff4d4f,#cf1322)'
+                          : 'linear-gradient(135deg,#1890ff,#0050b3)',
+                        border: 'none',
+                        fontWeight: 700,
+                        fontSize: 15,
+                        borderRadius: 10,
+                        minWidth: 160,
+                        boxShadow: analysis.prediction === '庄'
+                          ? '0 4px 20px rgba(255,77,79,0.3)'
+                          : '0 4px 20px rgba(24,144,255,0.3)',
+                      }}
+                    >
+                      💰 下注 {analysis.prediction}（第{systemState?.next_game_number}局）
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* ====== 实盘日志（文档10+12：分类筛选、复制、自动滚动控制）====== */}
-          <div className="data-card" style={{ flex: 1, minHeight: 280, display: 'flex', flexDirection: 'column' }}>
+          {/* 实盘日志 */}
+          <div className="data-card" style={{ flex: 1, minHeight: 250, display: 'flex', flexDirection: 'column' }}>
             <div className="data-card-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <FileTextOutlined style={{ color: '#13c2c2', fontSize: 15 }} />
+                <FileTextOutlined style={{ color: '#13c2c2', fontSize: 14 }} />
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>📋 实盘日志</span>
               </div>
               <Space size="small">
                 <Select
                   size="small"
                   value={logCategory}
-                  onChange={(v) => { setLogCategory(v); setLogPage(1); }}
+                  onChange={(v) => { setLogCategory(v); }}
                   options={LOG_CATEGORIES}
-                  style={{ width: 110, fontSize: 12 }}
+                  style={{ width: 100, fontSize: 12 }}
                 />
                 <Switch
                   size="small"
                   checked={autoScroll}
                   onChange={setAutoScroll}
                   checkedChildren="🔄 自动"
-                  unCheckedChildren="⏸️ 暂停"
+                  unCheckedChildren="⏸ 暂停"
                 />
               </Space>
             </div>
@@ -901,17 +930,16 @@ const DashboardPage: React.FC = () => {
                 rowKey="id"
                 size="small"
                 pagination={false}
-                scroll={{ y: 210 }}
-                locale={{ emptyText: EMPTY_STATES.noData.main }}
+                scroll={{ y: 200 }}
+                locale={{ emptyText: '暂无日志' }}
                 rowClassName={(record) => record.is_pinned ? 'log-pinned-row' : ''}
               />
             </div>
           </div>
 
-          {/* 底部双列：下注记录 + 开奖记录（移动端堆叠） */}
+          {/* 底部：下注记录 + 开奖记录 */}
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            {/* 下注记录 */}
-            <div className="data-card" style={{ flex: '1 1 300px', minWidth: 0 }}>
+            <div className="data-card" style={{ flex: '1 1 280px', minWidth: 0 }}>
               <div className="data-card-header">
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>💰 下注记录</span>
               </div>
@@ -919,35 +947,22 @@ const DashboardPage: React.FC = () => {
                 <Table
                   dataSource={bets}
                   columns={betColumns}
-                  rowKey={(r, i) => `${r.game_number}-${r.bet_direction}-${i}`}
+                  rowKey={(r, i) => `${r.game_number}-${i}`}
                   size="small"
                   pagination={{ current: betPage, pageSize: 5, total: betsTotal || bets.length, onChange: setBetPage, size: 'small' }}
-                  scroll={{ y: 170 }}
-                  locale={{ emptyText: '暂无下注记录' }}
+                  scroll={{ y: 160 }}
+                  locale={{ emptyText: '暂无记录' }}
                 />
               </div>
             </div>
 
-            {/* 开奖记录 + 统计（文档11） */}
-            <div className="data-card" style={{ flex: '1 1 300px', minWidth: 0 }}>
+            <div className="data-card" style={{ flex: '1 1 280px', minWidth: 0 }}>
               <div className="data-card-header">
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>🎯 开奖记录</span>
                 <Space size={6}>
-                  {/* 准确率统计徽章 */}
-                  <span className={`stat-badge-inline ${
-                    (stats?.accuracy || 0) >= 55 ? 'stat-accuracy-high' :
-                    (stats?.accuracy || 0) >= 45 ? 'stat-accuracy-mid' : 'stat-accuracy-low'
-                  }`}>
+                  <span className={`stat-badge-inline ${(stats?.accuracy || 0) >= 55 ? 'stat-accuracy-high' : (stats?.accuracy || 0) >= 45 ? 'stat-accuracy-mid' : 'stat-accuracy-low'}`}>
                     <FireOutlined />
-                    准确率 {(stats?.accuracy || 0).toFixed(1)}%
-                  </span>
-                  <span className="stat-badge-inline" style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    color: 'rgba(255,255,255,0.7)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    fontSize: 12,
-                  }}>
-                    {stats?.total_games || 0}局 / {stats?.hit_count || 0}中 / {stats?.miss_count || 0}错
+                    {(stats?.accuracy || 0).toFixed(1)}%
                   </span>
                 </Space>
               </div>
@@ -958,14 +973,244 @@ const DashboardPage: React.FC = () => {
                   rowKey="game_number"
                   size="small"
                   pagination={{ current: gamePage, pageSize: 5, total: gamesTotal || games.length, onChange: setGamePage, size: 'small' }}
-                  scroll={{ y: 170 }}
-                  locale={{ emptyText: '暂无开奖记录' }}
+                  scroll={{ y: 160 }}
+                  locale={{ emptyText: '暂无记录' }}
                 />
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ====== 开奖弹窗 ====== */}
+      <Modal
+        open={revealVisible}
+        onCancel={() => setRevealVisible(false)}
+        title={
+          <div style={{ color: '#ffd700', fontSize: 16, fontWeight: 700 }}>
+            🎯 请输入第 {pendingGameNumber} 局开奖结果
+          </div>
+        }
+        footer={null}
+        centered
+        maskStyle={{ backdropFilter: 'blur(10px)' }}
+        styles={{
+          content: { background: 'rgba(15,21,33,0.97)', border: '1px solid rgba(255,215,0,0.2)', borderRadius: 20 },
+          header: { background: 'transparent', borderBottom: '1px solid rgba(255,255,255,0.06)' },
+        }}
+        width={360}
+      >
+        <div style={{ padding: '20px 0' }}>
+          {/* 三个选项 */}
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
+            {(['庄', '和', '闲'] as const).map(r => (
+              <button
+                key={r}
+                onClick={() => setRevealResult(r)}
+                style={{
+                  width: 90,
+                  height: 90,
+                  borderRadius: 16,
+                  border: `2px solid ${revealResult === r
+                    ? (r === '庄' ? '#ff4d4f' : r === '闲' ? '#1890ff' : '#52c41a')
+                    : 'rgba(255,255,255,0.1)'}`,
+                  background: revealResult === r
+                    ? (r === '庄' ? 'rgba(255,77,79,0.15)' : r === '闲' ? 'rgba(24,144,255,0.15)' : 'rgba(82,196,26,0.15)')
+                    : 'rgba(255,255,255,0.04)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  transition: 'all 0.2s',
+                  transform: revealResult === r ? 'scale(1.06)' : 'scale(1)',
+                  boxShadow: revealResult === r
+                    ? (r === '庄' ? '0 0 20px rgba(255,77,79,0.3)' : r === '闲' ? '0 0 20px rgba(24,144,255,0.3)' : '0 0 20px rgba(82,196,26,0.3)')
+                    : 'none',
+                }}
+              >
+                <span style={{ fontSize: 28, fontWeight: 900, color: r === '庄' ? '#ff4d4f' : r === '闲' ? '#1890ff' : '#52c41a' }}>{r}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                  {r === '庄' ? 'Banker' : r === '闲' ? 'Player' : 'Tie'}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* 确认按钮 */}
+          <Button
+            block
+            size="large"
+            loading={revealLoading}
+            disabled={!revealResult}
+            onClick={handleConfirmReveal}
+            style={{
+              background: revealResult ? 'linear-gradient(135deg,#ffd700,#f0b90b)' : 'rgba(255,255,255,0.06)',
+              border: 'none',
+              color: revealResult ? '#000' : 'rgba(255,255,255,0.3)',
+              fontWeight: 700,
+              fontSize: 16,
+              height: 52,
+              borderRadius: 14,
+              boxShadow: revealResult ? '0 4px 20px rgba(255,215,0,0.3)' : 'none',
+            }}
+          >
+            {revealLoading ? '结算中...' : '✅ 确认开奖'}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* ====== 下注弹窗 ====== */}
+      <Modal
+        open={betVisible}
+        onCancel={() => setBetVisible(false)}
+        title={
+          <div style={{ color: '#ffd700', fontSize: 16, fontWeight: 700 }}>
+            💰 下注第 {systemState?.next_game_number} 局
+          </div>
+        }
+        footer={null}
+        centered
+        maskStyle={{ backdropFilter: 'blur(10px)' }}
+        styles={{
+          content: { background: 'rgba(15,21,33,0.97)', border: '1px solid rgba(255,215,0,0.2)', borderRadius: 20 },
+          header: { background: 'transparent', borderBottom: '1px solid rgba(255,255,255,0.06)' },
+        }}
+        width={360}
+      >
+        <div style={{ padding: '20px 0' }}>
+          {/* AI推荐提示 */}
+          {analysis?.prediction && (
+            <div style={{ padding: '10px 14px', background: 'rgba(255,215,0,0.06)', borderRadius: 10, border: '1px solid rgba(255,215,0,0.15)', marginBottom: 20, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+              🤖 AI推荐下注 <strong style={{ color: '#ffd700' }}>{analysis.prediction}</strong>，
+              置信度 <strong style={{ color: '#ffd700' }}>{((analysis.confidence || 0) * 100).toFixed(0)}%</strong>，
+              建议档位 <strong style={{ color: '#ffd700' }}>{analysis.bet_tier}</strong>
+            </div>
+          )}
+
+          {/* 方向选择 */}
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 20 }}>
+            {(['庄', '闲'] as const).map(d => (
+              <button
+                key={d}
+                onClick={() => setBetDirection(d)}
+                style={{
+                  flex: 1,
+                  height: 72,
+                  borderRadius: 14,
+                  border: `2px solid ${betDirection === d ? (d === '庄' ? '#ff4d4f' : '#1890ff') : 'rgba(255,255,255,0.1)'}`,
+                  background: betDirection === d
+                    ? (d === '庄' ? 'rgba(255,77,79,0.15)' : 'rgba(24,144,255,0.15)')
+                    : 'rgba(255,255,255,0.04)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s',
+                  transform: betDirection === d ? 'scale(1.04)' : 'scale(1)',
+                }}
+              >
+                <span style={{ fontSize: 24, fontWeight: 900, color: d === '庄' ? '#ff4d4f' : '#1890ff' }}>{d}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{d === '庄' ? 'Banker' : 'Player'}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* 金额输入 */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>下注金额（10~10000，10的倍数）</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              {[50, 100, 200, 500].map(amt => (
+                <button key={amt} onClick={() => setBetAmount(amt)} style={{
+                  flex: 1, height: 32, borderRadius: 8, border: `1px solid ${betAmount === amt ? '#ffd700' : 'rgba(255,255,255,0.1)'}`,
+                  background: betAmount === amt ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.04)',
+                  color: betAmount === amt ? '#ffd700' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                }}>{amt}</button>
+              ))}
+            </div>
+            <Input
+              type="number"
+              value={betAmount}
+              onChange={e => setBetAmount(Math.max(10, Math.min(10000, parseInt(e.target.value) || 100)))}
+              style={{ borderRadius: 10, height: 44 }}
+              size="large"
+              suffix="元"
+            />
+          </div>
+
+          {/* 余额提示 */}
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 16, textAlign: 'center' }}>
+            当前余额：<strong style={{ color: '#73d13d' }}>¥{(systemState?.balance || 0).toLocaleString()}</strong>
+            {betAmount > 0 && <span style={{ marginLeft: 8 }}>→ 下注后余额：<strong style={{ color: '#fff' }}>¥{((systemState?.balance || 0) - betAmount).toLocaleString()}</strong></span>}
+          </div>
+
+          <Button
+            block
+            size="large"
+            loading={betLoading}
+            onClick={handleConfirmBet}
+            style={{
+              background: betDirection === '庄'
+                ? 'linear-gradient(135deg,#ff4d4f,#cf1322)'
+                : 'linear-gradient(135deg,#1890ff,#0050b3)',
+              border: 'none',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: 16,
+              height: 52,
+              borderRadius: 14,
+              boxShadow: betDirection === '庄' ? '0 4px 20px rgba(255,77,79,0.3)' : '0 4px 20px rgba(24,144,255,0.3)',
+            }}
+          >
+            {betLoading ? '下注中...' : `✅ 确认下注 ${betDirection} ${betAmount}元`}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* ====== 管理员登录弹窗 ====== */}
+      <Modal
+        open={loginVisible}
+        onCancel={() => { setLoginVisible(false); setLoginPassword(''); }}
+        footer={null}
+        centered
+        maskStyle={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
+        styles={{
+          content: {
+            borderRadius: 20,
+            background: 'linear-gradient(145deg, rgba(22,29,42,0.98), rgba(15,20,31,0.98))',
+            border: '1px solid rgba(255,215,0,0.2)',
+            padding: '36px 32px 32px',
+          },
+        }}
+        width={420}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ fontSize: 44, marginBottom: 10 }}>🔐</div>
+          <h2 style={{ margin: 0, fontSize: 21, fontWeight: 700, color: '#fff' }}>管理员登录</h2>
+          <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>仅限授权人员访问</p>
+        </div>
+        <Input.Password
+          value={loginPassword}
+          onChange={e => setLoginPassword(e.target.value)}
+          onPressEnter={handleAdminLogin}
+          placeholder="请输入管理员密码"
+          size="large"
+          autoFocus
+          style={{ height: 50, borderRadius: 12, fontSize: 15 }}
+          styles={{ input: { color: '#fff' } }}
+        />
+        <button
+          className="login-gold-btn"
+          onClick={handleAdminLogin}
+          disabled={loginLoading || !loginPassword}
+          style={{ opacity: loginLoading ? 0.7 : 1, marginTop: 16 }}
+        >
+          {loginLoading ? '⏳ 验证中...' : '🔑 登录进入管理面板'}
+        </button>
+      </Modal>
+
     </div>
   );
 };

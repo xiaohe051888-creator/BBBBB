@@ -10,7 +10,7 @@ import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ConfigProvider, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import StartPage from './pages/StartPage';
+import UploadPage from './pages/UploadPage';
 import DashboardPage from './pages/DashboardPage';
 import RoadMapPage from './pages/RoadMapPage';
 import BetRecordsPage from './pages/BetRecordsPage';
@@ -205,7 +205,7 @@ const App: React.FC = () => {
       <BrowserRouter>
         <AppLayout>
           <Routes>
-            <Route path="/" element={<StartPage />} />
+            <Route path="/" element={<UploadPage />} />
             <Route path="/dashboard/:tableId" element={<DashboardPage />} />
             <Route path="/dashboard/:tableId/roadmap" element={<RoadMapPage />} />
             <Route path="/dashboard/:tableId/bets" element={<BetRecordsPage />} />

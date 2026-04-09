@@ -1,5 +1,5 @@
 """
-系统配置模块 - 百家乐分析预测系统
+系统配置模块 - 百家乐分析预测系统（手动模式）
 """
 import os
 from typing import Optional, List
@@ -9,7 +9,7 @@ class Settings:
     
     # 应用配置
     APP_NAME: str = "百家乐分析预测系统"
-    APP_VERSION: str = "1.0.0"
+    APP_VERSION: str = "2.0.0"
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
     
     # 服务器配置
@@ -24,16 +24,6 @@ class Settings:
     
     # 数据库配置
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/baccarat.db"
-    
-    # 采集配置
-    CRAWL_INTERVAL: int = 10          # 采集间隔（秒）
-    SHUFFLE_DETECT_INTERVAL: int = 600  # 洗牌探测间隔（10分钟）
-    NEW_BOOT_CONFIRM: int = 2         # 新靴确认次数
-    
-    # 工作流配置
-    WORKFLOW_TIMEOUT: int = 150       # 单轮工作流超时（秒）
-    BET_TIMEOUT: int = 300            # 下注超时退回（5分钟）
-    AUTO_RESTART_DELAY: int = 600     # 自动重启延迟（10分钟）
     
     # 资金与下注配置
     DEFAULT_BALANCE: float = 20000.0
@@ -103,21 +93,17 @@ class Settings:
     # P1日志永久保留
     
     # 健康分配置
-    HEALTH_SCORE_WEIGHT_CRAWL: float = 0.35
-    HEALTH_SCORE_WEIGHT_MODEL: float = 0.35
-    HEALTH_SCORE_WEIGHT_SETTLE: float = 0.30
+    HEALTH_SCORE_WEIGHT_MODEL: float = 0.5
+    HEALTH_SCORE_WEIGHT_SETTLE: float = 0.5
     HEALTH_SCORE_NORMAL: int = 85
     HEALTH_SCORE_WATCH: int = 70
     
     # 系统健康分采样窗口
     HEALTH_SAMPLE_WINDOW: int = 500
     
-    # 目标网站配置
-    TARGET_TABLE_26_URL: str = os.getenv("TARGET_TABLE_26_URL", "https://rd.lile333.com/?d=26")
-    TARGET_TABLE_27_URL: str = os.getenv("TARGET_TABLE_27_URL", "https://rd.lile333.com/?d=27")
-    
-    # Lile333 浏览器采集器专用配置
-    LILE333_HEADLESS: bool = os.getenv("LILE333_HEADLESS", "true").lower() == "true"  # 是否使用无头浏览器（生产环境建议true，调试时设为false）
+    # 手动模式配置
+    MAX_UPLOAD_GAMES: int = 66         # 单次最大上传局数
+    MIN_UPLOAD_GAMES: int = 1          # 单次最小上传局数
 
 
 settings = Settings()

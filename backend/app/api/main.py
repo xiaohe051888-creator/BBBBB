@@ -1,5 +1,5 @@
 """
-FastAPI 主应用 - 百家乐分析预测系统
+FastAPI 主应用 - 百家乐分析预测系统（手动模式）
 """
 import asyncio
 import os
@@ -11,7 +11,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depe
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func, and_
 
@@ -31,11 +31,9 @@ def _extract_token(request: Request, query_token: Optional[str] = None) -> str:
     1. Authorization: Bearer <token>  (Header方式，前端axios拦截器使用)
     2. ?token=<token>  (Query参数方式，WebSocket/兼容)
     """
-    # 优先从Header读取
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        return auth_header[7:]  # 去掉 "Bearer " 前缀
-    # 其次从Query参数
+        return auth_header[7:]
     if query_token:
         return query_token
     raise HTTPException(401, "缺少认证凭证（需要Bearer Token或token参数）")
@@ -72,14 +70,12 @@ def _parse_cors_origins() -> List[str]:
 
 
 # ============ 全局状态 ============
-workflow_engines: Dict[str, "WorkflowEngine"] = {}
 ws_clients: List[WebSocket] = []
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期"""
-    # 启动时初始化
     os.makedirs("./data", exist_ok=True)
     await init_db()
     
@@ -100,14 +96,21 @@ async def lifespan(app: FastAPI):
             session.add(admin)
             await session.commit()
     
-    print(f"✅ {settings.APP_NAME} v{settings.APP_VERSION} 启动成功")
+    # 注入广播函数到手动游戏服务
+    from app.services.manual_game_service import set_broadcast_func
+    set_broadcast_func(broadcast_update)
+    
+    # 恢复内存状态（从数据库）
+    from app.services.manual_game_service import sync_balance_from_db
+    async with async_session() as session:
+        for table_id in ["26", "27"]:
+            await sync_balance_from_db(session, table_id)
+    
+    print(f"✅ {settings.APP_NAME} v{settings.APP_VERSION} 启动成功（手动模式）")
     print(f"   访问地址: http://localhost:{settings.PORT}")
     
     yield
     
-    # 关闭时停止所有引擎
-    for engine in workflow_engines.values():
-        await engine.stop()
     print("系统已关闭")
 
 
@@ -117,7 +120,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS配置 - 从环境变量读取允许的来源
+# CORS配置
 _cors_origins = _parse_cors_origins()
 app.add_middleware(
     CORSMiddleware,
@@ -132,15 +135,12 @@ import os as _os
 
 _static_dir = _os.path.join(_os.path.dirname(__file__), "..", "static")
 if _os.path.isdir(_static_dir) and _os.listdir(_static_dir):
-    # 存在构建产物时，挂载静态文件 + SPA fallback
     app.mount("/assets", StaticFiles(directory=_os.path.join(_static_dir, "assets")), name="static-assets")
 
     from fastapi.responses import FileResponse
 
     @app.get("/{full_path:path}")
     async def spa_fallback(full_path: str):
-        """SPA fallback: 所有非 API / 非 static 路径返回 index.html"""
-        # 排除 API、WebSocket、静态资源路径
         if full_path.startswith("api/") or full_path.startswith("ws") or full_path.startswith("assets/"):
             raise HTTPException(404, f"路由不存在: /{full_path}")
         index_path = _os.path.join(_static_dir, "index.html")
@@ -153,83 +153,52 @@ if _os.path.isdir(_static_dir) and _os.listdir(_static_dir):
 
 # ============ API 路由 ============
 
-# --- 系统控制 API ---
-
-class StartRequest(BaseModel):
-    table_id: str  # "26" 或 "27"
-
-
-@app.post("/api/system/start")
-async def start_system(req: StartRequest, _: dict = Depends(get_current_user)):
-    """启动系统（需认证）"""
-    from app.services.workflow_engine import WorkflowEngine, set_broadcast_func
-    
-    if req.table_id in workflow_engines:
-        raise HTTPException(400, "该桌已在运行中")
-    
-    session = async_session()
-    engine = WorkflowEngine(session)
-    await engine.start(req.table_id)
-    workflow_engines[req.table_id] = engine
-    
-    # 注册WebSocket广播桥接函数（让工作流引擎能推送数据到前端）
-    set_broadcast_func(broadcast_update)
-    
-    # 后台启动主循环
-    asyncio.create_task(engine.run_main_loop())
-    
-    return {"status": "success", "message": f"{req.table_id}桌系统已启动"}
-
-
-@app.post("/api/system/stop")
-async def stop_system(table_id: str = Query(...), __: dict = Depends(get_current_user)):
-    """停止系统（需认证）"""
-    if table_id not in workflow_engines:
-        raise HTTPException(400, "该桌未在运行")
-    
-    engine = workflow_engines[table_id]
-    
-    try:
-        # 为engine创建一个新的session
-        async with async_session() as session:
-            engine.session = session
-            await engine.stop()
-    finally:
-        del workflow_engines[table_id]
-    
-    return {"status": "success", "message": "系统已停止"}
-
+# --- 系统状态 API ---
 
 @app.get("/api/system/state")
 async def get_system_state(table_id: str = Query(...)):
     """获取系统状态"""
+    from app.services.manual_game_service import get_current_state
+    
     async with async_session() as session:
         stmt = select(SystemState).where(SystemState.table_id == table_id)
         result = await session.execute(stmt)
         state = result.scalar_one_or_none()
         
+        # 获取内存态（更实时）
+        mem_state = await get_current_state(table_id)
+        
         if not state:
             return {
                 "table_id": table_id,
-                "status": "已停止",
-                "boot_number": 0,
-                "game_number": 0,
-                "balance": settings.DEFAULT_BALANCE,
+                "status": mem_state["status"],
+                "boot_number": mem_state["boot_number"],
+                "game_number": mem_state["next_game_number"] - 1,
+                "balance": mem_state["balance"],
+                "predict_direction": mem_state["predict_direction"],
+                "predict_confidence": mem_state["predict_confidence"],
+                "current_bet_tier": mem_state["predict_bet_tier"],
+                "consecutive_errors": mem_state["consecutive_errors"],
+                "health_score": 100.0,
+                "pending_bet": mem_state["pending_bet"],
+                "next_game_number": mem_state["next_game_number"],
             }
         
         return {
             "table_id": state.table_id,
-            "status": state.status,
+            "status": mem_state["status"],
             "boot_number": state.boot_number,
             "game_number": state.game_number,
             "current_game_result": state.current_game_result,
-            "predict_direction": state.predict_direction,
-            "predict_confidence": state.predict_confidence,
+            "predict_direction": mem_state["predict_direction"] or state.predict_direction,
+            "predict_confidence": mem_state["predict_confidence"] or state.predict_confidence,
             "current_model_version": state.current_model_version,
-            "current_bet_tier": state.current_bet_tier,
-            "balance": state.balance,
-            "consecutive_errors": state.consecutive_errors,
+            "current_bet_tier": mem_state["predict_bet_tier"] or state.current_bet_tier,
+            "balance": mem_state["balance"],
+            "consecutive_errors": mem_state["consecutive_errors"],
             "health_score": state.health_score,
+            "pending_bet": mem_state["pending_bet"],
+            "next_game_number": mem_state["next_game_number"],
         }
 
 
@@ -242,14 +211,177 @@ async def get_health_score(table_id: str = Query(...)):
         state = result.scalar_one_or_none()
         
         if not state:
-            return {"health_score": 100, "crawl_stability": 100, "model_stability": 100, "settlement_consistency": 100}
+            return {"health_score": 100, "model_stability": 100, "settlement_consistency": 100}
         
         return {
             "health_score": state.health_score,
-            "crawl_stability": state.crawl_stability,
             "model_stability": state.model_stability,
             "settlement_consistency": state.settlement_consistency,
         }
+
+
+# --- 手动游戏 API ---
+
+class GameUploadItem(BaseModel):
+    game_number: int
+    result: str  # "庄"/"闲"/"和"
+    
+    @validator("result")
+    def validate_result(cls, v):
+        if v not in ("庄", "闲", "和"):
+            raise ValueError("开奖结果必须是：庄、闲、和")
+        return v
+    
+    @validator("game_number")
+    def validate_game_number(cls, v):
+        if v < 1:
+            raise ValueError("局号必须大于0")
+        return v
+
+
+class UploadRequest(BaseModel):
+    table_id: str
+    games: List[GameUploadItem]
+    boot_number: Optional[int] = None
+    
+    @validator("games")
+    def validate_games(cls, v):
+        if not v:
+            raise ValueError("上传数据不能为空")
+        if len(v) > settings.MAX_UPLOAD_GAMES:
+            raise ValueError(f"单次最多上传{settings.MAX_UPLOAD_GAMES}局")
+        return v
+
+
+class RevealRequest(BaseModel):
+    table_id: str
+    game_number: int
+    result: str
+    
+    @validator("result")
+    def validate_result(cls, v):
+        if v not in ("庄", "闲", "和"):
+            raise ValueError("开奖结果必须是：庄、闲、和")
+        return v
+
+
+class BetRequest(BaseModel):
+    table_id: str
+    game_number: int
+    direction: str
+    amount: float
+    
+    @validator("direction")
+    def validate_direction(cls, v):
+        if v not in ("庄", "闲"):
+            raise ValueError("下注方向只能是：庄、闲")
+        return v
+
+
+@app.post("/api/games/upload")
+async def upload_game_results(req: UploadRequest):
+    """
+    手动上传批量开奖记录（最多66局）
+    上传后自动计算五路走势图，触发AI分析预测下一局
+    """
+    from app.services.manual_game_service import upload_games, run_ai_analysis
+    
+    async with async_session() as session:
+        upload_result = await upload_games(
+            db=session,
+            table_id=req.table_id,
+            games=[g.dict() for g in req.games],
+            boot_number=req.boot_number,
+        )
+    
+    if not upload_result["success"]:
+        raise HTTPException(400, upload_result.get("error", "上传失败"))
+    
+    # 异步触发AI分析（不阻塞上传响应）
+    async def _trigger_analysis():
+        async with async_session() as session:
+            await run_ai_analysis(
+                db=session,
+                table_id=req.table_id,
+                boot_number=upload_result["boot_number"],
+            )
+    
+    asyncio.create_task(_trigger_analysis())
+    
+    return {
+        "success": True,
+        "uploaded": upload_result["uploaded"],
+        "boot_number": upload_result["boot_number"],
+        "max_game_number": upload_result["max_game_number"],
+        "next_game_number": upload_result["next_game_number"],
+        "message": f"成功上传{upload_result['uploaded']}局数据，AI分析正在进行中...",
+    }
+
+
+@app.post("/api/games/bet")
+async def place_bet(req: BetRequest):
+    """下注"""
+    from app.services.manual_game_service import place_bet as _place_bet
+    
+    async with async_session() as session:
+        result = await _place_bet(
+            db=session,
+            table_id=req.table_id,
+            game_number=req.game_number,
+            direction=req.direction,
+            amount=req.amount,
+        )
+    
+    if not result["success"]:
+        raise HTTPException(400, result.get("error", "下注失败"))
+    
+    return result
+
+
+@app.post("/api/games/reveal")
+async def reveal_game(req: RevealRequest):
+    """
+    开奖 - 输入开奖结果，结算注单，走势图更新，触发下一局AI分析
+    """
+    from app.services.manual_game_service import reveal_game as _reveal, run_ai_analysis
+    
+    async with async_session() as session:
+        result = await _reveal(
+            db=session,
+            table_id=req.table_id,
+            game_number=req.game_number,
+            result=req.result,
+        )
+    
+    if not result["success"]:
+        raise HTTPException(400, result.get("error", "开奖失败"))
+    
+    # 获取当前靴号，触发下一局AI分析
+    from app.services.manual_game_service import get_session
+    sess = get_session(req.table_id)
+    boot_number = sess.boot_number
+    
+    async def _trigger_next_analysis():
+        async with async_session() as session:
+            await run_ai_analysis(
+                db=session,
+                table_id=req.table_id,
+                boot_number=boot_number,
+            )
+    
+    asyncio.create_task(_trigger_next_analysis())
+    
+    return {
+        **result,
+        "message": f"第{req.game_number}局开奖{req.result}，正在分析下一局...",
+    }
+
+
+@app.get("/api/games/current-state")
+async def get_game_current_state(table_id: str = Query(...)):
+    """获取当前手动游戏内存状态（等待开奖、预测结果等）"""
+    from app.services.manual_game_service import get_current_state
+    return await get_current_state(table_id)
 
 
 # --- 开奖记录 API ---
@@ -270,16 +402,13 @@ async def get_game_records(
         if boot_number is not None:
             query = query.where(GameRecord.boot_number == boot_number)
         
-        # 排序
         order_col = getattr(GameRecord, sort_by, GameRecord.game_number)
         query = query.order_by(order_col.desc() if sort_order == "desc" else order_col.asc())
         
-        # 总数
         count_query = select(func.count()).select_from(query.subquery())
         total_result = await session.execute(count_query)
         total = total_result.scalar() or 0
         
-        # 分页
         query = query.offset((page - 1) * page_size).limit(page_size)
         result = await session.execute(query)
         records = result.scalars().all()
@@ -376,7 +505,6 @@ async def get_logs(
         if game_number:
             query = query.where(SystemLog.game_number == game_number)
         
-        # 置顶优先，然后按时间倒序
         query = query.order_by(SystemLog.is_pinned.desc(), SystemLog.log_time.desc())
         
         count_query = select(func.count()).select_from(query.subquery())
@@ -417,7 +545,6 @@ async def get_logs(
 async def get_statistics(table_id: str = Query(...)):
     """获取统计信息"""
     async with async_session() as session:
-        # 总局数
         total_stmt = select(func.count()).select_from(
             select(GameRecord).where(
                 GameRecord.table_id == table_id,
@@ -427,7 +554,6 @@ async def get_statistics(table_id: str = Query(...)):
         total_result = await session.execute(total_stmt)
         total_games = total_result.scalar() or 0
         
-        # 命中数
         hit_stmt = select(func.count()).select_from(
             select(GameRecord).where(
                 GameRecord.table_id == table_id,
@@ -449,11 +575,200 @@ async def get_statistics(table_id: str = Query(...)):
 
 
 async def _get_balance(table_id: str, session) -> float:
-    """获取当前余额"""
+    """获取当前余额（优先从内存获取）"""
+    from app.services.manual_game_service import get_session
+    sess = get_session(table_id)
+    if sess.balance != settings.DEFAULT_BALANCE or sess.next_game_number > 1:
+        return sess.balance
+    
     stmt = select(SystemState).where(SystemState.table_id == table_id)
     result = await session.execute(stmt)
     state = result.scalar_one_or_none()
     return state.balance if state else settings.DEFAULT_BALANCE
+
+
+# --- 走势图 API ---
+
+@app.get("/api/roads")
+async def get_road_maps(
+    table_id: str = Query(...),
+    boot_number: Optional[int] = Query(None),
+):
+    """获取五路走势图数据"""
+    from app.services.road_engine import UnifiedRoadEngine
+    
+    async with async_session() as session:
+        query = select(GameRecord).where(
+            GameRecord.table_id == table_id,
+            GameRecord.result.in_(["庄", "闲"]),
+        ).order_by(GameRecord.game_number)
+        
+        if boot_number is not None:
+            query = query.where(GameRecord.boot_number == boot_number)
+        
+        result = await session.execute(query)
+        records = result.scalars().all()
+        
+        if not records:
+            return {
+                "table_id": table_id,
+                "boot_number": boot_number,
+                "total_games": 0,
+                "roads": {
+                    "大路": [],
+                    "珠盘路": [],
+                    "大眼仔路": [],
+                    "小路": [],
+                    "螳螂路": [],
+                },
+            }
+        
+        engine = UnifiedRoadEngine()
+        for r in records:
+            engine.process_game(r.game_number, r.result)
+        
+        five_roads = engine.calculate_all_roads()
+        
+        def road_to_dict(road):
+            return {
+                "display_name": road.display_name,
+                "max_columns": road.max_columns,
+                "max_rows": road.max_rows,
+                "points": [
+                    {
+                        "game_number": p.game_number,
+                        "column": p.column,
+                        "row": p.row,
+                        "value": p.value,
+                        "is_new_column": p.is_new_column,
+                        "error_id": p.error_id,
+                    }
+                    for p in road.points
+                ],
+            }
+        
+        actual_boot = boot_number or (records[0].boot_number if records else 0)
+        
+        return {
+            "table_id": table_id,
+            "boot_number": actual_boot,
+            "total_games": len(records),
+            "roads": {
+                "大路": road_to_dict(five_roads.big_road),
+                "珠盘路": road_to_dict(five_roads.bead_road),
+                "大眼仔路": road_to_dict(five_roads.big_eye_boy),
+                "小路": road_to_dict(five_roads.small_road),
+                "螳螂路": road_to_dict(five_roads.cockroach_road),
+            },
+        }
+
+
+@app.get("/api/roads/raw")
+async def get_road_raw_data(
+    table_id: str = Query(...),
+    boot_number: Optional[int] = Query(None),
+):
+    """获取原始开奖结果列表（用于前端本地计算走势图）"""
+    async with async_session() as session:
+        query = select(GameRecord).where(GameRecord.table_id == table_id).order_by(GameRecord.game_number)
+        
+        if boot_number is not None:
+            query = query.where(GameRecord.boot_number == boot_number)
+        
+        result = await session.execute(query)
+        records = result.scalars().all()
+        
+        return {
+            "table_id": table_id,
+            "boot_number": boot_number or (records[0].boot_number if records else 0),
+            "total": len(records),
+            "data": [
+                {
+                    "game_number": r.game_number,
+                    "result": r.result,
+                    "result_time": r.result_time.isoformat() if r.result_time else None,
+                    "predict_direction": r.predict_direction,
+                    "predict_correct": r.predict_correct,
+                }
+                for r in records
+            ],
+        }
+
+
+# --- AI 分析 API ---
+
+@app.get("/api/analysis/latest")
+async def get_latest_analysis(table_id: str = Query(...)):
+    """获取最新一局的AI三模型分析结果"""
+    from app.services.manual_game_service import get_current_state
+    
+    # 优先从内存获取（最新）
+    mem = await get_current_state(table_id)
+    if mem.get("analysis"):
+        analysis = mem["analysis"]
+        return {
+            "table_id": table_id,
+            "banker_model": {
+                "summary": analysis.get("banker_summary"),
+                "time": analysis.get("time"),
+            },
+            "player_model": {
+                "summary": analysis.get("player_summary"),
+                "time": analysis.get("time"),
+            },
+            "combined_model": {
+                "summary": analysis.get("combined_summary"),
+                "confidence": mem.get("predict_confidence"),
+                "bet_tier": mem.get("predict_bet_tier"),
+                "prediction": mem.get("predict_direction"),
+                "time": analysis.get("time"),
+            },
+            "has_data": True,
+        }
+    
+    # 从日志中提取（历史记录）
+    async with async_session() as session:
+        from sqlalchemy import or_
+        
+        stmt = select(SystemLog).where(
+            SystemLog.table_id == table_id,
+            SystemLog.event_code.in_([
+                "LOG-MDL-001",
+                "LOG-MDL-002",
+                "LOG-MDL-003",
+            ]),
+        ).order_by(SystemLog.log_time.desc()).limit(10)
+        
+        result = await session.execute(stmt)
+        logs = result.scalars().all()
+        
+        banker_log = next((l for l in logs if l.event_code == "LOG-MDL-001"), None)
+        player_log = next((l for l in logs if l.event_code == "LOG-MDL-002"), None)
+        combined_log = next((l for l in logs if l.event_code == "LOG-MDL-003"), None)
+        
+        state_stmt = select(SystemState).where(SystemState.table_id == table_id)
+        state_result = await session.execute(state_stmt)
+        state = state_result.scalar_one_or_none()
+        
+        return {
+            "table_id": table_id,
+            "banker_model": {
+                "summary": banker_log.description if banker_log else None,
+                "time": banker_log.log_time.isoformat() if banker_log else None,
+            },
+            "player_model": {
+                "summary": player_log.description if player_log else None,
+                "time": player_log.log_time.isoformat() if player_log else None,
+            },
+            "combined_model": {
+                "summary": combined_log.description if combined_log else None,
+                "confidence": (state.predict_confidence if state else None),
+                "bet_tier": (state.current_bet_tier if state else None),
+                "prediction": (state.predict_direction if state else None),
+                "time": combined_log.log_time.isoformat() if combined_log else None,
+            },
+            "has_data": bool(combined_log),
+        }
 
 
 # --- 管理员 API ---
@@ -481,11 +796,9 @@ async def admin_login(req: LoginRequest):
         if not admin:
             raise HTTPException(401, "用户名或密码错误")
         
-        # 检查锁定
         if admin.locked_until and admin.locked_until > datetime.now():
             raise HTTPException(403, "账户已锁定，请10分钟后重试")
         
-        # 验证密码
         password_bytes = req.password.encode('utf-8')
         try:
             valid = _bcrypt.checkpw(password_bytes, admin.password_hash.encode('utf-8'))
@@ -504,12 +817,10 @@ async def admin_login(req: LoginRequest):
             remaining = settings.MAX_LOGIN_ATTEMPTS - admin.login_attempts
             raise HTTPException(401, f"密码错误，还剩{remaining}次机会")
         
-        # 登录成功
         admin.login_attempts = 0
         admin.locked_until = None
         await session.commit()
         
-        # 创建JWT token
         from jose import jwt
         token = jwt.encode(
             {"sub": admin.username, "exp": datetime.utcnow() + timedelta(hours=settings.JWT_EXPIRE_HOURS)},
@@ -600,7 +911,6 @@ async def get_database_records(
         result = await session.execute(query)
         records = result.scalars().all()
         
-        # 转为字典
         data = []
         for r in records:
             row = {}
@@ -612,118 +922,6 @@ async def get_database_records(
             data.append(row)
         
         return {"table": table_name, "data": data, "page": page, "page_size": page_size}
-
-
-# --- 走势图 API ---
-
-@app.get("/api/roads")
-async def get_road_maps(
-    table_id: str = Query(...),
-    boot_number: Optional[int] = Query(None),
-):
-    """获取五路走势图数据"""
-    from app.services.road_engine import UnifiedRoadEngine
-    
-    async with async_session() as session:
-        # 获取指定靴的开奖记录
-        query = select(GameRecord).where(
-            GameRecord.table_id == table_id,
-            GameRecord.result.in_(["庄", "闲"]),
-        ).order_by(GameRecord.game_number)
-        
-        if boot_number is not None:
-            query = query.where(GameRecord.boot_number == boot_number)
-        
-        result = await session.execute(query)
-        records = result.scalars().all()
-        
-        if not records:
-            return {
-                "table_id": table_id,
-                "boot_number": boot_number,
-                "total_games": 0,
-                "roads": {
-                    "大路": [],
-                    "珠盘路": [],
-                    "大眼仔路": [],
-                    "小路": [],
-                    "螳螂路": [],
-                },
-            }
-        
-        # 使用引擎重新计算五路（从历史记录重建状态）
-        engine = UnifiedRoadEngine()
-        for r in records:
-            engine.process_game(r.game_number, r.result)
-        
-        five_roads = engine.calculate_all_roads()
-        
-        def road_to_dict(road):
-            return {
-                "display_name": road.display_name,
-                "max_columns": road.max_columns,
-                "max_rows": road.max_rows,
-                "points": [
-                    {
-                        "game_number": p.game_number,
-                        "column": p.column,
-                        "row": p.row,
-                        "value": p.value,
-                        "is_new_column": p.is_new_column,
-                        "error_id": p.error_id,
-                    }
-                    for p in road.points
-                ],
-            }
-        
-        # 确定靴号
-        actual_boot = boot_number or (records[0].boot_number if records else 0)
-        
-        return {
-            "table_id": table_id,
-            "boot_number": actual_boot,
-            "total_games": len(records),
-            "roads": {
-                "大路": road_to_dict(five_roads.big_road),
-                "珠盘路": road_to_dict(five_roads.bead_road),
-                "大眼仔路": road_to_dict(five_roads.big_eye_boy),
-                "小路": road_to_dict(five_roads.small_road),
-                "螳螂路": road_to_dict(five_roads.cockroach_road),
-            },
-        }
-
-
-@app.get("/api/roads/raw")
-async def get_road_raw_data(
-    table_id: str = Query(...),
-    boot_number: Optional[int] = Query(None),
-):
-    """获取原始开奖结果列表（用于前端本地计算走势图）"""
-    async with async_session() as session:
-        query = select(GameRecord).where(GameRecord.table_id == table_id).order_by(GameRecord.game_number)
-        
-        if boot_number is not None:
-            query = query.where(GameRecord.boot_number == boot_number)
-        
-        result = await session.execute(query)
-        records = result.scalars().all()
-        
-        return {
-            "table_id": table_id,
-            "boot_number": boot_number or (records[0].boot_number if records else 0),
-            "total": len(records),
-            "data": [
-                {
-                    "game_number": r.game_number,
-                    "result": r.result,
-                    "result_time": r.result_time.isoformat() if r.result_time else None,
-                    "predict_direction": r.predict_direction,
-                    "predict_correct": r.predict_correct,
-                }
-                for r in records
-            ],
-        }
-
 
 
 # --- AI 学习 API ---
@@ -740,13 +938,10 @@ async def start_ai_learning(
     async with async_session() as session:
         service = AILearningService(session)
         
-        # 检查是否已有任务在执行
         status = await service.get_learning_status()
         if status["is_learning"]:
             raise HTTPException(400, f"学习任务正在执行中: {status['current_task']}")
         
-        # 异步执行学习任务（不阻塞响应）
-        import asyncio
         asyncio.create_task(service.start_learning(table_id, boot_number))
         
         return {
@@ -760,7 +955,6 @@ async def get_ai_learning_status(_: dict = Depends(get_current_user)):
     """获取AI学习状态（需认证）"""
     from app.services.ai_learning_service import AILearningService
     
-    # 返回类级别状态（不需要session实例）
     return {
         "is_learning": AILearningService._is_learning,
         "current_task": AILearningService._current_task,
@@ -786,181 +980,11 @@ async def select_best_model(
         return result
 
 
-# --- AI 模型分析 API ---
-
-@app.get("/api/analysis/latest")
-async def get_latest_analysis(table_id: str = Query(...)):
-    """获取最新一局的AI三模型分析结果（从日志中提取）"""
-    async with async_session() as session:
-        # 查询最近的庄模型、闲模型、综合模型日志
-        from sqlalchemy import or_
-        
-        stmt = select(SystemLog).where(
-            SystemLog.table_id == table_id,
-            SystemLog.event_code.in_([
-                "LOG-MDL-001",  # 庄模型摘要刷新
-                "LOG-MDL-002",  # 闲模型摘要刷新  
-                "LOG-MDL-003",  # 综合结论生成
-            ]),
-        ).order_by(SystemLog.log_time.desc()).limit(10)
-        
-        result = await session.execute(stmt)
-        logs = result.scalars().all()
-        
-        banker_log = next((l for l in logs if l.event_code == "LOG-MDL-001"), None)
-        player_log = next((l for l in logs if l.event_code == "LOG-MDL-002"), None)
-        combined_log = next((l for l in logs if l.event_code == "LOG-MDL-003"), None)
-        
-        # 同时获取系统状态中的预测信息
-        state_stmt = select(SystemState).where(SystemState.table_id == table_id)
-        state_result = await session.execute(state_stmt)
-        state = state_result.scalar_one_or_none()
-        
-        return {
-            "table_id": table_id,
-            "banker_model": {
-                "summary": banker_log.description if banker_log else None,
-                "time": banker_log.log_time.isoformat() if banker_log else None,
-            },
-            "player_model": {
-                "summary": player_log.description if player_log else None,
-                "time": player_log.log_time.isoformat() if player_log else None,
-            },
-            "combined_model": {
-                "summary": combined_log.description if combined_log else None,
-                "confidence": (state.predict_confidence if state else None),
-                "bet_tier": (state.current_bet_tier if state else None),
-                "prediction": (state.predict_direction if state else None),
-                "time": combined_log.log_time.isoformat() if combined_log else None,
-            },
-            "has_data": bool(combined_log),
-        }
-
-
-# --- 采集控制 API ---
-
-@app.get("/api/crawler/status")
-async def get_crawler_status(table_id: str = Query(...)):
-    """获取采集器状态"""
-    from app.services.scraper_service import ScraperManager
-    
-    all_status = ScraperManager.get_status()
-    if table_id in all_status:
-        status = all_status[table_id]
-        # 获取 Lile333 特有信息
-        scraper = ScraperManager._scrapers.get(table_id)
-        extra = {}
-        if scraper and hasattr(scraper, '_cached_count'):
-            extra["cached_count"] = scraper._cached_count
-            extra["desk_id"] = getattr(scraper, 'desk_id', table_id)
-        return {"table_id": table_id, **status, **extra}
-    
-    return {
-        "table_id": table_id,
-        "type": "none",
-        "status": "未初始化",
-        "stability_score": 0,
-        "message": "该桌子尚未启动采集器，请先启动系统",
-    }
-
-
-@app.post("/api/crawler/test")
-async def test_crawler(table_id: str = Query(...)):
-    """手动触发一次采集测试"""
-    from app.services.scraper_service import ScraperManager
-    
-    try:
-        scraper = ScraperManager.get_scraper(table_id)
-        result = await scraper.detect_new_game()
-        
-        return {
-            "success": result.success,
-            "data": {
-                "game_number": result.data.game_number if result.data else None,
-                "result": result.data.result if result.data else None,
-                "raw_data": result.data.raw_data if result.data else None,
-            } if result.data else None,
-            "source": result.source,
-            "crawl_time": round(result.crawl_time, 2),
-            "error": result.error,
-        }
-    except Exception as e:
-        raise HTTPException(500, f"采集测试失败: {str(e)}")
-
-
-@app.get("/api/crawler/raw-data")
-async def get_crawler_raw_data(table_id: str = Query(...)):
-    """获取采集器原始数据（最近N局）"""
-    from app.services.scraper_service import ScraperManager
-    
-    scraper = ScraperManager._scrapers.get(table_id)
-    if not scraper or not hasattr(scraper, 'fetch_all_history'):
-        raise HTTPException(404, "该桌子无可用的采集器或不支持历史查询")
-    
-    try:
-        history = await scraper.fetch_all_history()
-        return {
-            "table_id": table_id,
-            "total": len(history),
-            "data": history[-20:],  # 最近20局
-        }
-    except Exception as e:
-        raise HTTPException(500, f"获取原始数据失败: {str(e)}")
-
-
-# --- WebSocket 实时推送 ---
-
-@app.websocket("/ws/{table_id}")
-async def websocket_endpoint(websocket: WebSocket, table_id: str):
-    """WebSocket 实时推送（可选token认证，无token也可连接但会记录警告）"""
-    # 可选的token验证：有token则验证，无token也允许连接（兼容性考虑）
-    token = websocket.query_params.get("token")
-    if token:
-        try:
-            from jose import jwt, JWTError
-            jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        except (JWTError, Exception):
-            await websocket.close(code=4001, reason="无效的认证凭证")
-            return
-    
-    await websocket.accept()
-    ws_clients.append(websocket)
-    
-    try:
-        while True:
-            # 保持连接
-            data = await websocket.receive_text()
-            
-            if data == "ping":
-                await websocket.send_json({"type": "pong"})
-    except WebSocketDisconnect:
-        ws_clients.remove(websocket)
-
-
-async def broadcast_update(table_id: str, event_type: str, data: Dict):
-    """广播更新到WebSocket客户端"""
-    message = {
-        "type": event_type,
-        "table_id": table_id,
-        "data": data,
-        "timestamp": datetime.now().isoformat(),
-    }
-    
-    for client in ws_clients[:]:
-        try:
-            await client.send_json(message)
-        except:
-            ws_clients.remove(client)
-
-
 # --- 三模型状态 API ---
 
 @app.get("/api/admin/three-model-status")
 async def get_three_model_status(_: dict = Depends(get_current_user)):
     """获取三模型配置和状态（需认证）"""
-    from app.services.three_model_service import ThreeModelService
-    
-    # 检查各模型的API密钥是否已配置
     models_config = {
         "banker": {
             "name": "OpenAI GPT-4o mini (庄模型)",
@@ -994,3 +1018,47 @@ async def get_three_model_status(_: dict = Depends(get_current_user)):
         "smart_router_enabled": True,
         "fallback_policy": "永不降级（铁律：必须满血3模型）",
     }
+
+
+# --- WebSocket 实时推送 ---
+
+@app.websocket("/ws/{table_id}")
+async def websocket_endpoint(websocket: WebSocket, table_id: str):
+    """WebSocket 实时推送"""
+    token = websocket.query_params.get("token")
+    if token:
+        try:
+            from jose import jwt, JWTError
+            jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        except (JWTError, Exception):
+            await websocket.close(code=4001, reason="无效的认证凭证")
+            return
+    
+    await websocket.accept()
+    ws_clients.append(websocket)
+    
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        if websocket in ws_clients:
+            ws_clients.remove(websocket)
+
+
+async def broadcast_update(table_id: str, event_type: str, data: Dict):
+    """广播更新到WebSocket客户端"""
+    message = {
+        "type": event_type,
+        "table_id": table_id,
+        "data": data,
+        "timestamp": datetime.now().isoformat(),
+    }
+    
+    for client in ws_clients[:]:
+        try:
+            await client.send_json(message)
+        except Exception:
+            if client in ws_clients:
+                ws_clients.remove(client)
