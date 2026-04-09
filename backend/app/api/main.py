@@ -188,8 +188,14 @@ async def stop_system(table_id: str = Query(...), __: dict = Depends(get_current
         raise HTTPException(400, "该桌未在运行")
     
     engine = workflow_engines[table_id]
-    await engine.stop()
-    del workflow_engines[table_id]
+    
+    try:
+        # 为engine创建一个新的session
+        async with async_session() as session:
+            engine.session = session
+            await engine.stop()
+    finally:
+        del workflow_engines[table_id]
     
     return {"status": "success", "message": "系统已停止"}
 
@@ -905,9 +911,10 @@ async def get_crawler_raw_data(table_id: str = Query(...)):
 # --- WebSocket 实时推送 ---
 
 @app.websocket("/ws/{table_id}")
-async def websocket_endpoint(websocket: WebSocket, table_id: str, token: Optional[str] = None):
+async def websocket_endpoint(websocket: WebSocket, table_id: str):
     """WebSocket 实时推送（可选token认证，无token也可连接但会记录警告）"""
     # 可选的token验证：有token则验证，无token也允许连接（兼容性考虑）
+    token = websocket.query_params.get("token")
     if token:
         try:
             from jose import jwt, JWTError
@@ -944,3 +951,46 @@ async def broadcast_update(table_id: str, event_type: str, data: Dict):
             await client.send_json(message)
         except:
             ws_clients.remove(client)
+
+
+# --- 三模型状态 API ---
+
+@app.get("/api/admin/three-model-status")
+async def get_three_model_status(_: dict = Depends(get_current_user)):
+    """获取三模型配置和状态（需认证）"""
+    from app.services.three_model_service import ThreeModelService
+    
+    # 检查各模型的API密钥是否已配置
+    models_config = {
+        "banker": {
+            "name": "OpenAI GPT-4o mini (庄模型)",
+            "provider": "openai",
+            "model": settings.OPENAI_MODEL,
+            "api_key_set": bool(settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10),
+            "role": "收集庄向证据链",
+        },
+        "player": {
+            "name": f"Anthropic {settings.ANTHROPIC_MODEL} (闲模型)",
+            "provider": "anthropic",
+            "model": settings.ANTHROPIC_MODEL,
+            "api_key_set": bool(settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10),
+            "role": "收集闲向证据链",
+        },
+        "combined": {
+            "name": f"Google {settings.GEMINI_MODEL} (综合模型)",
+            "provider": "google",
+            "model": settings.GEMINI_MODEL,
+            "api_key_set": bool(settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10),
+            "role": "综合分析并给出最终预测",
+        },
+    }
+    
+    all_keys_set = all(m["api_key_set"] for m in models_config.values())
+    
+    return {
+        "status": "ready" if all_keys_set else "incomplete",
+        "all_api_keys_configured": all_keys_set,
+        "models": models_config,
+        "smart_router_enabled": True,
+        "fallback_policy": "永不降级（铁律：必须满血3模型）",
+    }

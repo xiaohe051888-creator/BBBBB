@@ -278,4 +278,71 @@ export const getCrawlerRawData = async (tableId: string) => {
   return api.get<CrawlerRawData>('/crawler/raw-data', { params: { table_id: tableId } });
 };
 
+// ====== AI 学习控制 ======
+
+export interface AILearningStatus {
+  is_learning: boolean;
+  current_task: string | null;
+  min_samples: number;
+  max_versions: number;
+}
+
+/** 启动AI学习（需管理员认证） */
+export const startAiLearning = async (tableId: string, bootNumber: number) => {
+  return api.post('/admin/ai-learning/start', null, {
+    params: { table_id: tableId, boot_number: bootNumber },
+  });
+};
+
+/** 获取AI学习状态（需管理员认证） */
+export const getAiLearningStatus = async () => {
+  return api.get<AILearningStatus>('/admin/ai-learning/status');
+};
+
+// ====== 三模型状态 ======
+
+export interface ThreeModelStatus {
+  status: 'ready' | 'incomplete';
+  all_api_keys_configured: boolean;
+  models: {
+    banker: {
+      name: string;
+      provider: string;
+      model: string;
+      api_key_set: boolean;
+      role: string;
+    };
+    player: {
+      name: string;
+      provider: string;
+      model: string;
+      api_key_set: boolean;
+      role: string;
+    };
+    combined: {
+      name: string;
+      provider: string;
+      model: string;
+      api_key_set: boolean;
+      role: string;
+    };
+  };
+  smart_router_enabled: boolean;
+  fallback_policy: string;
+}
+
+/** 获取三模型配置和状态（需管理员认证） */
+export const getThreeModelStatus = async () => {
+  return api.get<ThreeModelStatus>('/admin/three-model-status');
+};
+
+// ====== 智能选模 ======
+
+/** 执行智能选模（需管理员认证） */
+export const selectBestModel = async (tableId: string, forceVersion?: string) => {
+  const params: Record<string, any> = { table_id: tableId };
+  if (forceVersion) params.force_version = forceVersion;
+  return api.post('/system/select-model', null, { params });
+};
+
 export default api;

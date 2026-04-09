@@ -2,7 +2,7 @@
 系统配置模块 - 百家乐分析预测系统
 """
 import os
-from typing import Optional
+from typing import Optional, List
 
 class Settings:
     """系统全局配置"""
@@ -55,12 +55,44 @@ class Settings:
     MIN_RUNS_FOR_SWITCH: int = 20       # 版本切换冷却局数
     MAX_CONSECUTIVE_ERRORS: int = 3     # 连续失准触发阈值
     
-    # AI API配置
-    ANTHROPIC_API_KEY: Optional[str] = os.getenv("ANTHROPIC_API_KEY", "")
-    AI_MODEL: str = "claude-sonnet-4-20250514"
+    # AI API配置 - 三模型对应三个AI大模型
+    OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY", "")  # 用于庄模型
+    ANTHROPIC_API_KEY: Optional[str] = os.getenv("ANTHROPIC_API_KEY", "")  # 用于闲模型
+    GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY", "")  # 用于综合模型
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")           # 庄模型专用
+    ANTHROPIC_MODEL: str = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")  # 闲模型专用
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")      # 综合模型专用
+    OPENAI_API_BASE: Optional[str] = os.getenv("OPENAI_API_BASE")  # OpenAI API地址
+    ANTHROPIC_API_BASE: Optional[str] = os.getenv("ANTHROPIC_API_BASE")  # Anthropic API地址
+    GEMINI_API_BASE: Optional[str] = os.getenv("GEMINI_API_BASE")  # Gemini API地址
+    
+    # API代理配置
+    OFOX_API_BASE: Optional[str] = os.getenv("OFOX_API_BASE")  # ofox.ai代理API地址
+    OFOX_API_KEY: Optional[str] = os.getenv("OFOX_API_KEY")    # ofox.ai API密钥
+    
+    # 模型可用性配置
+    @property
+    def ENABLE_OPENAI_MODEL(self) -> bool:
+        """检查OpenAI模型是否可用"""
+        return bool(self.OPENAI_API_KEY)
+    
+    @property
+    def ENABLE_ANTHROPIC_MODEL(self) -> bool:
+        """检查Anthropic模型是否可用"""
+        return bool(self.ANTHROPIC_API_KEY)
+    
+    @property
+    def ENABLE_GEMINI_MODEL(self) -> bool:
+        """检查Gemini模型是否可用"""
+        return bool(self.GEMINI_API_KEY)
+    
+    # 模型性能配置
+    MODEL_TIMEOUT: int = 30  # API调用超时时间（秒）
+    MODEL_MAX_RETRIES: int = 2  # 最大重试次数
+    MODEL_FALLBACK_ORDER: List[str] = ["openai", "anthropic", "gemini"]  # 降级顺序
     
     # 管理员配置
-    DEFAULT_ADMIN_PASSWORD: str = os.getenv("ADMIN_DEFAULT_PASSWORD", "Admin@8888")
+    DEFAULT_ADMIN_PASSWORD: str = os.getenv("ADMIN_DEFAULT_PASSWORD", "8888")
     MAX_LOGIN_ATTEMPTS: int = 5
     LOGIN_LOCKOUT_MINUTES: int = 10
     

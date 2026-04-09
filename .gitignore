@@ -29,3 +29,13 @@ Thumbs.db
 node_modules/
 dist/
 backend/app/static/
+
+# 开发调试脚本（不提交，仅本地保留）
+scripts/*.py
+scripts/*.json
+# scripts/README.md 保留（不忽略）
+
+# 截图与临时文件
+*.png
+*.jpg
+*.jpeg

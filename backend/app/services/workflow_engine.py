@@ -18,6 +18,7 @@ from app.models.schemas import (
     GameRecord, BetRecord, SystemLog, MistakeBook, 
     SystemState, ModelVersion, ErrorType, LogPriority, LogCategory,
 )
+from app.core.database import async_session
 import json
 
 
@@ -75,6 +76,9 @@ class WorkflowEngine:
         
         # 加载系统状态
         await self._load_state()
+        
+        # ★ 立即更新数据库状态，确保API能获取到最新状态
+        await self._update_state()
         
         # ★ 智能选模（文档17：进入首页同时触发自动智能选模）
         try:
@@ -344,6 +348,9 @@ class WorkflowEngine:
             
             # 步骤6：记录开奖入库
             predict_correct = None
+            settle_result = {"profit_loss": 0}  # 默认值，和局时无结算
+            bet_tier_val = None  # 默认值，和局时无档位
+            
             if predict_direction and result in ("庄", "闲"):
                 predict_correct = (predict_direction == result)
                 
@@ -365,6 +372,9 @@ class WorkflowEngine:
                     bet_amount=bet_info.bet_amount,
                     game_result=result,
                 )
+                
+                # 记录档位用于WebSocket推送
+                bet_tier_val = bet_info.bet_tier
                 
                 # 更新回撤
                 if settle_result["profit_loss"] < 0:
@@ -414,7 +424,7 @@ class WorkflowEngine:
                 "result": result,
                 "predict_direction": predict_direction,
                 "predict_correct": predict_correct,
-                "bet_tier": bet_info.bet_tier if 'bet_info' in dir() and predict_direction else None,
+                "bet_tier": bet_tier_val,  # 使用安全变量
                 "balance": self.betting_service.get_balance(),
             })
             

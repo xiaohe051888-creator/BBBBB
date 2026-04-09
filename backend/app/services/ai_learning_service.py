@@ -341,7 +341,7 @@ class AILearningService:
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": settings.AI_MODEL,
+                        "model": settings.ANTHROPIC_MODEL,
                         "max_tokens": 2000,
                         "messages": [{"role": "user", "content": prompt}],
                     }

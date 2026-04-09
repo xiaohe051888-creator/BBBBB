@@ -132,9 +132,13 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
 
         if (isLastPoint && hasNewPoint && animProgress < 1) {
           // 新点动画
-          drawAnimatedCircle(ctx, x, y, cellSize / 2 - 1, color, mergedConfig.borderRadius, animProgress, !!point.error_id);
+          // 判断是否为和局：value === '和' 或者 is_tie === true
+          const isTie = point.value === '和' || point.is_tie === true;
+          drawAnimatedCircle(ctx, x, y, cellSize / 2 - 1, color, mergedConfig.borderRadius, animProgress, !!point.error_id, isTie);
         } else {
-          drawCircle(ctx, x, y, cellSize / 2 - 1, color, mergedConfig.borderRadius, !!point.error_id);
+          // 判断是否为和局：value === '和' 或者 is_tie === true
+          const isTie = point.value === '和' || point.is_tie === true;
+          drawCircle(ctx, x, y, cellSize / 2 - 1, color, mergedConfig.borderRadius, !!point.error_id, isTie);
         }
       }
     }

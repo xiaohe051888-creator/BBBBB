@@ -104,7 +104,41 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
       const y = padding + point.row * (cellSize + cellGap) + cellSize / 2;
 
       const color = getPointColor(point.value, false);
-      drawCircle(ctx, x, y, cellSize / 2 - 1, color, mergedConfig.borderRadius, !!point.error_id);
+      
+      // 珠盘路特殊处理：绘制实心圆，并在里面写文字
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, cellSize / 2 - 1, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 绘制文字
+      ctx.fillStyle = '#ffffff'; // 白色文字
+      ctx.font = `bold ${Math.max(8, cellSize * 0.35)}px -apple-system, "PingFang SC", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      // 根据值显示不同文字
+      let displayText = '';
+      if (point.value === '庄') displayText = '庄';
+      else if (point.value === '闲') displayText = '闲';
+      else if (point.value === '和') displayText = '和';
+      else displayText = '?'; // 未知值
+      
+      ctx.fillText(displayText, x, y);
+      ctx.restore();
+      
+      // 错误标记（如果有）
+      if (point.error_id) {
+        ctx.fillStyle = ROAD_COLORS.errorMark;
+        ctx.beginPath();
+        const markSize = (cellSize / 2 - 1) * 0.4;
+        ctx.moveTo(x + (cellSize / 2 - 1) * 0.3, y - (cellSize / 2 - 1) * 0.5);
+        ctx.lineTo(x + (cellSize / 2 - 1) * 0.7, y - (cellSize / 2 - 1) * 0.1);
+        ctx.lineTo(x + (cellSize / 2 - 1) * 0.5, y - (cellSize / 2 - 1) * 0.3);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
   }, [data, mergedConfig, externalWidth, externalHeight]);
 

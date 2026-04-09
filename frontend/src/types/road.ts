@@ -23,6 +23,7 @@ export interface RoadPoint {
   value: string;           // '庄' | '闲' | '延' | '转'
   is_new_column: boolean;
   error_id: string | null;
+  is_tie?: boolean;        // 是否为和局（可选，后端返回但前端可能未定义）
 }
 
 /** 单条路的完整数据（对应后端 RoadData） */
@@ -84,7 +85,7 @@ export interface RoadCanvasConfig {
 
 /** 默认大路配置 */
 export const BIG_ROAD_CONFIG: RoadCanvasConfig = {
-  cellSize: 28,
+  cellSize: 24,  // 从28px优化为24px，提高信息密度
   cellGap: 3,
   padding: 12,
   borderRadius: 5,

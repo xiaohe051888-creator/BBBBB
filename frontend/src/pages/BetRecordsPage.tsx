@@ -5,7 +5,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Card, Table, Tag, Space, Row, Col, Statistic,
+  Button, Card, Table, Tag, Space, Statistic,
   Select, DatePicker, Input, Tooltip, Modal, Spin, Empty,
   Segmented, Progress, message, Badge, Descriptions,
 } from 'antd';
@@ -261,101 +261,77 @@ const BetRecordsPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d1117', padding: 16 }}>
+    <div className="page-wrapper">
       {/* 顶部导航 */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        paddingBottom: 12,
-        borderBottom: '1px solid #21262d',
-      }}>
-        <Space size="middle">
+      <div className="page-nav-bar">
+        <div className="page-nav-left">
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/dashboard/${tableId}`)}>
-            返回仪表盘
+            返回
           </Button>
-          <span style={{ color: '#e6edf3', fontSize: 16, fontWeight: 600 }}>
+          <span className="page-nav-title">
             <DollarOutlined style={{ marginRight: 8 }} />
             下注记录 — {tableId}
           </span>
           <Badge count={filteredBets.length} showZero style={{ backgroundColor: '#58a6ff' }} />
-        </Space>
-
-        <Space size="middle">
+        </div>
+        <div className="page-nav-right">
           <Button icon={<ReloadOutlined />} size="small" onClick={() => loadBets(1)}>
             刷新
           </Button>
-        </Space>
+        </div>
       </div>
 
-      {/* 统计卡片 */}
+      {/* 统计卡片 — 响应式网格 */}
       {summary && (
-        <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-          <Col span={3}>
-            <Card size="small">
-              <Statistic title="总下注" value={summary.totalBets} suffix="笔" styles={{ content: { fontSize: 18, color: '#58a6ff' } }} />
-            </Card>
-          </Col>
-          <Col span={3}>
-            <Card size="small">
-              <Statistic title="总投注" value={summary.totalAmount} prefix="¥" styles={{ content: { fontSize: 18 } }} />
-            </Card>
-          </Col>
-          <Col span={4}>
-            <Card size="small">
-              <Statistic
-                title="总盈亏"
-                value={summary.totalPnL}
-                prefix={summary.totalPnL >= 0 ? <RiseOutlined /> : <FallOutlined />}
-                styles={{ content: { fontSize: 18, color: summary.totalPnL >= 0 ? '#ff4d4f' : '#52c41a' } }}
-              />
-            </Card>
-          </Col>
-          <Col span={3}>
-            <Card size="small">
-              <Statistic title="胜率" value={summary.winRate.toFixed(1)} suffix="%" styles={{ content: { fontSize: 18, color: summary.winRate >= 50 ? '#ff4d4f' : '#52c41a' } }} />
-            </Card>
-          </Col>
-          <Col span={3}>
-            <Card size="small">
-              <Statistic title="胜/负/待" value={`${summary.winCount}/${summary.lossCount}/${summary.pendingCount}`} styles={{ content: { fontSize: 14 } }} />
-            </Card>
-          </Col>
-          <Col span={3}>
-            <Card size="small">
-              <Statistic title="均注" value={Math.round(summary.avgBet)} prefix="¥" styles={{ content: { fontSize: 16 } }} />
-            </Card>
-          </Col>
-          <Col span={3}>
-            <Card size="small">
-              <Statistic title="最大单赢" value={summary.maxWin} prefix="+" styles={{ content: { fontSize: 16, color: '#ff4d4f' } }} />
-            </Card>
-          </Col>
-          <Col span={2}>
-            <Card size="small">
-              <Statistic
-                title="连胜/连败"
-                value={Math.abs(summary.currentStreak)}
-                suffix={summary.currentStreak > 0 ? '胜' : summary.currentStreak < 0 ? '败' : '-'}
-                styles={{
-                  content: {
-                    fontSize: 14,
-                    color: summary.currentStreak > 2 ? '#ff4d4f' : summary.currentStreak < -2 ? '#52c41a' : undefined,
-                  }
-                }}
-              />
-            </Card>
-          </Col>
-        </Row>
+        <div className="stats-grid" style={{ marginBottom: 16 }}>
+          <Card size="small">
+            <Statistic title="总下注" value={summary.totalBets} suffix="笔" styles={{ content: { fontSize: 18, color: '#58a6ff' } }} />
+          </Card>
+          <Card size="small">
+            <Statistic title="总投注" value={summary.totalAmount} prefix="¥" styles={{ content: { fontSize: 18 } }} />
+          </Card>
+          <Card size="small">
+            <Statistic
+              title="总盈亏"
+              value={summary.totalPnL}
+              prefix={summary.totalPnL >= 0 ? <RiseOutlined /> : <FallOutlined />}
+              styles={{ content: { fontSize: 18, color: summary.totalPnL >= 0 ? '#ff4d4f' : '#52c41a' } }}
+            />
+          </Card>
+          <Card size="small">
+            <Statistic title="胜率" value={summary.winRate.toFixed(1)} suffix="%" styles={{ content: { fontSize: 18, color: summary.winRate >= 50 ? '#ff4d4f' : '#52c41a' } }} />
+          </Card>
+          <Card size="small">
+            <Statistic title="胜/负/待" value={`${summary.winCount}/${summary.lossCount}/${summary.pendingCount}`} styles={{ content: { fontSize: 14 } }} />
+          </Card>
+          <Card size="small">
+            <Statistic title="均注" value={Math.round(summary.avgBet)} prefix="¥" styles={{ content: { fontSize: 16 } }} />
+          </Card>
+          <Card size="small">
+            <Statistic title="最大单赢" value={summary.maxWin} prefix="+" styles={{ content: { fontSize: 16, color: '#ff4d4f' } }} />
+          </Card>
+          <Card size="small">
+            <Statistic
+              title="连胜/连败"
+              value={Math.abs(summary.currentStreak)}
+              suffix={summary.currentStreak > 0 ? '胜' : summary.currentStreak < 0 ? '败' : '-'}
+              styles={{
+                content: {
+                  fontSize: 14,
+                  color: summary.currentStreak > 2 ? '#ff4d4f' : summary.currentStreak < -2 ? '#52c41a' : undefined,
+                }
+              }}
+            />
+          </Card>
+        </div>
       )}
 
       {/* 盈亏进度条 */}
       {summary && (
         <Card size="small" style={{ marginBottom: 16 }}>
-          <Row align="middle">
-            <Col span={4}>盈亏分布</Col>
-            <Col span={14}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: '#8b949e', whiteSpace: 'nowrap' }}>盈亏分布</span>
+            <div style={{ flex: '1 1 200px', minWidth: 150 }}>
               <Progress
                 percent={
                   summary.winCount + summary.lossCount > 0
@@ -367,15 +343,13 @@ const BetRecordsPage: React.FC = () => {
                 trailColor="#52c41a"
                 format={(percent) => `${summary.winCount}胜 / ${summary.lossCount}负`}
               />
-            </Col>
-            <Col span={6} style={{ textAlign: 'right' }}>
-              <Space>
-                <Tag color="#ff4d4f">胜 {summary.winCount}</Tag>
-                <Tag color="#52c41a">负 {summary.lossCount}</Tag>
-                <Tag color="#faad14">待 {summary.pendingCount}</Tag>
-              </Space>
-            </Col>
-          </Row>
+            </div>
+            <Space size={4}>
+              <Tag color="#ff4d4f">胜 {summary.winCount}</Tag>
+              <Tag color="#52c41a">负 {summary.lossCount}</Tag>
+              <Tag color="#faad14">待 {summary.pendingCount}</Tag>
+            </Space>
+          </div>
         </Card>
       )}
 
@@ -538,13 +512,6 @@ const BetRecordsPage: React.FC = () => {
         )}
       </Modal>
 
-      {/* 内联样式 */}
-      <style>{`
-        .row-pending { background-color: rgba(250, 173, 20, 0.08) !important; }
-        .row-win { background-color: rgba(82, 196, 26, 0.06) !important; }
-        .row-loss { background-color: rgba(255, 77, 79, 0.06) !important; }
-        .ant-descriptions-item-label { font-weight: 500 !important; }
-      `}</style>
     </div>
   );
 };

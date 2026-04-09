@@ -5,7 +5,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Card, Table, Tag, Space, Row, Col, Statistic,
+  Button, Card, Table, Tag, Space, Statistic,
   Select, Input, Modal, Spin, Empty, Descriptions, Tooltip,
   Alert, Progress, Badge,
 } from 'antd';
@@ -244,32 +244,24 @@ const MistakeBookPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d1117', padding: 16 }}>
+    <div className="page-wrapper">
       {/* 顶部导航 */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        paddingBottom: 12,
-        borderBottom: '1px solid #21262d',
-      }}>
-        <Space size="middle">
+      <div className="page-nav-bar">
+        <div className="page-nav-left">
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/dashboard/${tableId}`)}>
-            返回仪表盘
+            返回
           </Button>
-          <span style={{ color: '#e6edf3', fontSize: 16, fontWeight: 600 }}>
+          <span className="page-nav-title">
             <ExperimentOutlined style={{ marginRight: 8 }} />
             错题本 — {tableId}
           </span>
           <Badge count={filtered.length} showZero style={{ backgroundColor: filtered.length > 10 ? '#ff4d4f' : '#58a6ff' }} />
-        </Space>
-
-        <Space size="middle">
+        </div>
+        <div className="page-nav-right">
           <Button icon={<ReloadOutlined />} size="small" onClick={() => loadMistakes(1)}>
             刷新
           </Button>
-        </Space>
+        </div>
       </div>
 
       {/* 提示信息 */}
@@ -282,66 +274,54 @@ const MistakeBookPage: React.FC = () => {
         style={{ marginBottom: 16 }}
       />
 
-      {/* 统计卡片 */}
+      {/* 统计卡片 — 响应式网格 */}
       {summary && (
-        <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-          <Col span={3}>
-            <Card size="small">
-              <Statistic
-                title="总错误数"
-                value={summary.totalErrors}
-                suffix="条"
-                styles={{ content: { fontSize: 18, color: summary.totalErrors > 15 ? '#ff4d4f' : '#58a6ff' } }}
-              />
-            </Card>
-          </Col>
-          <Col span={3}>
-            <Card size="small">
-              <Statistic
-                title="平均置信度"
-                value={(summary.avgConfidence * 100).toFixed(0)}
-                suffix="%"
-                prefix={<ThunderboltOutlined />}
-                styles={{ content: { fontSize: 18, color: summary.avgConfidence > 0.7 ? '#722ed1' : '#52c41a' } }}
-              />
-            </Card>
-          </Col>
-          <Col span={4}>
-            <Card size="small" title="方向分布">
-              <Space size="large">
-                <Statistic
-                  value={summary.byDirection.banker}
-                  prefix={<span style={{ color: '#ff4d4f' }}>庄</span>}
-                  suffix="误"
-                  valueStyle={{ fontSize: 16 }}
-                />
-                <Statistic
-                  value={summary.byDirection.player}
-                  prefix={<span style={{ color: '#1890ff' }}>闲</span>}
-                  suffix="误"
-                  valueStyle={{ fontSize: 16 }}
-                />
-              </Space>
-            </Card>
-          </Col>
-
-          {/* 错误类型占比 */}
+        <div className="stats-grid" style={{ marginBottom: 16 }}>
+          <Card size="small">
+            <Statistic
+              title="总错误数"
+              value={summary.totalErrors}
+              suffix="条"
+              styles={{ content: { fontSize: 18, color: summary.totalErrors > 15 ? '#ff4d4f' : '#58a6ff' } }}
+            />
+          </Card>
+          <Card size="small">
+            <Statistic
+              title="平均置信度"
+              value={(summary.avgConfidence * 100).toFixed(0)}
+              suffix="%"
+              prefix={<ThunderboltOutlined />}
+              styles={{ content: { fontSize: 18, color: summary.avgConfidence > 0.7 ? '#722ed1' : '#52c41a' } }}
+            />
+          </Card>
+          <Card size="small">
+            <Statistic
+              title="庄向误判"
+              value={summary.byDirection.banker}
+              valueStyle={{ fontSize: 16, color: '#ff4d4f' }}
+            />
+          </Card>
+          <Card size="small">
+            <Statistic
+              title="闲向误判"
+              value={summary.byDirection.player}
+              valueStyle={{ fontSize: 16, color: '#1890ff' }}
+            />
+          </Card>
           {Object.keys(summary.byType).map(type => {
             const count = summary.byType[type];
             const info = ERROR_TYPE_MAP[type];
             return (
-              <Col key={type} span={3}>
-                <Card size="small">
-                  <Statistic
-                    title={info?.label || type}
-                    value={count}
-                    valueStyle={{ fontSize: 18, color: info?.color || '#888' }}
-                  />
-                </Card>
-              </Col>
+              <Card size="small" key={type}>
+                <Statistic
+                  title={info?.label || type}
+                  value={count}
+                  valueStyle={{ fontSize: 18, color: info?.color || '#888' }}
+                />
+              </Card>
             );
           })}
-        </Row>
+        </div>
       )}
 
       {/* 筛选栏 */}
@@ -484,8 +464,8 @@ const MistakeBookPage: React.FC = () => {
             </Card>
 
             {/* 错因分析与修正策略 */}
-            <Row gutter={12}>
-              <Col span={12}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                 <Card
                   size="small"
                   title={<><WarningOutlined /> 错因分析</>}
@@ -495,8 +475,8 @@ const MistakeBookPage: React.FC = () => {
                     {selectedMistake.analysis || <span style={{ color: '#555' }}>暂无分析</span>}
                   </p>
                 </Card>
-              </Col>
-              <Col span={12}>
+              </div>
+              <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                 <Card
                   size="small"
                   title={<><CheckCircleOutlined /> 修正策略</>}
@@ -506,19 +486,12 @@ const MistakeBookPage: React.FC = () => {
                     {selectedMistake.correction || <span style={{ color: '#555' }}>暂无修正策略</span>}
                   </p>
                 </Card>
-              </Col>
-            </Row>
+              </div>
+            </div>
           </>
         )}
       </Modal>
 
-      {/* 内联样式 */}
-      <style>{`
-        .row-mistake { background-color: rgba(255, 77, 79, 0.04) !important; }
-        .row-mistake:hover { background-color: rgba(255, 77, 79, 0.08) !important; }
-        .ant-descriptions-item-label { font-weight: 500 !important; }
-        .ant-alert-message { font-weight: 600 !important; }
-      `}</style>
     </div>
   );
 };

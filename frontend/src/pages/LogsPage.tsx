@@ -5,7 +5,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Card, Table, Tag, Space, Row, Col, Select,
+  Button, Card, Table, Tag, Space, Select,
   Input, Tooltip, Modal, Spin, Empty, Badge, Timeline, Alert, Switch, message,
 } from 'antd';
 import {
@@ -133,31 +133,48 @@ const LogsPage: React.FC = () => {
   // WebSocket实时推送
   useEffect(() => {
     if (!tableId) return;
-    const ws = api.createWebSocket(tableId);
-    wsRef.current = ws;
 
-    ws.onmessage = (event) => {
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isUnmounted = false;
+
+    const connectWS = () => {
+      if (isUnmounted) return;
       try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'log') {
-          // 实时追加新日志到列表顶部
-          setLogs(prev => [data.data, ...prev].slice(0, 500));
-        }
+        const ws = api.createWebSocket(tableId);
+        wsRef.current = ws;
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'log') {
+              setLogs(prev => [data.data, ...prev].slice(0, 500));
+            }
+          } catch (e) { /* ignore */ }
+        };
+
+        ws.onclose = () => {
+          if (!isUnmounted) {
+            reconnectTimer = setTimeout(connectWS, 3000);
+          }
+        };
       } catch (e) {
-        // 忽略非JSON消息或解析错误
+        if (!isUnmounted) {
+          reconnectTimer = setTimeout(connectWS, 5000);
+        }
       }
     };
 
-    ws.onclose = () => {
-      setTimeout(() => {
-        if (wsRef.current?.readyState !== WebSocket.OPEN) {
-          const newWs = api.createWebSocket(tableId!);
-          wsRef.current = newWs;
-        }
-      }, 3000);
-    };
+    connectWS();
 
-    return () => ws.close();
+    return () => {
+      isUnmounted = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
   }, [tableId]);
 
   // 筛选后的数据
@@ -283,50 +300,37 @@ const LogsPage: React.FC = () => {
   const recentLogs = filteredLogs.slice(0, 20);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d1117', padding: 16 }}>
+    <div className="page-wrapper">
       {/* 顶部导航 */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        paddingBottom: 12,
-        borderBottom: '1px solid #21262d',
-      }}>
-        <Space size="middle">
+      <div className="page-nav-bar">
+        <div className="page-nav-left">
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/dashboard/${tableId}`)}>
-            返回仪表盘
+            返回
           </Button>
-          <span style={{ color: '#e6edf3', fontSize: 16, fontWeight: 600 }}>
+          <span className="page-nav-title">
             <FileTextOutlined style={{ marginRight: 8 }} />
             实盘日志 — {tableId}
           </span>
-
-          {/* 统计Badge */}
           <Space size="small">
             <Badge count={stats.total} showZero style={{ backgroundColor: '#58a6ff' }} overflowCount={9999} />
             {stats.errors > 0 && (
-              <Badge count={`${stats.errors}个告警`} style={{ backgroundColor: '#ff4d4f' }} />
-            )}
-            {stats.pinned > 0 && (
-              <Badge count={`${stats.pinned}个置顶`} style={{ backgroundColor: '#faad14' }} />
+              <Badge count={`${stats.errors}告警`} style={{ backgroundColor: '#ff4d4f' }} />
             )}
           </Space>
-        </Space>
-
-        <Space size="middle">
+        </div>
+        <div className="page-nav-right">
           <Switch
             size="small"
             checked={autoRefresh}
             onChange={setAutoRefresh}
-            checkedChildren="自动刷新"
+            checkedChildren="自动"
             unCheckedChildren="停止"
           />
           <Switch
             size="small"
             checked={autoScroll}
             onChange={setAutoScroll}
-            checkedChildren="自动滚动"
+            checkedChildren="滚动"
             unCheckedChildren="固定"
           />
           <Button icon={<ReloadOutlined />} size="small" onClick={() => loadLogs()}>
@@ -338,12 +342,12 @@ const LogsPage: React.FC = () => {
           <Button icon={<DownloadOutlined />} size="small" onClick={exportToJSON} title="导出JSON">
             JSON
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <Row gutter={[16, 16]}>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         {/* 左侧：主日志表格 */}
-        <Col span={17}>
+        <div className="logs-layout-col-left" style={{ flex: '1 1 500px', minWidth: 0 }}>
           {/* 筛选栏 */}
           <Card size="small" style={{ marginBottom: 12 }}>
             <Space size="middle" wrap>
@@ -426,10 +430,10 @@ const LogsPage: React.FC = () => {
               />
             </Card>
           </Spin>
-        </Col>
+        </div>
 
         {/* 右侧：时间线 + 统计 */}
-        <Col span={7}>
+        <div className="logs-layout-col-right" style={{ flex: '1 1 300px' }}>
           {/* 告警面板 */}
           {(stats.errors > 0) && (
             <Alert
@@ -487,8 +491,8 @@ const LogsPage: React.FC = () => {
               ))}
             </div>
           </Card>
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       {/* 详情弹窗 */}
       <Modal
@@ -502,86 +506,61 @@ const LogsPage: React.FC = () => {
       >
         {selectedLog && (
           <div style={{ lineHeight: 2 }}>
-            <Row>
-              <Col span={8} style={{ color: '#8b949e' }}>事件编码：</Col>
-              <Col span={16}><code>{selectedLog.event_code}</code></Col>
-            </Row>
-            <Row>
-              <Col span={8} style={{ color: '#8b949e' }}>发生时间：</Col>
-              <Col span={16}>{selectedLog.log_time ? dayjs(selectedLog.log_time).format('YYYY-MM-DD HH:mm:ss.SSS') : '-'}</Col>
-            </Row>
-            <Row>
-              <Col span={8} style={{ color: '#8b949e' }}>关联局号：</Col>
-              <Col span={16}>{selectedLog.game_number ?? '全局事件'}</Col>
-            </Row>
-            <Row>
-              <Col span={8} style={{ color: '#8b949e' }}>事件类型：</Col>
-              <Col span={16}><strong>{selectedLog.event_type}</strong></Col>
-            </Row>
-            <Row>
-              <Col span={8} style={{ color: '#8b949e' }}>执行结果：</Col>
-              <Col span={16}>
-                {selectedLog.event_result === '成功'
-                  ? <Tag color="success"><CheckCircleOutlined /> 成功</Tag>
-                  : selectedLog.event_result === '失败'
-                    ? <Tag color="error"><WarningOutlined /> 失败</Tag>
-                    : '-'}
-              </Col>
-            </Row>
-            <Row>
-              <Col span={8} style={{ color: '#8b949e' }}>事件类别：</Col>
-              <Col span={16}><Tag>{selectedLog.category}</Tag></Col>
-            </Row>
-            <Row>
-              <Col span={8} style={{ color: '#8b949e' }}>优先级：</Col>
-              <Col span={16}>
+            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+              <span style={{ color: '#8b949e', flex: '0 0 80px' }}>事件编码：</span>
+              <code>{selectedLog.event_code}</code>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+              <span style={{ color: '#8b949e', flex: '0 0 80px' }}>发生时间：</span>
+              <span>{selectedLog.log_time ? dayjs(selectedLog.log_time).format('YYYY-MM-DD HH:mm:ss.SSS') : '-'}</span>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+              <span style={{ color: '#8b949e', flex: '0 0 80px' }}>关联局号：</span>
+              <span>{selectedLog.game_number ?? '全局事件'}</span>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+              <span style={{ color: '#8b949e', flex: '0 0 80px' }}>事件类型：</span>
+              <strong>{selectedLog.event_type}</strong>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ color: '#8b949e', flex: '0 0 80px' }}>执行结果：</span>
+              {selectedLog.event_result === '成功'
+                ? <Tag color="success"><CheckCircleOutlined /> 成功</Tag>
+                : selectedLog.event_result === '失败'
+                  ? <Tag color="error"><WarningOutlined /> 失败</Tag>
+                  : '-'}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+              <span style={{ color: '#8b949e', flex: '0 0 80px' }}>事件类别：</span>
+              <Tag>{selectedLog.category}</Tag>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ color: '#8b949e', flex: '0 0 80px' }}>优先级：</span>
+              <div>
                 <Tag color={PRIORITY_COLORS[selectedLog.priority]} style={{ fontWeight: 600 }}>
                   {selectedLog.priority}
                 </Tag>
                 {selectedLog.is_pinned && <Tag color="#ff4d4f">📌 已置顶</Tag>}
-              </Col>
-            </Row>
-            <Row>
-              <Col span={8} style={{ color: '#8b949e' }}>详细描述：</Col>
-              <Col span={16}>
-                <div style={{
-                  background: '#161b22',
-                  padding: 12,
-                  borderRadius: 6,
-                  fontSize: 13,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}>
-                  {selectedLog.description}
-                </div>
-              </Col>
-            </Row>
+              </div>
+            </div>
+            <div>
+              <span style={{ color: '#8b949e' }}>详细描述：</span>
+              <div style={{
+                background: '#161b22',
+                padding: 12,
+                borderRadius: 6,
+                fontSize: 13,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                marginTop: 4,
+              }}>
+                {selectedLog.description}
+              </div>
+            </div>
           </div>
         )}
       </Modal>
 
-      {/* 内联样式 */}
-      <style>{`
-        .log-pinned {
-          background-color: rgba(250, 173, 20, 0.08) !important;
-          border-left: 3px solid #faad14 !important;
-        }
-        .log-critical {
-          background-color: rgba(255, 77, 79, 0.08) !important;
-          border-left: 3px solid #ff4d4f !important;
-        }
-        .log-error {
-          background-color: rgba(255, 173, 0, 0.05) !important;
-          border-left: 3px solid #faad14 !important;
-        }
-        .ant-table-small .ant-table-cell {
-          padding: 4px 8px !important;
-          font-size: 12px;
-        }
-        .ant-timeline-item-content {
-          font-size: 12px !important;
-        }
-      `}</style>
     </div>
   );
 };

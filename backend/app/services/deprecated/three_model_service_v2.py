@@ -167,19 +167,19 @@ class ThreeModelService:
         self.banker_client = OpenAIClient(
             api_key=settings.OPENAI_API_KEY,
             model=settings.OPENAI_MODEL or "gpt-4o-mini",
-            base_url=getattr(settings, 'OPENAI_API_BASE', None) or "https://api.openai.com/v1/chat/completions"
+            base_url=settings.OPENAI_BASE_URL
         )
         
         self.player_client = AnthropicClient(
             api_key=settings.ANTHROPIC_API_KEY,
             model=settings.ANTHROPIC_MODEL or "claude-3-5-sonnet-20241022",
-            base_url=getattr(settings, 'ANTHROPIC_API_BASE', None) or "https://api.anthropic.com/v1/messages"
+            base_url=settings.ANTHROPIC_BASE_URL
         )
         
         self.combined_client = GeminiClient(
             api_key=settings.GEMINI_API_KEY,
             model=settings.GEMINI_MODEL or "gemini-1.5-flash",
-            base_url=getattr(settings, 'GEMINI_API_BASE', None)
+            base_url=settings.GEMINI_BASE_URL
         )
         
         # 备用模型（降级时使用）

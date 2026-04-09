@@ -5,7 +5,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button, Card, Select, Space, Tag, Table, Row, Col,
+  Button, Card, Select, Space, Tag, Table,
   Statistic, Segmented, Tooltip, Spin, Empty, message,
 } from 'antd';
 import {
@@ -165,56 +165,43 @@ const RoadMapPage: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d1117', padding: 16 }}>
+    <div className="page-wrapper">
       {/* 顶部导航栏 */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        paddingBottom: 12,
-        borderBottom: '1px solid #21262d',
-      }}>
-        <Space size="middle">
+      <div className="page-nav-bar">
+        <div className="page-nav-left">
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/dashboard/${tableId}`)}>
-            返回仪表盘
+            返回
           </Button>
-          <span style={{ color: '#e6edf3', fontSize: 16, fontWeight: 600 }}>
+          <span className="page-nav-title">
             <LineChartOutlined style={{ marginRight: 8 }} />
-            五路走势图详情 — {tableId}
+            五路走势图 — {tableId}
           </span>
           <Select
             size="small"
-            placeholder="选择靴号"
+            placeholder="靴号"
             value={bootNumber}
             onChange={setBootNumber}
             options={bootOptions}
             style={{ width: 120 }}
             allowClear
           />
-        </Space>
+        </div>
 
-        <Space size="middle">
-          {/* 快速统计 */}
-          <Statistic title="总局数" value={stats.totalGames} styles={{ content: { fontSize: 14, color: '#58a6ff' } }} />
-          <Statistic title="庄" value={stats.bankerCount} styles={{ content: { fontSize: 14, color: '#ff4d4f' } }} suffix={`/ ${stats.totalGames ? (stats.bankerCount / stats.totalGames * 100).toFixed(0) : 0}%`} />
-          <Statistic title="闲" value={stats.playerCount} styles={{ content: { fontSize: 14, color: '#1890ff' } }} suffix={`/ ${stats.totalGames ? (stats.playerCount / stats.totalGames * 100).toFixed(0) : 0}%`} />
-          
+        <div className="page-nav-right">
           <Segmented
             size="small"
             value={activeTab}
             onChange={(v) => setActiveTab(v as any)}
             options={[
               { label: '📊 走势图', value: 'chart' },
-              { label: '📋 原始数据', value: 'raw' },
-              { label: '🔍 路势分析', value: 'analysis' },
+              { label: '📋 数据', value: 'raw' },
+              { label: '🔍 分析', value: 'analysis' },
             ]}
           />
-          
           <Button icon={<ReloadOutlined />} size="small" onClick={() => { loadRoadData(); loadRawData(); }}>
             刷新
           </Button>
-        </Space>
+        </div>
       </div>
 
       {/* 主内容区 */}
@@ -287,9 +274,9 @@ const RoadMapPage: React.FC = () => {
         )}
 
         {activeTab === 'analysis' && (
-          <Row gutter={[16, 16]} style={{ minHeight: 'calc(100vh - 160px)' }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', minHeight: 'calc(100vh - 160px)' }}>
             {/* 路势分析 */}
-            <Col span={12}>
+            <div className="roadmap-analysis-col" style={{ flex: '1 1 400px' }}>
               <Card
                 title={<span><InfoCircleOutlined style={{ color: '#58a6ff' }} /> 路势分析</span>}
                 style={{ height: '100%' }}
@@ -307,31 +294,19 @@ const RoadMapPage: React.FC = () => {
                   {analyzePattern()}
                 </pre>
               </Card>
-            </Col>
+            </div>
 
             {/* 统计面板 */}
-            <Col span={12}>
+            <div className="roadmap-analysis-col" style={{ flex: '1 1 400px' }}>
               <Card title={<span>📈 数据统计</span>} style={{ marginBottom: 16 }}>
-                <Row gutter={[16, 16]}>
-                  <Col span={8}>
-                    <Statistic title="总局数" value={stats.totalGames} suffix="局" styles={{ content: { color: '#58a6ff' } }} />
-                  </Col>
-                  <Col span={8}>
-                    <Statistic title="庄出现" value={stats.bankerCount} suffix={`(${(stats.bankerCount / Math.max(stats.totalGames - stats.tieCount, 1) * 100).toFixed(1)}%)`} styles={{ content: { color: '#ff4d4f' } }} />
-                  </Col>
-                  <Col span={8}>
-                    <Statistic title="闲出现" value={stats.playerCount} suffix={`(${(stats.playerCount / Math.max(stats.totalGames - stats.tieCount, 1) * 100).toFixed(1)}%)`} styles={{ content: { color: '#1890ff' } }} />
-                  </Col>
-                  <Col span={8}>
-                    <Statistic title="和局" value={stats.tieCount} styles={{ content: { color: '#52c41a' } }} />
-                  </Col>
-                  <Col span={8}>
-                    <Statistic title="预测准确率" value={stats.accuracy.toFixed(1)} suffix="%" styles={{ content: { color: stats.accuracy >= 55 ? '#52c41a' : '#ff4d4f' } }} />
-                  </Col>
-                  <Col span={8}>
-                    <Statistic title="最大连庄" value={calcMaxStreak(rawData, '庄')} styles={{ content: { color: '#ff4d4f' } }} />
-                  </Col>
-                </Row>
+                <div className="stats-grid">
+                  <Statistic title="总局数" value={stats.totalGames} suffix="局" styles={{ content: { color: '#58a6ff' } }} />
+                  <Statistic title="庄出现" value={stats.bankerCount} suffix={`(${(stats.bankerCount / Math.max(stats.totalGames - stats.tieCount, 1) * 100).toFixed(1)}%)`} styles={{ content: { color: '#ff4d4f' } }} />
+                  <Statistic title="闲出现" value={stats.playerCount} suffix={`(${(stats.playerCount / Math.max(stats.totalGames - stats.tieCount, 1) * 100).toFixed(1)}%)`} styles={{ content: { color: '#1890ff' } }} />
+                  <Statistic title="和局" value={stats.tieCount} styles={{ content: { color: '#52c41a' } }} />
+                  <Statistic title="预测准确率" value={stats.accuracy.toFixed(1)} suffix="%" styles={{ content: { color: stats.accuracy >= 55 ? '#52c41a' : '#ff4d4f' } }} />
+                  <Statistic title="最大连庄" value={calcMaxStreak(rawData, '庄')} styles={{ content: { color: '#ff4d4f' } }} />
+                </div>
               </Card>
 
               <Card title={<span>📐 走势图规则速查</span>}>
@@ -358,8 +333,8 @@ const RoadMapPage: React.FC = () => {
                   </ul>
                 </div>
               </Card>
-            </Col>
-          </Row>
+            </div>
+          </div>
         )}
       </Spin>
     </div>

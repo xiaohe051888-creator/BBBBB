@@ -66,7 +66,7 @@ export function calcCanvasSize(
 }
 
 /**
- * 绘制单个圆点（庄/闲/延/转）
+ * 绘制单个圆点（庄/闲）
  */
 export function drawCircle(
   ctx: CanvasRenderingContext2D,
@@ -76,10 +76,11 @@ export function drawCircle(
   color: string,
   borderRadius: number,
   errorMarked: boolean = false,
+  isTie: boolean = false,  // 新增：是否为和局
 ): void {
   ctx.save();
 
-  // 绘制圆角方形/圆形
+  // 绘制圆角方形/圆形（庄/闲）
   ctx.fillStyle = color;
   ctx.beginPath();
   if (borderRadius >= radius) {
@@ -91,6 +92,19 @@ export function drawCircle(
     roundRect(ctx, cx - halfSize, cy - halfSize, halfSize * 2, halfSize * 2, borderRadius);
   }
   ctx.fill();
+
+  // 如果是和局，在圆圈内绘制绿色斜杠
+  if (isTie) {
+    ctx.strokeStyle = ROAD_COLORS.tie; // 绿色斜杠
+    ctx.lineWidth = Math.max(2, radius * 0.15);
+    ctx.beginPath();
+    
+    // 绘制斜杠（左上到右下）
+    const slashLength = radius * 0.7;
+    ctx.moveTo(cx - slashLength, cy - slashLength);
+    ctx.lineTo(cx + slashLength, cy + slashLength);
+    ctx.stroke();
+  }
 
   // 错误标记 - 右上角黄色三角
   if (errorMarked) {
@@ -293,6 +307,7 @@ export function drawAnimatedCircle(
   borderRadius: number,
   progress: number,       // 0->1 动画进度
   errorMarked: boolean = false,
+  isTie: boolean = false,  // 新增：是否为和局
 ): void {
   ctx.save();
 
@@ -314,7 +329,7 @@ export function drawAnimatedCircle(
   const actualRadius = baseRadius * scale;
 
   ctx.globalAlpha = 0.7 + progress * 0.3;
-  drawCircle(ctx, cx, cy, actualRadius, color, borderRadius, errorMarked);
+  drawCircle(ctx, cx, cy, actualRadius, color, borderRadius, errorMarked, isTie);
 
   ctx.restore();
 }
