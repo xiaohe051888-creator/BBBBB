@@ -1,5 +1,5 @@
 /**
- * 下注记录表格组件
+ * 下注记录表格组件 - 自适应布局，无横向滚动
  */
 import React from 'react';
 import { Table, Tag } from 'antd';
@@ -38,39 +38,53 @@ const BetTable: React.FC<BetTableProps> = ({
   onPageChange,
 }) => {
   const columns: ColumnsType<BetRecord> = [
-    { title: '局号', dataIndex: 'game_number', width: 55 },
+    { 
+      title: '局号', 
+      dataIndex: 'game_number', 
+      width: '15%',
+      align: 'center',
+    },
     {
       title: '方向',
       dataIndex: 'bet_direction',
-      width: 55,
+      width: '20%',
+      align: 'center',
       render: (v: string) => (
-        <Tag color={v === '庄' ? '#ff4d4f' : '#1890ff'}>{v}</Tag>
+        <Tag color={v === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 12, fontWeight: 600 }}>{v}</Tag>
       ),
     },
-    { title: '金额', dataIndex: 'bet_amount', width: 65 },
+    { 
+      title: '金额', 
+      dataIndex: 'bet_amount', 
+      width: '20%',
+      align: 'center',
+      render: (v: number) => <span style={{ fontWeight: 500 }}>{v}</span>,
+    },
     {
       title: '状态',
       dataIndex: 'status',
-      width: 75,
-      render: (v: string) => <Tag color={BET_STATUS_COLORS[v]}>{v}</Tag>,
+      width: '20%',
+      align: 'center',
+      render: (v: string) => <Tag color={BET_STATUS_COLORS[v]} style={{ fontSize: 11 }}>{v}</Tag>,
     },
     {
       title: '盈亏',
       dataIndex: 'profit_loss',
-      width: 75,
+      width: '25%',
+      align: 'center',
       render: (v: number | null) =>
         v !== null ? (
           <span
             style={{
-              color: v > 0 ? '#ff4d4f' : v < 0 ? '#52c41a' : undefined,
-              fontWeight: 600,
+              color: v > 0 ? '#ff4d4f' : v < 0 ? '#52c41a' : '#888',
+              fontWeight: 700,
+              fontSize: 13,
             }}
           >
-            {v > 0 ? '+' : ''}
-            {v?.toFixed(0)}
+            {v > 0 ? '+' : ''}{v?.toFixed(0)}
           </span>
         ) : (
-          '-'
+          <span style={{ color: '#555' }}>-</span>
         ),
     },
   ];
@@ -88,9 +102,11 @@ const BetTable: React.FC<BetTableProps> = ({
         total: total || data.length,
         onChange: onPageChange,
         size: 'small',
+        showTotal: (t) => `共 ${t} 条`,
       }}
-      scroll={{ y: 160 }}
-      locale={{ emptyText: '暂无记录' }}
+      scroll={{ y: 200 }}
+      locale={{ emptyText: '暂无下注记录' }}
+      style={{ width: '100%' }}
     />
   );
 };

@@ -1,6 +1,7 @@
 /**
  * 管理员页面 - AI学习 & 数据库查看（手动模式）
  * 移除爬虫相关功能，专注AI模型管理和数据查看
+ * 优化：精致图标、自适应布局、中文全站
  */
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -8,13 +9,72 @@ import {
   Card, Button, Table, Tag, Space, Input, Modal, message,
   Select, Tabs, Empty, Statistic, Row, Col, Divider,
 } from 'antd';
-import {
-  ExperimentOutlined, DatabaseOutlined, ArrowLeftOutlined,
-  KeyOutlined, RobotOutlined,
-  CheckCircleOutlined,
-} from '@ant-design/icons';
 import * as api from '../services/api';
 import { clearToken } from '../services/api';
+
+// 精致图标组件
+const Icons = {
+  Back: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+    </svg>
+  ),
+  AI: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+    </svg>
+  ),
+  Database: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+    </svg>
+  ),
+  Key: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+    </svg>
+  ),
+  Robot: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/>
+    </svg>
+  ),
+  Check: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+    </svg>
+  ),
+  Close: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+    </svg>
+  ),
+  Logout: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+    </svg>
+  ),
+  Experiment: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.8 18.4L14 10.67V6.5l1.35-1.69c.26-.33.03-.81-.39-.81H9.04c-.42 0-.65.48-.39.81L10 6.5v4.17L4.2 18.4c-.49.66-.02 1.6.8 1.6h14c.82 0 1.29-.94.8-1.6z"/>
+    </svg>
+  ),
+  Banker: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4d4f">
+      <circle cx="12" cy="12" r="10"/>
+    </svg>
+  ),
+  Player: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#1890ff">
+      <circle cx="12" cy="12" r="10"/>
+    </svg>
+  ),
+  Brain: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#52c41a">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+    </svg>
+  ),
+};
 
 const AdminPage: React.FC = () => {
   const location = useLocation();
@@ -116,29 +176,29 @@ const AdminPage: React.FC = () => {
   };
 
   const tableColumns = [
-    { title: 'ID', dataIndex: 'id', width: 60 },
-    { title: '桌号', dataIndex: 'table_id', width: 60 },
-    { title: '靴号', dataIndex: 'boot_number', width: 60 },
-    { title: '局号', dataIndex: 'game_number', width: 60 },
-    { title: '结果', dataIndex: 'result', width: 60 },
-    { title: '预测', dataIndex: 'predict_direction', width: 60 },
-    { title: '正确', dataIndex: 'predict_correct', width: 60, render: (v: boolean | null) => v === null ? '-' : v ? '✓' : '✗' },
-    { title: '盈亏', dataIndex: 'profit_loss', width: 80 },
-    { title: '余额', dataIndex: 'balance_after', width: 100 },
+    { title: 'ID', dataIndex: 'id', width: '8%' },
+    { title: '桌号', dataIndex: 'table_id', width: '8%', align: 'center' as const },
+    { title: '靴号', dataIndex: 'boot_number', width: '8%', align: 'center' as const },
+    { title: '局号', dataIndex: 'game_number', width: '8%', align: 'center' as const },
+    { title: '结果', dataIndex: 'result', width: '8%', align: 'center' as const },
+    { title: '预测', dataIndex: 'predict_direction', width: '8%', align: 'center' as const },
+    { title: '正确', dataIndex: 'predict_correct', width: '8%', align: 'center' as const, render: (v: boolean | null) => v === null ? '-' : v ? <Tag color="success" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}><Icons.Check /> 是</Tag> : <Tag color="error" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}><Icons.Close /> 否</Tag> },
+    { title: '盈亏', dataIndex: 'profit_loss', width: '12%', align: 'center' as const },
+    { title: '余额', dataIndex: 'balance_after', width: '12%', align: 'center' as const },
   ];
 
   return (
-    <div className="page-wrapper">
+    <div className="page-wrapper" style={{ padding: '16px' }}>
       {/* 顶部 */}
-      <div className="page-nav-bar">
-        <div className="page-nav-left">
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>返回启动页</Button>
-          <span className="page-nav-title">管理员后台</span>
+      <div className="page-nav-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div className="page-nav-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Button icon={<Icons.Back />} onClick={() => navigate('/')} size="small">返回启动页</Button>
+          <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600 }}>管理员后台</span>
           <Tag color="blue">手动模式</Tag>
         </div>
-        <div className="page-nav-right">
-          <Button icon={<KeyOutlined />} onClick={() => setChangePwdVisible(true)}>修改密码</Button>
-          <Button danger onClick={() => { clearToken(); navigate('/'); }}>退出登录</Button>
+        <div className="page-nav-right" style={{ display: 'flex', gap: 8 }}>
+          <Button icon={<Icons.Key />} onClick={() => setChangePwdVisible(true)} size="small">修改密码</Button>
+          <Button danger icon={<Icons.Logout />} onClick={() => { clearToken(); navigate('/'); }} size="small">退出登录</Button>
         </div>
       </div>
 
@@ -148,54 +208,60 @@ const AdminPage: React.FC = () => {
         items={[
           {
             key: 'ai',
-            label: <span><RobotOutlined /> AI大模型</span>,
+            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Robot /> AI大模型</span>,
             children: (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {/* 三模型状态 */}
-                <Card title="三模型状态">
+                <Card title="三模型状态" size="small">
                   {threeModelStatus ? (
-                    <Row gutter={[16, 16]}>
-                      <Col span={8}>
+                    <Row gutter={[12, 12]}>
+                      <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #ff4d4f', background: 'rgba(255,77,79,0.04)' }}>
-                          <div style={{ fontWeight: 700, color: '#ff4d4f', marginBottom: 8 }}>🔴 庄模型</div>
+                          <div style={{ fontWeight: 700, color: '#ff4d4f', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icons.Banker /> 庄模型
+                          </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {threeModelStatus.models?.banker?.provider} · {threeModelStatus.models?.banker?.model}
                           </div>
                           <div style={{ marginTop: 8 }}>
                             {threeModelStatus.models?.banker?.api_key_set ? (
-                              <Tag color="success" icon={<CheckCircleOutlined />}>已配置</Tag>
+                              <Tag color="success" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Check /> 已配置</Tag>
                             ) : (
-                              <Tag color="error">未配置</Tag>
+                              <Tag color="error" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Close /> 未配置</Tag>
                             )}
                           </div>
                         </Card>
                       </Col>
-                      <Col span={8}>
+                      <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #1890ff', background: 'rgba(24,144,255,0.04)' }}>
-                          <div style={{ fontWeight: 700, color: '#1890ff', marginBottom: 8 }}>🔵 闲模型</div>
+                          <div style={{ fontWeight: 700, color: '#1890ff', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icons.Player /> 闲模型
+                          </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {threeModelStatus.models?.player?.provider} · {threeModelStatus.models?.player?.model}
                           </div>
                           <div style={{ marginTop: 8 }}>
                             {threeModelStatus.models?.player?.api_key_set ? (
-                              <Tag color="success" icon={<CheckCircleOutlined />}>已配置</Tag>
+                              <Tag color="success" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Check /> 已配置</Tag>
                             ) : (
-                              <Tag color="error">未配置</Tag>
+                              <Tag color="error" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Close /> 未配置</Tag>
                             )}
                           </div>
                         </Card>
                       </Col>
-                      <Col span={8}>
+                      <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #52c41a', background: 'rgba(82,196,26,0.04)' }}>
-                          <div style={{ fontWeight: 700, color: '#52c41a', marginBottom: 8 }}>🧠 综合模型</div>
+                          <div style={{ fontWeight: 700, color: '#52c41a', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icons.Brain /> 综合模型
+                          </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {threeModelStatus.models?.combined?.provider} · {threeModelStatus.models?.combined?.model}
                           </div>
                           <div style={{ marginTop: 8 }}>
                             {threeModelStatus.models?.combined?.api_key_set ? (
-                              <Tag color="success" icon={<CheckCircleOutlined />}>已配置</Tag>
+                              <Tag color="success" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Check /> 已配置</Tag>
                             ) : (
-                              <Tag color="error">未配置</Tag>
+                              <Tag color="error" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Close /> 未配置</Tag>
                             )}
                           </div>
                         </Card>
@@ -207,23 +273,23 @@ const AdminPage: React.FC = () => {
                 </Card>
 
                 {/* AI学习 */}
-                <Card title="AI学习">
+                <Card title="AI学习" size="small">
                   <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                    <Row gutter={16}>
-                      <Col span={8}>
+                    <Row gutter={[12, 12]}>
+                      <Col xs={24} sm={8}>
                         <Statistic title="学习条件" value="200局" suffix="历史数据" />
                       </Col>
-                      <Col span={8}>
+                      <Col xs={24} sm={8}>
                         <Statistic title="学习范围" value="按靴" suffix="不跨靴" />
                       </Col>
-                      <Col span={8}>
+                      <Col xs={24} sm={8}>
                         <Statistic title="版本限制" value="5个" suffix="最多保留" />
                       </Col>
                     </Row>
                     <Divider style={{ margin: '12px 0', borderColor: 'rgba(255,255,255,0.06)' }} />
                     <Button 
                       type="primary" 
-                      icon={<ExperimentOutlined />} 
+                      icon={<Icons.Experiment />} 
                       size="large"
                       disabled={aiLearningStatus?.is_learning}
                     >
@@ -238,23 +304,23 @@ const AdminPage: React.FC = () => {
                 </Card>
 
                 {/* 模型版本列表 */}
-                <Card title="模型版本管理">
+                <Card title="模型版本管理" size="small">
                   <Table
                     dataSource={modelVersions}
                     columns={[
-                      { title: '版本号', dataIndex: 'version', width: 120 },
-                      { title: '创建时间', dataIndex: 'created_at', width: 180, render: (v: string) => v ? new Date(v).toLocaleString() : '-' },
-                      { title: '样本数', dataIndex: 'training_sample_count', width: 80 },
-                      { title: '学习前准确率', dataIndex: 'accuracy_before', width: 100, render: (v: number) => v ? `${(v*100).toFixed(1)}%` : '-' },
-                      { title: '学习后准确率', dataIndex: 'accuracy_after', width: 100, render: (v: number) => v ? `${(v*100).toFixed(1)}%` : '-' },
-                      { title: '状态', dataIndex: 'is_active', width: 80, render: (v: boolean) => v ? <Tag color="green">使用中</Tag> : <Tag>未启用</Tag> },
-                      { title: '使用局数', dataIndex: 'total_runs', width: 80 },
-                      { title: '命中数', dataIndex: 'hit_count', width: 80 },
+                      { title: '版本号', dataIndex: 'version', width: '12%' },
+                      { title: '创建时间', dataIndex: 'created_at', width: '18%', render: (v: string) => v ? new Date(v).toLocaleString() : '-' },
+                      { title: '样本数', dataIndex: 'training_sample_count', width: '10%', align: 'center' as const },
+                      { title: '学习前准确率', dataIndex: 'accuracy_before', width: '12%', align: 'center' as const, render: (v: number) => v ? `${(v*100).toFixed(1)}%` : '-' },
+                      { title: '学习后准确率', dataIndex: 'accuracy_after', width: '12%', align: 'center' as const, render: (v: number) => v ? `${(v*100).toFixed(1)}%` : '-' },
+                      { title: '状态', dataIndex: 'is_active', width: '10%', align: 'center' as const, render: (v: boolean) => v ? <Tag color="green">使用中</Tag> : <Tag>未启用</Tag> },
+                      { title: '使用局数', dataIndex: 'total_runs', width: '10%', align: 'center' as const },
+                      { title: '命中数', dataIndex: 'hit_count', width: '10%', align: 'center' as const },
                     ]}
                     rowKey="version"
                     size="small"
                     pagination={false}
-                    scroll={{ x: 800 }}
+                    scroll={{ x: 'max-content' }}
                     locale={{ emptyText: <Empty description="暂无模型版本" /> }}
                   />
                 </Card>
@@ -263,9 +329,9 @@ const AdminPage: React.FC = () => {
           },
           {
             key: 'db',
-            label: <span><DatabaseOutlined /> 数据库存储</span>,
+            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Database /> 数据库存储</span>,
             children: (
-              <Card title="数据库记录查看">
+              <Card title="数据库记录查看" size="small">
                 <Space style={{ marginBottom: 16, flexWrap: 'wrap' }}>
                   <span>选择表：</span>
                   <Select
@@ -285,7 +351,7 @@ const AdminPage: React.FC = () => {
                   columns={tableColumns}
                   rowKey="id"
                   size="small"
-                  scroll={{ x: 900 }}
+                  scroll={{ x: 'max-content' }}
                   pagination={{ current: dbPage, pageSize: 50, onChange: setDbPage, total: 1000 }}
                 />
               </Card>

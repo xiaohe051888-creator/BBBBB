@@ -5,6 +5,15 @@ export { useAdminLogin } from './useAdminLogin';
 export { useGameState } from './useGameState';
 export { useWebSocket } from './useWebSocket';
 export { useWaitTimer } from './useWaitTimer';
+export { useLoading } from './useLoading';
+export { useDataRefreshIndicator } from './useDataRefreshIndicator';
+
+// 智能检测系统
+export { useSmartDetection } from './useSmartDetection';
+export { useWorkflowState } from './useWorkflowState';
+
+// 系统诊断（实时状态监控）
+export { useSystemDiagnostics } from './useSystemDiagnostics';
 
 // React Query Hooks (带全局缓存)
 export {
@@ -18,4 +27,45 @@ export {
   usePlaceBetMutation,
   useRevealResultMutation,
   useAddLogOptimistically,
+  useAddBetOptimistically,
+  useUpdateBetOptimistically,
+  useAddGameOptimistically,
+  useUpdateRoadsOptimistically,
+  useUpdateStateOptimistically,
+  // Mistake Records
+  useMistakesQuery,
+  type MistakeRecord,
 } from './useQueries';
+
+// 类型导出
+export type {
+  BetRecord,
+  GameRecord,
+  LogEntry,
+  SystemState,
+  Stats,
+  AnalysisData,
+} from './useGameState';
+
+// 智能检测类型导出
+export type {
+  DataIntegrityIssue,
+  AbnormalPattern,
+  SmartAlert,
+  BettingAdvice,
+} from './useSmartDetection';
+
+export type {
+  WorkflowStatus,
+  WorkflowState,
+  WorkflowTimer,
+} from './useWorkflowState';
+
+export type {
+  SystemDiagnostics,
+  SystemIssue,
+  AIModelStatus,
+  WsStatus,
+  ServiceStatus,
+} from './useSystemDiagnostics';
+

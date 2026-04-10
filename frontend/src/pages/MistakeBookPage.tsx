@@ -1,24 +1,19 @@
 /**
  * 错题本页面 - 预测错误记录、错因分析、修正策略
  * 路由：/dashboard/:tableId/mistakes
+ * 
+ * 优化：使用React Query + 乐观UI策略，自适应布局无横向滚动
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Statistic,
-  Select, Input, Modal, Spin, Empty, Descriptions, Tooltip,
+  Select, Input, Modal, Empty, Descriptions, Tooltip,
   Alert, Progress, Badge,
 } from 'antd';
-import {
-  ArrowLeftOutlined, ReloadOutlined, SearchOutlined,
-  FilterOutlined, ExperimentOutlined, WarningOutlined,
-  BulbOutlined, ThunderboltOutlined, CheckCircleOutlined,
-  AimOutlined,
-} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-// import dayjs from 'dayjs'; // 暂不使用
-import * as api from '../services/api';
-import type { MistakeRecord } from '../services/api';
+import { useMistakesQuery, type MistakeRecord } from '../hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 // 错误类型映射
 const ERROR_TYPE_MAP: Record<string, { color: string; label: string; desc: string }> = {
@@ -27,6 +22,60 @@ const ERROR_TYPE_MAP: Record<string, { color: string; label: string; desc: strin
   '置信过高':     { color: '#722ed1', label: '置信过高',   desc: '高置信度但预测错误' },
   '样本不足':     { color: '#1890ff', label: '样本不足',   desc: '数据量不足以支撑判断' },
   '结算映射异常': { color: '#ff7a45', label: '结算异常',   desc: '开奖结果与下注方向映射出错' },
+};
+
+// 精致图标组件
+const Icons = {
+  Back: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+    </svg>
+  ),
+  Refresh: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+    </svg>
+  ),
+  Search: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+    </svg>
+  ),
+  Filter: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
+    </svg>
+  ),
+  Experiment: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.8 18.4L14 10.67V6.5l1.35-1.69c.26-.33.03-.81-.39-.81H9.04c-.42 0-.65.48-.39.81L10 6.5v4.17L4.2 18.4c-.49.66-.02 1.6.8 1.6h14c.82 0 1.29-.94.8-1.6z"/>
+    </svg>
+  ),
+  Bulb: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 21c0 .5.4 1 1 1h4c.6 0 1-.5 1-1v-1H9v1zm3-19C8.1 2 5 5.1 5 9c0 2.4 1.2 4.5 3 5.7V17c0 .5.4 1 1 1h6c.6 0 1-.5 1-1v-2.3c1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7z"/>
+    </svg>
+  ),
+  Thunder: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/>
+    </svg>
+  ),
+  Warning: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+    </svg>
+  ),
+  Check: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+    </svg>
+  ),
+  Aim: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
+    </svg>
+  ),
 };
 
 interface MistakeSummary {
@@ -40,17 +89,23 @@ interface MistakeSummary {
 const MistakeBookPage: React.FC = () => {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
-
-  // 数据
-  const [mistakes, setMistakes] = useState<MistakeRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<MistakeSummary | null>(null);
+  const queryClient = useQueryClient();
 
   // 分页
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // 筛选
+  // React Query获取数据（乐观UI：立即显示缓存数据）
+  const { data: mistakesData } = useMistakesQuery({ 
+    tableId, 
+    page, 
+    pageSize 
+  });
+
+  const mistakes = mistakesData?.mistakes || [];
+  const total = mistakesData?.total || 0;
+
+  // 筛选状态
   const [filterErrorType, setFilterErrorType] = useState<string>('');
   const [filterPredictDir, setFilterPredictDir] = useState<string>('');
   const [searchGameNumber, setSearchGameNumber] = useState('');
@@ -59,51 +114,15 @@ const MistakeBookPage: React.FC = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedMistake, setSelectedMistake] = useState<MistakeRecord | null>(null);
 
-  // 加载错题记录
-  const loadMistakes = useCallback(async (p = page) => {
+  // 手动刷新
+  const handleRefresh = () => {
     if (!tableId) return;
-    setLoading(true);
-    try {
-      const res = await api.getMistakeRecords({
-        table_id: tableId,
-        page: p,
-        page_size: pageSize,
-      });
-      // 后端返回的 data 是字典数组，需要映射为 MistakeRecord
-      const rawData = res.data.data || [];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped: MistakeRecord[] = rawData.map((r: any) => ({
-        id: r.id,
-        table_id: r.table_id,
-        boot_number: r.boot_number,
-        game_number: r.game_number,
-        error_id: r.error_id,
-        error_type: r.error_type,
-        predict_direction: r.predict_direction,
-        actual_result: r.actual_result,
-        banker_summary: r.banker_summary,
-        player_summary: r.player_summary,
-        combined_summary: r.combined_summary,
-        confidence: r.confidence,
-        road_snapshot: r.road_snapshot ? (typeof r.road_snapshot === 'string' ? JSON.parse(r.road_snapshot) : r.road_snapshot) : null,
-        analysis: r.analysis,
-        correction: r.correction,
-        created_at: r.created_at,
-      }));
-      setMistakes(mapped);
-      calcSummary(mapped);
-    } catch (err) {
-      console.warn('加载错题本数据失败（可能暂无记录）:', err);
-      setMistakes([]);
-      setSummary(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [tableId, page, pageSize]);
+    queryClient.invalidateQueries({ queryKey: ['mistakes', tableId] });
+  };
 
-  // 计算汇总
-  const calcSummary = (data: MistakeRecord[]) => {
-    if (!data.length) return;
+  // 计算汇总（使用useMemo优化性能）
+  const summary: MistakeSummary | null = useMemo(() => {
+    if (!mistakes.length) return null;
 
     const byType: Record<string, number> = {};
     let bankerErr = 0;
@@ -112,7 +131,7 @@ const MistakeBookPage: React.FC = () => {
     let confCount = 0;
     let latestBoot: number | null = null;
 
-    data.forEach(m => {
+    mistakes.forEach(m => {
       byType[m.error_type] = (byType[m.error_type] || 0) + 1;
       if (m.predict_direction === '庄') bankerErr++;
       else if (m.predict_direction === '闲') playerErr++;
@@ -123,68 +142,64 @@ const MistakeBookPage: React.FC = () => {
       if (!latestBoot || m.boot_number > latestBoot) latestBoot = m.boot_number;
     });
 
-    setSummary({
-      totalErrors: data.length,
+    return {
+      totalErrors: total,
       byType,
       byDirection: { banker: bankerErr, player: playerErr },
       avgConfidence: confCount > 0 ? totalConf / confCount : 0,
       latestBootNumber: latestBoot,
+    };
+  }, [mistakes, total]);
+
+  // 筛选后的数据（客户端筛选）
+  const filtered = useMemo(() => {
+    return mistakes.filter(m => {
+      if (filterErrorType && m.error_type !== filterErrorType) return false;
+      if (filterPredictDir && m.predict_direction !== filterPredictDir) return false;
+      if (searchGameNumber && !String(m.game_number).includes(searchGameNumber)) return false;
+      return true;
     });
-  };
+  }, [mistakes, filterErrorType, filterPredictDir, searchGameNumber]);
 
-  useEffect(() => {
-    loadMistakes();
-  }, [loadMistakes]);
-
-  // 自动刷新（每20秒）
-  useEffect(() => {
-    const interval = setInterval(() => loadMistakes(), 20000);
-    return () => clearInterval(interval);
-  }, [loadMistakes]);
-
-  // 筛选后的数据
-  const filtered = mistakes.filter(m => {
-    if (filterErrorType && m.error_type !== filterErrorType) return false;
-    if (filterPredictDir && m.predict_direction !== filterPredictDir) return false;
-    if (searchGameNumber && !String(m.game_number).includes(searchGameNumber)) return false;
-    return true;
-  });
-
-  // 表格列定义
+  // 表格列定义 - 自适应宽度，无横向滚动
   const columns: ColumnsType<MistakeRecord> = [
     {
       title: '局号',
       dataIndex: 'game_number',
-      width: 65,
+      width: '10%',
+      align: 'center',
       sorter: (a, b) => a.game_number - b.game_number,
     },
     {
       title: '靴号',
       dataIndex: 'boot_number',
-      width: 55,
-      render: (v: number) => <span style={{ color: '#8b949e' }}>#{v}</span>,
+      width: '10%',
+      align: 'center',
+      render: (v: number) => <span style={{ color: '#8b949e', fontSize: 12 }}>#{v}</span>,
     },
     {
       title: '错误类型',
       dataIndex: 'error_type',
-      width: 100,
+      width: '15%',
+      align: 'center',
       render: (v: string) => {
         const info = ERROR_TYPE_MAP[v];
         return info
-          ? <Tag color={info.color} style={{ fontWeight: 500 }}>{info.label}</Tag>
-          : <Tag>{v}</Tag>;
+          ? <Tag color={info.color} style={{ fontWeight: 500, fontSize: 11 }}>{info.label}</Tag>
+          : <Tag style={{ fontSize: 11 }}>{v}</Tag>;
       },
     },
     {
       title: '预测→实际',
-      width: 110,
+      width: '18%',
+      align: 'center',
       render: (_: unknown, record: MistakeRecord) => (
-        <Space size={2}>
-          <Tag color={record.predict_direction === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 11 }}>
+        <Space size={2} style={{ justifyContent: 'center' }}>
+          <Tag color={record.predict_direction === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 11, padding: '0 6px' }}>
             {record.predict_direction}
           </Tag>
           <span style={{ color: '#ff4d4f', fontWeight: 700 }}>✗</span>
-          <Tag color={record.actual_result === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 11 }}>
+          <Tag color={record.actual_result === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 11, padding: '0 6px' }}>
             {record.actual_result}
           </Tag>
         </Space>
@@ -193,21 +208,23 @@ const MistakeBookPage: React.FC = () => {
     {
       title: '置信度',
       dataIndex: 'confidence',
-      width: 80,
+      width: '15%',
+      align: 'center',
       render: (v: number | null) =>
         v !== null ? (
           <Progress
             percent={Math.round(v * 100)}
             size="small"
             strokeColor={v >= 0.75 ? '#ff4d4f' : v >= 0.5 ? '#faad14' : '#52c41a'}
-            format={(p) => `${p}%`}
+            format={(p) => <span style={{ fontSize: 11 }}>{p}%</span>}
+            style={{ margin: 0 }}
           />
         ) : <span style={{ color: '#555' }}>-</span>,
     },
     {
       title: '错因分析',
       dataIndex: 'analysis',
-      width: 200,
+      width: '22%',
       ellipsis: true,
       render: (v: string | null) =>
         v ? (
@@ -217,26 +234,15 @@ const MistakeBookPage: React.FC = () => {
         ) : <span style={{ color: '#555' }}>-</span>,
     },
     {
-      title: '修正策略',
-      dataIndex: 'correction',
-      width: 180,
-      ellipsis: true,
-      render: (v: string | null) =>
-        v ? (
-          <Tooltip title={v}>
-            <span style={{ fontSize: 12, color: '#79c077' }}>{v}</span>
-          </Tooltip>
-        ) : <span style={{ color: '#555' }}>-</span>,
-    },
-    {
       title: '操作',
-      width: 60,
-      fixed: 'right' as const,
+      width: '10%',
+      align: 'center',
       render: (_: unknown, record: MistakeRecord) => (
         <Button
           type="link"
           size="small"
           onClick={() => { setSelectedMistake(record); setDetailModalOpen(true); }}
+          style={{ fontSize: 12, padding: '0 4px' }}
         >
           详情
         </Button>
@@ -245,21 +251,25 @@ const MistakeBookPage: React.FC = () => {
   ];
 
   return (
-    <div className="page-wrapper">
+    <div className="page-wrapper" style={{ padding: '16px', maxWidth: '100%' }}>
       {/* 顶部导航 */}
-      <div className="page-nav-bar">
-        <div className="page-nav-left">
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/dashboard/${tableId}`)}>
+      <div className="page-nav-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div className="page-nav-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Button icon={<Icons.Back />} onClick={() => navigate(`/dashboard/${tableId}`)} size="small">
             返回
           </Button>
-          <span className="page-nav-title">
-            <ExperimentOutlined style={{ marginRight: 8 }} />
+          <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icons.Experiment />
             错题本 — {tableId}
           </span>
           <Badge count={filtered.length} showZero style={{ backgroundColor: filtered.length > 10 ? '#ff4d4f' : '#58a6ff' }} />
         </div>
         <div className="page-nav-right">
-          <Button icon={<ReloadOutlined />} size="small" onClick={() => loadMistakes(1)}>
+          <Button 
+            icon={<Icons.Refresh />} 
+            size="small" 
+            onClick={handleRefresh}
+          >
             刷新
           </Button>
         </div>
@@ -268,22 +278,27 @@ const MistakeBookPage: React.FC = () => {
       {/* 提示信息 */}
       <Alert
         type="info"
-        icon={<BulbOutlined />}
+        icon={<Icons.Bulb />}
         message="错题本记录了每次预测错误的详细分析。通过复盘错因和修正策略，系统会在后续预测中自动规避类似错误。"
         showIcon
         closable
-        style={{ marginBottom: 16 }}
+        style={{ marginBottom: 16, fontSize: 13 }}
       />
 
       {/* 统计卡片 — 响应式网格 */}
       {summary && (
-        <div className="stats-grid" style={{ marginBottom: 16 }}>
+        <div className="stats-grid" style={{ 
+          marginBottom: 16, 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
+          gap: 12 
+        }}>
           <Card size="small">
             <Statistic
               title="总错误数"
               value={summary.totalErrors}
               suffix="条"
-              styles={{ content: { fontSize: 18, color: summary.totalErrors > 15 ? '#ff4d4f' : '#58a6ff' } }}
+              valueStyle={{ fontSize: 18, color: summary.totalErrors > 15 ? '#ff4d4f' : '#58a6ff' }}
             />
           </Card>
           <Card size="small">
@@ -291,8 +306,7 @@ const MistakeBookPage: React.FC = () => {
               title="平均置信度"
               value={(summary.avgConfidence * 100).toFixed(0)}
               suffix="%"
-              prefix={<ThunderboltOutlined />}
-              styles={{ content: { fontSize: 18, color: summary.avgConfidence > 0.7 ? '#722ed1' : '#52c41a' } }}
+              valueStyle={{ fontSize: 18, color: summary.avgConfidence > 0.7 ? '#722ed1' : '#52c41a' }}
             />
           </Card>
           <Card size="small">
@@ -327,8 +341,10 @@ const MistakeBookPage: React.FC = () => {
 
       {/* 筛选栏 */}
       <Card size="small" style={{ marginBottom: 16 }}>
-        <Space size="middle" wrap>
-          <FilterOutlined /> <strong style={{ color: '#8b949e' }}>筛选：</strong>
+        <Space size="middle" wrap style={{ width: '100%' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#8b949e' }}>
+            <Icons.Filter /> <strong>筛选：</strong>
+          </span>
 
           <Select
             placeholder="错误类型"
@@ -358,7 +374,7 @@ const MistakeBookPage: React.FC = () => {
             size="small"
             value={searchGameNumber}
             onChange={(e) => setSearchGameNumber(e.target.value)}
-            prefix={<SearchOutlined />}
+            prefix={<Icons.Search />}
             style={{ width: 120 }}
           />
 
@@ -373,42 +389,41 @@ const MistakeBookPage: React.FC = () => {
             重置
           </Button>
 
-          <span style={{ marginLeft: 24, color: '#8b949e', fontSize: 13 }}>
+          <span style={{ marginLeft: 'auto', color: '#8b949e', fontSize: 13 }}>
             共 {filtered.length} 条记录
           </span>
         </Space>
       </Card>
 
-      {/* 数据表格 */}
-      <Spin spinning={loading}>
-        <Card size="small">
-          <Table
-            dataSource={filtered}
-            columns={columns}
-            rowKey={(r) => `mistake-${r.id}-${r.game_number}`}
-            size="small"
-            pagination={{
-              current: page,
-              pageSize,
-              total: filtered.length,
-              onChange: (p, ps) => { setPage(p); if (ps !== pageSize) setPageSize(ps); },
-              showTotal: (total) => `共 ${total} 条`,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              pageSizeOptions: ['10', '20', '50'],
-              size: 'small',
-            }}
-            scroll={{ x: 950, y: 'calc(100vh - 480px)' }}
-            locale={{ emptyText: <Empty description={
-              <span>
-                暂无错题记录<br />
-                <span style={{ color: '#8b949e', fontSize: 12 }}>预测正确时不会产生错题记录 ✅</span>
-              </span>
-            } /> }}
-            rowClassName={() => 'row-mistake'}
-          />
-        </Card>
-      </Spin>
+      {/* 数据表格 - 自适应布局，无横向滚动 */}
+      <Card size="small">
+        <Table
+          dataSource={filtered}
+          columns={columns}
+          rowKey={(r) => `mistake-${r.id}-${r.game_number}`}
+          size="small"
+          pagination={{
+            current: page,
+            pageSize,
+            total: filtered.length,
+            onChange: (p, ps) => { setPage(p); if (ps !== pageSize) setPageSize(ps); },
+            showTotal: (t) => `共 ${t} 条`,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            pageSizeOptions: ['10', '20', '50'],
+            size: 'small',
+          }}
+          scroll={{ y: 'calc(100vh - 520px)' }}
+          locale={{ emptyText: <Empty description={
+            <span>
+              暂无错题记录<br />
+              <span style={{ color: '#8b949e', fontSize: 12 }}>预测正确时不会产生错题记录 ✅</span>
+            </span>
+          } /> }}
+          rowClassName={() => 'row-mistake'}
+          style={{ width: '100%' }}
+        />
+      </Card>
 
       {/* 详情弹窗 */}
       <Modal
@@ -446,7 +461,7 @@ const MistakeBookPage: React.FC = () => {
             {/* 三模型摘要 */}
             <Card
               size="small"
-              title={<><AimOutlined /> AI模型分析摘要</>}
+              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Aim /> AI模型分析摘要</span>}
               style={{ marginBottom: 12 }}
               styles={{ header: { background: '#161b22', color: '#e6edf3' } }}
             >
@@ -469,7 +484,7 @@ const MistakeBookPage: React.FC = () => {
               <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                 <Card
                   size="small"
-                  title={<><WarningOutlined /> 错因分析</>}
+                  title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Warning /> 错因分析</span>}
                   styles={{ header: { background: '#2d1318', color: '#ff4d4f' } }}
                 >
                   <p style={{ color: '#c9d1d9', lineHeight: 1.8, margin: 0 }}>
@@ -480,7 +495,7 @@ const MistakeBookPage: React.FC = () => {
               <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                 <Card
                   size="small"
-                  title={<><CheckCircleOutlined /> 修正策略</>}
+                  title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Check /> 修正策略</span>}
                   styles={{ header: { background: '#132d1c', color: '#52c41a' } }}
                 >
                   <p style={{ color: '#c9d1d9', lineHeight: 1.8, margin: 0 }}>
@@ -492,7 +507,6 @@ const MistakeBookPage: React.FC = () => {
           </>
         )}
       </Modal>
-
     </div>
   );
 };

@@ -1,5 +1,5 @@
 /**
- * 开奖记录表格组件
+ * 开奖记录表格组件 - 自适应布局
  */
 import React from 'react';
 import { Table, Tag } from 'antd';
@@ -25,6 +25,20 @@ interface GameTableProps {
   onPageChange: (page: number) => void;
 }
 
+// 精致图标
+const Icons = {
+  Check: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+    </svg>
+  ),
+  Close: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+    </svg>
+  ),
+};
+
 const GameTable: React.FC<GameTableProps> = ({
   data,
   loading = false,
@@ -33,47 +47,65 @@ const GameTable: React.FC<GameTableProps> = ({
   onPageChange,
 }) => {
   const columns: ColumnsType<GameRecord> = [
-    { title: '局号', dataIndex: 'game_number', width: 60 },
+    { 
+      title: '局号', 
+      dataIndex: 'game_number', 
+      width: '15%',
+      align: 'center',
+    },
     {
       title: '结果',
       dataIndex: 'result',
-      width: 70,
+      width: '20%',
+      align: 'center',
       render: (v: string) => (
         <Tag
           color={v === '庄' ? '#ff4d4f' : v === '闲' ? '#1890ff' : '#52c41a'}
-          style={{ fontWeight: 700 }}
+          style={{ fontWeight: 700, fontSize: 12 }}
         >
           {v}
         </Tag>
       ),
     },
-    { title: '预测', dataIndex: 'predict_direction', width: 60 },
+    { 
+      title: '预测', 
+      dataIndex: 'predict_direction', 
+      width: '15%',
+      align: 'center',
+      render: (v: string | null) => v || '-',
+    },
     {
       title: '正确',
       dataIndex: 'predict_correct',
-      width: 55,
+      width: '15%',
+      align: 'center',
       render: (v: boolean | null) =>
         v === null ? (
           '-'
         ) : v ? (
-          <Tag color="success">✓</Tag>
+          <Tag color="success" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+            <Icons.Check /> 正确
+          </Tag>
         ) : (
-          <Tag color="error">✗</Tag>
+          <Tag color="error" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+            <Icons.Close /> 错误
+          </Tag>
         ),
     },
     {
       title: '盈亏',
       dataIndex: 'profit_loss',
-      width: 75,
+      width: '35%',
+      align: 'center',
       render: (v: number) => (
         <span
           style={{
-            color: v > 0 ? '#ff4d4f' : v < 0 ? '#52c41a' : undefined,
-            fontWeight: 600,
+            color: v > 0 ? '#ff4d4f' : v < 0 ? '#52c41a' : '#888',
+            fontWeight: 700,
+            fontSize: 13,
           }}
         >
-          {v > 0 ? '+' : ''}
-          {v?.toFixed(0)}
+          {v > 0 ? '+' : ''}{v?.toFixed(0)}
         </span>
       ),
     },
@@ -92,9 +124,11 @@ const GameTable: React.FC<GameTableProps> = ({
         total: total || data.length,
         onChange: onPageChange,
         size: 'small',
+        showTotal: (t) => `共 ${t} 条`,
       }}
-      scroll={{ y: 160 }}
-      locale={{ emptyText: '暂无记录' }}
+      scroll={{ y: 200 }}
+      locale={{ emptyText: '暂无开奖记录' }}
+      style={{ width: '100%' }}
     />
   );
 };

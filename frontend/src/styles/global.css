@@ -29,8 +29,8 @@
   --warning: #faad14;
   --info: #58a6ff;
 
-  --sidebar-width: 220px;
-  --sidebar-collapsed-width: 68px;
+  --sidebar-width: 180px;
+  --sidebar-collapsed-width: 56px;
   --topbar-height: 60px;
   --mobile-bottom-tab-height: 60px;
 
@@ -417,7 +417,7 @@ body {
   overflow: hidden;
 }
 
-/* 侧边栏 */
+/* 侧边栏 - 固定定位，不随页面滚动 */
 .sidebar {
   width: var(--sidebar-width);
   min-width: var(--sidebar-width);
@@ -427,6 +427,10 @@ body {
   flex-direction: column;
   transition: all var(--transition-slow);
   z-index: 100;
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
 }
 
 .sidebar-collapsed {
@@ -435,7 +439,7 @@ body {
 }
 
 .sidebar-logo {
-  padding: 20px 16px;
+  padding: 16px 12px;
   text-align: center;
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -453,15 +457,17 @@ body {
 
 .sidebar-nav {
   flex: 1;
-  padding: 12px 8px;
+  padding: 10px 6px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 11px 14px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 10px 10px;
   margin-bottom: 4px;
   border-radius: 8px;
   cursor: pointer;
@@ -474,6 +480,7 @@ body {
   background: transparent;
   width: 100%;
   text-align: left;
+  position: relative;
 }
 
 .nav-item:hover {
@@ -489,9 +496,24 @@ body {
 
 .nav-item .nav-icon {
   font-size: 17px;
-  width: 20px;
-  text-align: center;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+}
+
+/* 侧边栏收起状态下图标居中 */
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.sidebar-collapsed .nav-item .nav-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 18px;
 }
 
 .nav-item .nav-text {
@@ -569,6 +591,45 @@ body {
   background: rgba(139, 148, 158, 0.1);
   color: var(--gold);
   border-color: rgba(255, 215, 0, 0.25);
+}
+
+/* 新的收起/展开按钮样式 - 位于Logo下方，在两条线之间居中 */
+.sidebar-toggle-wrapper {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.sidebar-collapsed .sidebar-toggle-wrapper {
+  padding: 10px 8px;
+  justify-content: center;
+}
+
+.sidebar-toggle-btn-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 11px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255,255,255,0.03);
+  transition: all var(--transition-fast);
+}
+
+.sidebar-toggle-btn-compact:hover {
+  background: rgba(139, 148, 158, 0.12);
+  color: var(--gold);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.sidebar-collapsed .sidebar-toggle-btn-compact {
+  padding: 6px 8px;
 }
 
 /* ====== 移动端底部Tab栏 ====== */
@@ -733,7 +794,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(48,54,68,0.2);
 }
 
 .section-title {
@@ -1146,7 +1208,7 @@ body {
   background: linear-gradient(145deg, rgba(22,29,42,0.9), rgba(17,23,35,0.9));
   border: 1px solid rgba(48,54,68,0.4);
   border-radius: 16px;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   backdrop-filter: blur(8px);
 }
@@ -1418,9 +1480,7 @@ body {
 /* 平板 (≤1200px) */
 @media (max-width: 1200px) {
   .home-grid { grid-template-columns: 1fr; }
-  .sidebar { width: var(--sidebar-collapsed-width); min-width: var(--sidebar-collapsed-width); }
-  .sidebar .nav-text { opacity: 0; }
-  .sidebar-logo h2 { font-size: 0; }
+  /* 侧边栏不再自动收起，保持用户选择的状态 */
   .top-bar { padding: 10px 16px; gap: 10px; }
   .page-container { padding: 12px 16px; }
   .top-status-bar { padding: 10px 16px; }

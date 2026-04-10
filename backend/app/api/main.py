@@ -218,6 +218,100 @@ async def get_health_score(table_id: str = Query(...)):
         }
 
 
+@app.get("/api/system/diagnostics")
+async def get_system_diagnostics(table_id: str = Query(...)):
+    """
+    系统诊断接口 - 返回所有关键系统组件的实时状态
+    前端用于系统健康监控面板和实盘日志页的状态栏
+    """
+    import time
+    
+    # AI模型配置检查
+    openai_enabled = bool(settings.OPENAI_API_KEY)
+    anthropic_enabled = bool(settings.ANTHROPIC_API_KEY)
+    gemini_enabled = bool(settings.GEMINI_API_KEY)
+    
+    # 数据库连通性检查
+    db_ok = True
+    try:
+        async with async_session() as session:
+            await session.execute(select(func.count()).select_from(GameRecord))
+    except Exception:
+        db_ok = False
+    
+    # 内存会话状态
+    from app.services.manual_game_service import _sessions, get_current_state
+    memory_sessions = list(_sessions.keys())
+    
+    # 当前桌子的会话状态
+    current_session_state = await get_current_state(table_id)
+    
+    # WebSocket连接数（全局）
+    ws_count = len(ws_clients)
+    
+    # 收集AI模型详细状态
+    models_status = {
+        "openai": {
+            "enabled": openai_enabled,
+            "label": "庄模型",
+            "model": getattr(settings, "OPENAI_MODEL", "gpt-4o-mini"),
+            "issue": None if openai_enabled else "OPENAI_API_KEY 未在 .env 中配置",
+        },
+        "anthropic": {
+            "enabled": anthropic_enabled,
+            "label": "闲模型",
+            "model": getattr(settings, "ANTHROPIC_MODEL", "claude-sonnet-4-5"),
+            "issue": None if anthropic_enabled else "ANTHROPIC_API_KEY 未在 .env 中配置",
+        },
+        "gemini": {
+            "enabled": gemini_enabled,
+            "label": "综合模型",
+            "model": getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"),
+            "issue": None if gemini_enabled else "GEMINI_API_KEY 未在 .env 中配置",
+        },
+    }
+    
+    configured_count = sum([openai_enabled, anthropic_enabled, gemini_enabled])
+    
+    # 构建告警列表
+    issues = []
+    if not db_ok:
+        issues.append({"level": "critical", "title": "数据库连接失败", "detail": "SQLite 数据库无法访问，所有数据操作均会失败"})
+    if configured_count == 0:
+        issues.append({"level": "critical", "title": "所有AI模型均未配置", "detail": "请在 backend/.env 文件中配置 OPENAI_API_KEY、ANTHROPIC_API_KEY、GEMINI_API_KEY"})
+    elif configured_count < 3:
+        unconfigured = [v["label"] for k, v in models_status.items() if not v["enabled"]]
+        issues.append({"level": "warning", "title": f"{len(unconfigured)}个AI模型未配置", "detail": f"以下模型缺少API Key：{'、'.join(unconfigured)}"})
+    
+    return {
+        "backend_version": settings.APP_VERSION,
+        "table_id": table_id,
+        "timestamp": datetime.now().isoformat(),
+        
+        # AI模型配置
+        "openai_enabled": openai_enabled,
+        "anthropic_enabled": anthropic_enabled,
+        "gemini_enabled": gemini_enabled,
+        "ai_configured_count": configured_count,
+        "models_detail": models_status,
+        
+        # 数据库
+        "db_ok": db_ok,
+        
+        # WebSocket
+        "ws_connections": ws_count,
+        
+        # 内存会话
+        "memory_sessions": memory_sessions,
+        "current_session": current_session_state,
+        
+        # 告警
+        "issues": issues,
+        "has_critical_issues": any(i["level"] == "critical" for i in issues),
+        "overall_status": "critical" if not db_ok or configured_count == 0 else "warning" if configured_count < 3 else "ok",
+    }
+
+
 # --- 手动游戏 API ---
 
 class GameUploadItem(BaseModel):

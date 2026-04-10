@@ -127,16 +127,58 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [draw]);
 
+  // 计算内容宽度，用于自动滚动到最新
+  const contentWidth = useMemo(() => {
+    if (!data || !data.points.length) return 0;
+    const totalCols = Math.max(data.max_columns, 1);
+    return mergedConfig.padding * 2 + totalCols * (mergedConfig.cellSize + mergedConfig.cellGap);
+  }, [data, mergedConfig]);
+
+  // 使用 ref 存储滚动容器
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const prevDataLengthRef = useRef(data?.points?.length || 0);
+
+  // 数据变化时自动滚动到最新
+  useEffect(() => {
+    const currentLength = data?.points?.length || 0;
+    const prevLength = prevDataLengthRef.current;
+    
+    // 只在数据增加时滚动（新数据到来）
+    if (currentLength > prevLength && scrollContainerRef.current && contentWidth > 0) {
+      scrollContainerRef.current.scrollLeft = contentWidth;
+    }
+    
+    prevDataLengthRef.current = currentLength;
+  }, [data, contentWidth]);
+
+  // 初始挂载时也滚动到最新
+  useEffect(() => {
+    if (scrollContainerRef.current && contentWidth > 0) {
+      scrollContainerRef.current.scrollLeft = contentWidth;
+    }
+  }, [contentWidth]);
+
   return (
-    <canvas
-      ref={canvasRef}
+    <div
       className={className}
       style={{
-        display: 'block',
-        borderRadius: '8px',
+        position: 'relative',
+        width: '100%',
+        height: externalHeight || 110,
+        overflow: 'auto',
         ...style,
       }}
-    />
+      ref={scrollContainerRef}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          display: 'block',
+          borderRadius: '8px',
+          minWidth: contentWidth || '100%',
+        }}
+      />
+    </div>
   );
 };
 

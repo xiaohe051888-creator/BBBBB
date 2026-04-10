@@ -1,44 +1,101 @@
 /**
  * 实盘日志详情页 - 完整系统日志、事件追踪、错误告警
  * 路由：/dashboard/:tableId/logs
+ * 
+ * 优化：使用React Query + 乐观UI策略，页面切换无加载转圈
  */
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Select,
-  Input, Tooltip, Modal, Spin, Empty, Badge, Timeline, Alert, Switch, message,
+  Input, Tooltip, Modal, Empty, Badge, Timeline, Alert, Switch, message,
 } from 'antd';
-import {
-  ArrowLeftOutlined, ReloadOutlined, SearchOutlined,
-  FilterOutlined, ExclamationCircleOutlined, ClockCircleOutlined,
-  WarningOutlined, FileTextOutlined, CheckCircleOutlined,
-  DownloadOutlined,
-} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import * as api from '../services/api';
+import { useLogsQuery, type LogEntry, useAddLogOptimistically } from '../hooks';
+import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
+import { SystemStatusPanel } from '../components/ui/SystemStatusPanel';
 import { PRIORITY_COLORS, LOG_CATEGORIES } from '../utils/constants';
+import { useQueryClient } from '@tanstack/react-query';
+import * as api from '../services/api';
 
-interface LogEntry {
-  id: number;
-  log_time: string;
-  game_number: number | null;
-  event_code: string;
-  event_type: string;
-  event_result: string;
-  description: string;
-  category: string;
-  priority: string;
-  is_pinned: boolean;
-}
+// 精致SVG图标组件
+const Icons = {
+  Back: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+    </svg>
+  ),
+  Refresh: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+    </svg>
+  ),
+  Search: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+    </svg>
+  ),
+  Filter: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
+    </svg>
+  ),
+  Pin: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16 12V4H17V2H7V4H8V12L6 14V16H11.2V22H12.8V16H18V14L16 12Z"/>
+    </svg>
+  ),
+  Clock: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+    </svg>
+  ),
+  Warning: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+    </svg>
+  ),
+  FileText: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+    </svg>
+  ),
+  CheckCircle: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+    </svg>
+  ),
+  Download: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+    </svg>
+  ),
+  Chart: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+    </svg>
+  ),
+  Success: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+    </svg>
+  ),
+  Error: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+    </svg>
+  ),
+};
 
 const LogsPage: React.FC = () => {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const addLogOptimistically = useAddLogOptimistically();
 
-  // 数据
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  // 系统实时诊断
+  const { diagnostics, dismissIssue, retryConnection } = useSystemDiagnostics({ tableId });
 
   // 分页
   const [page, setPage] = useState(1);
@@ -48,6 +105,25 @@ const LogsPage: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [filterPriority, setFilterPriority] = useState<string>('');
   const [searchText, setSearchText] = useState('');
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
+
+  // 搜索防抖
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  // React Query获取数据（乐观UI：永远不显示loading，数据来了直接渲染）
+  const { data: logsData } = useLogsQuery({ 
+    tableId, 
+    category: filterCategory || undefined,
+    page, 
+    pageSize 
+  });
+
+  const logs = logsData?.logs || [];
 
   // 自动滚动
   const [autoScroll, setAutoScroll] = useState(true);
@@ -59,7 +135,90 @@ const LogsPage: React.FC = () => {
 
   // WebSocket实时推送
   const wsRef = useRef<WebSocket | null>(null);
-  // const logsEndRef = useRef<HTMLDivElement>(null); // 暂不使用
+
+  // 手动刷新
+  const handleRefresh = () => {
+    if (!tableId) return;
+    queryClient.invalidateQueries({ queryKey: ['logs', tableId] });
+  };
+
+  // WebSocket实时推送
+  useEffect(() => {
+    if (!tableId) return;
+
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isUnmounted = false;
+
+    const connectWS = () => {
+      if (isUnmounted) return;
+      try {
+        const ws = api.createWebSocket(tableId);
+        wsRef.current = ws;
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'log') {
+              // 乐观更新：立即将新日志添加到缓存
+              addLogOptimistically(tableId, data.data);
+            }
+          } catch {
+            // WebSocket消息解析错误，忽略
+          }
+        };
+
+        ws.onclose = () => {
+          if (!isUnmounted) {
+            reconnectTimer = setTimeout(connectWS, 3000);
+          }
+        };
+      } catch {
+        if (!isUnmounted) {
+          reconnectTimer = setTimeout(connectWS, 5000);
+        }
+      }
+    };
+
+    connectWS();
+
+    return () => {
+      isUnmounted = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [tableId, addLogOptimistically]);
+
+  // 筛选后的数据（客户端筛选）
+  const filteredLogs = useMemo(() => {
+    return logs.filter(l => {
+      if (filterCategory && l.category !== filterCategory) return false;
+      if (filterPriority && l.priority !== filterPriority) return false;
+      if (debouncedSearchText && !(
+        l.description.toLowerCase().includes(debouncedSearchText.toLowerCase()) ||
+        l.event_type.includes(debouncedSearchText) ||
+        String(l.game_number).includes(debouncedSearchText)
+      )) return false;
+      return true;
+    });
+  }, [logs, filterCategory, filterPriority, debouncedSearchText]);
+
+  // 统计
+  const stats = useMemo(() => {
+    const result = {
+      total: filteredLogs.length,
+      pinned: filteredLogs.filter(l => l.is_pinned).length,
+      errors: filteredLogs.filter(l => ['P0', 'P1'].includes(l.priority)).length,
+      byCategory: {} as Record<string, number>,
+    };
+    filteredLogs.forEach(l => {
+      result.byCategory[l.category] = (result.byCategory[l.category] || 0) + 1;
+    });
+    return result;
+  }, [filteredLogs]);
 
   // ====== 导出功能 ======
   const exportToCSV = () => {
@@ -99,116 +258,14 @@ const LogsPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // 加载日志
-  const loadLogs = useCallback(async (p = page) => {
-    if (!tableId) return;
-    setLoading(true);
-    try {
-      const res = await api.getLogs({
-        table_id: tableId,
-        category: filterCategory || undefined,
-        page: p,
-        page_size: pageSize,
-      });
-      setLogs(res.data.data || []);
-    } catch {
-      // API请求失败时显示空数据（不使用模拟数据）
-    } finally {
-      setLoading(false);
-    }
-  }, [tableId, page, pageSize, filterCategory]);
-
-  useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
-
-  // 定时刷新
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(() => loadLogs(), 5000);
-    return () => clearInterval(interval);
-  }, [loadLogs, autoRefresh]);
-
-  // WebSocket实时推送
-  useEffect(() => {
-    if (!tableId) return;
-
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let isUnmounted = false;
-
-    const connectWS = () => {
-      if (isUnmounted) return;
-      try {
-        const ws = api.createWebSocket(tableId);
-        wsRef.current = ws;
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'log') {
-              setLogs(prev => [data.data, ...prev].slice(0, 500));
-            }
-          } catch {
-            // WebSocket消息解析错误，忽略
-          }
-        };
-
-        ws.onclose = () => {
-          if (!isUnmounted) {
-            reconnectTimer = setTimeout(connectWS, 3000);
-          }
-        };
-      } catch {
-        if (!isUnmounted) {
-          reconnectTimer = setTimeout(connectWS, 5000);
-        }
-      }
-    };
-
-    connectWS();
-
-    return () => {
-      isUnmounted = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (wsRef.current) {
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [tableId]);
-
-  // 筛选后的数据
-  const filteredLogs = logs.filter(l => {
-    if (filterCategory && l.category !== filterCategory) return false;
-    if (filterPriority && l.priority !== filterPriority) return false;
-    if (searchText && !(
-      l.description.toLowerCase().includes(searchText.toLowerCase()) ||
-      l.event_type.includes(searchText) ||
-      String(l.game_number).includes(searchText)
-    )) return false;
-    return true;
-  });
-
-  // 统计
-  const stats = {
-    total: filteredLogs.length,
-    pinned: filteredLogs.filter(l => l.is_pinned).length,
-    errors: filteredLogs.filter(l => ['P0', 'P1'].includes(l.priority)).length,
-    byCategory: {} as Record<string, number>,
-  };
-  filteredLogs.forEach(l => {
-    stats.byCategory[l.category] = (stats.byCategory[l.category] || 0) + 1;
-  });
-
-  // 表格列定义
+  // 表格列定义 - 自适应布局，避免横向滚动
   const columns: ColumnsType<LogEntry> = [
     {
       title: '时间',
       dataIndex: 'log_time',
-      width: 85,
+      width: '12%',
       render: (v: string) => (
-        <span style={{ fontFamily: 'monospace', fontSize: 12 }}>
+        <span style={{ fontFamily: 'monospace', fontSize: 11 }}>
           {v ? dayjs(v).format('HH:mm:ss') : ''}
         </span>
       ),
@@ -218,15 +275,15 @@ const LogsPage: React.FC = () => {
     {
       title: '局号',
       dataIndex: 'game_number',
-      width: 55,
+      width: '8%',
       render: (v: number | null) => v ?? '-',
     },
     {
       title: '优先级',
       dataIndex: 'priority',
-      width: 58,
+      width: '10%',
       render: (v: string) => (
-        <Tag color={PRIORITY_COLORS[v]} style={{ fontSize: 11, fontWeight: 600 }}>
+        <Tag color={PRIORITY_COLORS[v]} style={{ fontSize: 10, fontWeight: 600, padding: '0 4px' }}>
           {v}
         </Tag>
       ),
@@ -241,19 +298,21 @@ const LogsPage: React.FC = () => {
     {
       title: '类别',
       dataIndex: 'category',
-      width: 65,
+      width: '10%',
       render: (v: string) => (
-        <Tag style={{ fontSize: 11 }}>{v}</Tag>
+        <Tag style={{ fontSize: 10, padding: '0 4px' }}>{v.slice(0, 4)}</Tag>
       ),
     },
     {
       title: '事件',
       dataIndex: 'event_type',
-      width: 90,
+      width: '15%',
       render: (v: string, record: LogEntry) => (
-        <Space size={4}>
-          {record.is_pinned && <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />}
-          <span style={{ fontWeight: 500, color: PRIORITY_COLORS[record.priority] || '#58a6ff' }}>
+        <Space size={2}>
+          {record.is_pinned && (
+            <span style={{ color: '#ff4d4f' }}><Icons.Pin /></span>
+          )}
+          <span style={{ fontWeight: 500, color: PRIORITY_COLORS[record.priority] || '#58a6ff', fontSize: 12 }}>
             {v}
           </span>
         </Space>
@@ -262,12 +321,12 @@ const LogsPage: React.FC = () => {
     {
       title: '结果',
       dataIndex: 'event_result',
-      width: 60,
+      width: '8%',
       render: (v: string) =>
         v === '成功'
-          ? <Tag color="success" style={{ fontSize: 11 }}>✓</Tag>
+          ? <Tag color="success" style={{ fontSize: 10, padding: '0 4px' }}><Icons.Success /></Tag>
           : v === '失败'
-            ? <Tag color="error" style={{ fontSize: 11 }}>✗</Tag>
+            ? <Tag color="error" style={{ fontSize: 10, padding: '0 4px' }}><Icons.Error /></Tag>
             : '-',
     },
     {
@@ -276,19 +335,18 @@ const LogsPage: React.FC = () => {
       ellipsis: true,
       render: (v: string) => (
         <Tooltip title={v}>
-          <span style={{ cursor: 'pointer', fontSize: 12 }}>{v}</span>
+          <span style={{ cursor: 'pointer', fontSize: 11 }}>{v}</span>
         </Tooltip>
       ),
     },
     {
       title: '操作',
-      width: 50,
-      fixed: 'right' as const,
+      width: '8%',
       render: (_: unknown, record: LogEntry) => (
         <Button
           type="link"
           size="small"
-          style={{ padding: 0 }}
+          style={{ padding: 0, fontSize: 11 }}
           onClick={() => { setSelectedLog(record); setDetailModalOpen(true); }}
         >
           详情
@@ -305,12 +363,12 @@ const LogsPage: React.FC = () => {
       {/* 顶部导航 */}
       <div className="page-nav-bar">
         <div className="page-nav-left">
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/dashboard/${tableId}`)}>
+          <Button icon={<Icons.Back />} onClick={() => navigate(`/dashboard/${tableId}`)}>
             返回
           </Button>
           <span className="page-nav-title">
-            <FileTextOutlined style={{ marginRight: 8 }} />
-            实盘日志 — {tableId}
+            <Icons.FileText />
+            <span style={{ marginLeft: 8 }}>实盘日志 — {tableId}</span>
           </span>
           <Space size="small">
             <Badge count={stats.total} showZero style={{ backgroundColor: '#58a6ff' }} overflowCount={9999} />
@@ -320,6 +378,13 @@ const LogsPage: React.FC = () => {
           </Space>
         </div>
         <div className="page-nav-right">
+          {/* 系统实时状态 */}
+          <SystemStatusPanel
+            diagnostics={diagnostics}
+            onDismissIssue={dismissIssue}
+            onRetryConnection={retryConnection}
+            compact
+          />
           <Switch
             size="small"
             checked={autoRefresh}
@@ -334,14 +399,18 @@ const LogsPage: React.FC = () => {
             checkedChildren="滚动"
             unCheckedChildren="固定"
           />
-          <Button icon={<ReloadOutlined />} size="small" onClick={() => loadLogs()}>
+          <Button 
+            icon={<Icons.Refresh />} 
+            size="small" 
+            onClick={handleRefresh}
+          >
             刷新
           </Button>
-          <Button icon={<DownloadOutlined />} size="small" onClick={exportToCSV} title="导出CSV">
-            CSV
+          <Button icon={<Icons.Download />} size="small" onClick={exportToCSV} title="导出CSV">
+            导出CSV
           </Button>
-          <Button icon={<DownloadOutlined />} size="small" onClick={exportToJSON} title="导出JSON">
-            JSON
+          <Button icon={<Icons.Download />} size="small" onClick={exportToJSON} title="导出JSON">
+            导出JSON
           </Button>
         </div>
       </div>
@@ -352,7 +421,7 @@ const LogsPage: React.FC = () => {
           {/* 筛选栏 */}
           <Card size="small" style={{ marginBottom: 12 }}>
             <Space size="middle" wrap>
-              <FilterOutlined /> <strong style={{ color: '#8b949e' }}>筛选：</strong>
+              <Icons.Filter /> <strong style={{ color: '#8b949e' }}>筛选：</strong>
 
               <Select
                 placeholder="事件类别"
@@ -384,7 +453,7 @@ const LogsPage: React.FC = () => {
                 size="small"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                prefix={<SearchOutlined />}
+                prefix={<Icons.Search />}
                 style={{ width: 160 }}
               />
 
@@ -401,54 +470,61 @@ const LogsPage: React.FC = () => {
             </Space>
           </Card>
 
-          {/* 日志表格 */}
-          <Spin spinning={loading}>
-            <Card size="small">
-              <Table
-                dataSource={filteredLogs}
-                columns={columns}
-                rowKey="id"
-                size="small"
-                pagination={{
-                  current: page,
-                  pageSize,
-                  total: filteredLogs.length,
-                  onChange: (p, ps) => { setPage(p); if (ps !== pageSize) setPageSize(ps); },
-                  showTotal: (total) => `共 ${total} 条日志`,
-                  showSizeChanger: true,
-                  showQuickJumper: true,
-                  pageSizeOptions: ['20', '50', '100', '200'],
-                  size: 'small',
-                }}
-                scroll={{ y: 'calc(100vh - 380px)', x: 800 }}
-                locale={{ emptyText: <Empty description="暂无日志记录" /> }}
-                rowClassName={(record) => {
-                  if (record.is_pinned) return 'log-pinned';
-                  if (record.priority === 'P0') return 'log-critical';
-                  if (record.priority === 'P1') return 'log-error';
-                  return '';
-                }}
-              />
-            </Card>
-          </Spin>
+          {/* 日志表格 - 乐观UI：永远不显示loading，数据来了直接渲染 */}
+          <Card size="small">
+            <Table
+              dataSource={filteredLogs}
+              columns={columns}
+              rowKey="id"
+              size="small"
+              pagination={{
+                current: page,
+                pageSize,
+                total: filteredLogs.length,
+                onChange: (p, ps) => { setPage(p); if (ps !== pageSize) setPageSize(ps); },
+                showTotal: (total) => `共 ${total} 条日志`,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                pageSizeOptions: ['20', '50', '100', '200'],
+                size: 'small',
+              }}
+              scroll={{ y: 'calc(100vh - 380px)' }}
+              locale={{ emptyText: <Empty description="暂无日志记录" /> }}
+              rowClassName={(record) => {
+                if (record.is_pinned) return 'log-pinned';
+                if (record.priority === 'P0') return 'log-critical';
+                if (record.priority === 'P1') return 'log-error';
+                return '';
+              }}
+            />
+          </Card>
         </div>
 
-        {/* 右侧：时间线 + 统计 */}
+        {/* 右侧：系统状态 + 时间线 + 统计 */}
         <div className="logs-layout-col-right" style={{ flex: '1 1 300px' }}>
+          {/* ===== 系统实时状态面板 ===== */}
+          <SystemStatusPanel
+            diagnostics={diagnostics}
+            onDismissIssue={dismissIssue}
+            onRetryConnection={retryConnection}
+            compact={false}
+          />
+          <div style={{ marginBottom: 12 }} />
+
           {/* 告警面板 */}
           {(stats.errors > 0) && (
             <Alert
               message={`当前有 ${stats.errors} 个未处理的严重问题`}
               type="error"
               showIcon
-              icon={<WarningOutlined />}
+              icon={<Icons.Warning />}
               style={{ marginBottom: 12 }}
             />
           )}
 
           {/* 实时时间线 */}
           <Card
-            title={<span><ClockCircleOutlined /> 最近事件</span>}
+            title={<span><Icons.Clock /> 最近事件</span>}
             size="small"
             style={{ marginBottom: 12 }}
             styles={{ body: { maxHeight: 'calc(100vh - 420px)', overflowY: 'auto' } }}
@@ -466,7 +542,7 @@ const LogsPage: React.FC = () => {
                       }}>
                         {log.log_time ? dayjs(log.log_time).format('HH:mm:ss') : ''}
                       </span>
-                      {log.is_pinned && <ExclamationCircleOutlined style={{ color: '#ff4d4f', fontSize: 11 }} />}
+                      {log.is_pinned && <span style={{ color: '#ff4d4f' }}><Icons.Pin /></span>}
                       <Tag color={PRIORITY_COLORS[log.priority]} style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px' }}>
                         {log.priority}
                       </Tag>
@@ -482,7 +558,7 @@ const LogsPage: React.FC = () => {
           </Card>
 
           {/* 类别分布 */}
-          <Card title={<span>📊 分类统计</span>} size="small">
+          <Card title={<span><Icons.Chart /> 分类统计</span>} size="small">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {Object.entries(stats.byCategory).map(([cat, count]) => (
                 <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -526,9 +602,9 @@ const LogsPage: React.FC = () => {
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ color: '#8b949e', flex: '0 0 80px' }}>执行结果：</span>
               {selectedLog.event_result === '成功'
-                ? <Tag color="success"><CheckCircleOutlined /> 成功</Tag>
+                ? <Tag color="success"><Icons.CheckCircle /> 成功</Tag>
                 : selectedLog.event_result === '失败'
-                  ? <Tag color="error"><WarningOutlined /> 失败</Tag>
+                  ? <Tag color="error"><Icons.Warning /> 失败</Tag>
                   : '-'}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap' }}>
@@ -541,7 +617,7 @@ const LogsPage: React.FC = () => {
                 <Tag color={PRIORITY_COLORS[selectedLog.priority]} style={{ fontWeight: 600 }}>
                   {selectedLog.priority}
                 </Tag>
-                {selectedLog.is_pinned && <Tag color="#ff4d4f">📌 已置顶</Tag>}
+                {selectedLog.is_pinned && <Tag color="#ff4d4f"><Icons.Pin /> 已置顶</Tag>}
               </div>
             </div>
             <div>

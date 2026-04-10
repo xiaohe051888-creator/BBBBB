@@ -48,7 +48,12 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       clearToken();
-      console.warn('认证失败(401)，请重新登录');
+      // 只在非登录页面时跳转
+      const currentPath = window.location.pathname;
+      if (!currentPath.includes('/login') && !currentPath.includes('/start')) {
+        console.warn('认证失败(401)，请重新登录');
+        window.location.href = '/?session_expired=true';
+      }
     }
     return Promise.reject(error);
   },
@@ -62,6 +67,27 @@ export const getSystemState = async (tableId: string) => {
 
 export const getHealthScore = async (tableId: string) => {
   return api.get('/system/health', { params: { table_id: tableId } });
+};
+
+/** 后端健康检查（轻量ping） */
+export const getSystemHealth = async (tableId: string) => {
+  return api.get('/system/health', { params: { table_id: tableId } });
+};
+
+export interface SystemDiagnosticsResponse {
+  backend_version: string;
+  openai_enabled: boolean;
+  anthropic_enabled: boolean;
+  gemini_enabled: boolean;
+  db_ok: boolean;
+  ws_connections: number;
+  uptime_seconds: number;
+  memory_sessions: string[];
+}
+
+/** 获取系统诊断信息（AI Key配置、DB状态、WS连接数等） */
+export const getSystemDiagnostics = async (tableId: string) => {
+  return api.get<SystemDiagnosticsResponse>('/system/diagnostics', { params: { table_id: tableId } });
 };
 
 // ====== 手动游戏 API ======

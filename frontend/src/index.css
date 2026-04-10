@@ -542,6 +542,38 @@ a:hover { color: var(--gold-light); }
 .animate-in-delay-3 { animation: fadeInUp 0.5s var(--ease-out-back) 0.3s both; fill-mode: both; }
 .animate-scale { animation: fadeInScale 0.4s ease both; }
 
+/* 页面切换过渡动画 */
+.page-transition {
+  animation: pageEnter 0.35s ease-out;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 内容区域切换动画 */
+.content-fade-in {
+  animation: contentFadeIn 0.4s ease-out;
+}
+
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ====== 响应式断点 ===== */
 
 /* 平板竖屏及以下 (≤768px) */

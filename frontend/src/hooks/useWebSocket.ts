@@ -2,7 +2,7 @@
  * WebSocket 连接管理 Hook
  * 统一管理 WebSocket 连接、重连和消息处理
  */
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import * as api from '../services/api';
 
 interface WebSocketMessage {
@@ -25,6 +25,8 @@ interface UseWebSocketReturn {
   sendMessage: (message: unknown) => void;
   /** 手动重连 */
   reconnect: () => void;
+  /** 连接状态 */
+  connectionState: 'connecting' | 'open' | 'closing' | 'closed';
 }
 
 /**
@@ -46,6 +48,9 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isUnmountedRef = useRef(false);
+  // 使用 state 触发重连
+  const [reconnectTrigger, setReconnectTrigger] = useState(0);
+  const [connectionState, setConnectionState] = useState<'connecting' | 'open' | 'closing' | 'closed'>('closed');
   // 使用 ref 存储回调函数，避免闭包问题
   const callbacksRef = useRef({
     onStateUpdate,
@@ -75,6 +80,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
   // 建立连接 - 在 useEffect 中定义 connect 避免渲染时访问 ref
   useEffect(() => {
     isUnmountedRef.current = false;
+    setConnectionState('connecting');
 
     const connect = () => {
       if (!tableId || isUnmountedRef.current) return;
@@ -82,6 +88,10 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
       try {
         const ws = api.createWebSocket(tableId);
         wsRef.current = ws;
+
+        ws.onopen = () => {
+          setConnectionState('open');
+        };
 
         ws.onmessage = (event) => {
           try {
@@ -118,11 +128,13 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
         };
 
         ws.onclose = () => {
+          setConnectionState('closed');
           if (!isUnmountedRef.current) {
             reconnectTimerRef.current = setTimeout(connect, reconnectInterval);
           }
         };
       } catch {
+        setConnectionState('closed');
         if (!isUnmountedRef.current) {
           reconnectTimerRef.current = setTimeout(connect, reconnectInterval + 2000);
         }
@@ -142,7 +154,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
         wsRef.current = null;
       }
     };
-  }, [tableId, reconnectInterval]);
+  }, [tableId, reconnectInterval, reconnectTrigger]);
 
   const reconnect = useCallback(() => {
     if (reconnectTimerRef.current) {
@@ -152,12 +164,13 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
       wsRef.current.close();
     }
     // 触发 useEffect 重新执行
-    // 这里通过修改一个 ref 来触发，实际由 useEffect 内部处理重连
+    setReconnectTrigger(prev => prev + 1);
   }, []);
 
   return {
     sendMessage,
     reconnect,
+    connectionState,
   };
 };
 

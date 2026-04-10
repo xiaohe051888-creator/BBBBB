@@ -26,6 +26,8 @@ interface BigRoadCanvasProps {
   height?: number;      // 外部约束高度
   className?: string;
   style?: React.CSSProperties;
+  onPointClick?: (point: RoadData['points'][0]) => void;  // 点击点回调
+  onPointHover?: (point: RoadData['points'][0] | null) => void;  // 悬停点回调
 }
 
 const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
@@ -35,6 +37,8 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
   height: externalHeight,
   className,
   style,
+  onPointClick,
+  onPointHover,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
@@ -43,6 +47,9 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
 
   // 获取最新点的game_number，用于动画触发
   const lastGameNumber = useRef<number>(0);
+
+  // 存储点位置映射用于点击检测
+  const pointPositionsRef = useRef<Map<string, RoadData['points'][0]>>(new Map());
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -106,6 +113,9 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     // 构建点网格用于快速查找
     const grid = buildPointGrid(data.points);
 
+    // 清空点位置映射
+    pointPositionsRef.current.clear();
+
     // 检测是否有新点需要动画
     const hasNewPoint = data.points.length > 0 && 
       data.points[data.points.length - 1].game_number > lastGameNumber.current;
@@ -130,15 +140,20 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
         const color = getPointColor(point.value, false);
         const isLastPoint = point === data.points[data.points.length - 1];
 
+        // 存储点位置用于点击检测 (key: "x,y", value: point)
+        const radius = cellSize / 2 - 1;
+        pointPositionsRef.current.set(`${Math.round(x)},${Math.round(y)}`, point);
+        pointPositionsRef.current.set(`${col},${row}`, point);
+
         if (isLastPoint && hasNewPoint && animProgress < 1) {
           // 新点动画
           // 判断是否为和局：value === '和' 或者 is_tie === true
           const isTie = point.value === '和' || point.is_tie === true;
-          drawAnimatedCircle(ctx, x, y, cellSize / 2 - 1, color, mergedConfig.borderRadius, animProgress, !!point.error_id, isTie);
+          drawAnimatedCircle(ctx, x, y, radius, color, mergedConfig.borderRadius, animProgress, !!point.error_id, isTie);
         } else {
           // 判断是否为和局：value === '和' 或者 is_tie === true
           const isTie = point.value === '和' || point.is_tie === true;
-          drawCircle(ctx, x, y, cellSize / 2 - 1, color, mergedConfig.borderRadius, !!point.error_id, isTie);
+          drawCircle(ctx, x, y, radius, color, mergedConfig.borderRadius, !!point.error_id, isTie);
         }
       }
     }
@@ -175,16 +190,138 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [draw]);
 
+  // 计算内容宽度，用于自动滚动到最新
+  const contentWidth = useMemo(() => {
+    if (!data || !data.points.length) return 0;
+    const totalCols = Math.max(data.max_columns, 1);
+    return mergedConfig.padding * 2 + totalCols * (mergedConfig.cellSize + mergedConfig.cellGap);
+  }, [data, mergedConfig]);
+
+  // 使用 ref 存储滚动容器
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const prevDataLengthRef = useRef(data?.points?.length || 0);
+
+  // 数据变化时自动滚动到最新
+  useEffect(() => {
+    const currentLength = data?.points?.length || 0;
+    const prevLength = prevDataLengthRef.current;
+    
+    // 只在数据增加时滚动（新数据到来）
+    if (currentLength > prevLength && scrollContainerRef.current && contentWidth > 0) {
+      scrollContainerRef.current.scrollLeft = contentWidth;
+    }
+    
+    prevDataLengthRef.current = currentLength;
+  }, [data, contentWidth]);
+
+  // 初始挂载时也滚动到最新
+  useEffect(() => {
+    if (scrollContainerRef.current && contentWidth > 0) {
+      scrollContainerRef.current.scrollLeft = contentWidth;
+    }
+  }, [contentWidth]);
+
+  // 处理Canvas点击事件
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!onPointClick || !data?.points.length) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const clickX = (e.clientX - rect.left) * dpr;
+    const clickY = (e.clientY - rect.top) * dpr;
+
+    const cellSize = mergedConfig.cellSize;
+    const cellGap = mergedConfig.cellGap;
+    const padding = mergedConfig.padding;
+    const radius = (cellSize / 2 - 1) * dpr;
+
+    // 查找点击的点
+    for (const [key, point] of pointPositionsRef.current) {
+      if (key.includes(',')) {
+        const [px, py] = key.split(',').map(Number);
+        if (!isNaN(px) && !isNaN(py) && px > 100) { // 排除 col,row 格式的key
+          const distance = Math.sqrt(Math.pow(clickX - px, 2) + Math.pow(clickY - py, 2));
+          if (distance <= radius * 1.5) { // 1.5倍半径作为点击容差
+            onPointClick(point);
+            return;
+          }
+        }
+      }
+    }
+  }, [onPointClick, data, mergedConfig]);
+
+  // 处理Canvas悬停事件
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!onPointHover || !data?.points.length) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const mouseX = (e.clientX - rect.left) * dpr;
+    const mouseY = (e.clientY - rect.top) * dpr;
+
+    const cellSize = mergedConfig.cellSize;
+    const radius = (cellSize / 2 - 1) * dpr;
+
+    // 查找悬停的点
+    for (const [key, point] of pointPositionsRef.current) {
+      if (key.includes(',')) {
+        const [px, py] = key.split(',').map(Number);
+        if (!isNaN(px) && !isNaN(py) && px > 100) {
+          const distance = Math.sqrt(Math.pow(mouseX - px, 2) + Math.pow(mouseY - py, 2));
+          if (distance <= radius * 1.5) {
+            onPointHover(point);
+            canvas.style.cursor = 'pointer';
+            return;
+          }
+        }
+      }
+    }
+
+    onPointHover(null);
+    canvas.style.cursor = 'default';
+  }, [onPointHover, data, mergedConfig]);
+
+  const handleCanvasMouseLeave = useCallback(() => {
+    if (onPointHover) {
+      onPointHover(null);
+    }
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.style.cursor = 'default';
+    }
+  }, [onPointHover]);
+
   return (
-    <canvas
-      ref={canvasRef}
+    <div
       className={className}
       style={{
-        display: 'block',
-        borderRadius: '8px',
+        position: 'relative',
+        width: '100%',
+        height: externalHeight || 200,
+        overflow: 'auto',
         ...style,
       }}
-    />
+      ref={scrollContainerRef}
+    >
+      <canvas
+        ref={canvasRef}
+        onClick={handleCanvasClick}
+        onMouseMove={handleCanvasMouseMove}
+        onMouseLeave={handleCanvasMouseLeave}
+        style={{
+          display: 'block',
+          borderRadius: '8px',
+          minWidth: contentWidth || '100%',
+          cursor: onPointClick ? 'pointer' : 'default',
+        }}
+      />
+    </div>
   );
 };
 
