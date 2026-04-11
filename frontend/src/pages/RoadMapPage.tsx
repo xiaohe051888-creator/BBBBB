@@ -12,7 +12,7 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useRoadsQuery, useGamesQuery, type GameRecord } from '../hooks';
+import { useRoadsQuery, useGamesQuery } from '../hooks';
 import FiveRoadChart from '../components/roads/FiveRoadChart';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -106,7 +106,8 @@ const RoadMapPage: React.FC = () => {
     pageSize: 100,
   });
 
-  const games = gamesData?.games || [];
+  // 使用useMemo缓存games，避免useMemo依赖变化
+  const games = useMemo(() => gamesData?.games || [], [gamesData]);
 
   // 转换为RawGameRecord格式
   const rawData: RawGameRecord[] = useMemo(() => {
@@ -256,31 +257,67 @@ const RoadMapPage: React.FC = () => {
 
       {/* 主内容区 - 乐观UI：无Spin包裹，数据立即显示 */}
       {activeTab === 'chart' && (
-        <Card
-          title={<span><Icons.Target /> 五路走势图（全屏模式）</span>}
-          style={{ minHeight: 'calc(100vh - 160px)' }}
-        >
-          <FiveRoadChart
-            data={roadData?.roads ?? null}
-          />
-          
-          {/* 图例说明 */}
+        <div style={{
+          minHeight: 'calc(100vh - 140px)',
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#0d1117',
+          borderRadius: '12px',
+          border: '1px solid #30363d',
+          overflow: 'auto',
+        }}>
+          {/* 标题栏 */}
           <div style={{
+            padding: '12px 16px',
+            background: 'linear-gradient(90deg, #161b22 0%, #0d1117 100%)',
+            borderBottom: '1px solid #30363d',
             display: 'flex',
-            gap: 24,
-            marginTop: 12,
-            paddingTop: 12,
-            borderTop: '1px solid #21262d',
-            fontSize: 12,
-            color: '#8b949e',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}>
-            <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#ff4d4f', marginRight: 4 }} />庄(Banker)</span>
-            <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#1890ff', marginRight: 4 }} />闲(Player)</span>
-            <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#52c41a', marginRight: 4 }} />和(Tie)</span>
-            <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#faad14', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', marginRight: 4 }} />错误标记</span>
-            <span><Tooltip title="大路：相同颜色一组最多6个；珠盘路：14列×6行；下三路：红=与前一同，蓝=不同"><Icons.Info /> 规则说明</Tooltip></span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icons.Target />
+              <span style={{ fontSize: '15px', fontWeight: 600, color: '#e6edf3' }}>
+                五路走势图
+              </span>
+              <span style={{ fontSize: '12px', color: '#8b949e' }}>
+                澳门标准布局
+              </span>
+            </div>
+            
+            {/* 图例说明 */}
+            <div style={{
+              display: 'flex',
+              gap: '16px',
+              fontSize: '12px',
+              color: '#8b949e',
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff4d4f' }} />
+                庄
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#1890ff' }} />
+                闲
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#52c41a' }} />
+                和
+              </span>
+              <Tooltip title="大路：相同颜色一组最多6个；珠盘路：14列×6行；下三路：红=与前一同，蓝=不同">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'help' }}>
+                  <Icons.Info />
+                  规则
+                </span>
+              </Tooltip>
+            </div>
           </div>
-        </Card>
+          
+          {/* 五路图区域 */}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            <FiveRoadChart data={roadData?.roads ?? null} />
+          </div>
+        </div>
       )}
 
       {activeTab === 'raw' && (

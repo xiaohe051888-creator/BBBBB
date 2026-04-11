@@ -703,6 +703,7 @@ body {
   flex-direction: column;
   overflow: hidden;
   background: var(--bg-primary);
+  min-width: 0;  /* 允许flex子项收缩 */
 }
 
 /* ====== 顶部状态栏 ====== */
@@ -772,8 +773,9 @@ body {
 .page-container {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;  /* 改为auto，允许水平滚动 */
   padding: 16px 24px;
+  min-width: 0;  /* 允许flex子项收缩 */
 }
 
 /* ====== 卡片板块通用 ====== */

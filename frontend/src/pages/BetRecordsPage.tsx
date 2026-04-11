@@ -8,7 +8,7 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Statistic,
-  Select, Input, Tooltip, Modal, Empty,
+  Select, Input, Modal, Empty,
   Progress, Badge, Descriptions,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -86,8 +86,9 @@ const BetRecordsPage: React.FC = () => {
     pageSize 
   });
 
-  const bets = betsData?.bets || [];
-  const total = betsData?.total || 0;
+  // 使用useMemo缓存数据，避免useMemo依赖变化
+  const bets = useMemo(() => betsData?.bets || [], [betsData]);
+  const total = useMemo(() => betsData?.total || 0, [betsData]);
 
   // 筛选
   const [filterDirection, setFilterDirection] = useState<string>('');

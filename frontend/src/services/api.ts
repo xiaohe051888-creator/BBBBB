@@ -65,7 +65,23 @@ export const getSystemState = async (tableId: string) => {
   return api.get('/system/state', { params: { table_id: tableId } });
 };
 
-export const getHealthScore = async (tableId: string) => {
+export interface HealthScoreResponse {
+  health_score: number;
+  model_stability: number;
+  settlement_consistency: number;
+  status: 'healthy' | 'warning' | 'critical' | 'error';
+  status_text: string;
+  details: {
+    ai_models: { score: number; max: number; issues: string[] };
+    database: { score: number; max: number; issues: string[] };
+    data_consistency: { score: number; max: number; issues: string[] };
+    session_health: { score: number; max: number; issues: string[] };
+  };
+  all_issues: string[];
+  timestamp: string;
+}
+
+export const getHealthScore = async (tableId: string): Promise<HealthScoreResponse> => {
   return api.get('/system/health', { params: { table_id: tableId } });
 };
 
@@ -195,6 +211,16 @@ export const getCurrentGameState = async (tableId: string) => {
   return api.get<CurrentGameState>('/games/current-state', { params: { table_id: tableId } });
 };
 
+/** 结束本靴 - 触发深度学习 */
+export const endBoot = async (tableId: string) => {
+  return api.post('/games/end-boot', null, { params: { table_id: tableId } });
+};
+
+/** 获取深度学习状态 */
+export const getDeepLearningStatus = async (tableId: string) => {
+  return api.get('/games/deep-learning-status', { params: { table_id: tableId } });
+};
+
 // ====== 开奖记录 ======
 
 export const getGameRecords = async (params: {
@@ -265,6 +291,8 @@ export interface RoadPointData {
   value: string;
   is_new_column: boolean;
   error_id: string | null;
+  has_tie?: boolean;
+  is_tie?: boolean;
 }
 
 export interface SingleRoadData {
@@ -305,7 +333,12 @@ export const getRoadRawData = async (tableId: string, bootNumber?: number) => {
 
 export const createWebSocket = (tableId: string): WebSocket => {
   const token = getToken();
-  const wsUrl = import.meta.env.VITE_WS_URL || `ws://localhost:8000/ws/${tableId}`;
+  // WebSocket URL 格式: ws://localhost:8000/ws/{table_id}
+  const baseWsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
+  // 如果环境变量已包含完整路径，使用它；否则拼接 table_id
+  const wsUrl = baseWsUrl.includes('/ws/')
+    ? baseWsUrl
+    : `${baseWsUrl}/ws/${tableId}`;
   const urlWithToken = token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl;
   return new WebSocket(urlWithToken);
 };
@@ -326,25 +359,10 @@ export const getLatestAnalysis = async (tableId: string) => {
 
 // ====== 错题本 ======
 
-export interface MistakeRecord {
-  id?: number;
-  table_id: string;
-  boot_number: number;
-  game_number: number;
-  error_id: string;
-  error_type: string;
-  predict_direction: string;
-  actual_result: string;
-  banker_summary: string | null;
-  player_summary: string | null;
-  combined_summary: string | null;
-  confidence: number | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  road_snapshot: any | null;
-  analysis: string | null;
-  correction: string | null;
-  created_at?: string;
-}
+// MistakeRecord 类型定义已移至 useQueries.ts，请从那里导入
+// 保留此导出以避免破坏现有导入，但标记为 deprecated
+/** @deprecated 请从 useQueries.ts 导入 MistakeRecord */
+export type MistakeRecord = import('../hooks/useQueries').MistakeRecord;
 
 export const getMistakeRecords = async (params: {
   table_id: string;

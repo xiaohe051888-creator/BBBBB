@@ -6,6 +6,7 @@ import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../services/api';
+import { useSystemDiagnostics } from './useSystemDiagnostics';
 
 interface UseAdminLoginOptions {
   onSuccess?: () => void;
@@ -41,6 +42,9 @@ export const useAdminLogin = (
   const [visible, setVisible] = useState(false);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // 系统诊断（使用默认桌号）
+  const { addIssue } = useSystemDiagnostics({ tableId: '26' });
 
   const openLogin = useCallback(() => {
     setVisible(true);
@@ -76,13 +80,21 @@ export const useAdminLogin = (
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : '登录失败';
       message.error(errorMsg);
+      // 记录错误到系统状态面板
+      addIssue({
+        level: 'warning',
+        title: '管理员登录失败',
+        detail: `登录失败: ${errorMsg}`,
+        source: 'system',
+      });
       if (err instanceof Error) {
         options.onError?.(err);
       }
     } finally {
       setLoading(false);
     }
-  }, [password, navigate, options]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [password, navigate, options.onSuccess, options.onError]);
 
   return {
     visible,

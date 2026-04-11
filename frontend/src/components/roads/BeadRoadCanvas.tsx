@@ -1,16 +1,18 @@
 /**
- * 珠盘路 (Bead Road) Canvas 组件
+ * 珠盘路 (Bead Road) Canvas 组件 - 简化版
  * 
- * 规则（标准百家乐）:
+ * 核心原则：
+ * - 固定 14列 × 6行，不滚动
+ * - 只负责绘制，不管理滚动
+ * 
+ * 规则：
  * - 固定 14列 × 6行 网格布局
- * - 从左到右、从上到下依次填入（row=0在最上方一行）
- * - 颜色直接表示庄/闲（庄=红, 闲=蓝）
- * - 数据超过84个(14×6)时循环覆盖旧位置
- * - 与大路的区别: 大路是自适应行列+向下延伸; 珠盘路是固定网格
+ * - 从左到右、从上到下依次填入
+ * - 庄=红, 闲=蓝
  */
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
-import { BEAD_ROAD_CONFIG, ROAD_COLORS } from '../../types/road';
+import { BEAD_ROAD_CONFIG, ROAD_COLORS, calculateBeadRoadSize } from '../../types/road';
 import {
   getPointColor,
   drawGrid,
@@ -19,8 +21,6 @@ import {
 interface BeadRoadCanvasProps {
   data: RoadData | null;
   config?: Partial<RoadCanvasConfig>;
-  width?: number;
-  height?: number;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -28,13 +28,26 @@ interface BeadRoadCanvasProps {
 const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
   data,
   config: customConfig,
-  width: externalWidth,
-  height: externalHeight,
   className,
   style,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mergedConfig = useMemo(() => ({ ...BEAD_ROAD_CONFIG, ...customConfig }), [customConfig]);
+
+  // 固定尺寸
+  const fixedSize = useMemo(() => calculateBeadRoadSize(mergedConfig), [mergedConfig]);
+
+  // Canvas像素尺寸
+  const canvasPixelSize = useMemo(() => {
+    const dpr = window.devicePixelRatio || 1;
+    return {
+      width: Math.round(fixedSize.width * dpr),
+      height: Math.round(fixedSize.height * dpr),
+      styleWidth: fixedSize.width,
+      styleHeight: fixedSize.height,
+      dpr,
+    };
+  }, [fixedSize]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -43,68 +56,40 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    let canvasWidth: number;
-    let canvasHeight: number;
-
-    if (externalWidth && externalHeight) {
-      canvasWidth = externalWidth * dpr;
-      canvasHeight = externalHeight * dpr;
-    } else {
-      // 珠盘路: 固定14列×6行网格（标准百家乐规则）
-      const fixedCols = 14;
-      const fixedRows = 6;  // ★ 固定6行，不依赖数据量
-      const cellSize = mergedConfig.cellSize;
-      const cellGap = mergedConfig.cellGap;
-      const padding = mergedConfig.padding;
-      canvasWidth = (padding * 2 + fixedCols * (cellSize + cellGap)) * dpr;
-      canvasHeight = (padding * 2 + fixedRows * (cellSize + cellGap)) * dpr;
-    }
-
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    canvas.style.width = `${canvasWidth / dpr}px`;
-    canvas.style.height = `${canvasHeight / dpr}px`;
-
-    ctx.scale(dpr, dpr);
-
-    const displayWidth = canvasWidth / dpr;
-    const displayHeight = canvasHeight / dpr;
+    const dpr = canvasPixelSize.dpr;
+    const displayWidth = canvasPixelSize.styleWidth;
+    const displayHeight = canvasPixelSize.styleHeight;
 
     // 背景
     ctx.fillStyle = ROAD_COLORS.background;
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
-    if (!data || !data.points.length) {
-      ctx.fillStyle = '#30363d';
-      ctx.font = `${mergedConfig.fontSize}px -apple-system, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('等待数据...', displayWidth / 2, displayHeight / 2);
-      return;
-    }
-
     const cellSize = mergedConfig.cellSize;
     const cellGap = mergedConfig.cellGap;
     const padding = mergedConfig.padding;
-    const fixedCols = 14;       // 珠盘路固定14列
-    const fixedRows = 6;        // ★ 珠盘路固定6行（不管数据多少都画完整网格）
+    const fixedCols = 14;
+    const fixedRows = 6;
 
-    // 绘制网格（固定完整网格，不是只画有数据的部分）
+    // 始终绘制完整网格
     if (mergedConfig.showGrid) {
       drawGrid(ctx, mergedConfig, fixedCols, fixedRows);
     }
 
+    // 无数据时直接返回（不显示文字，由父组件处理空状态）
+    if (!data || !data.points.length) {
+      return;
+    }
+
     // 按坐标绘制点
     for (const point of data.points) {
-      if (point.column >= fixedCols) continue; // 超出范围的点不显示
+      if (point.column >= fixedCols || point.row >= fixedRows) continue;
 
       const x = padding + point.column * (cellSize + cellGap) + cellSize / 2;
       const y = padding + point.row * (cellSize + cellGap) + cellSize / 2;
 
       const color = getPointColor(point.value, false);
       
-      // 珠盘路特殊处理：绘制实心圆，并在里面写文字
+      // 绘制实心圆
       ctx.save();
       ctx.fillStyle = color;
       ctx.beginPath();
@@ -112,22 +97,21 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
       ctx.fill();
       
       // 绘制文字
-      ctx.fillStyle = '#ffffff'; // 白色文字
+      ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${Math.max(8, cellSize * 0.35)}px -apple-system, "PingFang SC", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
-      // 根据值显示不同文字
       let displayText = '';
       if (point.value === '庄') displayText = '庄';
       else if (point.value === '闲') displayText = '闲';
       else if (point.value === '和') displayText = '和';
-      else displayText = '?'; // 未知值
+      else displayText = '?';
       
       ctx.fillText(displayText, x, y);
       ctx.restore();
       
-      // 错误标记（如果有）
+      // 错误标记
       if (point.error_id) {
         ctx.fillStyle = ROAD_COLORS.errorMark;
         ctx.beginPath();
@@ -139,7 +123,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
         ctx.fill();
       }
     }
-  }, [data, mergedConfig, externalWidth, externalHeight]);
+  }, [data, mergedConfig, canvasPixelSize]);
 
   useEffect(() => {
     draw();
@@ -155,9 +139,12 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     <canvas
       ref={canvasRef}
       className={className}
+      width={canvasPixelSize.width}
+      height={canvasPixelSize.height}
       style={{
         display: 'block',
-        borderRadius: '8px',
+        width: canvasPixelSize.styleWidth,
+        height: canvasPixelSize.styleHeight,
         ...style,
       }}
     />

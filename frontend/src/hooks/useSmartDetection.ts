@@ -2,7 +2,7 @@
  * 智能检测系统 Hook
  * 提供数据完整性检测、异常模式检测、智能风险提示等功能
  */
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { message } from 'antd';
 import type { GameRecord, BetRecord, SystemState } from './useGameState';
 
@@ -81,7 +81,8 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
  * 智能检测系统 Hook
  */
 export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDetectionReturn => {
-  const { games, bets, systemState, tableId } = options;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { games, bets, systemState, tableId: _tableId } = options;
   
   // ====== 状态 ======
   const [integrityIssues, setIntegrityIssues] = useState<DataIntegrityIssue[]>([]);
@@ -156,7 +157,11 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
   // 自动检测数据完整性
   useEffect(() => {
     if (games.length > 0) {
-      checkDataIntegrity();
+      // 使用setTimeout避免同步调用setState
+      const timer = setTimeout(() => {
+        checkDataIntegrity();
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [games, checkDataIntegrity]);
   
@@ -265,7 +270,11 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
   
   // 自动检测异常模式
   useEffect(() => {
-    detectAbnormalPatterns();
+    // 使用setTimeout避免同步调用setState
+    const timer = setTimeout(() => {
+      detectAbnormalPatterns();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [games, bets, systemState, detectAbnormalPatterns]);
   
   // ====== 智能下注建议 ======
@@ -345,23 +354,31 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
   }, [hasCriticalIssues, systemState, consecutiveResults, recentWinRate]);
   
   // ====== 智能提醒 ======
-  
+
+  const removeAlert = useCallback((id: string) => {
+    setAlerts(prev => prev.filter(a => a.id !== id));
+  }, []);
+
+  const clearAlerts = useCallback(() => {
+    setAlerts([]);
+  }, []);
+
+  // 使用ref存储removeAlert，避免循环依赖
+  const removeAlertRef = useRef(removeAlert);
+
+  // 使用useEffect更新ref，避免在渲染期间修改
+  useEffect(() => {
+    removeAlertRef.current = removeAlert;
+  }, [removeAlert]);
+
   const addAlert = useCallback((alert: Omit<SmartAlert, 'id'>) => {
     const newAlert: SmartAlert = {
       ...alert,
       id: generateId(),
     };
-    
-    setAlerts(prev => {
-      // 防止重复提醒
-      const exists = prev.some(a => a.title === alert.title && a.message === alert.message);
-      if (exists) return prev;
-      
-      const newAlerts = [newAlert, ...prev].slice(0, 5); // 最多保留5个提醒
-      return newAlerts;
-    });
-    
-    // 显示消息提醒
+    setAlerts(prev => [...prev, newAlert]);
+
+    // 根据类型显示消息
     if (alert.type === 'danger') {
       message.error(alert.message);
     } else if (alert.type === 'warning') {
@@ -371,23 +388,17 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
     } else {
       message.info(alert.message);
     }
-    
+
     // 自动关闭
     if (alert.autoClose !== false) {
       setTimeout(() => {
-        removeAlert(newAlert.id);
+        if (removeAlertRef.current) {
+          removeAlertRef.current(newAlert.id);
+        }
       }, alert.duration || 5000);
     }
   }, []);
-  
-  const removeAlert = useCallback((id: string) => {
-    setAlerts(prev => prev.filter(a => a.id !== id));
-  }, []);
-  
-  const clearAlerts = useCallback(() => {
-    setAlerts([]);
-  }, []);
-  
+
   // 根据异常模式自动添加提醒
   useEffect(() => {
     abnormalPatterns.forEach(pattern => {
@@ -406,9 +417,29 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
   
   // ====== 数据同步状态 ======
   
-  const isDataStale = useMemo(() => {
-    if (!lastSyncTime) return false;
-    return Date.now() - lastSyncTime > 60000; // 超过1分钟认为数据过期
+  // 使用state存储计算结果，避免在useMemo中调用Date.now()
+  const [isDataStale, setIsDataStale] = useState(false);
+  
+  useEffect(() => {
+    if (!lastSyncTime) {
+      // 使用setTimeout避免同步setState
+      const timer = setTimeout(() => setIsDataStale(false), 0);
+      return () => clearTimeout(timer);
+    }
+    // 检查数据是否过期
+    const checkStale = () => {
+      setIsDataStale(Date.now() - lastSyncTime > 60000);
+    };
+    // 使用setTimeout避免同步setState
+    const initialTimer = setTimeout(checkStale, 0);
+
+    // 设置定时器定期检查
+    const timer = setInterval(checkStale, 10000);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(timer);
+    };
   }, [lastSyncTime]);
   
   const markSynced = useCallback(() => {
@@ -418,13 +449,17 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
   // 检测数据同步状态
   useEffect(() => {
     if (isDataStale) {
-      addAlert({
-        type: 'warning',
-        title: '数据同步',
-        message: '数据可能已过期，建议刷新页面',
-        autoClose: true,
-        duration: 3000,
-      });
+      // 使用setTimeout避免同步setState
+      const timer = setTimeout(() => {
+        addAlert({
+          type: 'warning',
+          title: '数据同步',
+          message: '数据可能已过期，建议刷新页面',
+          autoClose: true,
+          duration: 3000,
+        });
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isDataStale, addAlert]);
   

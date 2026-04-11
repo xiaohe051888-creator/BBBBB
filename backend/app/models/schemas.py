@@ -207,24 +207,96 @@ class MistakeBook(Base):
 
 # ============ 模型版本表 ============
 class ModelVersion(Base):
-    """AI模型版本管理 - 最多5个版本"""
+    """AI模型版本管理 - 智能版本选择 + 三级记忆"""
     __tablename__ = "model_versions"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    version = Column(String(20), unique=True, nullable=False, comment="版本号")
+    version = Column(String(30), unique=True, nullable=False, comment="版本号")
     created_at = Column(DateTime, server_default=func.now(), comment="创建时间")
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间")
+    
+    # 训练信息
     training_range = Column(Text, nullable=True, comment="训练数据范围")
     training_sample_count = Column(Integer, default=0, comment="训练样本数")
+    learning_count = Column(Integer, default=0, comment="学习次数（经验值）")
+    parent_version = Column(String(30), nullable=True, comment="父版本（继承自哪个版本）")
+    
+    # 准确率追踪
     accuracy_before = Column(Float, nullable=True, comment="学习前准确率")
     accuracy_after = Column(Float, nullable=True, comment="学习后准确率")
+    recent_3_boot_accuracy = Column(Float, nullable=True, comment="最近3靴命中率")
+    overall_accuracy = Column(Float, nullable=True, comment="整体命中率")
+    
+    # 关键变化
     key_changes = Column(Text, nullable=True, comment="关键变化摘要")
+    prompt_template = Column(Text, nullable=True, comment="完整提示词模板")
+    self_reflection = Column(Text, nullable=True, comment="自我反思总结")
+    
+    # 状态管理
     is_active = Column(Boolean, default=False, comment="是否当前使用")
     is_eliminated = Column(Boolean, default=False, comment="是否已淘汰")
+    is_stable = Column(Boolean, default=False, comment="是否为稳定版本")
+    
+    # 性能统计
     total_runs = Column(Integer, default=0, comment="使用局数")
     hit_count = Column(Integer, default=0, comment="命中次数")
-    stability_score = Column(Float, nullable=True, comment="稳定性评分")
-    recovery_speed_score = Column(Float, nullable=True, comment="恢复速度评分")
-    drawdown_control_score = Column(Float, nullable=True, comment="回撤控制评分")
+    total_boots = Column(Integer, default=0, comment="使用靴数")
+    recent_boots_hit = Column(Integer, default=0, comment="最近3靴命中次数")
+    recent_boots_total = Column(Integer, default=0, comment="最近3靴总次数")
+    
+    # 综合评分维度
+    stability_score = Column(Float, nullable=True, comment="稳定性评分(0-100)")
+    recovery_speed_score = Column(Float, nullable=True, comment="恢复速度评分(0-100)")
+    drawdown_control_score = Column(Float, nullable=True, comment="回撤控制评分(0-100)")
+    user_rating = Column(Float, default=5.0, comment="用户评分(0-10)")
+    
+    # 智能评分（自动计算）
+    intelligence_score = Column(Float, nullable=True, comment="智能评分(加权综合)")
+    
+    # 三级记忆
+    short_term_memory = Column(Text, nullable=True, comment="短期记忆JSON（当前靴）")
+    medium_term_memory = Column(Text, nullable=True, comment="中期记忆JSON（最近5靴）")
+    long_term_memory = Column(Text, nullable=True, comment="长期记忆JSON（所有历史）")
+
+
+# ============ AI记忆表 ============
+class AIMemory(Base):
+    """AI记忆 - 局级微学习记录"""
+    __tablename__ = "ai_memories"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    created_at = Column(DateTime, server_default=func.now(), comment="记忆创建时间")
+    
+    # 关联信息
+    table_id = Column(String(10), nullable=False, comment="桌号")
+    boot_number = Column(Integer, nullable=False, comment="靴号")
+    game_number = Column(Integer, nullable=False, comment="局号")
+    version_id = Column(String(30), nullable=True, comment="使用的模型版本")
+    
+    # 预测信息
+    prediction = Column(String(10), nullable=True, comment="预测结果")
+    actual_result = Column(String(10), nullable=True, comment="实际结果")
+    is_correct = Column(Boolean, nullable=True, comment="是否预测正确")
+    confidence = Column(Float, nullable=True, comment="置信度")
+    
+    # 深度错误分析（5维度）
+    error_type = Column(String(50), nullable=True, comment="错误类型")
+    error_dimension = Column(String(50), nullable=True, comment="错误维度：证据误判/血迹盲区/规律误判/权重失衡/其他")
+    error_analysis = Column(Text, nullable=True, comment="错误详细分析")
+    
+    # 自我反思
+    self_reflection = Column(Text, nullable=True, comment="AI自我反思")
+    would_do_differently = Column(Text, nullable=True, comment="如果重来会怎么做")
+    lesson_learned = Column(Text, nullable=True, comment="学到的教训")
+    
+    # 五路快照
+    road_snapshot = Column(Text, nullable=True, comment="五路走势图快照JSON")
+    bloodstain_pattern = Column(Text, nullable=True, comment="血迹模式分析")
+    
+    # 记忆权重（用于遗忘曲线）
+    memory_weight = Column(Float, default=1.0, comment="记忆权重(0-1)")
+    access_count = Column(Integer, default=0, comment="被引用次数")
+    last_accessed = Column(DateTime, nullable=True, comment="最后引用时间")
 
 
 # ============ 管理员表 ============

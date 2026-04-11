@@ -1,407 +1,676 @@
 """
-统一引擎 - 五路走势图算法（权威标准修正版）
-基于8个国外权威网站的交叉验证：
-1. baccaratsmart.com
-2. baccaratprotips.com  
-3. baccarat.net
-4. baccarattraining.com
-5. livedealer.org
-6. energycasino.com
-7. sevenjackpots.com
-8. casinoousa.com
+Road Engine - 百家乐路牌计算引擎
 
-大路、珠盘路、大眼仔路、小路、螳螂路
-输出：5路2D实时完整标准走势图
+提供标准澳门路牌算法实现：
+- 大路 (Big Road)
+- 珠盘路 (Bead Road)  
+- 大眼仔路 (Big Eye Road)
+- 小路 (Small Road)
+- 螳螂路 (Cockroach Road)
 """
-from typing import List, Dict, Tuple, Optional
+
+from typing import List, Dict, Tuple, Optional, Set
 from dataclasses import dataclass, field
+from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class RoadType(str, Enum):
+    """路牌类型"""
+    BIG_ROAD = "big_road"
+    BEAD_ROAD = "bead_road"
+    BIG_EYE = "big_eye"
+    SMALL_ROAD = "small_road"
+    COCKROACH_ROAD = "cockroach_road"
 
 
 @dataclass
 class RoadPoint:
-    """走势图上的一个点"""
-    game_number: int       # 局号
-    column: int            # 列坐标（从0开始）
-    row: int               # 行坐标（从0开始）
-    value: str             # 值：庄/闲/和
-    is_new_column: bool = False  # 是否新列起始
-    error_id: Optional[str] = None  # 错误标记
-    is_tie: bool = False  # 是否为和局（在派生路中可能为空）
+    """路牌点数据"""
+    game_number: int
+    column: int  # 列索引 (0-based)
+    row: int     # 行索引 (0-based, 0=最上面)
+    value: str   # "庄", "闲", "和"
+    is_new_column: bool = False
+    error_id: Optional[int] = None
+    is_tie: bool = False
+    has_tie: bool = False  # 该点是否有和局标记
 
 
-@dataclass 
+@dataclass
 class RoadData:
-    """单条路的完整数据"""
-    road_type: str         # 路类型名称
-    display_name: str      # 展示名称
+    """路牌数据容器"""
+    road_type: str
+    display_name: str
     points: List[RoadPoint] = field(default_factory=list)
     max_columns: int = 0
     max_rows: int = 0
 
 
-@dataclass
-class FiveRoadResult:
-    """五路算法完整输出"""
-    big_road: RoadData      # 大路
-    bead_road: RoadData     # 珠盘路
-    big_eye_boy: RoadData   # 大眼仔路
-    small_road: RoadData    # 小路
-    cockroach_road: RoadData # 螳螂路
-    
-    # 走势图尺寸约束
-    BEAD_COLUMNS: int = 14
-    BEAD_MAX_ROWS: int = 6
-
-
-class UnifiedRoadEngine:
+class RoadEngine:
     """
-    统一路引擎 - 五路走势图计算（权威标准版）
+    百家乐路牌计算引擎 - 标准澳门规则
     
-    全局常量（标准百家乐规则）:
-    - MAX_ROWS_PER_COLUMN: 大路和派生路每列最大行数（6个一行后换列）
-    - BEAD_COLUMNS: 珠盘路固定列数（14）
-    - BEAD_MAX_ROWS: 珠盘路固定最大行数（6）
+    核心规则：
+    1. 大路：相同结果往下排，不同结果换新列，每列最多6个，超过拐弯
+    2. 下三路：基于大路的衍生路，红=规律延续，蓝=规律转折
     """
     
-    # === 标准规则常量 ===
-    MAX_ROWS_PER_COLUMN = 6   # 大路/派生路每列最多6个点（全球统一）
-    BEAD_COLUMNS = 14         # 珠盘路固定14列
-    BEAD_MAX_ROWS = 6         # 珠盘路固定6行
+    # 路牌配置
+    MAX_ROWS_PER_COLUMN = 6  # 每列最大行数
+    BEAD_ROAD_COLS = 14      # 珠盘路列数
+    BEAD_ROAD_ROWS = 6       # 珠盘路行数
     
-    def __init__(self):
-        self.current_game_numbers: List[int] = []  # 当靴所有局号
-        self.current_results: List[str] = []       # 当靴所有结果（庄/闲/和）
-        self.error_map: Dict[int, str] = {}        # 局号 -> 错误编号
-    
-    def set_error_marks(self, error_map: Dict[int, str]):
-        """设置错误标记映射"""
-        self.error_map = error_map
-    
-    def process_game(self, game_number: int, result: str) -> FiveRoadResult:
+    def __init__(self, error_map: Optional[Dict[int, int]] = None):
         """
-        处理新一局，生成五路完整走势图
+        初始化路牌引擎
         
         Args:
-            game_number: 局号
-            result: 开奖结果（庄/闲/和）
-            
-        Returns:
-            FiveRoadResult 五路完整数据
+            error_map: 局号到错误ID的映射，用于标记错误局
         """
-        self.current_game_numbers.append(game_number)
-        self.current_results.append(result)
-        
-        return self.calculate_all_roads()
+        self.error_map = error_map or {}
     
-    def calculate_all_roads(self) -> FiveRoadResult:
-        """计算五路完整走势图"""
-        # === 关键修正：和局必须包含在所有路中，但处理方式不同 ===
-        all_entries = list(zip(self.current_game_numbers, self.current_results))
+    def calculate_all_roads(self, entries: List[Tuple[int, str]]) -> Dict[str, RoadData]:
+        """
+        计算所有路牌
         
-        # 1. 大路：包含所有结果（庄/闲/和），和局显示为绿色实心圆
-        big_road = self._calculate_big_road(all_entries)
+        Args:
+            entries: [(game_number, result), ...] result: "庄"/"闲"/"和"
         
-        # 2. 珠盘路：包含所有结果（庄/闲/和），和局显示为绿色实心圆
-        bead_road = self._calculate_bead_road(all_entries)
+        Returns:
+            Dict[str, RoadData]: 所有路牌数据
+        """
+        # 计算大路（基础路）
+        big_road = self._calculate_big_road(entries)
         
-        # 3. 派生路：基于大路（不含和局）计算，但大眼中的和局位置会影响派生路的判断
-        # 过滤和局，只保留庄闲用于派生路计算
-        valid_entries = [(gn, r) for gn, r in all_entries if r in ("庄", "闲")]
-        if valid_entries:
-            # 基于过滤后的结果重新计算大路（用于派生路）
-            big_road_for_derived = self._calculate_big_road(valid_entries)
-            big_eye_boy = self._calculate_derived_road(big_road_for_derived, "大眼仔路")
-            small_road = self._calculate_derived_road(big_road_for_derived, "小路")
-            cockroach_road = self._calculate_derived_road(big_road_for_derived, "螳螂路")
-        else:
-            # 没有有效庄闲结果时返回空数据
-            big_eye_boy = RoadData(road_type="big_eye_boy", display_name="大眼仔路")
-            small_road = RoadData(road_type="small_road", display_name="小路")
-            cockroach_road = RoadData(road_type="cockroach_road", display_name="螳螂路")
+        # 计算珠盘路
+        bead_road = self._calculate_bead_road(entries)
         
-        return FiveRoadResult(
-            big_road=big_road,
-            bead_road=bead_road,
-            big_eye_boy=big_eye_boy,
-            small_road=small_road,
-            cockroach_road=cockroach_road,
-        )
+        # 计算下三路（基于大路）
+        big_eye = self._calculate_big_eye_road(big_road)
+        small_road = self._calculate_small_road(big_road)
+        cockroach_road = self._calculate_cockroach_road(big_road)
+        
+        return {
+            "big_road": big_road,
+            "bead_road": bead_road,
+            "big_eye": big_eye,
+            "small_road": small_road,
+            "cockroach_road": cockroach_road,
+        }
+    
+    # ========== 兼容API方法（用于stats.py等） ==========
+    
+    def set_error_marks(self, error_map: Dict[int, int]):
+        """设置错误标记映射（兼容旧API）"""
+        self.error_map = error_map
+    
+    def process_game(self, game_number: int, result: str):
+        """处理单局游戏（兼容旧API，实际在calculate_all_roads中批量处理）"""
+        if not hasattr(self, '_entries'):
+            self._entries: List[Tuple[int, str]] = []
+        self._entries.append((game_number, result))
+    
+    def calculate_all_roads(self, entries: Optional[List[Tuple[int, str]]] = None) -> Dict[str, RoadData]:
+        """
+        计算所有路牌
+        
+        Args:
+            entries: 可选的局数据，如果不提供则使用process_game累积的数据
+        
+        Returns:
+            Dict[str, RoadData]: 所有路牌数据
+        """
+        # 优先使用传入的entries，否则使用累积的_entries
+        if entries is None:
+            entries = getattr(self, '_entries', [])
+        
+        if not entries:
+            return {
+                "big_road": RoadData(road_type="big_road", display_name="大路"),
+                "bead_road": RoadData(road_type="bead_road", display_name="珠盘路"),
+                "big_eye": RoadData(road_type="big_eye", display_name="大眼仔路"),
+                "small_road": RoadData(road_type="small_road", display_name="小路"),
+                "cockroach_road": RoadData(road_type="cockroach_road", display_name="螳螂路"),
+            }
+        
+        # 计算大路（基础路）
+        big_road = self._calculate_big_road(entries)
+        
+        # 计算珠盘路
+        bead_road = self._calculate_bead_road(entries)
+        
+        # 计算下三路（基于大路）
+        big_eye = self._calculate_big_eye_road(big_road)
+        small_road = self._calculate_small_road(big_road)
+        cockroach_road = self._calculate_cockroach_road(big_road)
+        
+        return {
+            "big_road": big_road,
+            "bead_road": bead_road,
+            "big_eye": big_eye,
+            "small_road": small_road,
+            "cockroach_road": cockroach_road,
+        }
     
     def _calculate_big_road(self, all_entries: List[Tuple[int, str]]) -> RoadData:
         """
-        大路算法 — 标准澳门规则（权威修正版）
+        大路算法 — 标准澳门规则（长龙拐弯修正版）
         
-        规则（基于8个权威网站交叉验证）：
+        核心规则：
         1. 相同结果往下排（纵向延伸）
-        2. 不同结果换新列（从下一列第一行开始）
-        3. 每列最多 MAX_ROWS_PER_COLUMN(6) 个点，超过则折到右侧新列继续
-        4. 和局(Tie)处理：在上一局对应位置显示绿色实心圆（澳门标准）
-           - 不换列，不换行，不开启新列
-           - 如果上一局是和局，则继续在同一位置叠加
-        5. 庄=红色实心圆，闲=蓝色实心圆，和=绿色实心圆
+        2. 不同结果换新列（从下一列开始，跳过被占用的行）
+        3. 每列最多 MAX_ROWS_PER_COLUMN(6) 行
+        4. 长龙拐弯规则：
+           - 当一列超过6个时，第7个开始向右拐弯（保持在第5行，列+1）
+           - 拐弯后的点仍属于同一长龙
+           - 下一列的对应行被前一列的长龙拐弯占用
+        5. 颜色变化时，从第0行开始，跳过被占用的行
+        
+        示例（用户确认的正确显示）：
+        第1-6局庄 → 第1列行0-5
+        第7局庄 → 第2列行5（拐弯）
+        第8局庄 → 第3列行5（拐弯）
+        第9-13局闲 → 第2列行0-4（跳过被占用的行5）
+        第14局闲 → 第3列行4（拐弯，跳过行5）
+        第15-17局庄 → 第3列行0-2（跳过被占用的行4和行5）
+        
+        最终显示：
+        第1列: 庄1-6 (行0-5)
+        第2列: 闲9-13 (行0-4), 庄7 (行5)
+        第3列: 庄15-17 (行0-2), 闲14 (行4), 庄8 (行5)
         """
         road = RoadData(road_type="big_road", display_name="大路")
         
         if not all_entries:
             return road
         
-        # 存储每个点的位置，用于和局查找
-        point_positions: Dict[int, Tuple[int, int]] = {}  # 局号 -> (列, 行)
-        last_valid_point: Optional[Tuple[int, int]] = None  # 最后一个有效庄/闲位置
+        # 记录每列被占用的行：column -> set of occupied rows
+        occupied: Dict[int, Set[int]] = {}
         
-        column = 0
-        row = 0
+        def is_occupied(col: int, row: int) -> bool:
+            return row in occupied.get(col, set())
+        
+        def occupy(col: int, row: int):
+            if col not in occupied:
+                occupied[col] = set()
+            occupied[col].add(row)
+        
+        def find_next_available_row(col: int, start_row: int) -> int:
+            """从start_row开始找第一个可用行，如果没有则返回MAX_ROWS_PER_COLUMN（表示需要继续向右拐弯）"""
+            row = start_row
+            while row < self.MAX_ROWS_PER_COLUMN and is_occupied(col, row):
+                row += 1
+            return row
+        
+        def find_available_row_upward(col: int, start_row: int) -> int:
+            """从start_row开始向上找第一个可用行（用于拐弯时），如果没有则返回-1"""
+            row = start_row
+            while row >= 0 and is_occupied(col, row):
+                row -= 1
+            return row
+        
+        def find_leftmost_available_column(min_col: int, max_col: int) -> int:
+            """从min_col到max_col找第一个有空位的列"""
+            for col in range(min_col, max_col + 1):
+                occupied_rows = occupied.get(col, set())
+                if len(occupied_rows) < self.MAX_ROWS_PER_COLUMN:
+                    return col
+            return max_col + 1
+        
+        # 状态跟踪
+        current_col = 0
+        current_row = 0
         prev_value = None
         prev_was_tie = False
         
+        # 记录当前长龙的起始列
+        current_dragon_start_col = 0
+        
         for game_number, result in all_entries:
             is_tie = (result == "和")
-            is_new_col = False
             
             if is_tie:
-                # === 和局处理：放置在上一局对应位置 ===
-                if last_valid_point:
-                    col_pos, row_pos = last_valid_point
-                    # 和局放在同一个位置，不开启新列
-                    is_new_col = False
-                elif prev_value and prev_value in ("庄", "闲"):
-                    # 如果之前有庄/闲结果，但还没记录位置，使用当前列
-                    col_pos, row_pos = column, row
-                    is_new_col = False
-                else:
-                    # 第一个结果就是和局，放在(0,0)
-                    col_pos, row_pos = 0, 0
-                    is_new_col = True
-            else:
-                # === 庄/闲处理 ===
-                if prev_value is None:
-                    # 第一个点：放在(0,0)，标记为新列
-                    is_new_col = True
-                elif result == prev_value and not prev_was_tie:
-                    # 相同结果：向下延伸一行
-                    row += 1
-                    # 关键约束：每列最多MAX_ROWS_PER_COLUMN个点
-                    if row >= self.MAX_ROWS_PER_COLUMN:
-                        row = self.MAX_ROWS_PER_COLUMN - 1
-                        column += 1
-                        is_new_col = True
-                else:
-                    # 不同结果：开启新列，从第0行开始
-                    column += 1
-                    row = 0
-                    is_new_col = True
-                
-                col_pos, row_pos = column, row
-                last_valid_point = (col_pos, row_pos)
+                # 和局处理：在上一局位置标记
+                if road.points:
+                    for i in range(len(road.points) - 1, -1, -1):
+                        if not road.points[i].is_tie:
+                            road.points[i].has_tie = True
+                            break
+                prev_was_tie = True
+                continue
             
+            # 庄/闲处理
+            is_new_col = False
+            
+            if prev_value is None:
+                # 第一个点
+                is_new_col = True
+                current_dragon_start_col = 0
+            elif result == prev_value and not prev_was_tie:
+                # 相同结果：尝试向下延伸
+                next_row = current_row + 1
+                
+                if next_row >= self.MAX_ROWS_PER_COLUMN:
+                    # 超过6行，拐弯到下一列
+                    occupy(current_col, self.MAX_ROWS_PER_COLUMN - 1)
+                    current_col += 1
+                    is_new_col = True
+                    # 在下一列找第一个可用行（从最后一行向上找）
+                    current_row = find_available_row_upward(current_col, self.MAX_ROWS_PER_COLUMN - 1)
+                    # 如果下一列也没有可用行，继续向右找
+                    while current_row < 0:
+                        current_col += 1
+                        current_row = find_available_row_upward(current_col, self.MAX_ROWS_PER_COLUMN - 1)
+                elif is_occupied(current_col, next_row):
+                    # 下一行被占用，拐弯
+                    occupy(current_col, current_row)
+                    current_col += 1
+                    is_new_col = True
+                    # 在下一列找第一个可用行（从next_row向上找）
+                    current_row = find_available_row_upward(current_col, next_row)
+                    # 如果下一列也没有可用行，继续向右找
+                    while current_row < 0:
+                        current_col += 1
+                        current_row = find_available_row_upward(current_col, next_row)
+                else:
+                    # 正常向下
+                    current_row = next_row
+            else:
+                # 不同结果：换新列
+                # 关键修改：从当前长龙起始列的下一列开始，找最左边的有空位列
+                # 这样可以回填到被长龙拐弯占用的列中
+                current_col = find_leftmost_available_column(current_dragon_start_col + 1, current_col)
+                is_new_col = True
+                # 从第0行开始，跳过被占用的行
+                current_row = find_next_available_row(current_col, 0)
+                
+                # 如果当前列已满（没有可用行），则向右找新列
+                if current_row >= self.MAX_ROWS_PER_COLUMN:
+                    current_col += 1
+                    current_row = find_next_available_row(current_col, 0)
+                
+                # 更新长龙起始列为当前列
+                current_dragon_start_col = current_col
+            
+            # 标记占用
+            occupy(current_col, current_row)
+            
+            # 创建点
             error_id = self.error_map.get(game_number)
             point = RoadPoint(
                 game_number=game_number,
-                column=col_pos,
-                row=row_pos,
+                column=current_col,
+                row=current_row,
                 value=result,
                 is_new_column=is_new_col,
                 error_id=error_id,
-                is_tie=is_tie,
+                is_tie=False,
             )
             road.points.append(point)
-            point_positions[game_number] = (col_pos, row_pos)
             
-            # 更新状态（和局不影响下一局的位置判断）
-            if not is_tie:
-                prev_value = result
-                prev_was_tie = False
-            else:
-                prev_was_tie = True
+            prev_value = result
+            prev_was_tie = False
         
-        # 更新尺寸信息
+        # 更新尺寸
         if road.points:
             road.max_columns = max(p.column for p in road.points) + 1
             road.max_rows = max(p.row for p in road.points) + 1
         
         return road
     
-    def _calculate_bead_road(self, all_entries: List[Tuple[int, str]]) -> RoadData:
+    def _layout_derived_road(self, color_sequence: List[Tuple[int, str]], road_type: str, display_name: str) -> RoadData:
         """
-        珠盘路算法 — 标准固定网格布局（权威修正版）
+        下三路通用布局算法 - 使用和大路完全相同的拐弯逻辑
         
-        规则（基于8个权威网站交叉验证）：
-        - 固定 BEAD_COLUMNS(14)列 × BEAD_MAX_ROWS(6)行 网格
-        - 布局顺序：先填满第一列的所有行，再填第二列（从上到下，从左到右）
-        - 显示样式：红色实心圆(庄)，蓝色实心圆(闲)，绿色实心圆(和)
-        - 超过 14×6=84 个点时，旧位置会被新数据覆盖（取模行为）
+        规则：
+        1. 相同颜色往下排（纵向延伸）
+        2. 不同颜色换新列（从下一列开始，跳过被占用的行）
+        3. 每列最多 MAX_ROWS_PER_COLUMN(6) 行
+        4. 长龙拐弯规则：当一列超过6个时，第7个开始向右拐弯
+        
+        Args:
+            color_sequence: [(game_number, color), ...] 颜色序列，color为"红"或"蓝"
+            road_type: 路牌类型
+            display_name: 显示名称
+        
+        Returns:
+            RoadData: 布局好的路牌数据
+        """
+        road = RoadData(road_type=road_type, display_name=display_name)
+        
+        if not color_sequence:
+            return road
+        
+        # 记录每列被占用的行
+        occupied: Dict[int, Set[int]] = {}
+        
+        def is_occupied(col: int, row: int) -> bool:
+            return row in occupied.get(col, set())
+        
+        def occupy(col: int, row: int):
+            if col not in occupied:
+                occupied[col] = set()
+            occupied[col].add(row)
+        
+        def find_next_available_row(col: int, start_row: int) -> int:
+            """从start_row开始找第一个可用行"""
+            row = start_row
+            while row < self.MAX_ROWS_PER_COLUMN and is_occupied(col, row):
+                row += 1
+            return row
+        
+        def find_available_row_upward(col: int, start_row: int) -> int:
+            """从start_row开始向上找第一个可用行（用于拐弯时）"""
+            row = start_row
+            while row >= 0 and is_occupied(col, row):
+                row -= 1
+            return row
+        
+        def find_leftmost_available_column(min_col: int, max_col: int) -> int:
+            """从min_col到max_col找第一个有空位的列"""
+            for col in range(min_col, max_col + 1):
+                occupied_rows = occupied.get(col, set())
+                if len(occupied_rows) < self.MAX_ROWS_PER_COLUMN:
+                    return col
+            return max_col + 1
+        
+        # 状态跟踪
+        current_col = 0
+        current_row = 0
+        prev_color = None
+        current_dragon_start_col = 0
+        
+        for game_number, color in color_sequence:
+            is_new_col = False
+            
+            if prev_color is None:
+                # 第一个点
+                is_new_col = True
+                current_dragon_start_col = 0
+            elif color == prev_color:
+                # 相同颜色：尝试向下延伸
+                next_row = current_row + 1
+                
+                if next_row >= self.MAX_ROWS_PER_COLUMN:
+                    # 超过6行，拐弯到下一列
+                    occupy(current_col, self.MAX_ROWS_PER_COLUMN - 1)
+                    current_col += 1
+                    is_new_col = True
+                    current_row = find_available_row_upward(current_col, self.MAX_ROWS_PER_COLUMN - 1)
+                    while current_row < 0:
+                        current_col += 1
+                        current_row = find_available_row_upward(current_col, self.MAX_ROWS_PER_COLUMN - 1)
+                elif is_occupied(current_col, next_row):
+                    # 下一行被占用，拐弯
+                    occupy(current_col, current_row)
+                    current_col += 1
+                    is_new_col = True
+                    current_row = find_available_row_upward(current_col, next_row)
+                    while current_row < 0:
+                        current_col += 1
+                        current_row = find_available_row_upward(current_col, next_row)
+                else:
+                    # 正常向下
+                    current_row = next_row
+            else:
+                # 不同颜色：换新列
+                current_col = find_leftmost_available_column(current_dragon_start_col + 1, current_col)
+                is_new_col = True
+                current_row = find_next_available_row(current_col, 0)
+                
+                if current_row >= self.MAX_ROWS_PER_COLUMN:
+                    current_col += 1
+                    current_row = find_next_available_row(current_col, 0)
+                
+                current_dragon_start_col = current_col
+            
+            # 标记占用
+            occupy(current_col, current_row)
+            
+            # 创建点
+            point = RoadPoint(
+                game_number=game_number,
+                column=current_col,
+                row=current_row,
+                value=color,
+                is_new_column=is_new_col,
+            )
+            road.points.append(point)
+            
+            prev_color = color
+        
+        # 更新尺寸
+        if road.points:
+            road.max_columns = max(p.column for p in road.points) + 1
+            road.max_rows = max(p.row for p in road.points) + 1
+        
+        return road
+    
+    def _calculate_bead_road(self, entries: List[Tuple[int, str]]) -> RoadData:
+        """
+        珠盘路算法 — 14列×6行网格
+        
+        按时间顺序从左到右、从上到下填充
         """
         road = RoadData(road_type="bead_road", display_name="珠盘路")
         
-        if not all_entries:
-            return road
-        
-        columns = self.BEAD_COLUMNS
-        max_rows = self.BEAD_MAX_ROWS
-        
-        for idx, (game_number, result) in enumerate(all_entries):
-            # 珠盘路布局：先填满一列的所有行，再换下一列
-            col = idx // max_rows
-            row = idx % max_rows
-            
-            # 取模实现循环覆盖（标准珠盘路行为）
-            col = col % columns
-            
-            is_tie = (result == "和")
+        col, row = 0, 0
+        for game_number, result in entries:
             error_id = self.error_map.get(game_number)
             point = RoadPoint(
                 game_number=game_number,
                 column=col,
                 row=row,
                 value=result,
-                is_new_column=(col == 0 and idx > 0),
                 error_id=error_id,
-                is_tie=is_tie,
+                is_tie=(result == "和"),
             )
             road.points.append(point)
-        
-        # 计算实际使用的行数（可能小于最大行数）
-        if all_entries:
-            total_entries = len(all_entries)
-            used_cols = (total_entries - 1) // max_rows + 1
-            used_cols = min(used_cols, columns)
-            used_rows = min(max_rows, total_entries % max_rows if total_entries % max_rows != 0 else max_rows)
-        else:
-            used_cols = 0
-            used_rows = 0
-        
-        road.max_columns = used_cols
-        road.max_rows = used_rows
-        
-        return road
-    
-    def _build_road_grid_index(self, big_road: RoadData) -> Tuple[Dict[int, List[RoadPoint]], Dict[Tuple[int, int], RoadPoint]]:
-        """构建大路网格索引，返回列点映射和坐标网格"""
-        columns_points: Dict[int, List[RoadPoint]] = {}
-        for p in big_road.points:
-            if p.column not in columns_points:
-                columns_points[p.column] = []
-            columns_points[p.column].append(p)
-        for col in columns_points:
-            columns_points[col].sort(key=lambda x: x.row)
-        
-        grid: Dict[Tuple[int, int], RoadPoint] = {}
-        for p in big_road.points:
-            grid[(p.column, p.row)] = p
-        
-        return columns_points, grid
-    
-    def _calculate_derived_value_case_a(self, n_0based: int, k: int, 
-                                        columns_points: Dict[int, List[RoadPoint]]) -> str:
-        """情形A: 新列出现 (m=1) - 比较左边第1列 vs 左边第(k+1)列的高度"""
-        left_col1 = n_0based - 1
-        left_col_k1 = n_0based - (k + 1)
-        
-        if left_col1 in columns_points and left_col_k1 in columns_points:
-            height1 = len(columns_points[left_col1])
-            height_k1 = len(columns_points[left_col_k1])
-            return "延" if height1 == height_k1 else "转"
-        return "转"  # 参考列不存在时的fallback
-    
-    def _calculate_derived_value_case_b(self, point: RoadPoint, n_0based: int, k: int,
-                                        grid: Dict[Tuple[int, int], RoadPoint]) -> str:
-        """情形B: 延续当前列 (m>=2) - 向左移k格再向上移1格检查是否有值"""
-        check_col = n_0based - k
-        check_row = point.row - 1
-        return "延" if (check_col, check_row) in grid else "转"
-    
-    def _add_derived_point(self, road: RoadData, point: RoadPoint, derived_value: str,
-                           der_column: int, der_row: int, is_new_col: bool) -> None:
-        """添加派生路点"""
-        error_id = self.error_map.get(point.game_number)
-        der_point = RoadPoint(
-            game_number=point.game_number,
-            column=der_column,
-            row=der_row,
-            value=derived_value,
-            is_new_column=is_new_col,
-            error_id=error_id,
-            is_tie=False,
-        )
-        road.points.append(der_point)
-
-    def _calculate_derived_road(self, big_road: RoadData, road_type: str) -> RoadData:
-        """
-        派生路算法（大眼仔路、小路、螳螂路）— 标准澳门/拉斯维加斯两种情形法
-        详细规则见文档注释（已移至模块文档）
-        """
-        display_names = {"大眼仔路": "大眼仔路", "小路": "小路", "螳螂路": "螳螂路"}
-        compare_offsets = {"大眼仔路": 1, "小路": 2, "螳螂路": 3}
-        
-        road = RoadData(road_type=road_type, display_name=display_names.get(road_type, road_type))
-        
-        if not big_road.points or len(big_road.points) < 2:
-            return road
-        
-        k = compare_offsets.get(road_type, 1)
-        columns_points, grid = self._build_road_grid_index(big_road)
-        
-        if len(columns_points) <= k:
-            return road
-        
-        der_column, der_row = 0, 0
-        prev_value = None
-        
-        for point in big_road.points:
-            n_0based = point.column
-            if n_0based < k or (n_0based - k) not in columns_points:
-                continue
             
-            is_new_in_big_road = (point.row == 0)
-            if is_new_in_big_road:
-                derived_value = self._calculate_derived_value_case_a(n_0based, k, columns_points)
-            else:
-                derived_value = self._calculate_derived_value_case_b(point, n_0based, k, grid)
-            
-            # 按大路规则排列派生路点
-            is_new_col = False
-            if prev_value is None:
-                is_new_col = True
-            elif derived_value != prev_value:
-                der_column += 1
-                der_row = 0
-                is_new_col = True
-            else:
-                der_row += 1
-                if der_row >= self.MAX_ROWS_PER_COLUMN:
-                    der_row = self.MAX_ROWS_PER_COLUMN - 1
-                    der_column += 1
-                    is_new_col = True
-            
-            self._add_derived_point(road, point, derived_value, der_column, der_row, is_new_col)
-            prev_value = derived_value
+            # 下一位置
+            row += 1
+            if row >= self.BEAD_ROAD_ROWS:
+                row = 0
+                col += 1
         
         if road.points:
             road.max_columns = max(p.column for p in road.points) + 1
-            road.max_rows = max(p.row for p in road.points) + 1
+            road.max_rows = self.BEAD_ROAD_ROWS
         
         return road
     
-    def get_road_as_grid(self, road: RoadData) -> List[List[Optional[RoadPoint]]]:
-        """将路数据转换为二维网格，便于前端渲染"""
-        if not road.points:
-            return []
+    def _calculate_big_eye_road(self, big_road: RoadData) -> RoadData:
+        """
+        大眼仔路算法 - 使用和大路相同的拐弯逻辑
         
-        # 优化: 使用字典实现O(1)查找，避免O(n²)复杂度
-        point_by_coord = {(p.column, p.row): p for p in road.points}
+        规则：
+        1. 从第2列大路开始生成（需要参考第1列）
+        2. 红=高度相等（规律延续），蓝=高度不等（规律转折）
+        3. 布局算法和大路完全一致：相同颜色往下排，不同颜色换新列，6个满后拐弯
+        """
+        road = RoadData(road_type="big_eye", display_name="大眼仔路")
         
-        grid = []
-        for r in range(road.max_rows):
-            row = []
-            for c in range(road.max_columns):
-                point = point_by_coord.get((c, r), None)
-                row.append(point)
-            grid.append(row)
+        if not big_road.points:
+            return road
         
-        return grid
+        # 按列分组计算高度
+        columns: Dict[int, List[RoadPoint]] = {}
+        for p in big_road.points:
+            if p.column not in columns:
+                columns[p.column] = []
+            columns[p.column].append(p)
+        
+        col_heights = {col: len(points) for col, points in columns.items()}
+        max_col = max(columns.keys()) if columns else 0
+        
+        # 生成大眼仔路的颜色序列（从第2列开始）
+        color_sequence = []
+        for col in range(2, max_col + 1):
+            current_height = col_heights.get(col, 0)
+            prev_height = col_heights.get(col - 1, 0)
+            value = "红" if current_height == prev_height else "蓝"
+            color_sequence.append((col, value))
+        
+        # 使用和大路相同的拐弯算法布局
+        return self._layout_derived_road(color_sequence, "big_eye", "大眼仔路")
     
-    def reset_boot(self):
-        """新靴开始，重置引擎"""
-        self.current_game_numbers = []
-        self.current_results = []
-        self.error_map = {}
+    def _calculate_small_road(self, big_road: RoadData) -> RoadData:
+        """
+        小路算法 - 使用和大路相同的拐弯逻辑
+        
+        规则：
+        1. 从第3列大路开始生成（需要参考第1列，隔一列）
+        2. 红=高度相等，蓝=高度不等
+        3. 布局算法和大路完全一致
+        """
+        road = RoadData(road_type="small_road", display_name="小路")
+        
+        if not big_road.points:
+            return road
+        
+        # 按列分组计算高度
+        columns: Dict[int, List[RoadPoint]] = {}
+        for p in big_road.points:
+            if p.column not in columns:
+                columns[p.column] = []
+            columns[p.column].append(p)
+        
+        col_heights = {col: len(points) for col, points in columns.items()}
+        max_col = max(columns.keys()) if columns else 0
+        
+        # 生成小路的颜色序列（从第3列开始，参考col-2）
+        color_sequence = []
+        for col in range(3, max_col + 1):
+            current_height = col_heights.get(col, 0)
+            ref_height = col_heights.get(col - 2, 0)
+            value = "红" if current_height == ref_height else "蓝"
+            color_sequence.append((col, value))
+        
+        # 使用和大路相同的拐弯算法布局
+        return self._layout_derived_road(color_sequence, "small_road", "小路")
+    
+    def _calculate_cockroach_road(self, big_road: RoadData) -> RoadData:
+        """
+        螳螂路算法 - 使用和大路相同的拐弯逻辑
+        
+        规则：
+        1. 从第4列大路开始生成（需要参考第1列，隔两列）
+        2. 红=高度相等，蓝=高度不等
+        3. 布局算法和大路完全一致
+        """
+        road = RoadData(road_type="cockroach_road", display_name="螳螂路")
+        
+        if not big_road.points:
+            return road
+        
+        # 按列分组计算高度
+        columns: Dict[int, List[RoadPoint]] = {}
+        for p in big_road.points:
+            if p.column not in columns:
+                columns[p.column] = []
+            columns[p.column].append(p)
+        
+        col_heights = {col: len(points) for col, points in columns.items()}
+        max_col = max(columns.keys()) if columns else 0
+        
+        # 生成螳螂路的颜色序列（从第4列开始，参考col-3）
+        color_sequence = []
+        for col in range(4, max_col + 1):
+            current_height = col_heights.get(col, 0)
+            ref_height = col_heights.get(col - 3, 0)
+            value = "红" if current_height == ref_height else "蓝"
+            color_sequence.append((col, value))
+        
+        # 使用和大路相同的拐弯算法布局
+        return self._layout_derived_road(color_sequence, "cockroach_road", "螳螂路")
+
+
+# 便捷函数
+def calculate_roads(entries: List[Tuple[int, str]], error_map: Optional[Dict[int, int]] = None) -> Dict[str, RoadData]:
+    """
+    计算所有路牌的便捷函数
+    
+    Args:
+        entries: [(game_number, result), ...]
+        error_map: 可选的错误映射
+    
+    Returns:
+        所有路牌数据字典
+    """
+    engine = RoadEngine(error_map=error_map)
+    return engine.calculate_all_roads(entries)
+
+
+def get_road_as_grid(road_data: RoadData, default_rows: int = 6) -> List[List[Optional[RoadPoint]]]:
+    """
+    将路牌数据转换为网格格式便于显示
+    
+    Args:
+        road_data: 路牌数据
+        default_rows: 默认行数
+    
+    Returns:
+        二维网格，grid[row][col]
+    """
+    if not road_data.points:
+        return []
+    
+    max_col = max(p.column for p in road_data.points) + 1
+    max_row = max(p.row for p in road_data.points) + 1
+    rows = max(max_row, default_rows)
+    
+    # 创建空网格
+    grid: List[List[Optional[RoadPoint]]] = [
+        [None for _ in range(max_col)] for _ in range(rows)
+    ]
+    
+    # 填充数据
+    for point in road_data.points:
+        if 0 <= point.row < rows and 0 <= point.column < max_col:
+            grid[point.row][point.column] = point
+    
+    return grid
+
+
+# 统一路牌引擎别名（兼容旧代码）
+class UnifiedRoadEngine(RoadEngine):
+    """
+    统一路牌引擎 - 兼容旧API
+    支持从数据库直接获取路牌数据
+    """
+    
+    async def get_all_roads(self, table_id: str, boot_number: int) -> Dict[str, RoadData]:
+        """
+        从数据库获取路牌数据（兼容旧API）
+        
+        Args:
+            table_id: 桌台ID
+            boot_number: 靴号
+            
+        Returns:
+            Dict[str, RoadData]: 所有路牌数据
+        """
+        # 延迟导入以避免循环依赖
+        from app.core.database import async_session
+        from app.models.schemas import GameRecord
+        from sqlalchemy import select
+        
+        async with async_session() as session:
+            # 获取所有记录（包括和局），用于珠盘路显示
+            query = select(GameRecord).where(
+                GameRecord.table_id == table_id,
+                GameRecord.boot_number == boot_number,
+            ).order_by(GameRecord.game_number)
+            
+            result = await session.execute(query)
+            records = result.scalars().all()
+            
+            entries = [(r.game_number, r.result) for r in records]
+            return self.calculate_all_roads(entries)
+
+
+# 保持向后兼容
+RoadEngine = UnifiedRoadEngine

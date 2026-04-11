@@ -3,11 +3,13 @@
  * 统一管理游戏相关的状态和数据加载
  */
 import { useState, useCallback, useEffect } from 'react';
+import { message } from 'antd';
 import * as api from '../services/api';
 
 // ====== 类型定义 ======
 
 export interface SystemState {
+  table_id: string;
   status: string;
   boot_number: number;
   game_number: number;
@@ -169,8 +171,9 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
     try {
       const res = await api.getSystemState(tableId);
       setSystemState(res.data);
-    } catch {
-      // 静默处理错误
+    } catch (err) {
+      console.error('[useGameState] 加载系统状态失败:', err);
+      message.error('加载系统状态失败');
     }
   }, [tableId]);
 
@@ -179,8 +182,9 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
     try {
       const res = await api.getStatistics(tableId);
       setStats(res.data);
-    } catch {
-      // 静默处理错误
+    } catch (err) {
+      console.error('[useGameState] 加载统计数据失败:', err);
+      message.error('加载统计数据失败');
     }
   }, [tableId]);
 
@@ -196,8 +200,9 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
           page_size: 50,
         });
         setLogs(res.data.data);
-      } catch {
-        // 静默处理错误
+      } catch (err) {
+        console.error('[useGameState] 加载日志失败:', err);
+        message.error('加载日志失败');
       }
     },
     [tableId, logCategory]
@@ -214,8 +219,9 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
         });
         setGames(res.data.data);
         if (typeof res.data.total === 'number') setGamesTotal(res.data.total);
-      } catch {
-        // 静默处理错误
+      } catch (err) {
+        console.error('[useGameState] 加载游戏记录失败:', err);
+        message.error('加载游戏记录失败');
       }
     },
     [tableId]
@@ -232,8 +238,9 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
         });
         setBets(res.data.data);
         if (typeof res.data.total === 'number') setBetsTotal(res.data.total);
-      } catch {
-        // 静默处理错误
+      } catch (err) {
+        console.error('[useGameState] 加载下注记录失败:', err);
+        message.error('加载下注记录失败');
       }
     },
     [tableId]
@@ -248,8 +255,10 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
       if (res.data && (res.data as any).roads) {
         setRoadData(res.data as api.FiveRoadsResponse);
       }
-    } catch {
-      setRoadData(null);
+    } catch (err) {
+      console.error('[useGameState] 加载路图数据失败:', err);
+      message.error('加载路图数据失败');
+      // 保留上次数据而非清空
     } finally {
       setRoadLoading(false);
     }
@@ -271,8 +280,9 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
         });
         setAiAnalyzing(false);
       }
-    } catch {
-      // 静默处理错误
+    } catch (err) {
+      console.error('[useGameState] 加载AI分析失败:', err);
+      message.error('加载AI分析失败');
     }
   }, [tableId]);
 

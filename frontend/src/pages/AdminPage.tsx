@@ -11,6 +11,7 @@ import {
 } from 'antd';
 import * as api from '../services/api';
 import { clearToken } from '../services/api';
+import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 
 // 精致图标组件
 const Icons = {
@@ -81,6 +82,9 @@ const AdminPage: React.FC = () => {
   const navigate = useNavigate();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const token = (location.state as any)?.token || api.getToken();
+  
+  // 系统诊断（AdminPage使用默认桌号）
+  const { addIssue } = useSystemDiagnostics({ tableId: '26' });
   
   // 未登录则重定向到首页
   React.useEffect(() => {
@@ -172,6 +176,13 @@ const AdminPage: React.FC = () => {
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : '修改失败';
       message.error(errorMsg);
+      // 记录错误到系统状态面板
+      addIssue({
+        level: 'warning',
+        title: '密码修改失败',
+        detail: `修改密码失败: ${errorMsg}`,
+        source: 'system',
+      });
     }
   };
 

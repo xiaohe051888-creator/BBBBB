@@ -31,6 +31,11 @@ const RoadCard: React.FC<RoadCardProps> = ({
   style,
   fullWidth = false,
 }) => {
+  // 根据minHeight计算内容区高度（减去标题栏高度和padding）
+  const contentHeight = fullWidth 
+    ? (minHeight || 160) - 40  // 大路：减去标题栏(30) + padding(10)
+    : (minHeight || 150) - 30; // 下三路：减去标题栏(22) + padding(8)
+
   return (
     <div
       style={{
@@ -63,8 +68,8 @@ const RoadCard: React.FC<RoadCardProps> = ({
         )}
       </div>
 
-      {/* 内容区 */}
-      <div style={{ height: fullWidth ? 200 : 110 }}>{children}</div>
+      {/* 内容区 - 使用计算后的高度 */}
+      <div style={{ height: contentHeight }}>{children}</div>
     </div>
   );
 };

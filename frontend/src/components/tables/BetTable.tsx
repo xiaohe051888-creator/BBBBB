@@ -93,7 +93,7 @@ const BetTable: React.FC<BetTableProps> = ({
     <Table
       dataSource={data}
       columns={columns}
-      rowKey={(r, i) => `${r.game_number}-${i}`}
+      rowKey={(r) => `${r.game_number}-${r.bet_time || Date.now()}`}
       size="small"
       loading={loading}
       pagination={{

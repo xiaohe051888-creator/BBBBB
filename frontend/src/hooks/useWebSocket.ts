@@ -7,7 +7,9 @@ import * as api from '../services/api';
 
 interface WebSocketMessage {
   type: string;
+  table_id?: string;
   data: Record<string, unknown>;
+  timestamp?: string;
 }
 
 interface UseWebSocketOptions {
@@ -80,7 +82,10 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
   // 建立连接 - 在 useEffect 中定义 connect 避免渲染时访问 ref
   useEffect(() => {
     isUnmountedRef.current = false;
-    setConnectionState('connecting');
+    // 使用setTimeout避免同步setState
+    const stateTimer = setTimeout(() => {
+      setConnectionState('connecting');
+    }, 0);
 
     const connect = () => {
       if (!tableId || isUnmountedRef.current) return;
@@ -105,7 +110,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
               case 'log':
                 callbacks.onLog?.();
                 break;
-              case 'analysis':
+              case 'ai_analysis':
                 callbacks.onAnalysis?.(message.data);
                 break;
               case 'game_revealed':
@@ -118,13 +123,13 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
                 // 未知消息类型，静默处理
                 break;
             }
-          } catch {
-            // WebSocket消息解析错误，静默处理
+          } catch (err) {
+            console.error('[WebSocket] 消息解析错误:', err);
           }
         };
 
-        ws.onerror = () => {
-          // WebSocket错误，静默处理
+        ws.onerror = (err) => {
+          console.error('[WebSocket] 连接错误:', err);
         };
 
         ws.onclose = () => {
@@ -144,6 +149,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     connect();
 
     return () => {
+      clearTimeout(stateTimer);
       isUnmountedRef.current = true;
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);

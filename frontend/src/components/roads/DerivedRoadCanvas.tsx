@@ -1,19 +1,21 @@
 /**
- * 派生路 (Derived Road) Canvas 组件
+ * 派生路 (Derived Road) Canvas 组件 - 简化版
  * 
  * 用于：大眼仔路、小路、螳螂路
+ * 核心原则：
+ * - 只负责绘制，不管理滚动
+ * - 精确6格高度，禁止垂直滚动
+ * 
  * 规则：
  * - 排列规则与大路相同（同色往下，变色换列）
  * - 颜色不代表庄闲！
  *   - 延(红) = 重复/与前参照列同行有值
  *   - 转(蓝) = 转折/与前参照列同行无值
- * - 比较偏移量: 大眼仔=1, 小路=2, 螳螂=3
  */
-import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
-import { DERIVED_ROAD_CONFIG, ROAD_COLORS } from '../../types/road';
+import { DERIVED_ROAD_CONFIG, ROAD_COLORS, calculateRoadHeight } from '../../types/road';
 import {
-  calcCanvasSize,
   getPointColor,
   drawRoadPoint,
   drawGrid,
@@ -23,8 +25,6 @@ import {
 interface DerivedRoadCanvasProps {
   data: RoadData | null;
   config?: Partial<RoadCanvasConfig>;
-  width?: number;
-  height?: number;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -32,13 +32,67 @@ interface DerivedRoadCanvasProps {
 const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
   data,
   config: customConfig,
-  width: externalWidth,
-  height: externalHeight,
   className,
   style,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const mergedConfig = useMemo(() => ({ ...DERIVED_ROAD_CONFIG, ...customConfig }), [customConfig]);
+
+  // 监听容器宽度，计算可显示的列数
+  const [containerWidth, setContainerWidth] = useState(0);
+  
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+    
+    updateWidth();
+    
+    const resizeObserver = new ResizeObserver(updateWidth);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    window.addEventListener('resize', updateWidth);
+    
+    return () => {
+      window.removeEventListener('resize', updateWidth);
+      resizeObserver.disconnect();
+    };
+  }, []);
+  
+  // 根据容器宽度计算可显示的列数
+  const visibleCols = useMemo(() => {
+    if (containerWidth <= 0) return 10;
+    const { cellSize, cellGap, padding } = mergedConfig;
+    const availableWidth = containerWidth - padding * 2;
+    return Math.max(10, Math.floor(availableWidth / (cellSize + cellGap)));
+  }, [containerWidth, mergedConfig]);
+  
+  // 计算内容宽度：根据容器宽度显示满列，数据超出时扩展
+  const contentWidth = useMemo(() => {
+    const dataCols = data?.max_columns || 0;
+    const totalCols = Math.max(dataCols, visibleCols);
+    return mergedConfig.padding * 2 + totalCols * (mergedConfig.cellSize + mergedConfig.cellGap);
+  }, [data, visibleCols, mergedConfig]);
+
+  // 固定6格高度
+  const fixedHeight = useMemo(() => calculateRoadHeight(mergedConfig), [mergedConfig]);
+
+  // Canvas像素尺寸
+  const canvasPixelSize = useMemo(() => {
+    const dpr = window.devicePixelRatio || 1;
+    return {
+      width: Math.round(contentWidth * dpr),
+      height: Math.round(fixedHeight * dpr),
+      styleWidth: contentWidth,
+      styleHeight: fixedHeight,
+      dpr,
+    };
+  }, [contentWidth, fixedHeight]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -47,75 +101,50 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    let canvasWidth: number;
-    let canvasHeight: number;
-
-    if (externalWidth && externalHeight) {
-      canvasWidth = externalWidth * dpr;
-      canvasHeight = externalHeight * dpr;
-    } else {
-      const size = calcCanvasSize(data, mergedConfig);
-      canvasWidth = size.width * dpr;
-      canvasHeight = size.height * dpr;
-    }
-
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    canvas.style.width = `${canvasWidth / dpr}px`;
-    canvas.style.height = `${canvasHeight / dpr}px`;
-
-    ctx.scale(dpr, dpr);
-
-    const displayWidth = canvasWidth / dpr;
-    const displayHeight = canvasHeight / dpr;
+    const dpr = canvasPixelSize.dpr;
+    const displayWidth = canvasPixelSize.styleWidth;
+    const displayHeight = canvasPixelSize.styleHeight;
 
     // 背景
     ctx.fillStyle = ROAD_COLORS.background;
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
-    if (!data || !data.points.length) {
-      ctx.fillStyle = '#30363d';
-      ctx.font = `${mergedConfig.fontSize}px -apple-system, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('等待数据...', displayWidth / 2, displayHeight / 2);
-      return;
-    }
-
     const cellSize = mergedConfig.cellSize;
     const cellGap = mergedConfig.cellGap;
     const padding = mergedConfig.padding;
-    const totalCols = Math.max(data.max_columns, 1);
-    const totalRows = Math.max(data.max_rows, 1);
 
-    // 网格
+    // 根据容器宽度显示满列，至少10列
+    const totalCols = Math.max(data?.max_columns || 0, visibleCols);
+
+    // 网格（只画6行）
     if (mergedConfig.showGrid) {
-      drawGrid(ctx, mergedConfig, totalCols, totalRows);
+      drawGrid(ctx, mergedConfig, totalCols, 6);
     }
 
-    // 派生路的值域是 "延" | "转"，使用派生路颜色
+    // 无数据时不绘制点
+    if (!data || !data.points.length) {
+      return;
+    }
+
+    // 绘制点
     for (const point of data.points) {
       const x = padding + point.column * (cellSize + cellGap) + cellSize / 2;
       const y = padding + point.row * (cellSize + cellGap) + cellSize / 2;
 
-      // isDerived=true 使用派生路颜色（延=红, 转=蓝）
       const color = getPointColor(point.value, true);
 
-      // ★ 权威标准：三种派生路使用不同的显示样式 ★
-      let roadStyle = RoadStyle.SOLID_CIRCLE; // 默认实心圆
+      // 根据路类型选择样式
+      let roadStyle = RoadStyle.HOLLOW_CIRCLE;
       
       if (data.road_type === 'small_road') {
-        roadStyle = RoadStyle.HOLLOW_CIRCLE;  // 小路：空心圆
+        roadStyle = RoadStyle.SOLID_CIRCLE;
       } else if (data.road_type === 'cockroach_road') {
-        roadStyle = RoadStyle.SLASH;          // 螳螂路：斜杠
+        roadStyle = RoadStyle.SLASH;
       }
-      // 大眼仔路保持默认（实心圆）
 
-      // 绘制相应样式的点
       drawRoadPoint(ctx, x, y, cellSize / 2 - 1, color, roadStyle, !!point.error_id);
     }
-  }, [data, mergedConfig, externalWidth, externalHeight]);
+  }, [data, mergedConfig, canvasPixelSize]);
 
   useEffect(() => {
     draw();
@@ -127,55 +156,18 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [draw]);
 
-  // 计算内容宽度，用于自动滚动到最新
-  const contentWidth = useMemo(() => {
-    if (!data || !data.points.length) return 0;
-    const totalCols = Math.max(data.max_columns, 1);
-    return mergedConfig.padding * 2 + totalCols * (mergedConfig.cellSize + mergedConfig.cellGap);
-  }, [data, mergedConfig]);
-
-  // 使用 ref 存储滚动容器
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const prevDataLengthRef = useRef(data?.points?.length || 0);
-
-  // 数据变化时自动滚动到最新
-  useEffect(() => {
-    const currentLength = data?.points?.length || 0;
-    const prevLength = prevDataLengthRef.current;
-    
-    // 只在数据增加时滚动（新数据到来）
-    if (currentLength > prevLength && scrollContainerRef.current && contentWidth > 0) {
-      scrollContainerRef.current.scrollLeft = contentWidth;
-    }
-    
-    prevDataLengthRef.current = currentLength;
-  }, [data, contentWidth]);
-
-  // 初始挂载时也滚动到最新
-  useEffect(() => {
-    if (scrollContainerRef.current && contentWidth > 0) {
-      scrollContainerRef.current.scrollLeft = contentWidth;
-    }
-  }, [contentWidth]);
-
   return (
-    <div
-      className={className}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: externalHeight || 110,
-        overflow: 'auto',
-        ...style,
-      }}
-      ref={scrollContainerRef}
-    >
+    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
       <canvas
         ref={canvasRef}
+        className={className}
+        width={canvasPixelSize.width}
+        height={canvasPixelSize.height}
         style={{
           display: 'block',
-          borderRadius: '8px',
-          minWidth: contentWidth || '100%',
+          width: canvasPixelSize.styleWidth,
+          height: canvasPixelSize.styleHeight,
+          ...style,
         }}
       />
     </div>

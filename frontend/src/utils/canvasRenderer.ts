@@ -32,8 +32,9 @@ export function getPointColor(value: string, isDerived: boolean = false): string
   }
   
   if (isDerived) {
-    if (value === '延') return ROAD_COLORS.derived_red;
-    if (value === '转') return ROAD_COLORS.derived_blue;
+    // 支持两种格式：后端返回的"红"/"蓝" 或 标准术语"延"/"转"
+    if (value === '延' || value === '红') return ROAD_COLORS.derived_red;
+    if (value === '转' || value === '蓝') return ROAD_COLORS.derived_blue;
     // 派生路异常值（理论上不应该出现）
     console.warn(`[canvasRenderer] 异常派生路值: "${value}"，使用默认蓝色`);
     return ROAD_COLORS.derived_blue;  // fallback to blue
@@ -123,7 +124,7 @@ export function drawCircle(
 }
 
 /**
- * 绘制空心圆（小路标准样式）
+ * 绘制空心圆（澳门标准：大路、大眼仔路使用）
  */
 export function drawHollowCircle(
   ctx: CanvasRenderingContext2D,
@@ -132,28 +133,90 @@ export function drawHollowCircle(
   radius: number,
   color: string,
   errorMarked: boolean = false,
+  isTie: boolean = false,
 ): void {
   ctx.save();
-  
+
   // 绘制外圆（空心）
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.arc(cx, cy, radius * 0.85, 0, Math.PI * 2);
   ctx.stroke();
-  
+
+  // 如果是和局，在圆圈内绘制绿色斜杠
+  if (isTie) {
+    ctx.strokeStyle = ROAD_COLORS.tie;
+    ctx.lineWidth = Math.max(2, radius * 0.15);
+    ctx.beginPath();
+    const slashLength = radius * 0.5;
+    ctx.moveTo(cx - slashLength, cy - slashLength);
+    ctx.lineTo(cx + slashLength, cy + slashLength);
+    ctx.stroke();
+  }
+
   // 错误标记 - 右上角黄色三角
   if (errorMarked) {
     ctx.fillStyle = ROAD_COLORS.errorMark;
     ctx.beginPath();
-    // markSize = radius * 0.3 (保留计算以备将来使用)
     ctx.moveTo(cx + radius * 0.4, cy - radius * 0.5);
     ctx.lineTo(cx + radius * 0.7, cy - radius * 0.2);
     ctx.lineTo(cx + radius * 0.5, cy - radius * 0.3);
     ctx.closePath();
     ctx.fill();
   }
-  
+
+  ctx.restore();
+}
+
+/**
+ * 绘制动画空心圆（带缩放效果）
+ */
+export function drawAnimatedHollowCircle(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  color: string,
+  progress: number,
+  errorMarked: boolean = false,
+  isTie: boolean = false,
+): void {
+  ctx.save();
+
+  // 动画缩放效果
+  const scale = 0.5 + 0.5 * progress;
+  const animatedRadius = radius * scale;
+
+  // 绘制外圆（空心）
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, animatedRadius * 0.85, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 如果是和局，在圆圈内绘制绿色斜杠
+  if (isTie) {
+    ctx.strokeStyle = ROAD_COLORS.tie;
+    ctx.lineWidth = Math.max(2, radius * 0.15);
+    ctx.beginPath();
+    const slashLength = animatedRadius * 0.5;
+    ctx.moveTo(cx - slashLength, cy - slashLength);
+    ctx.lineTo(cx + slashLength, cy + slashLength);
+    ctx.stroke();
+  }
+
+  // 错误标记 - 右上角黄色三角
+  if (errorMarked) {
+    ctx.fillStyle = ROAD_COLORS.errorMark;
+    ctx.beginPath();
+    ctx.moveTo(cx + animatedRadius * 0.4, cy - animatedRadius * 0.5);
+    ctx.lineTo(cx + animatedRadius * 0.7, cy - animatedRadius * 0.2);
+    ctx.lineTo(cx + animatedRadius * 0.5, cy - animatedRadius * 0.3);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   ctx.restore();
 }
 

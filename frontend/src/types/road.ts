@@ -24,6 +24,7 @@ export interface RoadPoint {
   is_new_column: boolean;
   error_id: string | null;
   is_tie?: boolean;        // 是否为和局（可选，后端返回但前端可能未定义）
+  has_tie?: boolean;       // ★ 该点是否有和局标记（用于在大路圆圈内画绿色斜杠）
 }
 
 /** 单条路的完整数据（对应后端 RoadData） */
@@ -85,9 +86,9 @@ export interface RoadCanvasConfig {
 
 /** 默认大路配置 */
 export const BIG_ROAD_CONFIG: RoadCanvasConfig = {
-  cellSize: 24,  // 从28px优化为24px，提高信息密度
-  cellGap: 3,
-  padding: 12,
+  cellSize: 28,  // 大路格子稍大，更醒目
+  cellGap: 2,
+  padding: 8,
   borderRadius: 5,
   fontSize: 11,
   showCoordinates: false,
@@ -98,7 +99,7 @@ export const BIG_ROAD_CONFIG: RoadCanvasConfig = {
 
 /** 默认珠盘路配置 */
 export const BEAD_ROAD_CONFIG: RoadCanvasConfig = {
-  cellSize: 22,
+  cellSize: 24,
   cellGap: 2,
   padding: 8,
   borderRadius: 4,
@@ -111,13 +112,33 @@ export const BEAD_ROAD_CONFIG: RoadCanvasConfig = {
 
 /** 默认派生路配置（大眼仔/小路/螳螂） */
 export const DERIVED_ROAD_CONFIG: RoadCanvasConfig = {
-  cellSize: 20,
+  cellSize: 24,
   cellGap: 2,
-  padding: 6,
+  padding: 8,
   borderRadius: 3,
   fontSize: 8,
   showCoordinates: false,
   showGrid: true,
   animateNewPoint: false,
   animationDuration: 0,
+};
+
+/** 
+ * 计算路的精确高度（刚好显示6格，禁止垂直滚动）
+ * @param config Canvas配置
+ * @returns 精确高度（px）
+ */
+export const calculateRoadHeight = (config: RoadCanvasConfig): number => {
+  return config.padding * 2 + 6 * (config.cellSize + config.cellGap);
+};
+
+/**
+ * 计算珠盘路精确尺寸（14列×6行，固定大小）
+ * @param config Canvas配置
+ * @returns 精确宽高
+ */
+export const calculateBeadRoadSize = (config: RoadCanvasConfig): { width: number; height: number } => {
+  const width = config.padding * 2 + 14 * (config.cellSize + config.cellGap);
+  const height = config.padding * 2 + 6 * (config.cellSize + config.cellGap);
+  return { width, height };
 };

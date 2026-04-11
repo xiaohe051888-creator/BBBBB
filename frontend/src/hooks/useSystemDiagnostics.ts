@@ -106,6 +106,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
   }, []);
 
   // ====== WebSocket 监控 ======
+  // 使用ref存储connectWS函数，避免循环依赖问题
+  const connectWSRef = useRef<(() => void) | null>(null);
+
   const connectWS = useCallback(() => {
     if (!tableId || isUnmountedRef.current) return;
     if (!enabled) return;
@@ -161,7 +164,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         });
         setWsReconnectCount(c => c + 1);
         reconnectTimerRef.current = setTimeout(() => {
-          if (!isUnmountedRef.current) connectWS();
+          if (!isUnmountedRef.current && connectWSRef.current) {
+            connectWSRef.current();
+          }
         }, 3000);
       };
 
@@ -188,19 +193,32 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
           source: 'websocket',
         });
         reconnectTimerRef.current = setTimeout(() => {
-          if (!isUnmountedRef.current) connectWS();
+          if (!isUnmountedRef.current && connectWSRef.current) {
+            connectWSRef.current();
+          }
         }, 5000);
       }
     }
   }, [tableId, enabled, addIssue, removeIssueBySource]);
 
+  // 使用useEffect更新ref，避免在渲染期间修改
+  useEffect(() => {
+    connectWSRef.current = connectWS;
+  }, [connectWS]);
+
   useEffect(() => {
     if (!tableId || !enabled) return;
     isUnmountedRef.current = false;
-    connectWS();
+    // 使用setTimeout避免在渲染期间同步调用
+    const timer = setTimeout(() => {
+      if (connectWSRef.current) {
+        connectWSRef.current();
+      }
+    }, 0);
 
     return () => {
       isUnmountedRef.current = true;
+      clearTimeout(timer);
       if (pingTimerRef.current) clearInterval(pingTimerRef.current);
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       if (wsRef.current) {
@@ -209,7 +227,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         wsRef.current = null;
       }
     };
-  }, [tableId, enabled, connectWS]);
+  }, [tableId, enabled]);
 
   // ====== 后端健康检查（每15秒） ======
   const checkBackend = useCallback(async () => {
@@ -247,9 +265,13 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
 
   useEffect(() => {
     if (!tableId || !enabled) return;
-    checkBackend();
+    // 使用setTimeout避免同步调用
+    const initialTimer = setTimeout(() => {
+      checkBackend();
+    }, 0);
     backendCheckRef.current = setInterval(checkBackend, 15000);
     return () => {
+      clearTimeout(initialTimer);
       if (backendCheckRef.current) clearInterval(backendCheckRef.current);
     };
   }, [tableId, enabled, checkBackend]);
@@ -289,36 +311,45 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
           },
         ];
 
-        setAiModels(newModels);
+        // 使用setTimeout避免同步setState
+        setTimeout(() => {
+          setAiModels(newModels);
 
-        // 检查是否有AI模型问题
-        const unconfigured = newModels.filter(m => m.status === 'unconfigured');
-        if (unconfigured.length === 3) {
-          addIssue({
-            level: 'critical',
-            title: '所有AI模型均未配置',
-            detail: 'OpenAI / Claude / Gemini API Key 均未配置，无法进行AI分析预测',
-            source: 'ai',
-          });
-        } else if (unconfigured.length > 0) {
-          addIssue({
-            level: 'warning',
-            title: `${unconfigured.length}个AI模型未配置`,
-            detail: unconfigured.map(m => `${m.label}(${m.name}): ${m.message}`).join('；'),
-            source: 'ai',
-          });
-        } else {
-          removeIssueBySource('ai');
-        }
+          // 检查是否有AI模型问题
+          const unconfigured = newModels.filter(m => m.status === 'unconfigured');
+          if (unconfigured.length === 3) {
+            addIssue({
+              level: 'critical',
+              title: '所有AI模型均未配置',
+              detail: 'OpenAI / Claude / Gemini API Key 均未配置，无法进行AI分析预测',
+              source: 'ai',
+            });
+          } else if (unconfigured.length > 0) {
+            addIssue({
+              level: 'warning',
+              title: `${unconfigured.length}个AI模型未配置`,
+              detail: unconfigured.map(m => `${m.label}(${m.name}): ${m.message}`).join('；'),
+              source: 'ai',
+            });
+          } else {
+            removeIssueBySource('ai');
+          }
+        }, 0);
 
-      } catch {
-        // 诊断API不可用，忽略
+      } catch (err) {
+        console.error('[SystemDiagnostics] AI诊断失败:', err);
       }
     };
 
-    checkAI();
+    // 使用setTimeout避免同步调用
+    const initialTimer = setTimeout(() => {
+      checkAI();
+    }, 0);
     const timer = setInterval(checkAI, 30000);
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(timer);
+    };
   }, [tableId, enabled, addIssue, removeIssueBySource]);
 
   // ====== 计算衍生状态 ======
@@ -365,7 +396,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
     checkBackend();
   }, [connectWS, checkBackend]);
 
-  return { diagnostics, dismissIssue, retryConnection };
+  return { diagnostics, dismissIssue, retryConnection, addIssue };
 };
 
 export default useSystemDiagnostics;

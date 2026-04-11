@@ -77,9 +77,9 @@ class Settings:
         return bool(self.GEMINI_API_KEY)
     
     # 模型性能配置
+    # 注意：ThreeModelService已实现永不降级机制（5次指数退避重试+备用模型轮换）
+    # 以下配置仅作为兼容性保留，实际逻辑由服务层控制
     MODEL_TIMEOUT: int = 30  # API调用超时时间（秒）
-    MODEL_MAX_RETRIES: int = 2  # 最大重试次数
-    MODEL_FALLBACK_ORDER: List[str] = ["openai", "anthropic", "gemini"]  # 降级顺序
     
     # 管理员配置
     DEFAULT_ADMIN_PASSWORD: str = os.getenv("ADMIN_DEFAULT_PASSWORD", "8888")

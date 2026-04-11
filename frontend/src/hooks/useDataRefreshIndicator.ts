@@ -67,13 +67,17 @@ export const useDataRefreshIndicator = (
 
     // 深度比较数据是否变化
     const hasChanged = JSON.stringify(prevDataRef.current) !== JSON.stringify(data);
-    
+
     if (hasChanged) {
       const now = new Date();
-      setLastUpdateTime(now);
-      setFormattedUpdateTime(formatTime(now));
-      triggerFlash();
+      // 使用setTimeout避免同步setState
+      const timer = setTimeout(() => {
+        setLastUpdateTime(now);
+        setFormattedUpdateTime(formatTime(now));
+        triggerFlash();
+      }, 0);
       prevDataRef.current = data;
+      return () => clearTimeout(timer);
     }
   }, [data, formatTime, triggerFlash]);
 

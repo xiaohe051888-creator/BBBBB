@@ -111,6 +111,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
   compact = false,
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const [showAllIssues, setShowAllIssues] = useState(false);
 
   const {
     wsStatus, wsLatency, wsReconnectCount,
@@ -132,12 +133,14 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
       <Tooltip
         title={<StatusTooltip diagnostics={diagnostics} onRetry={onRetryConnection} />}
         trigger="click"
-        overlayStyle={{ maxWidth: 360 }}
-        overlayInnerStyle={{
-          background: '#161b22',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 12,
-          padding: 12,
+        styles={{
+          root: { maxWidth: 360 },
+          container: {
+            background: '#161b22',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 12,
+            padding: 12,
+          },
         }}
       >
         <div
@@ -296,10 +299,28 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
           {/* 活跃问题列表 */}
           {hasIssues && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 11, color: '#8b949e', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <AlertIcon /> 活跃问题 ({activeIssues.length})
-              </span>
-              {activeIssues.slice(0, 5).map(issue => (
+              <button
+                onClick={() => setShowAllIssues(!showAllIssues)}
+                style={{
+                  fontSize: 11,
+                  color: '#8b949e',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textAlign: 'left',
+                }}
+              >
+                <AlertIcon />
+                <span>活跃问题 ({activeIssues.length})</span>
+                <span style={{ marginLeft: 'auto', color: '#58a6ff' }}>
+                  {showAllIssues ? '▲ 收起' : '▼ 展开'}
+                </span>
+              </button>
+              {activeIssues.slice(0, showAllIssues ? activeIssues.length : 5).map(issue => (
                 <div
                   key={issue.id}
                   style={{

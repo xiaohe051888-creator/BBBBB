@@ -1,5 +1,10 @@
 /**
- * 大路图 (Big Road) Canvas 组件
+ * 大路图 (Big Road) Canvas 组件 - 简化版
+ * 
+ * 核心原则：
+ * - 只负责绘制，不管理滚动
+ * - 滚动由父组件 FiveRoadChart 统一管理
+ * - 最新数据永远显示在最前（靠右）
  * 
  * 规则：
  * - 相同颜色一组最多6个，往下延伸
@@ -7,49 +12,98 @@
  * - 每列最多6行（row: 0~5）
  * - 庄 = 红色圆, 闲 = 蓝色圆
  */
-import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
 import { BIG_ROAD_CONFIG, ROAD_COLORS } from '../../types/road';
 import {
-  calcCanvasSize,
   getPointColor,
-  drawCircle,
   drawGrid,
   buildPointGrid,
-  drawAnimatedCircle,
+  drawHollowCircle,
+  drawAnimatedHollowCircle,
 } from '../../utils/canvasRenderer';
 
 interface BigRoadCanvasProps {
   data: RoadData | null;
   config?: Partial<RoadCanvasConfig>;
-  width?: number;       // 外部约束宽度
-  height?: number;      // 外部约束高度
   className?: string;
   style?: React.CSSProperties;
-  onPointClick?: (point: RoadData['points'][0]) => void;  // 点击点回调
-  onPointHover?: (point: RoadData['points'][0] | null) => void;  // 悬停点回调
+  onPointClick?: (point: RoadData['points'][0]) => void;
+  onPointHover?: (point: RoadData['points'][0] | null) => void;
 }
 
 const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
   data,
   config: customConfig,
-  width: externalWidth,
-  height: externalHeight,
   className,
   style,
   onPointClick,
   onPointHover,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const animFrameRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
   const mergedConfig = useMemo(() => ({ ...BIG_ROAD_CONFIG, ...customConfig }), [customConfig]);
-
-  // 获取最新点的game_number，用于动画触发
   const lastGameNumber = useRef<number>(0);
-
-  // 存储点位置映射用于点击检测
   const pointPositionsRef = useRef<Map<string, RoadData['points'][0]>>(new Map());
+
+  // 监听容器宽度，计算可显示的列数
+  const [containerWidth, setContainerWidth] = useState(0);
+  
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+    
+    updateWidth();
+    
+    const resizeObserver = new ResizeObserver(updateWidth);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    window.addEventListener('resize', updateWidth);
+    
+    return () => {
+      window.removeEventListener('resize', updateWidth);
+      resizeObserver.disconnect();
+    };
+  }, []);
+  
+  // 根据容器宽度计算可显示的列数
+  const visibleCols = useMemo(() => {
+    if (containerWidth <= 0) return 10;
+    const { cellSize, cellGap, padding } = mergedConfig;
+    const availableWidth = containerWidth - padding * 2;
+    return Math.max(10, Math.floor(availableWidth / (cellSize + cellGap)));
+  }, [containerWidth, mergedConfig]);
+  
+  // 计算内容宽度：根据容器宽度显示满列，数据超出时扩展
+  const contentWidth = useMemo(() => {
+    const dataCols = data?.max_columns || 0;
+    const totalCols = Math.max(dataCols, visibleCols);
+    return mergedConfig.padding * 2 + totalCols * (mergedConfig.cellSize + mergedConfig.cellGap);
+  }, [data, visibleCols, mergedConfig]);
+
+  // 固定6行高度
+  const fixedHeight = useMemo(() => {
+    return mergedConfig.padding * 2 + 6 * (mergedConfig.cellSize + mergedConfig.cellGap);
+  }, [mergedConfig]);
+
+  // Canvas像素尺寸
+  const canvasPixelSize = useMemo(() => {
+    const dpr = window.devicePixelRatio || 1;
+    return {
+      width: Math.round(contentWidth * dpr),
+      height: Math.round(fixedHeight * dpr),
+      styleWidth: contentWidth,
+      styleHeight: fixedHeight,
+      dpr,
+    };
+  }, [contentWidth, fixedHeight]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -58,65 +112,36 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
-
-    // 计算尺寸
-    let canvasWidth: number;
-    let canvasHeight: number;
-
-    if (externalWidth && externalHeight) {
-      canvasWidth = externalWidth * dpr;
-      canvasHeight = externalHeight * dpr;
-    } else {
-      const size = calcCanvasSize(data, mergedConfig);
-      canvasWidth = size.width * dpr;
-      canvasHeight = size.height * dpr;
-    }
-
-    // 设置canvas实际尺寸（考虑设备像素比）
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    canvas.style.width = `${canvasWidth / dpr}px`;
-    canvas.style.height = `${canvasHeight / dpr}px`;
-
-    // 缩放上下文以匹配DPR
-    ctx.scale(dpr, dpr);
-
-    const displayWidth = canvasWidth / dpr;
-    const displayHeight = canvasHeight / dpr;
+    const dpr = canvasPixelSize.dpr;
+    const displayWidth = canvasPixelSize.styleWidth;
+    const displayHeight = canvasPixelSize.styleHeight;
 
     // 清空画布
     ctx.fillStyle = ROAD_COLORS.background;
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
-    if (!data || !data.points.length) {
-      // 绘制空状态
-      ctx.fillStyle = '#30363d';
-      ctx.font = `${mergedConfig.fontSize + 2}px -apple-system, "PingFang SC", sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('等待数据...', displayWidth / 2, displayHeight / 2);
-      return;
-    }
-
     const cellSize = mergedConfig.cellSize;
     const cellGap = mergedConfig.cellGap;
     const padding = mergedConfig.padding;
-    const totalCols = Math.max(data.max_columns, 1);
-    const totalRows = Math.max(data.max_rows, 1);
 
-    // 绘制网格
+    // 根据容器宽度显示满列，至少10列
+    const totalCols = Math.max(data?.max_columns || 0, visibleCols);
+
+    // 绘制网格（始终显示）
     if (mergedConfig.showGrid) {
-      drawGrid(ctx, mergedConfig, totalCols, totalRows);
+      drawGrid(ctx, mergedConfig, totalCols, 6);
     }
 
-    // 构建点网格用于快速查找
-    const grid = buildPointGrid(data.points);
+    // 无数据时不绘制点
+    if (!data || !data.points.length) {
+      return;
+    }
 
-    // 清空点位置映射
+    // 构建点网格
+    const grid = buildPointGrid(data.points);
     pointPositionsRef.current.clear();
 
-    // 检测是否有新点需要动画
+    // 检测新点动画
     const hasNewPoint = data.points.length > 0 && 
       data.points[data.points.length - 1].game_number > lastGameNumber.current;
     
@@ -126,7 +151,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     }
 
     const elapsed = hasNewPoint ? performance.now() - startTimeRef.current : Infinity;
-    const animProgress = Math.min(elapsed / 600, 1); // 600ms动画
+    const animProgress = Math.min(elapsed / 600, 1);
 
     // 绘制每个点
     for (let col = 0; col < totalCols; col++) {
@@ -139,30 +164,25 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
 
         const color = getPointColor(point.value, false);
         const isLastPoint = point === data.points[data.points.length - 1];
-
-        // 存储点位置用于点击检测 (key: "x,y", value: point)
         const radius = cellSize / 2 - 1;
+
         pointPositionsRef.current.set(`${Math.round(x)},${Math.round(y)}`, point);
         pointPositionsRef.current.set(`${col},${row}`, point);
 
+        const hasTieMark = point.has_tie === true || point.is_tie === true;
+        
         if (isLastPoint && hasNewPoint && animProgress < 1) {
-          // 新点动画
-          // 判断是否为和局：value === '和' 或者 is_tie === true
-          const isTie = point.value === '和' || point.is_tie === true;
-          drawAnimatedCircle(ctx, x, y, radius, color, mergedConfig.borderRadius, animProgress, !!point.error_id, isTie);
+          drawAnimatedHollowCircle(ctx, x, y, radius, color, animProgress, !!point.error_id, hasTieMark);
         } else {
-          // 判断是否为和局：value === '和' 或者 is_tie === true
-          const isTie = point.value === '和' || point.is_tie === true;
-          drawCircle(ctx, x, y, radius, color, mergedConfig.borderRadius, !!point.error_id, isTie);
+          drawHollowCircle(ctx, x, y, radius, color, !!point.error_id, hasTieMark);
         }
       }
     }
-  }, [data, mergedConfig, externalWidth, externalHeight]);
+  }, [data, mergedConfig, canvasPixelSize]);
 
   useEffect(() => {
     draw();
 
-    // 动画循环（仅当有新点时）
     const checkLastGameNum = data?.points[data?.points.length - 1]?.game_number ?? 0;
     if (checkLastGameNum > lastGameNumber.current) {
       const animate = () => {
@@ -190,38 +210,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [draw]);
 
-  // 计算内容宽度，用于自动滚动到最新
-  const contentWidth = useMemo(() => {
-    if (!data || !data.points.length) return 0;
-    const totalCols = Math.max(data.max_columns, 1);
-    return mergedConfig.padding * 2 + totalCols * (mergedConfig.cellSize + mergedConfig.cellGap);
-  }, [data, mergedConfig]);
-
-  // 使用 ref 存储滚动容器
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const prevDataLengthRef = useRef(data?.points?.length || 0);
-
-  // 数据变化时自动滚动到最新
-  useEffect(() => {
-    const currentLength = data?.points?.length || 0;
-    const prevLength = prevDataLengthRef.current;
-    
-    // 只在数据增加时滚动（新数据到来）
-    if (currentLength > prevLength && scrollContainerRef.current && contentWidth > 0) {
-      scrollContainerRef.current.scrollLeft = contentWidth;
-    }
-    
-    prevDataLengthRef.current = currentLength;
-  }, [data, contentWidth]);
-
-  // 初始挂载时也滚动到最新
-  useEffect(() => {
-    if (scrollContainerRef.current && contentWidth > 0) {
-      scrollContainerRef.current.scrollLeft = contentWidth;
-    }
-  }, [contentWidth]);
-
-  // 处理Canvas点击事件
+  // 点击事件
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onPointClick || !data?.points.length) return;
 
@@ -234,17 +223,14 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     const clickY = (e.clientY - rect.top) * dpr;
 
     const cellSize = mergedConfig.cellSize;
-    const cellGap = mergedConfig.cellGap;
-    const padding = mergedConfig.padding;
     const radius = (cellSize / 2 - 1) * dpr;
 
-    // 查找点击的点
     for (const [key, point] of pointPositionsRef.current) {
       if (key.includes(',')) {
         const [px, py] = key.split(',').map(Number);
-        if (!isNaN(px) && !isNaN(py) && px > 100) { // 排除 col,row 格式的key
+        if (!isNaN(px) && !isNaN(py) && px > 100) {
           const distance = Math.sqrt(Math.pow(clickX - px, 2) + Math.pow(clickY - py, 2));
-          if (distance <= radius * 1.5) { // 1.5倍半径作为点击容差
+          if (distance <= radius * 1.5) {
             onPointClick(point);
             return;
           }
@@ -253,7 +239,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     }
   }, [onPointClick, data, mergedConfig]);
 
-  // 处理Canvas悬停事件
+  // 悬停事件
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onPointHover || !data?.points.length) return;
 
@@ -268,7 +254,6 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     const cellSize = mergedConfig.cellSize;
     const radius = (cellSize / 2 - 1) * dpr;
 
-    // 查找悬停的点
     for (const [key, point] of pointPositionsRef.current) {
       if (key.includes(',')) {
         const [px, py] = key.split(',').map(Number);
@@ -298,27 +283,21 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
   }, [onPointHover]);
 
   return (
-    <div
-      className={className}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: externalHeight || 200,
-        overflow: 'auto',
-        ...style,
-      }}
-      ref={scrollContainerRef}
-    >
+    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
       <canvas
         ref={canvasRef}
+        className={className}
+        width={canvasPixelSize.width}
+        height={canvasPixelSize.height}
         onClick={handleCanvasClick}
         onMouseMove={handleCanvasMouseMove}
         onMouseLeave={handleCanvasMouseLeave}
         style={{
           display: 'block',
-          borderRadius: '8px',
-          minWidth: contentWidth || '100%',
+          width: canvasPixelSize.styleWidth,
+          height: canvasPixelSize.styleHeight,
           cursor: onPointClick ? 'pointer' : 'default',
+          ...style,
         }}
       />
     </div>

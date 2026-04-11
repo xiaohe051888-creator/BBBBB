@@ -3,23 +3,21 @@
 """
 import os
 from dotenv import load_dotenv
+
+# ========== 第一步：必须先加载环境变量 ==========
+# 在导入任何其他模块之前加载 .env，确保 settings 能读取到环境变量
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path, override=True)  # override=True 确保覆盖已存在的环境变量
+    print(f"✅ 已加载环境变量: {env_path}")
+else:
+    print(f"⚠️  环境变量文件不存在: {env_path}")
+
+# ========== 第二步：导入其他模块 ==========
 import uvicorn
 from app.core.config import settings
 
-# 加载环境变量
-def load_environment():
-    """加载环境变量配置"""
-    env_path = os.path.join(os.path.dirname(__file__), '.env')
-    if os.path.exists(env_path):
-        load_dotenv(env_path)
-        print(f"✅ 已加载环境变量: {env_path}")
-    else:
-        print(f"⚠️  环境变量文件不存在: {env_path}")
-
 if __name__ == "__main__":
-    # 先加载环境变量
-    load_environment()
-    
     print(f"\n🚀 {settings.APP_NAME} v{settings.APP_VERSION}")
     print(f"   后端服务启动中...\n")
     

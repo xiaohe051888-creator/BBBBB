@@ -20,6 +20,7 @@ import MistakeBookPage from './pages/MistakeBookPage';
 import AdminPage from './pages/AdminPage';
 import { getToken } from './services/api';
 import { queryClient } from './lib/queryClient';
+import { PageErrorBoundary } from './components/error';
 
 // 精致SVG图标组件
 const NavIcons = {
@@ -58,8 +59,22 @@ const NavIcons = {
 // 侧边栏布局组件
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // 检测屏幕尺寸变化
+  React.useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      // 移动端自动收起侧边栏，桌面端自动展开
+      setCollapsed(mobile);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // 启动页和管理员登录页不显示侧边栏
   if (location.pathname === '/' || location.pathname === '/admin') {
@@ -161,8 +176,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         style={{ 
           flex: 1, 
           minWidth: 0, 
-          overflowX: 'hidden',
-          marginLeft: collapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)',
+          overflowX: 'auto',  /* 改为auto，允许水平滚动 */
+          marginLeft: isMobile ? 0 : (collapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)'),
           transition: 'margin-left var(--transition-slow)',
         }}
       >
@@ -192,72 +207,74 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const App: React.FC = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ConfigProvider
-        locale={zhCN}
-        theme={{
-          algorithm: theme.darkAlgorithm,
-          token: {
-            colorPrimary: '#ffd700',
-            colorSuccess: '#52c41a',
-            colorWarning: '#faad14',
-            colorError: '#ff4d4f',
-            colorInfo: '#1890ff',
-            borderRadius: 10,
-            fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif',
-            colorBgContainer: 'rgba(22,29,42,0.85)',
-            colorBgElevated: 'rgba(17,23,35,0.92)',
-            colorBgLayout: '#0a0e17',
-            colorBorder: 'rgba(48,54,68,0.4)',
-            colorText: '#e6edf3',
-            colorTextSecondary: '#8b949e',
-            controlHeight: 38,
-          },
-          components: {
-            Card: {
+    <PageErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ConfigProvider
+          locale={zhCN}
+          theme={{
+            algorithm: theme.darkAlgorithm,
+            token: {
+              colorPrimary: '#ffd700',
+              colorSuccess: '#52c41a',
+              colorWarning: '#faad14',
+              colorError: '#ff4d4f',
+              colorInfo: '#1890ff',
+              borderRadius: 10,
+              fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif',
               colorBgContainer: 'rgba(22,29,42,0.85)',
-              boxShadowTertiary: '0 4px 24px rgba(0,0,0,0.25)',
+              colorBgElevated: 'rgba(17,23,35,0.92)',
+              colorBgLayout: '#0a0e17',
+              colorBorder: 'rgba(48,54,68,0.4)',
+              colorText: '#e6edf3',
+              colorTextSecondary: '#8b949e',
+              controlHeight: 38,
             },
-            Table: {
-              colorBgContainer: 'rgba(22,29,42,0.7)',
-              headerBg: 'rgba(15,21,33,0.7)',
-              rowHoverBg: 'rgba(255,255,255,0.03)',
-              borderColor: 'rgba(48,54,68,0.25)',
+            components: {
+              Card: {
+                colorBgContainer: 'rgba(22,29,42,0.85)',
+                boxShadowTertiary: '0 4px 24px rgba(0,0,0,0.25)',
+              },
+              Table: {
+                colorBgContainer: 'rgba(22,29,42,0.7)',
+                headerBg: 'rgba(15,21,33,0.7)',
+                rowHoverBg: 'rgba(255,255,255,0.03)',
+                borderColor: 'rgba(48,54,68,0.25)',
+              },
+              Tabs: {
+                inkBarColor: '#ffd700',
+                itemSelectedColor: '#ffd700',
+                itemColor: 'rgba(255,255,255,0.5)',
+              },
+              Modal: {
+                contentBg: 'rgba(15,21,33,0.97)',
+                headerBg: 'rgba(15,21,33,0.99)',
+              },
+              Select: {
+                optionSelectedBg: 'rgba(255,215,0,0.12)',
+              },
+              Button: {
+                primaryShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
+              },
             },
-            Tabs: {
-              inkBarColor: '#ffd700',
-              itemSelectedColor: '#ffd700',
-              itemColor: 'rgba(255,255,255,0.5)',
-            },
-            Modal: {
-              contentBg: 'rgba(15,21,33,0.97)',
-              headerBg: 'rgba(15,21,33,0.99)',
-            },
-            Select: {
-              optionSelectedBg: 'rgba(255,215,0,0.12)',
-            },
-            Button: {
-              primaryShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
-            },
-          },
-        }}
-      >
-        <BrowserRouter>
-          <AppLayout>
-            <Routes>
-              <Route path="/" element={<UploadPage />} />
-              <Route path="/dashboard/:tableId" element={<DashboardPage />} />
-              <Route path="/dashboard/:tableId/roadmap" element={<RoadMapPage />} />
-              <Route path="/dashboard/:tableId/bets" element={<BetRecordsPage />} />
-              <Route path="/dashboard/:tableId/logs" element={<LogsPage />} />
-              <Route path="/dashboard/:tableId/mistakes" element={<MistakeBookPage />} />
-              <Route path="/admin" element={getToken() ? <AdminPage /> : <Navigate to="/" replace />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </AppLayout>
-        </BrowserRouter>
-      </ConfigProvider>
-    </QueryClientProvider>
+          }}
+        >
+          <BrowserRouter>
+            <AppLayout>
+              <Routes>
+                <Route path="/" element={<UploadPage />} />
+                <Route path="/dashboard/:tableId" element={<DashboardPage />} />
+                <Route path="/dashboard/:tableId/roadmap" element={<RoadMapPage />} />
+                <Route path="/dashboard/:tableId/bets" element={<BetRecordsPage />} />
+                <Route path="/dashboard/:tableId/logs" element={<LogsPage />} />
+                <Route path="/dashboard/:tableId/mistakes" element={<MistakeBookPage />} />
+                <Route path="/admin" element={getToken() ? <AdminPage /> : <Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </AppLayout>
+          </BrowserRouter>
+        </ConfigProvider>
+      </QueryClientProvider>
+    </PageErrorBoundary>
   );
 };
 

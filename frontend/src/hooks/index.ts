@@ -32,6 +32,7 @@ export {
   useAddGameOptimistically,
   useUpdateRoadsOptimistically,
   useUpdateStateOptimistically,
+  useUpdateAnalysisOptimistically,
   // Mistake Records
   useMistakesQuery,
   type MistakeRecord,

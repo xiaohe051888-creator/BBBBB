@@ -74,15 +74,8 @@ class SmartModelSelector:
         versions = await self._get_active_versions()
         
         if not versions:
-            # 无可用版本，返回默认状态
-            return {
-                "selected_version": "v1.0-default",
-                "version_id": None,
-                "score_details": {},
-                "selection_reason": "无可用模型版本，使用默认策略",
-                "confidence": 0.5,
-                "is_default": True,
-            }
+            # 无可用版本，抛出异常而非降级
+            raise ValueError("系统中没有可用的模型版本，请先创建模型版本")
         
         if len(versions) == 1:
             # 仅一个可用版本，直接使用
@@ -127,16 +120,7 @@ class SmartModelSelector:
         version = result.scalar_one_or_none()
         
         if not version:
-            return {
-                "selected_version": version_name,
-                "version_id": None,
-                "score_details": {},
-                "selection_reason": f"指定版本{version_name}未找到或已淘汰",
-                "confidence": 0.3,
-                "is_default": False,
-                "forced": True,
-                "error": "版本不存在",
-            }
+            raise ValueError(f"指定版本{version_name}未找到或已淘汰")
         
         return {
             "selected_version": version.version,
@@ -293,3 +277,31 @@ class SmartModelSelector:
         if state:
             state.current_model_version = result["selected_version"]
             await self.session.commit()
+    
+    async def get_current_version(self, table_id: str) -> Optional[ModelVersion]:
+        """
+        获取当前使用的模型版本
+        
+        优先返回 is_active=True 的版本，如果没有则返回最新创建的版本
+        """
+        # 首先尝试获取标记为激活的版本
+        stmt = select(ModelVersion).where(
+            ModelVersion.is_active == True,
+            ModelVersion.is_eliminated == False
+        ).order_by(desc(ModelVersion.created_at))
+        
+        result = await self.session.execute(stmt)
+        active_version = result.scalar_one_or_none()
+        
+        if active_version:
+            return active_version
+        
+        # 如果没有激活的版本，返回最新的非淘汰版本
+        stmt2 = select(ModelVersion).where(
+            ModelVersion.is_eliminated == False
+        ).order_by(desc(ModelVersion.created_at))
+        
+        result2 = await self.session.execute(stmt2)
+        latest_version = result2.scalar_one_or_none()
+        
+        return latest_version

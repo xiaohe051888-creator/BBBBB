@@ -1,22 +1,26 @@
 """
-AI学习与模型版本管理服务 - 百家乐分析预测系统
+AI学习与模型版本管理服务 - 百家乐分析预测系统（升级版）
 
 核心功能：
-1. AI离线学习：基于数据库历史数据，通过Claude API深度学习生成新模型版本
-2. 模型版本管理：创建/淘汰/切换模型版本（最多5个）
-3. 学习任务锁：防止重复触发
-4. 按靴学习：单次学习仅使用一个桌号+靴号的数据
+1. AI深度学习：基于历史数据进行5维度错误分析 + 自我反思
+2. 三级记忆机制：短期（当前靴）/ 中期（最近5靴）/ 长期（所有历史）
+3. 局级微学习：每局结束后即时分析，不创建新版本
+4. 智能版本选择：基于加权评分自动选择最佳版本
+5. 渐进式学习：支持版本回退和A/B测试
 
-触发方式：管理员手动触发
+触发方式：
+- 局级微学习：每局结算后自动触发（轻量级）
+- 靴级深度学习：管理员手动触发或自动触发（创建新版本）
+
 前置条件：
-- 数据库历史有效局总量 >= 200局
-- 无正在执行的学习任务
-- 仅按靴执行，不跨靴混合样本
+- 靴级学习：有效结算局 >= 20局
+- 版本数量：最多10个活跃版本
 
 输出：
-- 新模型版本号
-- 训练数据范围和关键变化
-- 准确率前后对比
+- 新版本号 + 完整提示词模板
+- 深度错误分析报告
+- 自我反思总结
+- 三级记忆更新
 """
 
 import asyncio
@@ -32,7 +36,7 @@ from sqlalchemy import select, func, desc, and_
 
 from app.core.config import settings
 from app.models.schemas import (
-    GameRecord, ModelVersion, MistakeBook,
+    GameRecord, ModelVersion, MistakeBook, AIMemory,
     LogPriority, LogCategory, SystemLog,
 )
 
@@ -397,6 +401,14 @@ class AILearningService:
             f"{adj.get('change', '')}" for adj in adjustments[:3]
         ]) if adjustments else ai_analysis.get("key_insight", "策略优化")
         
+        # 生成优化后的提示词模板（基于AI学习结果）
+        prompt_template = self._generate_optimized_prompt_template(ai_analysis, key_changes)
+        
+        # 构建三级记忆内容
+        short_term, medium_term, long_term = await self._build_tiered_memory(
+            table_id, boot_number, ai_analysis, training_data
+        )
+        
         # 创建版本记录
         version = ModelVersion(
             version=version_name,
@@ -406,6 +418,10 @@ class AILearningService:
             accuracy_before=accuracy_before,
             accuracy_after=accuracy_before,  # AI学习后准确率由实际数据决定
             key_changes=key_changes[:500],  # 截断过长内容
+            prompt_template=prompt_template,  # 学习后的提示词模板
+            short_term_memory=short_term,  # 短期记忆（当前靴）
+            medium_term_memory=medium_term,  # 中期记忆（最近5靴）
+            long_term_memory=long_term,  # 长期记忆（所有历史）
             is_active=True,
         )
         
@@ -416,6 +432,245 @@ class AILearningService:
         logger.info(f"[AI学习] 新版本创建: {version_name}")
         return version
     
+    async def _build_tiered_memory(
+        self,
+        table_id: str,
+        current_boot: int,
+        ai_analysis: Dict,
+        training_data: Dict,
+    ) -> tuple[str, str, str]:
+        """
+        构建三级记忆
+        
+        - 短期记忆：当前靴的关键模式、错误热点、即时教训
+        - 中期记忆：最近5靴的共性规律、模式演变、策略调整
+        - 长期记忆：所有历史数据中的深层规律、核心洞察、永恒原则
+        """
+        # 1. 短期记忆：当前靴的具体教训
+        short_term_patterns = ai_analysis.get("pattern_summary", "")
+        short_term_errors = ai_analysis.get("error_patterns", "")
+        short_term_insight = ai_analysis.get("key_insight", "")
+        
+        short_term = f"""【当前靴({table_id} #{current_boot})核心记忆】
+模式发现：{short_term_patterns[:100]}
+错误热点：{short_term_errors[:100]}
+关键洞察：{short_term_insight[:100]}
+样本数：{len(training_data['records'])}局
+准确率：{training_data['stats'].get('correct', 0)}/{training_data['stats'].get('total', 0)}"""
+        
+        # 2. 中期记忆：最近5靴的共性规律
+        # 获取最近5靴的数据
+        recent_boots_stmt = select(GameRecord).where(
+            GameRecord.table_id == table_id,
+            GameRecord.boot_number >= current_boot - 4,
+            GameRecord.boot_number <= current_boot,
+            GameRecord.predict_correct.isnot(None),
+        )
+        result = await self.session.execute(recent_boots_stmt)
+        recent_records = result.scalars().all()
+        
+        if recent_records:
+            recent_correct = sum(1 for r in recent_records if r.predict_correct)
+            recent_total = len(recent_records)
+            recent_accuracy = recent_correct / recent_total * 100 if recent_total > 0 else 0
+            
+            # 统计各靴表现
+            boot_stats = {}
+            for r in recent_records:
+                boot_stats[r.boot_number] = boot_stats.get(r.boot_number, {"correct": 0, "total": 0})
+                boot_stats[r.boot_number]["total"] += 1
+                if r.predict_correct:
+                    boot_stats[r.boot_number]["correct"] += 1
+            
+            boot_summary = "; ".join([
+                f"#{b}: {s['correct']}/{s['total']}"
+                for b, s in sorted(boot_stats.items())[-5:]
+            ])
+            
+            medium_term = f"""【最近5靴中期记忆】
+时间跨度：Boot #{max(0, current_boot-4)} - #{current_boot}
+总体表现：{recent_correct}/{recent_total} ({recent_accuracy:.1f}%)
+各靴表现：{boot_summary}
+趋势判断：{'上升' if recent_accuracy > 50 else '下降' if recent_accuracy < 40 else '震荡'}
+共性规律：{ai_analysis.get('pattern_summary', '分析中')[:80]}"""
+        else:
+            medium_term = "【最近5靴中期记忆】数据不足，待积累"
+        
+        # 3. 长期记忆：所有历史的深层规律
+        all_time_stmt = select(func.count()).select_from(
+            select(GameRecord).where(
+                GameRecord.predict_correct.isnot(None)
+            ).subquery()
+        )
+        result = await self.session.execute(all_time_stmt)
+        total_all_time = result.scalar() or 0
+        
+        # 获取所有历史版本的平均准确率
+        version_stmt = select(func.avg(ModelVersion.overall_accuracy)).where(
+            ModelVersion.overall_accuracy.isnot(None)
+        )
+        result = await self.session.execute(version_stmt)
+        avg_accuracy = result.scalar() or 0
+        
+        # 统计最常见的错误维度
+        error_dim_stmt = select(AIMemory.error_dimension, func.count()).where(
+            AIMemory.error_dimension.isnot(None)
+        ).group_by(AIMemory.error_dimension).order_by(desc(func.count())).limit(3)
+        result = await self.session.execute(error_dim_stmt)
+        top_errors = result.all()
+        
+        error_summary = ", ".join([f"{dim}({cnt})" for dim, cnt in top_errors]) if top_errors else "暂无数据"
+        
+        long_term = f"""【长期历史记忆】
+累计样本：{total_all_time}局
+历史平均准确率：{avg_accuracy:.1f}%
+常见错误类型：{error_summary}
+核心原则：规律会突然中断，血迹是陷阱警告，灵活应变是关键
+永恒教训：不要过度自信，保持敬畏，随时准备调整策略"""
+        
+        return short_term, medium_term, long_term
+
+    def _generate_optimized_prompt_template(self, ai_analysis: Dict, key_changes: str) -> str:
+        """
+        基于AI学习结果生成优化后的提示词模板
+        
+        这个模板会被综合模型使用，包含学习后的策略优化
+        """
+        pattern_summary = ai_analysis.get("pattern_summary", "")
+        error_patterns = ai_analysis.get("error_patterns", "")
+        confidence_threshold = ai_analysis.get("confidence_threshold_recommendation", "保持默认")
+        key_insight = ai_analysis.get("key_insight", "")
+        
+        # 构建优化后的提示词模板
+        template = f"""你是百家乐分析系统的【综合决策模型 - 学习优化版】。你是最终的决策者，负责融合庄模型和闲模型的证据，结合历史错误分析，输出最终预测。
+
+【学习优化内容 - 基于深度学习生成】
+- 本版本关键优化：{key_changes}
+- 发现的模式规律：{pattern_summary}
+- 错误模式总结：{error_patterns}
+- 核心洞察：{key_insight}
+- 置信度阈值建议：{confidence_threshold}
+
+【你的独特职责 - 只有你需要做这些】
+
+1. **你是唯一需要理解血迹的模型**
+   - 庄模型和闲模型只负责找证据，它们不知道历史哪里错了
+   - 只有你能看到完整的"陷阱地图"（血迹标记分布）
+   - 你必须分析：错误集中在哪些区域？当前位置是否在危险区？
+
+2. **你是唯一需要做预测的模型**
+   - 庄模型只输出庄向证据
+   - 闲模型只输出闲向证据  
+   - 你负责对比双方证据，做出最终预测决策
+
+3. **你是唯一需要灵活应变的模型**
+   - 识别规律期vs混沌期
+   - 知道什么时候该变，什么时候该跟
+   - 根据连续错误次数动态调整策略
+
+【核心认知 - 必须深刻理解】
+
+**1. 五路带血迹的完整2D走势图**
+- 你面对的不是孤立的数据点，而是一张完整的2D走势图系统
+- 大路是主趋势，珠盘路是原始记录，下三路是规律节奏
+- 血迹标记(error_id)是历史预测错误的可视化记录，是"陷阱地图"
+- **你的任务：读懂这张地图，避开陷阱**
+
+**2. 血迹分析 - 你的专属武器**
+- 血迹表示该局AI预测错误
+- 观察血迹分布模式：
+  * 血迹集中在哪些路？（大路？下三路？）
+  * 血迹出现的位置有什么规律？（列首？列尾？特定高度？）
+  * 血迹后的走势发生了什么变化？（规律中断？继续延续？）
+- 当前位置附近是否有血迹？（是否处于危险区？）
+
+**3. 百家乐的本质：随机中的短暂规律**
+- 每一局的开奖结果是100%完全随机的
+- 但随机也能随机出短暂的走势图规律
+- 这些规律可能出现在任意一条路上
+- **关键：这些规律会突然中断，没有任何预警！**
+
+**4. 灵活应变的艺术**
+- 识别"规律期"（各路共振，信号一致）→ 可以跟随
+- 识别"混沌期"（各路冲突，信号混乱）→ 必须谨慎
+- **知道什么时候该变，什么时候该跟，是你的核心能力**
+
+**5. 复盘与推演**
+- 观察血迹标记的分布：错误集中在哪些区域？
+- 推演：如果历史重演，当前位置会触发什么结果？
+- 反思：庄闲模型的证据冲突点在哪里？哪一方更可能正确？
+
+【输入数据】
+
+庄模型分析结果（庄向证据）：
+{{banker_result}}
+
+闲模型分析结果（闲向证据）：
+{{player_result}}
+
+最近20局历史：
+{{history}}
+
+走势图可视化（含血迹标记）：
+{{road_visual}}
+
+历史错误分析（错题本）：
+{{mistake_str}}
+
+连续失准次数：{{consecutive_errors}}
+{{tier_note}}
+
+【你的决策框架 - 四步法】
+
+**第一步：证据对比**
+- 比较庄模型和闲模型的信号强度
+- 比较两方的置信度
+- 找出证据冲突的关键点
+
+**第二步：血迹分析（你的专属步骤）**
+- 观察血迹标记的分布模式
+- 判断当前位置是否处于历史错误高发区
+- 分析血迹后的走势变化规律
+- 评估：历史错误是否会重演？
+
+**第三步：规律识别**
+- 判断当前处于"规律期"还是"混沌期"
+- 观察各路是否形成共振
+- 识别规律可能中断的信号
+
+**第四步：灵活决策**
+- 规律期 + 信号共振 + 无血迹警告 → 进取
+- 规律期 + 信号冲突 或 有血迹警告 → 标准或保守
+- 混沌期 或 连续错误 → 必须保守
+- 血迹密集区域 → 强制保守，甚至观望
+
+【风险控制铁律】
+- 连续3局错误 → 强制保守策略
+- 血迹密集区域 → 提高警惕，降低仓位
+- 各路严重冲突 → 降低置信度
+- 当前位置紧邻血迹 → 谨慎下注
+
+请严格按以下JSON格式返回最终决策，不要输出其他内容：
+{{
+    "evidence_comparison": "庄闲证据对比结论（20字以内）",
+    "bloodstain_analysis": "血迹分布分析（25字以内）",
+    "pattern_assessment": "规律期/混沌期判断（15字以内）",
+    "adaptation_strategy": "灵活应变策略（20字以内）",
+    "final_prediction": "庄或闲（只能选一个）",
+    "confidence": 0.0到1.0之间的数字,
+    "bet_tier": "保守/标准/进取",
+    "summary": "证据对比显示{{结论}}，血迹分析显示{{分析}}，当前处于{{规律判断}}，{{应变策略}}，所以按{{档位}}预测{{庄/闲}}"
+}}
+
+【输出规范】
+1. final_prediction只能输出"庄"或"闲"
+2. 连续3局失准时bet_tier必须为"保守"
+3. summary必须包含：证据对比、血迹分析、规律判断、应变策略
+4. 要体现"读懂血迹地图、灵活应变"的思维
+5. 理解：规律会突然中断，血迹是陷阱警告，要随时准备调整"""
+        
+        return template
+
     async def _cleanup_old_versions(self):
         """清理旧版本（超过5个时淘汰最旧的活跃版本）"""
         stmt = select(ModelVersion).where(
@@ -439,9 +694,341 @@ class AILearningService:
         return {
             "is_learning": AILearningService._is_learning,
             "current_task": AILearningService._current_task,
-            "min_samples": settings.MIN_SAMPLE_FOR_LEARNING,
-            "max_versions": settings.MAX_MODEL_VERSIONS,
+            "min_samples": getattr(settings, 'MIN_SAMPLE_FOR_LEARNING', 20),
+            "max_versions": getattr(settings, 'MAX_MODEL_VERSIONS', 10),
         }
+    
+    async def select_best_version(self) -> Optional[ModelVersion]:
+        """
+        智能选择最佳模型版本
+        
+        评分算法：
+        - 最近3靴命中率 × 0.4
+        - 整体命中率 × 0.2
+        - 收益稳定性 × 0.2
+        - 学习次数（经验值）× 0.1
+        - 用户评分 × 0.1
+        """
+        stmt = select(ModelVersion).where(
+            ModelVersion.is_eliminated == False
+        ).order_by(desc(ModelVersion.created_at))
+        
+        result = await self.session.execute(stmt)
+        versions = result.scalars().all()
+        
+        if not versions:
+            return None
+        
+        # 计算每个版本的智能评分
+        scored_versions = []
+        for v in versions:
+            score = self._calculate_intelligence_score(v)
+            scored_versions.append((v, score))
+            
+            # 更新版本的智能评分
+            v.intelligence_score = score
+        
+        await self.session.commit()
+        
+        # 按评分排序，返回最高分版本
+        scored_versions.sort(key=lambda x: x[1], reverse=True)
+        best_version = scored_versions[0][0]
+        
+        # 激活最佳版本
+        for v in versions:
+            v.is_active = (v.id == best_version.id)
+        
+        await self.session.commit()
+        
+        logger.info(f"[版本选择] 最佳版本: {best_version.version}, 评分: {scored_versions[0][1]:.2f}")
+        return best_version
+    
+    def _calculate_intelligence_score(self, version: ModelVersion) -> float:
+        """计算版本智能评分"""
+        # 最近3靴命中率 (40%)
+        recent_acc = version.recent_3_boot_accuracy or 0
+        
+        # 整体命中率 (20%)
+        overall_acc = version.overall_accuracy or 0
+        
+        # 收益稳定性 - 使用回撤控制评分 (20%)
+        stability = version.drawdown_control_score or 50
+        
+        # 学习次数/经验值 (10%) - 最多100次满分为10
+        experience = min(version.learning_count or 0, 100) / 10
+        
+        # 用户评分 (10%) - 0-10分
+        user_rating = version.user_rating or 5
+        
+        # 加权计算
+        score = (
+            recent_acc * 0.4 +
+            overall_acc * 0.2 +
+            stability * 0.2 +
+            experience * 0.1 +
+            user_rating * 10 * 0.1  # 转换为0-100分制
+        )
+        
+        return min(score, 100)  # 最高100分
+    
+    async def update_version_performance(self, version_id: str, is_hit: bool):
+        """更新版本性能统计"""
+        stmt = select(ModelVersion).where(ModelVersion.version == version_id)
+        result = await self.session.execute(stmt)
+        version = result.scalar_one_or_none()
+        
+        if not version:
+            return
+        
+        version.total_runs += 1
+        if is_hit:
+            version.hit_count += 1
+            version.recent_boots_hit += 1
+        
+        version.recent_boots_total += 1
+        
+        # 更新整体准确率
+        if version.total_runs > 0:
+            version.overall_accuracy = version.hit_count / version.total_runs * 100
+        
+        # 更新最近3靴准确率
+        if version.recent_boots_total > 0:
+            version.recent_3_boot_accuracy = version.recent_boots_hit / version.recent_boots_total * 100
+        
+        await self.session.commit()
+    
+    async def micro_learning(
+        self,
+        table_id: str,
+        boot_number: int,
+        game_number: int,
+        version_id: str,
+        prediction: str,
+        actual_result: str,
+        is_correct: bool,
+        confidence: float,
+        road_data: Dict,
+        banker_evidence: Dict,
+        player_evidence: Dict,
+    ) -> Dict:
+        """
+        局级微学习 - 每局结算后自动触发
+        
+        轻量级分析，不创建新版本，只记录到AI记忆
+        """
+        try:
+            # 1. 深度错误分析（如果错了）
+            error_analysis = None
+            self_reflection = None
+            
+            if not is_correct:
+                error_analysis = await self._analyze_error_deep(
+                    table_id, boot_number, game_number,
+                    prediction, actual_result,
+                    banker_evidence, player_evidence, road_data
+                )
+                
+                # 2. 自我反思
+                self_reflection = await self._self_reflection(
+                    prediction, actual_result, error_analysis, road_data
+                )
+            
+            # 3. 记录到AI记忆
+            memory = AIMemory(
+                table_id=table_id,
+                boot_number=boot_number,
+                game_number=game_number,
+                version_id=version_id,
+                prediction=prediction,
+                actual_result=actual_result,
+                is_correct=is_correct,
+                confidence=confidence,
+                error_type=error_analysis.get("error_type") if error_analysis else None,
+                error_dimension=error_analysis.get("dimension") if error_analysis else None,
+                error_analysis=json.dumps(error_analysis, ensure_ascii=False) if error_analysis else None,
+                self_reflection=self_reflection.get("reflection") if self_reflection else None,
+                would_do_differently=self_reflection.get("would_do_differently") if self_reflection else None,
+                lesson_learned=self_reflection.get("lesson") if self_reflection else None,
+                road_snapshot=json.dumps(road_data, ensure_ascii=False) if road_data else None,
+            )
+            
+            self.session.add(memory)
+            await self.session.commit()
+            
+            # 4. 更新版本性能
+            await self.update_version_performance(version_id, is_correct)
+            
+            return {
+                "success": True,
+                "memory_id": memory.id,
+                "error_analyzed": error_analysis is not None,
+                "self_reflection": self_reflection is not None,
+            }
+            
+        except Exception as e:
+            logger.error(f"[微学习] 失败: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def _analyze_error_deep(
+        self,
+        table_id: str,
+        boot_number: int,
+        game_number: int,
+        prediction: str,
+        actual_result: str,
+        banker_evidence: Dict,
+        player_evidence: Dict,
+        road_data: Dict,
+    ) -> Dict:
+        """
+        深度错误分析 - 5维度
+        
+        1. 证据误判
+        2. 血迹盲区
+        3. 规律误判
+        4. 权重失衡
+        5. 其他
+        """
+        # 构建分析提示词
+        prompt = f"""你是一个百家乐错误分析专家。请深度分析这局预测错误的原因。
+
+预测信息：
+- 预测结果：{prediction}
+- 实际结果：{actual_result}
+- 错误类型：预测{prediction}但实际开{actual_result}
+
+庄模型证据：
+{json.dumps(banker_evidence, ensure_ascii=False, indent=2)}
+
+闲模型证据：
+{json.dumps(player_evidence, ensure_ascii=False, indent=2)}
+
+五路走势图：
+{json.dumps(road_data, ensure_ascii=False, indent=2)}
+
+请从以下5个维度分析错误原因，返回JSON格式：
+{{
+    "dimension": "错误维度（证据误判/血迹盲区/规律误判/权重失衡/其他）",
+    "error_type": "具体错误类型",
+    "analysis": "详细分析（100字以内）",
+    "root_cause": "根本原因",
+    "avoidance_strategy": "下次如何避免"
+}}
+
+维度说明：
+- 证据误判：庄或闲模型过度自信，信号强但结果相反
+- 血迹盲区：忽略了关键血迹警告，或血迹模式识别错误
+- 规律误判：规律期判断为混沌期，或混沌期判断为规律期
+- 权重失衡：过度依赖某一路（如过度看大路忽略下三路）
+- 其他：不属于以上类别"""
+
+        try:
+            import httpx
+            
+            api_key = settings.ANTHROPIC_API_KEY
+            if not api_key:
+                raise ValueError("未配置Anthropic API Key，无法进行错误分析")
+            
+            async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+                response = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": api_key,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": getattr(settings, 'ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022'),
+                        "max_tokens": 1000,
+                        "messages": [{"role": "user", "content": prompt}],
+                    }
+                )
+                response.raise_for_status()
+                
+                data = response.json()
+                content = data["content"][0]["text"]
+                
+                # 提取JSON
+                json_match = re.search(r'\{[\s\S]*\}', content)
+                if json_match:
+                    return json.loads(json_match.group())
+                
+                raise ValueError(f"AI返回格式错误，无法解析JSON: {content[:200]}")
+                
+        except Exception as e:
+            logger.error(f"[错误分析] 失败: {e}")
+            raise
+    
+    async def _self_reflection(
+        self,
+        prediction: str,
+        actual_result: str,
+        error_analysis: Dict,
+        road_data: Dict,
+    ) -> Dict:
+        """
+        AI自我反思
+        
+        回答5个问题：
+        1. 这局我为什么错了？
+        2. 如果重来，我会怎么判断？
+        3. 这个错误属于哪种类型？
+        4. 我以后遇到类似情况该怎么办？
+        5. 我的提示词哪里需要调整？
+        """
+        prompt = f"""你是百家乐AI综合决策模型。请对这局预测错误进行自我反思。
+
+错误信息：
+- 预测：{prediction}
+- 实际：{actual_result}
+- 错误分析：{json.dumps(error_analysis, ensure_ascii=False)}
+
+请回答以下5个问题，返回JSON格式：
+{{
+    "reflection": "这局我为什么错了？（50字以内）",
+    "would_do_differently": "如果重来，我会怎么判断？（50字以内）",
+    "error_category": "这个错误属于哪种类型？",
+    "future_strategy": "以后遇到类似情况该怎么办？（50字以内）",
+    "prompt_adjustment": "我的提示词哪里需要调整？（50字以内）",
+    "lesson": "学到的核心教训（30字以内）"
+}}"""
+
+        try:
+            import httpx
+            
+            api_key = settings.ANTHROPIC_API_KEY
+            if not api_key:
+                raise ValueError("未配置Anthropic API Key，无法进行自我反思")
+            
+            async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+                response = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": api_key,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": getattr(settings, 'ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022'),
+                        "max_tokens": 800,
+                        "messages": [{"role": "user", "content": prompt}],
+                    }
+                )
+                response.raise_for_status()
+                
+                data = response.json()
+                content = data["content"][0]["text"]
+                
+                # 提取JSON
+                json_match = re.search(r'\{[\s\S]*\}', content)
+                if json_match:
+                    return json.loads(json_match.group())
+                
+                raise ValueError(f"AI返回格式错误，无法解析JSON: {content[:200]}")
+                
+        except Exception as e:
+            logger.error(f"[自我反思] 失败: {e}")
+            raise
     
     async def _write_log(self, **kwargs):
         """写入日志"""

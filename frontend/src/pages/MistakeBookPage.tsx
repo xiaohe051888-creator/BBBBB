@@ -102,8 +102,9 @@ const MistakeBookPage: React.FC = () => {
     pageSize 
   });
 
-  const mistakes = mistakesData?.mistakes || [];
-  const total = mistakesData?.total || 0;
+  // 使用useMemo缓存数据，避免useMemo依赖变化
+  const mistakes = useMemo(() => mistakesData?.mistakes || [], [mistakesData]);
+  const total = useMemo(() => mistakesData?.total || 0, [mistakesData]);
 
   // 筛选状态
   const [filterErrorType, setFilterErrorType] = useState<string>('');

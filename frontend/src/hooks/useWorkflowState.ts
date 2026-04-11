@@ -102,12 +102,12 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // ====== 根据系统状态自动推断工作流状态 ======
-  
+
   useEffect(() => {
     if (!tableId) return;
-    
+
     let newStatus: WorkflowStatus = 'idle';
-    
+
     switch (systemStatus) {
       case '等待下注':
         newStatus = pendingBet ? 'bet_placed' : 'waiting_bet';
@@ -124,64 +124,72 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
       default:
         newStatus = 'idle';
     }
-    
-    setWorkflowState(prev => {
-      // 状态变化时更新时间戳
-      if (prev.status !== newStatus) {
-        const now = Date.now();
-        const timeout = TIMEOUT_CONFIG[newStatus];
-        return {
-          ...prev,
-          status: newStatus,
-          currentGameNumber,
-          lastActionTime: now,
-          nextActionDeadline: timeout > 0 ? now + timeout * 1000 : null,
-          pendingBet: pendingBet ? {
-            direction: pendingBet.direction,
-            amount: pendingBet.amount,
-            tier: pendingBet.tier,
-          } : null,
-        };
-      }
-      return prev;
-    });
+
+    // 使用setTimeout避免同步setState
+    const timer = setTimeout(() => {
+      setWorkflowState(prev => {
+        // 状态变化时更新时间戳
+        if (prev.status !== newStatus) {
+          const now = Date.now();
+          const timeout = TIMEOUT_CONFIG[newStatus];
+          return {
+            ...prev,
+            status: newStatus,
+            currentGameNumber,
+            lastActionTime: now,
+            nextActionDeadline: timeout > 0 ? now + timeout * 1000 : null,
+            pendingBet: pendingBet ? {
+              direction: pendingBet.direction,
+              amount: pendingBet.amount,
+              tier: pendingBet.tier,
+            } : null,
+          };
+        }
+        return prev;
+      });
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [systemStatus, pendingBet, currentGameNumber, tableId]);
   
   // ====== 计时器 ======
-  
+
   useEffect(() => {
     // 清除旧计时器
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-    
-    // 重置已过去时间
-    setElapsed(0);
-    
+
+    // 使用setTimeout避免同步setState
+    const resetTimer = setTimeout(() => {
+      setElapsed(0);
+    }, 0);
+
     // 如果状态有超时限制，启动计时器
     if (workflowState.status !== 'idle' && TIMEOUT_CONFIG[workflowState.status] > 0) {
       timerRef.current = setInterval(() => {
         setElapsed(e => {
           const newElapsed = e + 1;
           const timeout = TIMEOUT_CONFIG[workflowState.status];
-          
+
           // 到达警告阈值时提醒
           if (newElapsed === timeout - WARNING_THRESHOLD) {
             const remaining = WARNING_THRESHOLD;
             message.warning(`${getStatusDisplayName(workflowState.status)}还剩${remaining}秒，请尽快操作`);
           }
-          
+
           // 超时时提醒
           if (newElapsed >= timeout) {
             message.error(`${getStatusDisplayName(workflowState.status)}已超时，请检查操作状态`);
           }
-          
+
           return newElapsed;
         });
       }, 1000);
     }
-    
+
     return () => {
+      clearTimeout(resetTimer);
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
@@ -257,6 +265,25 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
     setElapsed(0);
   }, []);
   
+  const resetWorkflow = useCallback(() => {
+    setWorkflowState({
+      status: 'idle',
+      currentGameNumber: 0,
+      lastActionTime: null,
+      nextActionDeadline: null,
+      pendingBet: null,
+    });
+    setElapsed(0);
+  }, []);
+
+  // 使用ref存储resetWorkflow函数，避免循环依赖
+  const resetWorkflowRef = useRef(resetWorkflow);
+
+  // 使用useEffect更新ref，避免在渲染期间修改
+  useEffect(() => {
+    resetWorkflowRef.current = resetWorkflow;
+  }, [resetWorkflow]);
+
   const completeSettlement = useCallback(() => {
     const now = Date.now();
     setWorkflowState(prev => ({
@@ -269,19 +296,10 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
     
     // 结算完成后自动回到空闲状态
     setTimeout(() => {
-      resetWorkflow();
+      if (resetWorkflowRef.current) {
+        resetWorkflowRef.current();
+      }
     }, TIMEOUT_CONFIG.settling * 1000);
-  }, []);
-  
-  const resetWorkflow = useCallback(() => {
-    setWorkflowState({
-      status: 'idle',
-      currentGameNumber: 0,
-      lastActionTime: null,
-      nextActionDeadline: null,
-      pendingBet: null,
-    });
-    setElapsed(0);
   }, []);
   
   // ====== 智能检测 ======

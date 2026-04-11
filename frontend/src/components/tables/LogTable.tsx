@@ -26,8 +26,9 @@ interface LogTableProps {
   scrollY?: number;
 }
 
-// 优先级图标
-const PriorityIcon: React.FC<{ priority: string }> = ({ priority }) => {
+// PriorityIcon组件暂时未使用，保留供将来使用
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _PriorityIcon: React.FC<{ priority: string }> = ({ priority }) => {
   const color = PRIORITY_COLORS[priority] || '#1890ff';
   if (priority === 'high') {
     return (

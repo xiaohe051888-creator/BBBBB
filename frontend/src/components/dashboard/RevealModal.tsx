@@ -95,7 +95,7 @@ const RevealModal: React.FC<RevealModalProps> = ({
       onCancel={onCancel}
       footer={null}
       centered
-      maskStyle={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
+      styles={{ mask: { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' } }}
       width={400}
     >
       <div style={{ textAlign: 'center', marginBottom: 24 }}>

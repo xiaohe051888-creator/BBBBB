@@ -404,6 +404,15 @@ export const useUpdateStateOptimistically = () => {
   };
 };
 
+// 更新AI分析数据（用于WebSocket接收到AI分析结果时）
+export const useUpdateAnalysisOptimistically = () => {
+  const queryClient = useQueryClient();
+
+  return (tableId: string, analysisData: AnalysisData) => {
+    queryClient.setQueryData(queryKeys.analysis(tableId), analysisData);
+  };
+};
+
 // ====== Mistake Records Query ======
 
 export interface MistakeRecord {
