@@ -52,7 +52,7 @@ export const EMPTY_STATES = {
   noData: {
     main: '暂无数据，请先上传开奖记录。',
     guide: '点击"上传数据"按钮，手动输入开奖结果开始分析。',
-    sub: '支持1-66局批量上传，上传后自动计算五路走势图。',
+    sub: '支持1-72局批量上传，上传后自动计算五路走势图。',
   },
   waitingResult: {
     main: '等待开奖中',
@@ -247,7 +247,7 @@ export const RESULT_BG: Record<string, string> = {
 // ====== 游戏常量 ======
 
 /** 每靴最大局数 */
-export const MAX_GAMES_PER_BOOT = 66;
+export const MAX_GAMES_PER_BOOT = 72;
 
 /** 默认下注金额 */
 export const DEFAULT_BET_AMOUNT = 100;

@@ -102,7 +102,7 @@ class Settings:
     HEALTH_SAMPLE_WINDOW: int = 500
     
     # 手动模式配置
-    MAX_UPLOAD_GAMES: int = 66         # 单次最大上传局数
+    MAX_UPLOAD_GAMES: int = 72         # 单次最大上传局数
     MIN_UPLOAD_GAMES: int = 1          # 单次最小上传局数
 
 

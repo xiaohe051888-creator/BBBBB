@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/games", tags=["游戏"])
 @router.post("/upload")
 async def upload_game_results(req: UploadRequest):
     """
-    手动上传批量开奖记录（最多66局）
+    手动上传批量开奖记录（最多72局）
     上传后自动计算五路走势图，触发AI分析预测下一局
     """
     from app.services.manual_game_service import upload_games, run_ai_analysis, get_session

@@ -165,7 +165,7 @@ export interface CurrentGameState {
   } | null;
 }
 
-/** 手动上传批量开奖记录（最多66局），上传后自动触发AI分析 */
+/** 手动上传批量开奖记录（最多72局），上传后自动触发AI分析 */
 export const uploadGameResults = async (
   tableId: string,
   games: GameUploadItem[],
