@@ -101,7 +101,6 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = canvasPixelSize.dpr;
     const displayWidth = canvasPixelSize.styleWidth;
     const displayHeight = canvasPixelSize.styleHeight;
 
@@ -144,7 +143,7 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
 
       drawRoadPoint(ctx, x, y, cellSize / 2 - 1, color, roadStyle, !!point.error_id);
     }
-  }, [data, mergedConfig, canvasPixelSize]);
+  }, [data, mergedConfig, canvasPixelSize, visibleCols]);
 
   useEffect(() => {
     draw();

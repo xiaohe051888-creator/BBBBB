@@ -56,7 +56,6 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = canvasPixelSize.dpr;
     const displayWidth = canvasPixelSize.styleWidth;
     const displayHeight = canvasPixelSize.styleHeight;
 

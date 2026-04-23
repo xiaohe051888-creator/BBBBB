@@ -112,7 +112,6 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = canvasPixelSize.dpr;
     const displayWidth = canvasPixelSize.styleWidth;
     const displayHeight = canvasPixelSize.styleHeight;
 
@@ -178,7 +177,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
         }
       }
     }
-  }, [data, mergedConfig, canvasPixelSize]);
+  }, [data, mergedConfig, canvasPixelSize, visibleCols]);
 
   useEffect(() => {
     draw();
@@ -201,7 +200,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draw, data?.points.length]);
+  }, [draw]);
 
   // 窗口resize重绘
   useEffect(() => {

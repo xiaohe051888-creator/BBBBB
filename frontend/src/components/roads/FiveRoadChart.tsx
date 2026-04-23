@@ -39,6 +39,22 @@ const toRoadData = (road: SingleRoadData | undefined, roadType: string): RoadDat
   };
 };
 
+// 空状态组件 (移到外部)
+const EmptyState = ({ height }: { height: number }) => (
+  <div style={{
+    width: '100%',
+    height: `${height}px`,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#0d1117',
+    borderRadius: '4px',
+  }}>
+    <span style={{ color: '#8b949e', fontSize: '12px' }}>等待数据...</span>
+  </div>
+);
+
 /**
  * 五路走势图组件 - 流式布局版
  * 
@@ -146,22 +162,6 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
   const totalRowHeight = useMemo(() => {
     return roadHeight + HEADER_HEIGHT;
   }, [roadHeight]);
-
-  // 空状态组件
-  const EmptyState = ({ height }: { height: number }) => (
-    <div style={{
-      width: '100%',
-      height: `${height}px`,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#0d1117',
-      borderRadius: '4px',
-    }}>
-      <span style={{ color: '#8b949e', fontSize: '12px' }}>等待数据...</span>
-    </div>
-  );
 
   return (
     <div style={{

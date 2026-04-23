@@ -18,8 +18,10 @@ def test_case_1_basic_big_road():
     sequence = ["庄", "闲", "庄", "闲", "庄", "闲", "庄", "闲"]
     
     for i, result in enumerate(sequence, start=1):
-        five_roads = engine.process_game(i, result)
-        big_road = five_roads.big_road
+        engine.process_game(i, result)
+        
+    five_roads = engine.calculate_all_roads()
+    big_road = five_roads["big_road"]
         
     print(f"大路点数: {len(big_road.points)}")
     print(f"大路列数: {big_road.max_columns}")
@@ -39,13 +41,14 @@ def test_case_2_tie_handling():
     
     # 序列: 庄、和、闲、和、和
     engine.process_game(1, "庄")
-    five_roads = engine.process_game(2, "和")
+    engine.process_game(2, "和")
     engine.process_game(3, "闲")
     engine.process_game(4, "和")
-    five_roads = engine.process_game(5, "和")
+    engine.process_game(5, "和")
     
-    big_road = five_roads.big_road
-    bead_road = five_roads.bead_road
+    five_roads = engine.calculate_all_roads()
+    big_road = five_roads["big_road"]
+    bead_road = five_roads["bead_road"]
     
     print(f"大路点数: {len(big_road.points)}")
     print(f"珠盘路点数: {len(bead_road.points)}")
@@ -77,7 +80,7 @@ def test_case_3_bead_road_layout():
         engine.process_game(i, result)
     
     five_roads = engine.calculate_all_roads()
-    bead_road = five_roads.bead_road
+    bead_road = five_roads["bead_road"]
     
     print(f"珠盘路总点数: {len(bead_road.points)}")
     print(f"珠盘路列数: {bead_road.max_columns}")
@@ -109,22 +112,22 @@ def test_case_4_derived_roads_styles():
     
     five_roads = engine.calculate_all_roads()
     
-    print(f"大眼仔路点数: {len(five_roads.big_eye_boy.points)}")
-    print(f"小路点数: {len(five_roads.small_road.points)}")
-    print(f"螳螂路点数: {len(five_roads.cockroach_road.points)}")
+    print(f"大眼仔路点数: {len(five_roads["big_eye"].points)}")
+    print(f"小路点数: {len(five_roads["small_road"].points)}")
+    print(f"螳螂路点数: {len(five_roads["cockroach_road"].points)}")
     
     # 验证派生路都有数据
-    assert len(five_roads.big_eye_boy.points) > 0, "大眼仔路应该有数据"
-    assert len(five_roads.small_road.points) > 0, "小路应该有数据"
-    assert len(five_roads.cockroach_road.points) > 0, "螳螂路应该有数据"
+    assert len(five_roads["big_eye"].points) > 0, "大眼仔路应该有数据"
+    assert len(five_roads["small_road"].points) > 0, "小路应该有数据"
+    assert len(five_roads["cockroach_road"].points) > 0, "螳螂路应该有数据"
     
     # 验证派生路的值是"延"或"转"
-    for road_name, road in [("大眼仔路", five_roads.big_eye_boy),
-                           ("小路", five_roads.small_road),
-                           ("螳螂路", five_roads.cockroach_road)]:
+    for road_name, road in [("大眼仔路", five_roads["big_eye"]),
+                           ("小路", five_roads["small_road"]),
+                           ("螳螂路", five_roads["cockroach_road"])]:
         values = set(p.value for p in road.points)
         print(f"  {road_name} 值域: {values}")
-        assert values.issubset({"延", "转"}), f"{road_name} 包含非预期值: {values}"
+        assert values.issubset({"红", "蓝"}), f"{road_name} 包含非预期值: {values}"
     
     print("✅ 测试4通过")
 
@@ -138,7 +141,7 @@ def test_case_5_max_6_per_column():
         engine.process_game(i, "庄")
     
     five_roads = engine.calculate_all_roads()
-    big_road = five_roads.big_road
+    big_road = five_roads["big_road"]
     
     print(f"7连庄后大路列数: {big_road.max_columns}")
     print(f"7连庄后大路行数: {big_road.max_rows}")
