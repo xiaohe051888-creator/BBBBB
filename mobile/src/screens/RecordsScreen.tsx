@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 const FastList: any = FlashList;
@@ -7,8 +7,8 @@ import { useBetsQuery, useLogsQuery } from '../hooks/useQueries';
 
 export default function RecordsScreen() {
   const [tab, setTab] = useState<'bets' | 'logs'>('bets');
-  const { data: betsData, isLoading: betsLoading } = useBetsQuery({ page: 1, pageSize: 100 });
-  const { data: logsData, isLoading: logsLoading } = useLogsQuery({ page: 1, pageSize: 100 });
+  const { data: betsData, isLoading: betsLoading, refetch: refetchBets, isRefetching: isRefetchingBets } = useBetsQuery({ page: 1, pageSize: 100 });
+  const { data: logsData, isLoading: logsLoading, refetch: refetchLogs, isRefetching: isRefetchingLogs } = useLogsQuery({ page: 1, pageSize: 100 });
 
   const renderBet = ({ item }: { item: any }) => (
     <View style={styles.card}>
@@ -57,20 +57,22 @@ export default function RecordsScreen() {
 
       <View style={styles.listContainer}>
         {tab === 'bets' ? (
-                    <FastList
+          <FastList
             data={betsData?.bets || []}
             renderItem={renderBet}
             estimatedItemSize={100}
             keyExtractor={(item: any) => item.id.toString()}
             contentContainerStyle={{ padding: 16 }}
+            refreshControl={<RefreshControl refreshing={isRefetchingBets} onRefresh={refetchBets} tintColor="#ffd700" />}
           />
         ) : (
-                    <FastList
+          <FastList
             data={logsData?.logs || []}
             renderItem={renderLog}
             estimatedItemSize={60}
             keyExtractor={(item: any) => item.id.toString()}
             contentContainerStyle={{ padding: 16 }}
+            refreshControl={<RefreshControl refreshing={isRefetchingLogs} onRefresh={refetchLogs} tintColor="#ffd700" />}
           />
         )}
       </View>

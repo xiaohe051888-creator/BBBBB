@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
-import { Canvas, Circle, Line, Group, Path, Paint } from '@shopify/react-native-skia';
+import { Canvas, Circle, Line, Group } from '@shopify/react-native-skia';
 import { useGameState } from '../../hooks/useGameState';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const CELL_SIZE = 20; // 缩小单元格尺寸以适应手机屏幕
+const CELL_SIZE = 20; 
 const ROWS = 6;
-const VISIBLE_COLS = Math.floor((SCREEN_WIDTH - 32) / CELL_SIZE); // 根据屏幕宽度动态计算可见列数
+const VISIBLE_COLS = Math.floor((SCREEN_WIDTH - 32) / CELL_SIZE); 
 
 const Grid = ({ rows, cols, cellSize }: { rows: number; cols: number; cellSize: number }) => {
   const width = cols * cellSize;
@@ -52,9 +52,9 @@ const BeadRoad = ({ data, cols }: { data: string[]; cols: number }) => {
         const radius = CELL_SIZE / 2 - 2;
 
         let color = 'transparent';
-        if (result === '庄') color = '#ff4d4f'; // 庄红
-        if (result === '闲') color = '#1890ff'; // 闲蓝
-        if (result === '和') color = '#52c41a'; // 和绿
+        if (result === '庄') color = '#ff4d4f'; 
+        if (result === '闲') color = '#1890ff'; 
+        if (result === '和') color = '#52c41a'; 
 
         if (color === 'transparent') return null;
 
@@ -69,7 +69,6 @@ const BeadRoad = ({ data, cols }: { data: string[]; cols: number }) => {
 };
 
 const BigRoad = ({ data, cols }: { data: string[]; cols: number }) => {
-  // 简化的大路逻辑：连续的结果排在一列，遇到和局不占新列，只在圆圈上加绿线
   const columns: { result: string; ties: number }[][] = [];
   let currentResult = '';
 
@@ -113,7 +112,6 @@ const BigRoad = ({ data, cols }: { data: string[]; cols: number }) => {
           return (
             <Group key={`big-${colIndex}-${rowIndex}`}>
               <Circle cx={cx} cy={cy} r={radius} color={color} style="stroke" strokeWidth={2} />
-              {/* 和局标记 (绿线穿过) */}
               {item.ties > 0 && (
                 <Line 
                   p1={{ x: cx - radius + 2, y: cy + radius - 2 }} 
@@ -137,9 +135,17 @@ export const FiveRoadsChart: React.FC = () => {
     return games ? games.map(g => g.result) : [];
   }, [games]);
 
-  // 计算所需的列数，至少铺满屏幕，数据多时扩展列数以支持滚动
   const requiredBeadCols = Math.max(VISIBLE_COLS, Math.ceil(rawData.length / ROWS) + 1);
-  const requiredBigCols = Math.max(VISIBLE_COLS, rawData.length + 2); // 粗略估算大路最大列数
+  const requiredBigCols = Math.max(VISIBLE_COLS, rawData.length + 2); 
+
+  if (!rawData || rawData.length === 0) {
+    return (
+      <View style={[styles.container, styles.emptyContainer]}>
+        <Text style={styles.emptyTitle}>当前无对局数据</Text>
+        <Text style={styles.emptySubtitle}>请点击顶部「上传」按钮录入开奖记录，或等待系统同步。</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -170,7 +176,6 @@ export const FiveRoadsChart: React.FC = () => {
         </View>
       </View>
 
-      {/* 图例 */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#ff4d4f' }]} />
@@ -193,7 +198,7 @@ const styles = StyleSheet.create({
   container: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#161b22', // 暗色主题卡片
+    backgroundColor: '#161b22',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#30363d',
@@ -254,6 +259,22 @@ const styles = StyleSheet.create({
   legendText: {
     color: '#8b949e',
     fontSize: 13,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    color: '#8b949e',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 

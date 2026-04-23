@@ -1,4 +1,7 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import re
+
+# 1. Update UploadBottomSheet.tsx
+upload_content = """import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { BottomSheetModal, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
@@ -167,3 +170,71 @@ const styles = StyleSheet.create({
   btnText: { color: '#0d1117', fontSize: 18, fontWeight: 'bold' },
   btnTextDisabled: { color: '#8b949e' },
 });
+"""
+
+with open('/workspace/mobile/src/components/dashboard/UploadBottomSheet.tsx', 'w') as f:
+    f.write(upload_content)
+
+# 2. Update RevealBottomSheet.tsx to include haptics
+with open('/workspace/mobile/src/components/dashboard/RevealBottomSheet.tsx', 'r') as f:
+    reveal_content = f.read()
+
+reveal_content = reveal_content.replace("import { View,", "import { View,")
+reveal_content = "import * as Haptics from 'expo-haptics';\n" + reveal_content
+reveal_content = reveal_content.replace("onPress={() => onReveal('庄')}", "onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('庄'); }}")
+reveal_content = reveal_content.replace("onPress={() => onReveal('闲')}", "onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('闲'); }}")
+reveal_content = reveal_content.replace("onPress={() => onReveal('和')}", "onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('和'); }}")
+
+with open('/workspace/mobile/src/components/dashboard/RevealBottomSheet.tsx', 'w') as f:
+    f.write(reveal_content)
+
+# 3. Add Pull-to-refresh to Records and Mistakes
+with open('/workspace/mobile/src/screens/RecordsScreen.tsx', 'r') as f:
+    records_content = f.read()
+
+records_content = records_content.replace("import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';", "import { View, Text, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';")
+records_content = records_content.replace("const { data: betsData, isLoading: betsLoading } = useBetsQuery({ page: 1, pageSize: 100 });\n  const { data: logsData, isLoading: logsLoading } = useLogsQuery({ page: 1, pageSize: 100 });", "const { data: betsData, isLoading: betsLoading, refetch: refetchBets, isRefetching: isRefetchingBets } = useBetsQuery({ page: 1, pageSize: 100 });\n  const { data: logsData, isLoading: logsLoading, refetch: refetchLogs, isRefetching: isRefetchingLogs } = useLogsQuery({ page: 1, pageSize: 100 });")
+
+refresh_bets = "refreshControl={<RefreshControl refreshing={isRefetchingBets} onRefresh={refetchBets} tintColor=\"#ffd700\" />}"
+refresh_logs = "refreshControl={<RefreshControl refreshing={isRefetchingLogs} onRefresh={refetchLogs} tintColor=\"#ffd700\" />}"
+
+records_content = records_content.replace("contentContainerStyle={{ padding: 16 }}", f"contentContainerStyle={{{{ padding: 16 }}}}\n            {refresh_bets}")
+records_content = records_content.replace("contentContainerStyle={{ padding: 16 }}\n            refreshControl", f"contentContainerStyle={{{{ padding: 16 }}}}\n            {refresh_logs}", 1) # Only replace the second one for logs
+
+with open('/workspace/mobile/src/screens/RecordsScreen.tsx', 'w') as f:
+    f.write(records_content)
+
+
+with open('/workspace/mobile/src/screens/MistakesScreen.tsx', 'r') as f:
+    mistakes_content = f.read()
+
+mistakes_content = mistakes_content.replace("import { View, Text, StyleSheet } from 'react-native';", "import { View, Text, StyleSheet, RefreshControl } from 'react-native';")
+mistakes_content = mistakes_content.replace("const { data, isLoading } = useMistakesQuery({ page: 1, pageSize: 100 });", "const { data, isLoading, refetch, isRefetching } = useMistakesQuery({ page: 1, pageSize: 100 });")
+refresh_mistakes = "refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor=\"#ffd700\" />}"
+mistakes_content = mistakes_content.replace("contentContainerStyle={{ padding: 16 }}", f"contentContainerStyle={{{{ padding: 16 }}}}\n          {refresh_mistakes}")
+
+with open('/workspace/mobile/src/screens/MistakesScreen.tsx', 'w') as f:
+    f.write(mistakes_content)
+
+
+# 4. Add Empty State to Dashboard/FiveRoadsChart
+with open('/workspace/mobile/src/components/roads/FiveRoadsChart.tsx', 'r') as f:
+    chart_content = f.read()
+
+empty_state = """  if (!rawData || rawData.length === 0) {
+    return (
+      <View style={[styles.container, styles.emptyContainer]}>
+        <Text style={styles.emptyTitle}>当前无对局数据</Text>
+        <Text style={styles.emptySubtitle}>请点击顶部「上传」按钮录入开奖记录，或等待系统同步。</Text>
+      </View>
+    );
+  }
+
+  return (
+"""
+chart_content = chart_content.replace("  return (\n    <View style={styles.container}>", empty_state)
+chart_content = chart_content.replace("  legendText: {\n    color: '#8b949e',\n    fontSize: 13,\n  },", "  legendText: {\n    color: '#8b949e',\n    fontSize: 13,\n  },\n  emptyContainer: {\n    alignItems: 'center',\n    justifyContent: 'center',\n    paddingVertical: 60,\n  },\n  emptyTitle: {\n    color: '#fff',\n    fontSize: 18,\n    fontWeight: 'bold',\n    marginBottom: 8,\n  },\n  emptySubtitle: {\n    color: '#8b949e',\n    fontSize: 14,\n    textAlign: 'center',\n  },")
+
+with open('/workspace/mobile/src/components/roads/FiveRoadsChart.tsx', 'w') as f:
+    f.write(chart_content)
+

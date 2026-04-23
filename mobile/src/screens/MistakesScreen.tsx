@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 const FastList: any = FlashList;
 import { useMistakesQuery } from '../hooks/useQueries';
 
 export default function MistakesScreen() {
-  const { data, isLoading } = useMistakesQuery({ page: 1, pageSize: 100 });
+  const { data, isLoading, refetch, isRefetching } = useMistakesQuery({ page: 1, pageSize: 100 });
 
   const renderMistake = ({ item }: { item: any }) => (
     <View style={styles.card}>
@@ -34,6 +34,7 @@ export default function MistakesScreen() {
           estimatedItemSize={120}
           keyExtractor={(item: any) => item.id.toString()}
           contentContainerStyle={{ padding: 16 }}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#ffd700" />}
         />
       </View>
     </SafeAreaView>

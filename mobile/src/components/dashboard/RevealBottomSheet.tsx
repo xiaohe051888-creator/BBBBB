@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { BottomSheetModal, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
@@ -36,13 +37,13 @@ export default function RevealBottomSheet({ bottomSheetModalRef, loading, gameNu
           <ActivityIndicator size="large" color="#ffd700" style={{ marginTop: 20 }} />
         ) : (
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={[styles.btn, styles.bankerBtn]} onPress={() => onReveal('庄')}>
+            <TouchableOpacity style={[styles.btn, styles.bankerBtn]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('庄'); }}>
               <Text style={styles.btnText}>庄赢 (B)</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, styles.playerBtn]} onPress={() => onReveal('闲')}>
+            <TouchableOpacity style={[styles.btn, styles.playerBtn]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('闲'); }}>
               <Text style={styles.btnText}>闲赢 (P)</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, styles.tieBtn]} onPress={() => onReveal('和')}>
+            <TouchableOpacity style={[styles.btn, styles.tieBtn]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('和'); }}>
               <Text style={styles.btnText}>和局 (T)</Text>
             </TouchableOpacity>
           </View>
