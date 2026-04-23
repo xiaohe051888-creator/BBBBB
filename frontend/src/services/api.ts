@@ -333,7 +333,7 @@ export const createWebSocket = (): WebSocket => {
   const token = getToken();
   // WebSocket URL 格式: ws://localhost:8000/ws
   const baseWsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
-  // 如果环境变量已包含完整路径，使用它；否则拼接 table_id
+  
   const wsUrl = baseWsUrl.includes('/ws/')
     ? baseWsUrl
     : `${baseWsUrl}/ws`;

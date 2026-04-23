@@ -391,7 +391,7 @@ export const useUpdateAnalysisOptimistically = () => {
 
 export interface MistakeRecord {
   id: number;
-  table_id: string;
+  
   boot_number: number;
   game_number: number;
   error_id: string;
@@ -433,7 +433,7 @@ export const useMistakesQuery = (options: UseMistakesQueryOptions) => {
         const item = r as Record<string, unknown>;
         return {
           id: item.id as number,
-          table_id: item.table_id as string,
+          
           boot_number: item.boot_number as number,
           game_number: item.game_number as number,
           error_id: item.error_id as string,

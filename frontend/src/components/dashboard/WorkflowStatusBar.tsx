@@ -22,6 +22,7 @@ interface WorkflowStatusBarProps {
     confidence?: number;
   } | null;
   systemState: {
+    status?: string;
     game_number?: number;
     pending_bet?: {
       game_number: number;
@@ -62,7 +63,19 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
         borderColor: 'rgba(82,196,26,0.25)',
       };
     }
+
+    if (systemState?.status === '分析中' && !hasPendingBet) {
+      return {
+        icon: <BulbIcon />,
+        iconColor: '#1890ff',
+        title: `AI正在深度分析中...`,
+        subtitle: '正在结合五路走势与历史血迹图进行三模型预测，请稍候',
+        bgGradient: 'linear-gradient(135deg, rgba(24,144,255,0.15), rgba(24,144,255,0.08))',
+        borderColor: 'rgba(24,144,255,0.25)',
+      };
+    }
     if (!hasGameData) {
+
       return {
         icon: <UploadIcon />,
         iconColor: '#1890ff',
@@ -120,10 +133,10 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       </div>
 
       {/* 等待开奖时显示开奖按钮 */}
-      {hasPendingBet && (
+      {(hasGameData && systemState?.status !== '分析中' && systemState?.status !== '深度学习中') && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* 工作流倒计时 */}
-          {waitSeconds >= 0 && (
+          {hasPendingBet && waitSeconds >= 0 && (
             <div style={{
               display: 'flex',
               alignItems: 'center',

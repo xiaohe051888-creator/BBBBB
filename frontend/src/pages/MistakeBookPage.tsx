@@ -432,7 +432,7 @@ const MistakeBookPage: React.FC = () => {
         {selectedMistake && (
           <>
             <Descriptions bordered column={2} size="small" labelStyle={{ width: 100, background: '#161b22' }} style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="桌号">{selectedMistake.table_id}</Descriptions.Item>
+              
               <Descriptions.Item label="靴号">#{selectedMistake.boot_number}</Descriptions.Item>
               <Descriptions.Item label="局号">{selectedMistake.game_number}</Descriptions.Item>
               <Descriptions.Item label="错误编号">{selectedMistake.error_id}</Descriptions.Item>

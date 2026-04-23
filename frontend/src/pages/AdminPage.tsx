@@ -188,7 +188,7 @@ const AdminPage: React.FC = () => {
 
   const tableColumns = [
     { title: 'ID', dataIndex: 'id', width: '8%' },
-    { title: '桌号', dataIndex: 'table_id', width: '8%', align: 'center' as const },
+    
     { title: '靴号', dataIndex: 'boot_number', width: '8%', align: 'center' as const },
     { title: '局号', dataIndex: 'game_number', width: '8%', align: 'center' as const },
     { title: '结果', dataIndex: 'result', width: '8%', align: 'center' as const },

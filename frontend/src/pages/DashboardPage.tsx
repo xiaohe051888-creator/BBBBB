@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * 主仪表盘页面 - 智能AI（自动下注模式）
  * 流程：上传数据 → AI预测 → 自动下注 → 等待开奖 → 输入结果 → 结算 → 预测下一局
@@ -9,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { Progress } from 'antd';
 import { getToken } from '../services/api';
 import type { HealthScoreResponse } from '../services/api';
+import type { GameRecord } from '../hooks/useGameState';
 import { MAX_GAMES_PER_BOOT, DEFAULT_BET_AMOUNT } from '../utils/constants';
 import { RevealModal, LoginModal, DashboardHeader, WorkflowStatusBar, AnalysisPanel } from '../components/dashboard';
 import { FiveRoadChart } from '../components/roads';
@@ -254,66 +256,23 @@ const DashboardPage: React.FC = () => {
                 break;
               case 'game_revealed':
                 if (data) {
-                  addGameOptimistically( {
+                  addGameOptimistically({
                     game_number: data.game_number,
                     result: data.result,
-                    predict_direction: data.predict_direction,
-                    predict_correct: data.predict_correct,
-                    settlement_status: data.settlement?.status,
-                    profit_loss: data.settlement?.profit_loss ?? 0,
-                    balance_after: data.balance,
-                    result_time: new Date().toISOString(),
-                    error_id: null,
-                  });
-                  if (data.settlement) {
-                    updateBetOptimistically( data.game_number, {
-                      status: data.settlement.status,
-                      game_result: data.result,
-                      settlement_amount: data.settlement.settlement_amount,
-                      profit_loss: data.settlement.profit_loss,
-                    });
-                  }
-                  if (data.roads) {
-                    updateRoadsOptimistically( {
-                      boot_number: data.boot_number,
-                      total_games: data.game_number,
-                      roads: data.roads,
-                    });
-                  }
-                  updateStateOptimistically( {
-                    balance: data.balance,
-                    game_number: data.game_number,
-                    current_game_result: data.result,
-                    pending_bet: null,
-                    status: '分析中',
-                  });
+                  } as unknown as GameRecord);
                   queryClient.invalidateQueries({ queryKey: ['games'] });
-                  queryClient.invalidateQueries({ queryKey: ['bets'] });
-                  queryClient.invalidateQueries({ queryKey: queryKeys.roads() });
                   queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
-                  queryClient.invalidateQueries({ queryKey: queryKeys.stats() });
                 }
                 break;
-              case 'ai_analysis':
-                if (data) {
-                  // 更新系统状态
-                  updateStateOptimistically( {
-                    predict_direction: data.prediction,
-                    predict_confidence: data.confidence,
-                    current_bet_tier: data.tier,
-                    status: '等待下注',
-                  });
-                  // 更新AI分析数据（关键修复：使分析结果立即显示在UI上）
-                  updateAnalysisOptimistically( {
-                    banker_summary: data.banker_summary || '',
-                    player_summary: data.player_summary || '',
-                    combined_summary: data.combined_summary || '',
-                    confidence: data.confidence || 0.5,
-                    bet_tier: data.tier || '标准',
-                    prediction: data.prediction || null,
-                    bet_amount: data.bet_amount || null,
-                  });
-                  queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
+              case 'micro_learning':
+                setMicroLearning(data);
+                break;
+              case 'deep_learning_started':
+              case 'deep_learning_progress':
+              case 'deep_learning_completed':
+              case 'deep_learning_failed':
+                setDeepLearning(data);
+                if (data.status === '完成' || data.status === '失败') {
                   queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
                 }
                 break;
@@ -365,6 +324,10 @@ const DashboardPage: React.FC = () => {
 
   // 管理员登录
   const { visible: loginVisible, password: loginPassword, loading: loginLoading, openLogin, closeLogin, setPassword: setLoginPassword, handleLogin: handleAdminLogin } = useAdminLogin();
+
+  // 学习状态
+  const [microLearning, setMicroLearning] = useState<any>(null);
+  const [deepLearning, setDeepLearning] = useState<any>(null);
 
   const handleOpenReveal = () => {
     setRevealResult('');
@@ -469,7 +432,7 @@ const DashboardPage: React.FC = () => {
           </div>
 
           {/* AI学习状态 */}
-          <LearningStatusPanel  compact />
+          <LearningStatusPanel microLearning={microLearning} deepLearning={deepLearning} systemStatus={systemState?.status} compact />
         </div>
 
         {/* 右侧：分析面板 + 数据表格 */}

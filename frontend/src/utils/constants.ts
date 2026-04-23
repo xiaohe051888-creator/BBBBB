@@ -144,8 +144,8 @@ export const LOG_TEMPLATES = {
     `连续${count}局预测错误，已切换保守金额策略`,
   hitRecovery: (amount: number) =>
     `命中恢复，下注金额按梯度回升至${amount}`,
-  uploadComplete: (count: number, tableId: string) =>
-    `上传完成，${tableId}桌新增${count}局开奖记录`,
+  uploadComplete: (count: number) =>
+    `上传完成，新增${count}局开奖记录`,
   analysisDone: (gameNumber: number, direction: string, confidence: number) =>
     `第${gameNumber}局分析完成，预测${direction}，置信度${(confidence * 100).toFixed(0)}%`,
   settleDone: (gameNumber: number, result: string, profitLoss: number) =>

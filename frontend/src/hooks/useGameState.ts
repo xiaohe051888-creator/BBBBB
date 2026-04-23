@@ -9,7 +9,7 @@ import * as api from '../services/api';
 // ====== 类型定义 ======
 
 export interface SystemState {
-  table_id: string;
+  
   status: string;
   boot_number: number;
   game_number: number;

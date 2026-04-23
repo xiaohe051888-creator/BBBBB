@@ -36,7 +36,7 @@ interface LearningStatusPanelProps {
   microLearning?: MicroLearningStatus | null;
   deepLearning?: DeepLearningStatus | null;
   systemStatus?: string;
-  tableId?: string;
+  
   compact?: boolean;
 }
 
@@ -44,11 +44,11 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
   microLearning,
   deepLearning,
   systemStatus,
-  tableId,
+
   compact,
 }) => {
   // 避免未使用变量警告
-  void tableId;
+  
   void compact;
   // 是否正在深度学习中
   const isDeepLearning = systemStatus === '深度学习中' || deepLearning?.status === 'AI分析' || deepLearning?.status === '数据准备' || deepLearning?.status === '生成版本';

@@ -7,7 +7,7 @@ import * as api from '../services/api';
 
 interface WebSocketMessage {
   type: string;
-  table_id?: string;
+  
   data: Record<string, unknown>;
   timestamp?: string;
 }
