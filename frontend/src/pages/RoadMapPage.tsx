@@ -1,6 +1,6 @@
 /**
  * 走势图详情页 - 全屏五路走势图展示 + 原始数据列表
- * 路由：/dashboard/:tableId/roadmap
+ * 路由：/dashboard/roadmap
  * 
  * 优化：使用React Query + 乐观UI策略，页面切换无加载转圈
  */

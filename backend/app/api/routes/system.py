@@ -10,7 +10,7 @@ from app.core.database import async_session
 from app.models.schemas import GameRecord, BetRecord, SystemLog, SystemState
 from app.core.config import settings
 from app.services.manual_game_service import get_current_state
-from app.services.game.session import _sessions
+from app.services.game.session import _session
 from app.api.routes.utils import get_current_user
 
 router = APIRouter(prefix="/api/system", tags=["系统状态"])

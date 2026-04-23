@@ -68,7 +68,7 @@ class AILearningService:
     # 类级别的任务锁（跨实例共享）
     _learning_lock: asyncio.Lock = asyncio.Lock()
     _is_learning: bool = False
-    _current_task: Optional[str] = None  # 当前学习任务标识 (tableId_bootNumber)
+    _current_task: Optional[str] = None  # 当前学习任务标识 (bootNumber)
     
     def __init__(self, session: AsyncSession):
         self.session = session

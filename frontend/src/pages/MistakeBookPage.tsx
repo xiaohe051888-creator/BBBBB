@@ -1,6 +1,6 @@
 /**
  * 错题本页面 - 预测错误记录、错因分析、修正策略
- * 路由：/dashboard/:tableId/mistakes
+ * 路由：/dashboard/mistakes
  * 
  * 优化：使用React Query + 乐观UI策略，自适应布局无横向滚动
  */

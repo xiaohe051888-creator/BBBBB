@@ -1,6 +1,6 @@
 /**
  * 实盘日志详情页 - 完整系统日志、事件追踪、错误告警
- * 路由：/dashboard/:tableId/logs
+ * 路由：/dashboard/logs
  * 
  * 优化：使用React Query + 乐观UI策略，页面切换无加载转圈
  */

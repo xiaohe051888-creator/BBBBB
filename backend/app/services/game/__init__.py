@@ -6,7 +6,6 @@ from .session import (
     get_session,
     set_broadcast_func,
     broadcast_event,
-    get_all_sessions,
     clear_session,
 )
 from .logging import write_game_log
@@ -24,7 +23,6 @@ __all__ = [
     "get_session",
     "set_broadcast_func",
     "broadcast_event",
-    "get_all_sessions",
     "clear_session",
     # Logging
     "write_game_log",

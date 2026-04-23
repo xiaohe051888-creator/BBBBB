@@ -1,6 +1,6 @@
 /**
  * 下注记录详情页 - 完整下注历史、统计图表、盈亏分析
- * 路由：/dashboard/:tableId/bets
+ * 路由：/dashboard/bets
  * 
  * 优化：使用React Query + 乐观UI策略，自适应布局，精致图标
  */
