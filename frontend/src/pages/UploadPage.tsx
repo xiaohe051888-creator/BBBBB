@@ -258,7 +258,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
             navigate(`/dashboard/${tableId}`);
           }
         } catch (err: unknown) {
-          const errorMsg = (err as any)?.message === 'Network Error' ? '网络连接失败，请检查后端服务是否正常运行' : (err instanceof Error ? err.message : '上传失败，请重试');
+          const errorMsg = (err as Error)?.message === 'Network Error' ? '网络连接失败，请检查后端服务是否正常运行' : (err instanceof Error ? err.message : '上传失败，请重试');
           message.error(errorMsg);
           addIssue({
             level: 'critical',
