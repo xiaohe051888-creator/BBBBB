@@ -461,3 +461,27 @@ export const useMistakesQuery = (options: UseMistakesQueryOptions) => {
     notifyOnChangeProps: ['data', 'error'],
   });
 };
+
+export const useUploadGamesMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ games, isNewBoot }: { games: any[], isNewBoot: boolean }) => {
+      return api.uploadGameResults(games, isNewBoot);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    }
+  });
+};
+
+export const useEndBootMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      return api.endBoot();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    }
+  });
+};

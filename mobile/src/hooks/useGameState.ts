@@ -137,7 +137,7 @@ interface UseGameStateReturn {
  * @param options 配置选项
  * @returns 游戏状态和操作方法
  */
-export const useGameState = (options: UseGameStateOptions): UseGameStateReturn => {
+export const useGameState = (options: UseGameStateOptions = {}): UseGameStateReturn => {
   const { autoRefresh = true, refreshInterval = 5000 } = options;
 
   // 系统状态

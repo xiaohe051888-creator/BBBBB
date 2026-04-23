@@ -32,7 +32,7 @@ interface UseWebSocketReturn {
  * @param options 配置选项
  * @returns WebSocket 操作方法
  */
-export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn => {
+export const useWebSocket = (options: UseWebSocketOptions = {}): UseWebSocketReturn => {
   const { 
     onStateUpdate,
     onLog,
