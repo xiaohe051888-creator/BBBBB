@@ -43,18 +43,24 @@ class ManualSession:
     deep_learning_status: Optional[Dict] = None  # 深度学习进度状态
 
 
-# 全局单例会话
+# 全局单例会话和锁
 _session: Optional[ManualSession] = None
+_session_lock: asyncio.Lock = asyncio.Lock()
 # WebSocket广播函数（由main.py注入）
 _broadcast_func: Optional[Callable] = None
 
 
 def get_session() -> ManualSession:
-    """获取单例会话"""
+    """获取单例会话（不带锁，仅供只读或已加锁环境下使用）"""
     global _session
     if _session is None:
         _session = ManualSession()
     return _session
+
+
+def get_session_lock() -> asyncio.Lock:
+    """获取会话锁"""
+    return _session_lock
 
 
 def set_broadcast_func(func: Callable):

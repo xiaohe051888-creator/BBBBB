@@ -5,6 +5,7 @@
  */
 import React from 'react';
 import { Button } from 'antd';
+import { useWaitTimer } from '../../hooks/useWaitTimer';
 import {
   ClockIcon,
   BulbIcon,
@@ -12,10 +13,6 @@ import {
   ChartIcon,
   TargetIcon,
 } from '../icons';
-
-interface TimerState {
-  remaining: number;
-}
 
 interface WorkflowStatusBarProps {
   hasPendingBet: boolean;
@@ -31,8 +28,6 @@ interface WorkflowStatusBarProps {
     } | null;
     next_game_number?: number;
   } | null;
-  timer: TimerState;
-  formattedTime: string;
   onOpenReveal: () => void;
 }
 
@@ -41,10 +36,9 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
   hasGameData,
   analysis,
   systemState,
-  timer,
-  formattedTime,
   onOpenReveal,
 }) => {
+  const { seconds: waitSeconds, formattedTime: waitFormattedTime } = useWaitTimer({ enabled: hasPendingBet });
   const pendingGameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
 
   const getStatusConfig = () => {
@@ -129,26 +123,26 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       {hasPendingBet && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* 工作流倒计时 */}
-          {timer.remaining > 0 && (
+          {waitSeconds >= 0 && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: 6,
               padding: '6px 12px',
               borderRadius: 8,
-              background: timer.remaining < 30 ? 'rgba(255,77,79,0.1)' : 'rgba(250,173,20,0.1)',
-              border: `1px solid ${timer.remaining < 30 ? 'rgba(255,77,79,0.3)' : 'rgba(250,173,20,0.3)'}`,
+              background: waitSeconds > 30 ? 'rgba(255,77,79,0.1)' : 'rgba(250,173,20,0.1)',
+              border: `1px solid ${waitSeconds > 30 ? 'rgba(255,77,79,0.3)' : 'rgba(250,173,20,0.3)'}`,
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill={timer.remaining < 30 ? '#ff7875' : '#ffd666'}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={waitSeconds > 30 ? '#ff7875' : '#ffd666'}>
                 <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
               </svg>
               <span style={{
                 fontSize: 13,
                 fontWeight: 600,
-                color: timer.remaining < 30 ? '#ff7875' : '#ffd666',
+                color: waitSeconds > 30 ? '#ff7875' : '#ffd666',
                 fontFamily: 'monospace',
               }}>
-                {formattedTime}
+                {waitFormattedTime}
               </span>
             </div>
           )}

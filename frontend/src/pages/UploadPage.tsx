@@ -3,7 +3,7 @@
  * 全面优化UI/UX：自适应布局、精致图标、中文全站
  */
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { message, Modal } from 'antd';
 import * as api from '../services/api';
 import type { GameResult } from '../components/upload';
@@ -30,12 +30,13 @@ interface UploadPageProps {
 
 const UploadPage: React.FC<UploadPageProps> = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isNewBoot = location.state?.isNewBoot || false;
 
   // 72局数据
   const [games, setGames] = useState<GameResult[]>(Array(DEFAULT_ROWS).fill(''));
   const [rowCount, setRowCount] = useState(DEFAULT_ROWS);
-  const [bootNumber] = useState<number | undefined>(undefined);
-  const [uploading, setUploading] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
   // 系统诊断
   const { addIssue } = useSystemDiagnostics({});
@@ -251,7 +252,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
         setUploading(true);
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const res = await api.uploadGameResults(validGames as any, bootNumber);
+          const res = await api.uploadGameResults(validGames as any, isNewBoot);
           if (res.data.success) {
             message.success(`上传成功！${res.data.uploaded}局数据已入库，AI分析进行中...`);
             navigate("/dashboard");

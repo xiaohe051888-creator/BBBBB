@@ -176,11 +176,11 @@ export interface CurrentGameState {
 /** 手动上传批量开奖记录（最多72局），上传后自动触发AI分析 */
 export const uploadGameResults = async (
   games: GameUploadItem[],
-  bootNumber?: number,
+  isNewBoot?: boolean,
 ) => {
   return api.post<UploadResponse>('/games/upload', {
     games,
-    boot_number: bootNumber,
+    is_new_boot: isNewBoot,
   });
 };
 
@@ -331,7 +331,7 @@ export const getRoadRawData = async (bootNumber?: number) => {
 
 export const createWebSocket = (): WebSocket => {
   const token = getToken();
-  // WebSocket URL 格式: ws://localhost:8000/ws/{table_id}
+  // WebSocket URL 格式: ws://localhost:8000/ws
   const baseWsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
   // 如果环境变量已包含完整路径，使用它；否则拼接 table_id
   const wsUrl = baseWsUrl.includes('/ws/')

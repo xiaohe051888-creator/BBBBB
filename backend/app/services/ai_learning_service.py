@@ -108,10 +108,9 @@ class AILearningService:
         if self.is_busy():
             return False, f"有学习任务正在执行中: {self._current_task}"
         
-        # 2. 检查最低样本数
+        # 2. 检查最低样本数（所有历史记录总和）
         stmt = select(func.count()).select_from(
             select(GameRecord).where(
-                GameRecord.boot_number == boot_number,
                 GameRecord.predict_correct.isnot(None),  # 仅有效结算局
             ).subquery()
         )

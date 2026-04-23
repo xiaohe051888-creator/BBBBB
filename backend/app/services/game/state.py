@@ -13,7 +13,7 @@ from .session import get_session
 
 async def get_or_create_state(db: AsyncSession) -> SystemState:
     """获取或创建系统状态记录"""
-    stmt = select(SystemState)
+    stmt = select(SystemState).with_for_update()
     result = await db.execute(stmt)
     state = result.scalar_one_or_none()
     

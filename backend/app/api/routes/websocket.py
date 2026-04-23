@@ -40,6 +40,12 @@ async def websocket_endpoint(websocket: WebSocket):
         async with ws_clients_lock:
             if websocket in ws_clients:
                 ws_clients.remove(websocket)
+    except Exception as e:
+        import logging
+        logging.getLogger("uvicorn.error").error(f"WebSocket error: {e}")
+        async with ws_clients_lock:
+            if websocket in ws_clients:
+                ws_clients.remove(websocket)
 
 
 async def _remove_client(client: WebSocket):

@@ -6,9 +6,10 @@ from typing import Dict, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import copy
 
 from app.models.schemas import GameRecord, BetRecord, MistakeBook
-from .session import get_session, broadcast_event
+from .session import get_session, get_session_lock, broadcast_event
 from .state import get_or_create_state
 from .logging import write_game_log
 
@@ -20,78 +21,86 @@ async def reveal_game(
 ) -> Dict[str, Any]:
     """
     开奖 - 输入结果，结算注单，更新走势，触发下一局分析
-    
-    Args:
-        game_number: 开奖局号
-        result: "庄"/"闲"/"和"
     """
-    sess = get_session()
-    
-    if result not in ("庄", "闲", "和"):
-        await write_game_log(
-            db, sess.boot_number, game_number,
-            "LOG-VAL-002", "参数校验", "失败",
-            f"开奖失败：无效的结果'{result}'，只能是庄、闲、和",
-            priority="P2",
-        )
-        await db.commit()
-        return {"success": False, "error": "开奖结果只能是：庄、闲、和"}
-    
-    # 写入或更新开奖记录
-    stmt = select(GameRecord).where(
-        GameRecord.boot_number == sess.boot_number,
-        GameRecord.game_number == game_number,
-    )
-    db_result = await db.execute(stmt)
-    game_record = db_result.scalar_one_or_none()
-    
-    if not game_record:
-        game_record = GameRecord(
-            boot_number=sess.boot_number,
-            game_number=game_number,
-            result=result,
-            result_time=datetime.now(),
-        )
-        db.add(game_record)
-    else:
-        game_record.result = result
-        game_record.result_time = datetime.now()
-    
-    # 预测是否正确
-    predict_correct = None
-    if sess.predict_direction:
-        if result == "和":
-            predict_correct = None  # 和局不算
-        else:
-            predict_correct = (sess.predict_direction == result)
-    
-    game_record.predict_direction = sess.predict_direction
-    game_record.predict_correct = predict_correct
-    
-    # 结算注单
-    settlement_info = await _settle_bet(db, game_number, result, sess)
-    
-    # 更新下一局号
-    sess.next_game_number = game_number + 1
-    sess.status = "分析中"
-    
-    # 更新系统状态
-    state = await get_or_create_state(db)
-    state.status = "分析中"
-    state.game_number = game_number
-    state.current_game_result = result
-    state.balance = sess.balance
-    state.consecutive_errors = sess.consecutive_errors
-    
-    await write_game_log(
-        db, sess.boot_number, game_number,
-        "LOG-MNL-002", "开奖", "成功",
-        f"第{game_number}局开奖：{result}",
-        priority="P2",
-    )
-    
-    await db.commit()
-    
+    lock = get_session_lock()
+    async with lock:
+        sess = get_session()
+        sess_backup = copy.deepcopy(sess)
+        
+        try:
+            if result not in ("庄", "闲", "和"):
+                await write_game_log(
+                    db, sess.boot_number, game_number,
+                    "LOG-VAL-002", "参数校验", "失败",
+                    f"开奖失败：无效的结果'{result}'，只能是庄、闲、和",
+                    priority="P2",
+                )
+                await db.commit()
+                return {"success": False, "error": "开奖结果只能是：庄、闲、和"}
+            
+            # 写入或更新开奖记录
+            # 加 with_for_update 防止并发修改同一条记录
+            stmt = select(GameRecord).where(
+                GameRecord.boot_number == sess.boot_number,
+                GameRecord.game_number == game_number,
+            ).with_for_update()
+            db_result = await db.execute(stmt)
+            game_record = db_result.scalar_one_or_none()
+            
+            if not game_record:
+                game_record = GameRecord(
+                    boot_number=sess.boot_number,
+                    game_number=game_number,
+                    result=result,
+                    result_time=datetime.now(),
+                )
+                db.add(game_record)
+            else:
+                game_record.result = result
+                game_record.result_time = datetime.now()
+            
+            # 预测是否正确
+            predict_correct = None
+            if sess.predict_direction:
+                if result == "和":
+                    predict_correct = None  # 和局不算
+                else:
+                    predict_correct = (sess.predict_direction == result)
+            
+            game_record.predict_direction = sess.predict_direction
+            game_record.predict_correct = predict_correct
+            
+            # 结算注单
+            settlement_info = await _settle_bet(db, game_number, result, sess)
+            
+            # 更新下一局号
+            sess.next_game_number = game_number + 1
+            sess.status = "分析中"
+            
+            # 更新系统状态
+            state = await get_or_create_state(db)
+            state.status = "分析中"
+            state.game_number = game_number
+            state.current_game_result = result
+            state.balance = sess.balance
+            state.consecutive_errors = sess.consecutive_errors
+            
+            await write_game_log(
+                db, sess.boot_number, game_number,
+                "LOG-MNL-002", "开奖", "成功",
+                f"第{game_number}局开奖：{result}",
+                priority="P2",
+            )
+            
+            await db.commit()
+            
+        except Exception as e:
+            await db.rollback()
+            # 回滚内存状态
+            import app.services.game.session as session_module
+            session_module._session = sess_backup
+            raise e
+        
     # 准备五路数据
     from app.services.road_engine import UnifiedRoadEngine
     road_engine = UnifiedRoadEngine()
@@ -178,7 +187,7 @@ async def _settle_bet(
             BetRecord.boot_number == sess.boot_number,
             BetRecord.game_number == game_number,
             BetRecord.status == "待开奖",
-        ).order_by(BetRecord.id.desc()).limit(1)
+        ).order_by(BetRecord.id.desc()).limit(1).with_for_update()
         bet_result_db = await db.execute(stmt2)
         bet_record = bet_result_db.scalar_one_or_none()
         

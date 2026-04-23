@@ -17,7 +17,6 @@ import { LearningStatusPanel } from '../components/learning';
 import { SmartAlerts } from '../components/ui';
 import {
   useAdminLogin,
-  useWaitTimer,
   useSmartDetection,
   useSystemDiagnostics,
   useSystemStateQuery,
@@ -41,10 +40,6 @@ import * as api from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryClient';
 
-interface TimerState {
-  remaining: number;
-}
-
 const DashboardPage: React.FC = () => {
   
   // navigate暂未使用，保留以备后续路由跳转
@@ -54,13 +49,16 @@ const DashboardPage: React.FC = () => {
   // 系统实时诊断
   const { diagnostics, dismissIssue, retryConnection, addIssue } = useSystemDiagnostics({});
 
+  const [gamePage, setGamePage] = useState(1);
+  const [betPage, setBetPage] = useState(1);
+
   // React Query 数据获取（乐观UI）
   const { data: systemState } = useSystemStateQuery({});
   const { data: stats } = useStatsQuery({});
   const { data: analysis, isFetching: analysisFetching } = useAnalysisQuery({});
   const { data: logsData } = useLogsQuery({ pageSize: 50 });
-  const { data: gamesData } = useGamesQuery({ page: 1 });
-  const { data: betsData } = useBetsQuery({ page: 1 });
+  const { data: gamesData } = useGamesQuery({ page: gamePage });
+  const { data: betsData } = useBetsQuery({ page: betPage });
   const { data: roadData } = useRoadsQuery({});
 
   const logs = logsData?.logs || [];
@@ -68,9 +66,6 @@ const DashboardPage: React.FC = () => {
   const bets = betsData?.bets || [];
   const gamesTotal = gamesData?.total || 0;
   const betsTotal = betsData?.total || 0;
-
-  const [gamePage, setGamePage] = useState(1);
-  const [betPage, setBetPage] = useState(1);
 
   // 健康分状态
   const [healthScore, setHealthScore] = useState<HealthScoreResponse | null>(null);
@@ -163,22 +158,6 @@ const DashboardPage: React.FC = () => {
     
   });
 
-  // 工作流计时器
-  const [timer, setTimer] = useState<TimerState>({ remaining: 0 });
-  const [formattedTime, setFormattedTime] = useState('00:00');
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTimer(prev => ({ remaining: Math.max(0, prev.remaining - 1) }));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const mins = Math.floor(timer.remaining / 60);
-    const secs = timer.remaining % 60;
-    setFormattedTime(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
-  }, [timer.remaining]);
 
   useEffect(() => {
     if (games.length > 0 || bets.length > 0) {
@@ -207,7 +186,7 @@ const DashboardPage: React.FC = () => {
         // 页面重新可见时刷新所有数据
         queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
         queryClient.invalidateQueries({ queryKey: queryKeys.roads() });
-        queryClient.invalidateQueries({ queryKey: queryKeys.games( 1) });
+        queryClient.invalidateQueries({ queryKey: ['games'] });
         queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
         queryClient.invalidateQueries({ queryKey: queryKeys.stats() });
       }
@@ -236,7 +215,10 @@ const DashboardPage: React.FC = () => {
 
             switch (type) {
               case 'log':
-                if (data) addLogOptimistically( data);
+                if (data) {
+                  addLogOptimistically( data);
+                  queryClient.invalidateQueries({ queryKey: ['logs'] });
+                }
                 break;
               case 'bet_placed':
                 if (data) {
@@ -266,6 +248,8 @@ const DashboardPage: React.FC = () => {
                     },
                     status: '等待开奖',
                   });
+                  queryClient.invalidateQueries({ queryKey: ['bets'] });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
                 }
                 break;
               case 'game_revealed':
@@ -303,6 +287,11 @@ const DashboardPage: React.FC = () => {
                     pending_bet: null,
                     status: '分析中',
                   });
+                  queryClient.invalidateQueries({ queryKey: ['games'] });
+                  queryClient.invalidateQueries({ queryKey: ['bets'] });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.roads() });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.stats() });
                 }
                 break;
               case 'ai_analysis':
@@ -324,6 +313,8 @@ const DashboardPage: React.FC = () => {
                     prediction: data.prediction || null,
                     bet_amount: data.bet_amount || null,
                   });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
                 }
                 break;
               case 'state_update':
@@ -333,6 +324,7 @@ const DashboardPage: React.FC = () => {
                     boot_number: data.boot_number,
                     game_number: data.game_number,
                   });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
                 }
                 break;
             }
@@ -359,13 +351,12 @@ const DashboardPage: React.FC = () => {
       isUnmounted = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
-  }, [ addLogOptimistically, addBetOptimistically, updateBetOptimistically, addGameOptimistically, updateRoadsOptimistically, updateStateOptimistically, updateAnalysisOptimistically]);
+  }, [ addLogOptimistically, addBetOptimistically, updateBetOptimistically, addGameOptimistically, updateRoadsOptimistically, updateStateOptimistically, updateAnalysisOptimistically, queryClient]);
 
   // 等待开奖计时器
   const hasPendingBet = !!systemState?.pending_bet;
   // pendingGameNumber暂未使用
   void systemState?.pending_bet?.game_number;
-  useWaitTimer({ enabled: hasPendingBet });
 
   // 开奖弹窗
   const [revealVisible, setRevealVisible] = useState(false);
@@ -429,8 +420,6 @@ const DashboardPage: React.FC = () => {
         hasGameData={hasGameData}
         analysis={analysis ?? null}
         systemState={systemState ?? null}
-        timer={timer}
-        formattedTime={formattedTime}
         onOpenReveal={handleOpenReveal}
       />
 

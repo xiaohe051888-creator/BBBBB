@@ -40,11 +40,17 @@ async def upload_game_results(req: UploadRequest):
     
     # 异步触发AI分析（不阻塞上传响应）
     async def _trigger_analysis():
-        async with async_session() as session:
-            await run_ai_analysis(
-                db=session,
-                boot_number=upload_result["boot_number"],
-            )
+        try:
+            async with async_session() as session:
+                await run_ai_analysis(
+                    db=session,
+                    boot_number=upload_result["boot_number"],
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger("uvicorn.error").error(f"AI分析失败(upload): {e}", exc_info=True)
+            sess = get_session()
+            sess.status = "等待开奖"
     
     asyncio.create_task(_trigger_analysis())
     
@@ -99,11 +105,16 @@ async def reveal_game_route(req: RevealRequest):
     boot_number = sess.boot_number
     
     async def _trigger_next_analysis():
-        async with async_session() as session:
-            await run_ai_analysis(
-                db=session,
-                boot_number=boot_number,
-            )
+        try:
+            async with async_session() as session:
+                await run_ai_analysis(
+                    db=session,
+                    boot_number=boot_number,
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger("uvicorn.error").error(f"下一局AI分析失败(reveal): {e}", exc_info=True)
+            sess.status = "等待开奖"
     
     asyncio.create_task(_trigger_next_analysis())
     

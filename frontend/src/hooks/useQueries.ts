@@ -251,7 +251,7 @@ export const usePlaceBetMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.bets(1) });
+      queryClient.invalidateQueries({ queryKey: ['bets'] });
     },
   });
 };
@@ -272,8 +272,8 @@ export const useRevealResultMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
       queryClient.invalidateQueries({ queryKey: queryKeys.stats() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.games(1) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.bets(1) });
+      queryClient.invalidateQueries({ queryKey: ['games'] });
+      queryClient.invalidateQueries({ queryKey: ['bets'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.roads() });
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
     },
