@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: baccarat-backend
+    env: python
+    buildCommand: "cd backend && pip install -r requirements.txt"
+    startCommand: "cd backend && uvicorn app.api.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: baccarat-db
+          property: connectionString
+      - key: DEBUG
+        value: "false"
+      - key: CORS_ORIGINS
+        value: "*"
+
+databases:
+  - name: baccarat-db
+    plan: free
+    postgresMajorVersion: 15

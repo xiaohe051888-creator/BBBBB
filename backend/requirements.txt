@@ -34,3 +34,4 @@ alembic==1.13.1
 
 # 异步工具
 aiofiles==23.2.1
+asyncpg>=0.28.0

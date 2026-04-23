@@ -22,8 +22,15 @@ class Settings:
     JWT_EXPIRE_HOURS: int = 24
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173")
     
-    # 数据库配置
-    DATABASE_URL: str = "sqlite+aiosqlite:///./data/baccarat.db"
+    # 数据库配置 (支持通过环境变量注入 PostgreSQL/MySQL 等，默认本地 SQLite)
+    @property
+    def DATABASE_URL(self) -> str:
+        _db_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./data/baccarat.db")
+        if _db_url.startswith("postgres://"):
+            return _db_url.replace("postgres://", "postgresql+asyncpg://")
+        elif _db_url.startswith("postgresql://") and "asyncpg" not in _db_url:
+            return _db_url.replace("postgresql://", "postgresql+asyncpg://")
+        return _db_url
     
     # 资金与下注配置
     DEFAULT_BALANCE: float = 20000.0
