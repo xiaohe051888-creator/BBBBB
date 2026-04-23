@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 
 from app.core.config import settings
-from app.models.schemas import GameRecord, BetRecord, SystemLog
+from app.models.schemas import GameRecord, BetRecord, SystemLog, MistakeBook, RoadMap, AIMemory
 from .session import get_session, get_session_lock, broadcast_event, clear_session
 from .state import get_or_create_state
 from .logging import write_game_log
@@ -28,6 +28,18 @@ async def _reset_table_data(db: AsyncSession, boot_number: Optional[int] = None)
         # 删除当前靴的下注记录
         await db.execute(
             delete(BetRecord).where(BetRecord.boot_number == boot_number)
+        )
+        # 删除当前靴的错题记录，避免幽灵血迹
+        await db.execute(
+            delete(MistakeBook).where(MistakeBook.boot_number == boot_number)
+        )
+        # 删除当前靴的五路图缓存
+        await db.execute(
+            delete(RoadMap).where(RoadMap.boot_number == boot_number)
+        )
+        # 删除当前靴的微学习记忆
+        await db.execute(
+            delete(AIMemory).where(AIMemory.boot_number == boot_number)
         )
         await db.flush()
 

@@ -168,12 +168,22 @@ const UploadPage: React.FC<UploadPageProps> = () => {
     let currentStatus = '';
     try {
       const stateRes = await api.getSystemState();
-      if (stateRes.data && stateRes.data.status !== '空闲') {
-        hasActiveGame = true;
+      if (stateRes.data) {
         currentStatus = stateRes.data.status;
+        if (currentStatus !== '空闲') {
+          hasActiveGame = true;
+        }
       }
     } catch {
       // 静默处理，继续上传流程
+    }
+
+    if (currentStatus === '深度学习中') {
+      Modal.warning({
+        title: '正在深度学习',
+        content: '上一靴的数据正在进行AI深度学习总结，请耐心等待其完成（约30秒~1分钟）后再提交新靴数据。',
+      });
+      return;
     }
 
     Modal.confirm({
