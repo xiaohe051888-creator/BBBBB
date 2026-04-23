@@ -1,14 +1,12 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Canvas, Circle, Line, Group } from '@shopify/react-native-skia';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { Canvas, Circle, Line, Group, Path, Paint } from '@shopify/react-native-skia';
+import { useGameState } from '../../hooks/useGameState';
 
-const CELL_SIZE = 24;
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const CELL_SIZE = 20; // 缩小单元格尺寸以适应手机屏幕
 const ROWS = 6;
-const COLS = 12;
-
-const MOCK_DATA = [
-  'B', 'P', 'B', 'B', 'P', 'T', 'B', 'P', 'P', 'B', 'B', 'B', 'T', 'P', 'P'
-];
+const VISIBLE_COLS = Math.floor((SCREEN_WIDTH - 32) / CELL_SIZE); // 根据屏幕宽度动态计算可见列数
 
 const Grid = ({ rows, cols, cellSize }: { rows: number; cols: number; cellSize: number }) => {
   const width = cols * cellSize;
@@ -21,7 +19,7 @@ const Grid = ({ rows, cols, cellSize }: { rows: number; cols: number; cellSize: 
         key={`h-${i}`}
         p1={{ x: 0, y: i * cellSize }}
         p2={{ x: width, y: i * cellSize }}
-        color="#e8e8e8"
+        color="#30363d"
         strokeWidth={1}
       />
     );
@@ -33,7 +31,7 @@ const Grid = ({ rows, cols, cellSize }: { rows: number; cols: number; cellSize: 
         key={`v-${i}`}
         p1={{ x: i * cellSize, y: 0 }}
         p2={{ x: i * cellSize, y: height }}
-        color="#e8e8e8"
+        color="#30363d"
         strokeWidth={1}
       />
     );
@@ -42,78 +40,89 @@ const Grid = ({ rows, cols, cellSize }: { rows: number; cols: number; cellSize: 
   return <Group>{lines}</Group>;
 };
 
-const BeadRoad = () => {
+const BeadRoad = ({ data, cols }: { data: string[]; cols: number }) => {
   return (
-    <Canvas style={{ width: COLS * CELL_SIZE, height: ROWS * CELL_SIZE }}>
-      <Grid rows={ROWS} cols={COLS} cellSize={CELL_SIZE} />
-      {MOCK_DATA.map((result, index) => {
+    <Canvas style={{ width: cols * CELL_SIZE, height: ROWS * CELL_SIZE }}>
+      <Grid rows={ROWS} cols={cols} cellSize={CELL_SIZE} />
+      {data.map((result, index) => {
         const col = Math.floor(index / ROWS);
         const row = index % ROWS;
         const cx = col * CELL_SIZE + CELL_SIZE / 2;
         const cy = row * CELL_SIZE + CELL_SIZE / 2;
-        const radius = CELL_SIZE / 2 - 4;
+        const radius = CELL_SIZE / 2 - 2;
 
-        let color = '#000000';
-        if (result === 'B') color = '#ff3b30'; // 庄
-        if (result === 'P') color = '#007aff'; // 闲
-        if (result === 'T') color = '#4cd964'; // 和
+        let color = 'transparent';
+        if (result === '庄') color = '#ff4d4f'; // 庄红
+        if (result === '闲') color = '#1890ff'; // 闲蓝
+        if (result === '和') color = '#52c41a'; // 和绿
+
+        if (color === 'transparent') return null;
 
         return (
-          <Circle
-            key={`bead-${index}`}
-            cx={cx}
-            cy={cy}
-            r={radius}
-            color={color}
-          />
+          <Group key={`bead-${index}`}>
+            <Circle cx={cx} cy={cy} r={radius} color={color} />
+          </Group>
         );
       })}
     </Canvas>
   );
 };
 
-const BigRoad = () => {
-  const columns: string[][] = [];
+const BigRoad = ({ data, cols }: { data: string[]; cols: number }) => {
+  // 简化的大路逻辑：连续的结果排在一列，遇到和局不占新列，只在圆圈上加绿线
+  const columns: { result: string; ties: number }[][] = [];
   let currentResult = '';
 
-  MOCK_DATA.forEach(result => {
-    if (result === 'T') return;
+  data.forEach(result => {
+    if (result === '和') {
+      if (columns.length > 0) {
+        const lastCol = columns[columns.length - 1];
+        const lastItem = lastCol[lastCol.length - 1];
+        lastItem.ties += 1;
+      }
+      return;
+    }
     if (result !== currentResult) {
-      columns.push([result]);
+      columns.push([{ result, ties: 0 }]);
       currentResult = result;
     } else {
       const lastCol = columns[columns.length - 1];
       if (lastCol.length < ROWS) {
-        lastCol.push(result);
+        lastCol.push({ result, ties: 0 });
       } else {
-        columns.push([result]);
+        columns.push([{ result, ties: 0 }]);
       }
     }
   });
 
   return (
-    <Canvas style={{ width: COLS * CELL_SIZE, height: ROWS * CELL_SIZE }}>
-      <Grid rows={ROWS} cols={COLS} cellSize={CELL_SIZE} />
+    <Canvas style={{ width: cols * CELL_SIZE, height: ROWS * CELL_SIZE }}>
+      <Grid rows={ROWS} cols={cols} cellSize={CELL_SIZE} />
       {columns.map((colData, colIndex) => {
-        return colData.map((result, rowIndex) => {
+        return colData.map((item, rowIndex) => {
           const cx = colIndex * CELL_SIZE + CELL_SIZE / 2;
           const cy = rowIndex * CELL_SIZE + CELL_SIZE / 2;
-          const radius = CELL_SIZE / 2 - 4;
+          const radius = CELL_SIZE / 2 - 2;
 
-          let color = '#000000';
-          if (result === 'B') color = '#ff3b30';
-          if (result === 'P') color = '#007aff';
+          let color = 'transparent';
+          if (item.result === '庄') color = '#ff4d4f';
+          if (item.result === '闲') color = '#1890ff';
+
+          if (color === 'transparent') return null;
 
           return (
-            <Circle
-              key={`big-${colIndex}-${rowIndex}`}
-              cx={cx}
-              cy={cy}
-              r={radius}
-              color={color}
-              style="stroke"
-              strokeWidth={2}
-            />
+            <Group key={`big-${colIndex}-${rowIndex}`}>
+              <Circle cx={cx} cy={cy} r={radius} color={color} style="stroke" strokeWidth={2} />
+              {/* 和局标记 (绿线穿过) */}
+              {item.ties > 0 && (
+                <Line 
+                  p1={{ x: cx - radius + 2, y: cy + radius - 2 }} 
+                  p2={{ x: cx + radius - 2, y: cy - radius + 2 }} 
+                  color="#52c41a" 
+                  strokeWidth={2} 
+                />
+              )}
+            </Group>
           );
         });
       })}
@@ -122,21 +131,58 @@ const BigRoad = () => {
 };
 
 export const FiveRoadsChart: React.FC = () => {
+  const { games } = useGameState();
+  
+  const rawData = useMemo(() => {
+    return games ? games.map(g => g.result) : [];
+  }, [games]);
+
+  // 计算所需的列数，至少铺满屏幕，数据多时扩展列数以支持滚动
+  const requiredBeadCols = Math.max(VISIBLE_COLS, Math.ceil(rawData.length / ROWS) + 1);
+  const requiredBigCols = Math.max(VISIBLE_COLS, rawData.length + 2); // 粗略估算大路最大列数
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>五路图 (Five Roads Chart)</Text>
-      
-      <View style={styles.roadContainer}>
-        <Text style={styles.roadTitle}>珠盘路 (Bead Road)</Text>
-        <View style={styles.chartArea}>
-          <BeadRoad />
+      <View style={styles.header}>
+        <Text style={styles.title}>百家乐走势图</Text>
+        <Text style={styles.subtitle}>当前 {rawData.length} 局</Text>
+      </View>
+
+      <View style={styles.roadSection}>
+        <Text style={styles.roadTitle}>珠盘路 (Bead Plate)</Text>
+        <View style={styles.scrollWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <View style={styles.canvasContainer}>
+              <BeadRoad data={rawData} cols={requiredBeadCols} />
+            </View>
+          </ScrollView>
         </View>
       </View>
 
-      <View style={styles.roadContainer}>
+      <View style={styles.roadSection}>
         <Text style={styles.roadTitle}>大路 (Big Road)</Text>
-        <View style={styles.chartArea}>
-          <BigRoad />
+        <View style={styles.scrollWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <View style={styles.canvasContainer}>
+              <BigRoad data={rawData} cols={requiredBigCols} />
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+
+      {/* 图例 */}
+      <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#ff4d4f' }]} />
+          <Text style={styles.legendText}>庄赢</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#1890ff' }]} />
+          <Text style={styles.legendText}>闲赢</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#52c41a' }]} />
+          <Text style={styles.legendText}>和局</Text>
         </View>
       </View>
     </View>
@@ -145,39 +191,69 @@ export const FiveRoadsChart: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
+    margin: 16,
     padding: 16,
-    backgroundColor: '#fff',
-    marginTop: 8,
-    marginHorizontal: 16,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: '#161b22', // 暗色主题卡片
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#30363d',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333',
-    textAlign: 'center',
+    color: '#fff',
   },
-  roadContainer: {
-    marginBottom: 16,
-    alignItems: 'center',
+  subtitle: {
+    fontSize: 14,
+    color: '#8b949e',
+  },
+  roadSection: {
+    marginBottom: 20,
   },
   roadTitle: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#c9d1d9',
     marginBottom: 8,
-    color: '#555',
-    alignSelf: 'flex-start',
   },
-  chartArea: {
-    backgroundColor: '#fff',
+  scrollWrapper: {
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#0d1117',
     borderWidth: 1,
-    borderColor: '#e8e8e8',
+    borderColor: '#30363d',
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  canvasContainer: {
+    backgroundColor: '#0d1117',
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendText: {
+    color: '#8b949e',
+    fontSize: 13,
   },
 });
 
