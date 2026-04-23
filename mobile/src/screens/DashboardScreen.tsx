@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Text } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Text, Platform } from 'react-native';
+import { SafeAreaView } from "react-native";
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 
 import { WorkflowStatusBar } from '../components/dashboard/WorkflowStatusBar';
@@ -31,6 +31,7 @@ export default function DashboardScreen() {
   };
 
   const handleOpenUpload = () => {
+    console.log('Upload clicked', uploadSheetRef.current);
     uploadSheetRef.current?.present();
   };
 
@@ -39,7 +40,7 @@ export default function DashboardScreen() {
       await revealMutation.mutateAsync({ result });
       revealSheetRef.current?.dismiss();
     } catch (e: any) {
-      Alert.alert('开奖失败', e.message);
+      Platform.OS === 'web' ? window.alert(`开奖失败: ${e.message}`) : Alert.alert('开奖失败', e.message);
     }
   };
 
@@ -48,13 +49,24 @@ export default function DashboardScreen() {
       const formatted = gamesArr.map((res, i) => ({ game_number: i + 1, result: res }));
       await uploadMutation.mutateAsync({ games: formatted as any, isNewBoot: false });
       uploadSheetRef.current?.dismiss();
-      Alert.alert('成功', '上传成功');
+      Platform.OS === 'web' ? window.alert('成功: 上传成功') : Alert.alert('成功', '上传成功');
     } catch (e: any) {
       Alert.alert('上传失败', e.message);
     }
   };
 
   const handleEndBoot = () => {
+    console.log('End boot clicked');
+    if (Platform.OS === 'web') {
+      if (window.confirm('确定要结束本靴并开始深度学习吗？')) {
+        endBootMutation.mutateAsync().then(() => {
+          window.alert('本靴已结束，进入深度学习');
+          uploadSheetRef.current?.present();
+        }).catch((e: any) => window.alert(e.message));
+      }
+      return;
+    }
+
     Alert.alert(
       '结束本靴',
       '确定要结束本靴并开始深度学习吗？',
@@ -69,7 +81,7 @@ export default function DashboardScreen() {
               Alert.alert('成功', '本靴已结束，进入深度学习');
               uploadSheetRef.current?.present(); // Prompt to upload new data
             } catch (e: any) {
-              Alert.alert('错误', e.message);
+              Platform.OS === 'web' ? window.alert(`错误: ${e.message}`) : Alert.alert('错误', e.message);
             }
           }
         }
@@ -121,7 +133,7 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0d1117' },
-  headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#161b22' },
+  headerBar: { zIndex: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#161b22' },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   headerActions: { flexDirection: 'row', gap: 12 },
   uploadBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.1)' },
