@@ -353,9 +353,9 @@ const LogsPage: React.FC = () => {
           {/* 筛选栏 */}
           <LogFilterBar
             filterCategory={filterCategory}
-            setFilterCategory={(v) => { setFilterCategory(v); setPage(1); }}
+            setFilterCategory={(v: string) => { setFilterCategory(v); setPage(1); }}
             filterPriority={filterPriority}
-            setFilterPriority={(v) => { setFilterPriority(v); setPage(1); }}
+            setFilterPriority={(v: string) => { setFilterPriority(v); setPage(1); }}
             searchText={searchText}
             setSearchText={setSearchText}
             onReset={handleResetFilters}
