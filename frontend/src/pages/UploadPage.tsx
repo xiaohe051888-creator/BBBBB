@@ -257,8 +257,8 @@ const UploadPage: React.FC<UploadPageProps> = () => {
             message.success(`上传成功！${res.data.uploaded}局数据已入库，AI分析进行中...`);
             navigate(`/dashboard/${tableId}`);
           }
-        } catch (err: unknown) {
-          const errorMsg = err instanceof Error ? err.message : '上传失败，请重试';
+        } catch (err: any) {
+          const errorMsg = err?.message === 'Network Error' ? '网络连接失败，请检查后端服务是否启动' : (err instanceof Error ? err.message : '上传失败，请重试');
           message.error(errorMsg);
           addIssue({
             level: 'critical',

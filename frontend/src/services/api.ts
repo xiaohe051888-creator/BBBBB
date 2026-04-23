@@ -42,7 +42,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ====== 响应拦截器：统一处理401错误 ======
+// ====== 响应拦截器：统一处理错误 ======
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -55,6 +55,12 @@ api.interceptors.response.use(
         window.location.href = '/?session_expired=true';
       }
     }
+    
+    // 处理 Network Error
+    if (error.message === 'Network Error') {
+      error.message = '网络连接失败，请检查后端服务是否启动';
+    }
+    
     return Promise.reject(error);
   },
 );
