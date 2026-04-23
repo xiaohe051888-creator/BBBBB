@@ -66,8 +66,7 @@ async def lifespan(app: FastAPI):
     # 恢复内存状态（从数据库）
     from app.services.manual_game_service import sync_balance_from_db
     async with async_session() as session:
-        for table_id in ["26", "27"]:
-            await sync_balance_from_db(session, table_id)
+        await sync_balance_from_db(session)
     
     print(f"✅ {settings.APP_NAME} v{settings.APP_VERSION} 启动成功（手动模式）")
     print(f"   访问地址: http://localhost:{settings.PORT}")

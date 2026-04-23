@@ -11,15 +11,14 @@ from app.models.schemas import SystemState
 from .session import get_session
 
 
-async def get_or_create_state(db: AsyncSession, table_id: str) -> SystemState:
+async def get_or_create_state(db: AsyncSession) -> SystemState:
     """获取或创建系统状态记录"""
-    stmt = select(SystemState).where(SystemState.table_id == table_id)
+    stmt = select(SystemState)
     result = await db.execute(stmt)
     state = result.scalar_one_or_none()
     
     if not state:
         state = SystemState(
-            table_id=table_id,
             status="手动模式",
             balance=settings.DEFAULT_BALANCE,
             boot_number=1,
@@ -31,11 +30,10 @@ async def get_or_create_state(db: AsyncSession, table_id: str) -> SystemState:
     return state
 
 
-async def get_current_state(table_id: str) -> Dict[str, Any]:
+async def get_current_state() -> Dict[str, Any]:
     """获取当前手动游戏状态（内存态）"""
-    sess = get_session(table_id)
+    sess = get_session()
     return {
-        "table_id": table_id,
         "status": sess.status,
         "boot_number": sess.boot_number,
         "next_game_number": sess.next_game_number,
@@ -61,23 +59,22 @@ async def get_current_state(table_id: str) -> Dict[str, Any]:
     }
 
 
-async def sync_balance_from_db(db: AsyncSession, table_id: str):
+async def sync_balance_from_db(db: AsyncSession):
     """从数据库同步余额到内存会话（重启后恢复）"""
     from app.models.schemas import GameRecord
     
-    stmt = select(SystemState).where(SystemState.table_id == table_id)
+    stmt = select(SystemState)
     result = await db.execute(stmt)
     state = result.scalar_one_or_none()
     
     if state:
-        sess = get_session(table_id)
+        sess = get_session()
         sess.balance = state.balance
         sess.boot_number = state.boot_number or 1
         sess.consecutive_errors = state.consecutive_errors or 0
         
         # 恢复下一局号
         stmt2 = select(GameRecord.game_number).where(
-            GameRecord.table_id == table_id,
             GameRecord.boot_number == sess.boot_number,
         ).order_by(GameRecord.game_number.desc()).limit(1)
         r2 = await db.execute(stmt2)

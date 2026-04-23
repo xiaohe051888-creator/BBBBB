@@ -16,19 +16,11 @@ from .logging import write_game_log
 
 async def end_boot(
     db: AsyncSession,
-    table_id: str,
 ) -> Dict[str, Any]:
     """
     结束本靴 - 触发深度学习，完成后才能开始新靴
-    
-    流程：
-    1. 检查当前状态
-    2. 触发深度学习（异步）
-    3. 设置状态为"深度学习中"
-    4. 实时推送学习进度
-    5. 完成后设置状态为"等待新靴"
     """
-    sess = get_session(table_id)
+    sess = get_session()
     
     # 检查是否有待开奖注单
     if sess.pending_bet_direction is not None:
@@ -41,7 +33,6 @@ async def end_boot(
     
     # 检查是否有足够数据用于学习
     stmt = select(GameRecord).where(
-        GameRecord.table_id == table_id,
         GameRecord.boot_number == current_boot,
         GameRecord.result.isnot(None),
     )
@@ -65,11 +56,11 @@ async def end_boot(
     }
     
     # 更新系统状态
-    state = await get_or_create_state(db, table_id)
+    state = await get_or_create_state(db)
     state.status = "深度学习中"
     
     await write_game_log(
-        db, table_id, current_boot, None,
+        db, current_boot, None,
         "LOG-BOOT-001", "结束本靴", "启动深度学习",
         f"第{current_boot}靴结束，共{len(games)}局，启动深度学习",
         category="系统事件",
@@ -79,7 +70,7 @@ async def end_boot(
     await db.commit()
     
     # 广播深度学习启动
-    await broadcast_event(table_id, "deep_learning_started", {
+    await broadcast_event("deep_learning_started", {
         "boot_number": current_boot,
         "game_count": len(games),
         "status": "启动中",
@@ -88,7 +79,7 @@ async def end_boot(
     })
     
     # 异步启动深度学习
-    asyncio.create_task(run_deep_learning(db, table_id, current_boot))
+    asyncio.create_task(run_deep_learning(db, current_boot))
     
     return {
         "success": True,
@@ -101,13 +92,12 @@ async def end_boot(
 
 async def run_deep_learning(
     db: AsyncSession,
-    table_id: str,
     boot_number: int,
 ):
     """
     执行深度学习 - 带进度推送
     """
-    sess = get_session(table_id)
+    sess = get_session()
     
     try:
         from app.services.ai_learning_service import AILearningService
@@ -117,7 +107,7 @@ async def run_deep_learning(
         sess.deep_learning_status["progress"] = 10
         sess.deep_learning_status["message"] = "正在收集训练数据..."
         
-        await broadcast_event(table_id, "deep_learning_progress", {
+        await broadcast_event("deep_learning_progress", {
             "boot_number": boot_number,
             "status": "数据准备",
             "progress": 10,
@@ -131,7 +121,7 @@ async def run_deep_learning(
         sess.deep_learning_status["progress"] = 30
         sess.deep_learning_status["message"] = "AI正在深度分析错误模式..."
         
-        await broadcast_event(table_id, "deep_learning_progress", {
+        await broadcast_event("deep_learning_progress", {
             "boot_number": boot_number,
             "status": "AI分析",
             "progress": 30,
@@ -146,7 +136,7 @@ async def run_deep_learning(
         sess.deep_learning_status["progress"] = 40
         sess.deep_learning_status["message"] = "AI正在深度分析错误模式..."
         
-        await broadcast_event(table_id, "deep_learning_progress", {
+        await broadcast_event("deep_learning_progress", {
             "boot_number": boot_number,
             "status": "AI分析",
             "progress": 40,
@@ -154,7 +144,7 @@ async def run_deep_learning(
         })
         
         # 调用真正的AI深度学习
-        result = await ai_learning.start_learning(table_id, boot_number)
+        result = await ai_learning.start_learning(boot_number)
         
         if not result.success:
             raise Exception(result.error or "深度学习失败")
@@ -164,7 +154,7 @@ async def run_deep_learning(
         sess.deep_learning_status["progress"] = 80
         sess.deep_learning_status["message"] = f"正在生成新版本 {result.version}..."
         
-        await broadcast_event(table_id, "deep_learning_progress", {
+        await broadcast_event("deep_learning_progress", {
             "boot_number": boot_number,
             "status": "生成版本",
             "progress": 80,
@@ -179,8 +169,6 @@ async def run_deep_learning(
         
         # 设置状态为等待新靴
         sess.status = "等待新靴"
-        sess.boot_number += 1  # 自动进入下一靴
-        sess.next_game_number = 1
         
         # 清空预测缓存
         sess.predict_direction = None
@@ -191,18 +179,17 @@ async def run_deep_learning(
         sess.player_summary = None
         sess.combined_summary = None
         
-        await broadcast_event(table_id, "deep_learning_completed", {
+        await broadcast_event("deep_learning_completed", {
             "boot_number": boot_number,
             "status": "完成",
             "progress": 100,
             "message": "深度学习完成，可以上传新靴数据了",
-            "next_boot_number": sess.boot_number,
         })
         
         await write_game_log(
-            db, table_id, boot_number, None,
+            db, boot_number, None,
             "LOG-BOOT-002", "深度学习", "完成",
-            f"第{boot_number}靴深度学习完成，进入第{sess.boot_number}靴",
+            f"第{boot_number}靴深度学习完成",
             category="AI事件",
             priority="P1",
         )
@@ -212,14 +199,14 @@ async def run_deep_learning(
         sess.deep_learning_status["message"] = f"深度学习失败: {str(e)}"
         sess.status = "空闲"
         
-        await broadcast_event(table_id, "deep_learning_failed", {
+        await broadcast_event("deep_learning_failed", {
             "boot_number": boot_number,
             "status": "失败",
             "error": str(e),
         })
         
         await write_game_log(
-            db, table_id, boot_number, None,
+            db, boot_number, None,
             "LOG-BOOT-003", "深度学习", "失败",
             f"第{boot_number}靴深度学习失败: {str(e)}",
             category="AI事件",

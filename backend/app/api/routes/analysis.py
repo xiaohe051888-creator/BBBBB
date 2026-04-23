@@ -13,16 +13,15 @@ router = APIRouter(prefix="/api", tags=["AI分析"])
 
 
 @router.get("/analysis/latest")
-async def get_latest_analysis(table_id: str = Query(...)):
+async def get_latest_analysis():
     """获取最新一局的AI三模型分析结果"""
     from app.services.manual_game_service import get_current_state
     
     # 优先从内存获取（最新）
-    mem = await get_current_state(table_id)
+    mem = await get_current_state()
     if mem.get("analysis"):
         analysis = mem["analysis"]
         return {
-            "table_id": table_id,
             "banker_model": {
                 "summary": analysis.get("banker_summary"),
                 "time": analysis.get("time"),
@@ -44,7 +43,6 @@ async def get_latest_analysis(table_id: str = Query(...)):
     # 从日志中提取（历史记录）
     async with async_session() as session:
         stmt = select(SystemLog).where(
-            SystemLog.table_id == table_id,
             SystemLog.event_code.in_([
                 "LOG-MDL-001",
                 "LOG-MDL-002",
@@ -59,12 +57,11 @@ async def get_latest_analysis(table_id: str = Query(...)):
         player_log = next((l for l in logs if l.event_code == "LOG-MDL-002"), None)
         combined_log = next((l for l in logs if l.event_code == "LOG-MDL-003"), None)
         
-        state_stmt = select(SystemState).where(SystemState.table_id == table_id)
+        state_stmt = select(SystemState)
         state_result = await session.execute(state_stmt)
         state = state_result.scalar_one_or_none()
         
         return {
-            "table_id": table_id,
             "banker_model": {
                 "summary": banker_log.description if banker_log else None,
                 "time": banker_log.log_time.isoformat() if banker_log else None,
@@ -86,7 +83,6 @@ async def get_latest_analysis(table_id: str = Query(...)):
 
 @router.post("/admin/ai-learning/start")
 async def start_ai_learning(
-    table_id: str = Query(...),
     boot_number: int = Query(...),
     _: dict = Depends(get_current_user),
 ):
@@ -100,11 +96,11 @@ async def start_ai_learning(
         if status["is_learning"]:
             raise HTTPException(400, f"学习任务正在执行中: {status['current_task']}")
         
-        asyncio.create_task(service.start_learning(table_id, boot_number))
+        asyncio.create_task(service.start_learning(boot_number))
         
         return {
             "status": "started",
-            "message": f"AI学习已启动，正在分析 {table_id} 第{boot_number}靴数据...",
+            "message": f"AI学习已启动，正在分析第{boot_number}靴数据...",
         }
 
 

@@ -5,7 +5,7 @@
  * 优化：使用React Query + 乐观UI策略，页面切换无加载转圈
  */
 import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Button, Card, Select, Space, Tag, Table,
   Statistic, Tooltip, Empty,
@@ -84,7 +84,7 @@ interface RawGameRecord {
 }
 
 const RoadMapPage: React.FC = () => {
-  const { tableId } = useParams<{ tableId: string }>();
+  
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -95,16 +95,10 @@ const RoadMapPage: React.FC = () => {
   const [bootNumber, setBootNumber] = useState<number | undefined>();
 
   // React Query获取五路数据（乐观UI：立即显示缓存数据）
-  const { data: roadData } = useRoadsQuery({ 
-    tableId 
-  });
+  const { data: roadData } = useRoadsQuery({});
 
   // React Query获取游戏记录（用于原始数据表格）
-  const { data: gamesData } = useGamesQuery({ 
-    tableId,
-    page: 1,
-    pageSize: 100,
-  });
+  const { data: gamesData } = useGamesQuery({});
 
   // 使用useMemo缓存games，避免useMemo依赖变化
   const games = useMemo(() => gamesData?.games || [], [gamesData]);
@@ -134,9 +128,8 @@ const RoadMapPage: React.FC = () => {
 
   // 手动刷新
   const handleRefresh = () => {
-    if (!tableId) return;
-    queryClient.invalidateQueries({ queryKey: ['roads', tableId] });
-    queryClient.invalidateQueries({ queryKey: ['games', tableId] });
+        queryClient.invalidateQueries({ queryKey: ['roads'] });
+    queryClient.invalidateQueries({ queryKey: ['games'] });
   };
 
   // 统计
@@ -215,12 +208,12 @@ const RoadMapPage: React.FC = () => {
       {/* 顶部导航栏 */}
       <div className="page-nav-bar">
         <div className="page-nav-left">
-          <Button icon={<Icons.Back />} onClick={() => navigate(`/dashboard/${tableId}`)}>
+          <Button icon={<Icons.Back />} onClick={() => navigate("/dashboard")}>
             返回
           </Button>
           <span className="page-nav-title">
             <Icons.Chart />
-            <span style={{ marginLeft: 8 }}>五路走势图 — {tableId}</span>
+            <span style={{ marginLeft: 8 }}>五路走势图 </span>
           </span>
           <Select
             size="small"

@@ -47,14 +47,12 @@ class SmartModelSelector:
     
     async def select_best_model(
         self,
-        table_id: str,
         force_version: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         执行智能选模
         
         Args:
-            table_id: 桌号
             force_version: 强制使用指定版本（跳过智能选择）
         
         Returns:
@@ -90,7 +88,7 @@ class SmartModelSelector:
             }
         
         # 多版本时进行综合评分
-        best_version, scores = await self._evaluate_all_versions(versions, table_id)
+        best_version, scores = await self._evaluate_all_versions(versions)
         
         result = {
             "selected_version": best_version.version,
@@ -106,7 +104,7 @@ class SmartModelSelector:
         }
         
         # 记录选模日志
-        await self._log_selection(table_id, result)
+        await self._log_selection(result)
         
         return result
     
@@ -156,7 +154,6 @@ class SmartModelSelector:
     async def _evaluate_all_versions(
         self,
         versions: List[ModelVersion],
-        table_id: str,
     ) -> Tuple[ModelVersion, Dict[str, Dict]]:
         """
         对所有版本进行综合评分
@@ -250,14 +247,14 @@ class SmartModelSelector:
         else:
             return 0.50  # 分数接近时，置信度低
     
-    async def _log_selection(self, table_id: str, result: Dict):
+    async def _log_selection(self, result: Dict):
         """记录选模日志"""
         log = SystemLog(
             log_time=datetime.now(),
             event_code="LOG-AI-002",
             event_type="智能选模",
             event_result="成功",
-            description=f"[{table_id}] 选择模型: {result['selected_version']} | "
+            description=f"选择模型: {result['selected_version']} | "
                        f"原因: {result['selection_reason']} | "
                        f"置信度: {result['confidence']:.0%}",
             category=LogCategory.SYSTEM,
@@ -270,7 +267,7 @@ class SmartModelSelector:
         await self.session.commit()
         
         # 同时更新SystemState中的当前模型版本
-        stmt = select(SystemState).where(SystemState.table_id == table_id)
+        stmt = select(SystemState)
         state_result = await self.session.execute(stmt)
         state = state_result.scalar_one_or_none()
         
@@ -278,7 +275,7 @@ class SmartModelSelector:
             state.current_model_version = result["selected_version"]
             await self.session.commit()
     
-    async def get_current_version(self, table_id: str) -> Optional[ModelVersion]:
+    async def get_current_version(self) -> Optional[ModelVersion]:
         """
         获取当前使用的模型版本
         

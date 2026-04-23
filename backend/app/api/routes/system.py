@@ -17,21 +17,20 @@ router = APIRouter(prefix="/api/system", tags=["系统状态"])
 
 
 @router.get("/state")
-async def get_system_state(table_id: str = Query(...)):
+async def get_system_state():
     """获取系统状态"""
     from app.services.manual_game_service import get_current_state
     
     async with async_session() as session:
-        stmt = select(SystemState).where(SystemState.table_id == table_id)
+        stmt = select(SystemState)
         result = await session.execute(stmt)
         state = result.scalar_one_or_none()
         
         # 获取内存态（更实时）
-        mem_state = await get_current_state(table_id)
+        mem_state = await get_current_state()
         
         if not state:
             return {
-                "table_id": table_id,
                 "status": mem_state["status"],
                 "boot_number": mem_state["boot_number"],
                 "game_number": mem_state["next_game_number"] - 1,
@@ -46,7 +45,6 @@ async def get_system_state(table_id: str = Query(...)):
             }
         
         return {
-            "table_id": state.table_id,
             "status": mem_state["status"],
             "boot_number": state.boot_number,
             "game_number": state.game_number,
@@ -64,7 +62,7 @@ async def get_system_state(table_id: str = Query(...)):
 
 
 @router.get("/health")
-async def get_health_score(table_id: str = Query(...)):
+async def get_health_score():
     """
     获取系统健康分 - 实时计算
     基于AI模型状态、数据库健康、数据一致性等实际指标
@@ -112,13 +110,13 @@ async def get_health_score(table_id: str = Query(...)):
             else:
                 health_details["database"]["issues"].append("数据库无游戏记录")
             
-            stmt = select(SystemState).where(SystemState.table_id == table_id)
+            stmt = select(SystemState)
             result = await session.execute(stmt)
             state = result.scalar_one_or_none()
             if state:
                 health_details["database"]["score"] += 10
             else:
-                health_details["database"]["issues"].append(f"桌子{table_id}无状态记录")
+                health_details["database"]["issues"].append(f"无状态记录")
                 
     except Exception as e:
         db_ok = False
@@ -157,16 +155,16 @@ async def get_health_score(table_id: str = Query(...)):
         health_details["data_consistency"]["issues"].append(f"一致性检查失败: {str(e)[:30]}")
     
     # 4. 会话健康检查 (10分)
-    session_ok = table_id in _sessions
-    if session_ok:
+    from app.services.game.session import get_session
+    try:
+        session_data = get_session()
         health_details["session_health"]["score"] = 10
-        session_data = _sessions[table_id]
         error_count = getattr(session_data, 'consecutive_errors', 0)
         if error_count > 0:
             health_details["session_health"]["score"] -= min(error_count * 2, 5)
             health_details["session_health"]["issues"].append(f"会话有{error_count}个连续错误")
-    else:
-        health_details["session_health"]["issues"].append(f"桌子{table_id}无活跃会话")
+    except Exception as e:
+        health_details["session_health"]["issues"].append(f"获取会话失败: {str(e)[:30]}")
     
     # 计算总分
     total_score = sum(d["score"] for d in health_details.values())
@@ -206,7 +204,7 @@ async def get_health_score(table_id: str = Query(...)):
 
 
 @router.get("/diagnostics")
-async def get_system_diagnostics(table_id: str = Query(...)):
+async def get_system_diagnostics():
     """
     系统诊断接口 - 返回所有关键系统组件的实时状态
     """
@@ -224,8 +222,7 @@ async def get_system_diagnostics(table_id: str = Query(...)):
         db_ok = False
     
     # 内存会话状态
-    memory_sessions = list(_sessions.keys())
-    current_session_state = await get_current_state(table_id)
+    current_session_state = await get_current_state()
     
     # WebSocket连接数（从websocket模块获取）
     from app.api.routes.websocket import ws_clients
@@ -267,7 +264,6 @@ async def get_system_diagnostics(table_id: str = Query(...)):
     
     return {
         "backend_version": settings.APP_VERSION,
-        "table_id": table_id,
         "timestamp": datetime.now().isoformat(),
         "openai_enabled": openai_enabled,
         "anthropic_enabled": anthropic_enabled,
@@ -276,7 +272,6 @@ async def get_system_diagnostics(table_id: str = Query(...)):
         "models_detail": models_status,
         "db_ok": db_ok,
         "ws_connections": ws_count,
-        "memory_sessions": memory_sessions,
         "current_session": current_session_state,
         "issues": issues,
         "has_critical_issues": any(i["level"] == "critical" for i in issues),
@@ -286,7 +281,6 @@ async def get_system_diagnostics(table_id: str = Query(...)):
 
 @router.post("/select-model")
 async def select_best_model(
-    table_id: str = Query(...),
     force_version: str = Query(None),
     _: dict = Depends(get_current_user),
 ):
@@ -295,5 +289,5 @@ async def select_best_model(
     
     async with async_session() as session:
         selector = SmartModelSelector(session)
-        result = await selector.select_best_model(table_id, force_version=force_version)
+        result = await selector.select_best_model(force_version=force_version)
         return result

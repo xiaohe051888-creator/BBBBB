@@ -34,12 +34,11 @@ const UploadPage: React.FC<UploadPageProps> = () => {
   // 72局数据
   const [games, setGames] = useState<GameResult[]>(Array(DEFAULT_ROWS).fill(''));
   const [rowCount, setRowCount] = useState(DEFAULT_ROWS);
-  const [tableId, setTableId] = useState<'19' | '20' | '21' | '22'>('19');
   const [bootNumber] = useState<number | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
 
   // 系统诊断
-  const { addIssue } = useSystemDiagnostics({ tableId });
+  const { addIssue } = useSystemDiagnostics({});
 
   // 登录弹窗
   const [loginVisible, setLoginVisible] = useState(false);
@@ -167,7 +166,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
     let hasActiveGame = false;
     let currentStatus = '';
     try {
-      const stateRes = await api.getSystemState(tableId);
+      const stateRes = await api.getSystemState();
       if (stateRes.data && stateRes.data.status !== '空闲') {
         hasActiveGame = true;
         currentStatus = stateRes.data.status;
@@ -209,7 +208,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
           </div>
 
           {/* 上传信息 */}
-          <p>将上传 <strong style={{ color: '#ffd700' }}>{validGames.length}</strong> 局数据到 <strong style={{ color: '#ffd700' }}>{tableId}桌</strong></p>
+          <p>将上传 <strong style={{ color: '#ffd700' }}>{validGames.length}</strong> 局数据到 <strong style={{ color: '#ffd700' }}>{}桌</strong></p>
           <p style={{ marginBottom: 0, color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
             庄{bankerCount}次 · 闲{playerCount}次 · 和{tieCount}次
           </p>
@@ -252,10 +251,10 @@ const UploadPage: React.FC<UploadPageProps> = () => {
         setUploading(true);
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const res = await api.uploadGameResults(tableId, validGames as any, bootNumber);
+          const res = await api.uploadGameResults(validGames as any, bootNumber);
           if (res.data.success) {
             message.success(`上传成功！${res.data.uploaded}局数据已入库，AI分析进行中...`);
-            navigate(`/dashboard/${tableId}`);
+            navigate("/dashboard");
           }
         } catch (err: unknown) {
           const errorMsg = (err as Error)?.message === 'Network Error' ? '网络连接失败，请检查后端服务是否正常运行' : (err instanceof Error ? err.message : '上传失败，请重试');
@@ -263,7 +262,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
           addIssue({
             level: 'critical',
             title: '数据上传失败',
-            detail: `上传${tableId}桌数据失败: ${errorMsg}`,
+            detail: `上传数据失败: ${errorMsg}`,
             source: 'system',
           });
           setUploading(false);
@@ -393,9 +392,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
 
         {/* 控制栏 */}
         <ControlBar
-          tableId={tableId}
           rowCount={rowCount}
-          onTableIdChange={setTableId}
           onRowCountChange={handleRowCountChange}
           onQuickFill={handleQuickFill}
           onNumberFillClick={() => setNumberFillVisible(true)}
@@ -420,7 +417,6 @@ const UploadPage: React.FC<UploadPageProps> = () => {
 
         {/* 操作按钮区域 */}
         <UploadArea
-          tableId={tableId}
           filled={filled}
           uploading={uploading}
           onUpload={handleUpload}

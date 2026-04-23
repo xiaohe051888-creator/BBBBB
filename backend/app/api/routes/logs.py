@@ -13,7 +13,6 @@ router = APIRouter(prefix="/api/logs", tags=["日志"])
 
 @router.get("")
 async def get_logs(
-    table_id: str = Query(...),
     category: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
     game_number: Optional[int] = Query(None),
@@ -22,7 +21,7 @@ async def get_logs(
 ):
     """获取实盘日志（分页+筛选）"""
     async with async_session() as session:
-        query = select(SystemLog).where(SystemLog.table_id == table_id)
+        query = select(SystemLog)
         
         if category:
             query = query.where(SystemLog.category == category)

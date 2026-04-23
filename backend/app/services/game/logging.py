@@ -12,7 +12,6 @@ from .session import broadcast_event
 
 async def write_game_log(
     session: AsyncSession,
-    table_id: str,
     boot_number: int,
     game_number: Optional[int],
     event_code: str,
@@ -26,7 +25,6 @@ async def write_game_log(
     """写入系统日志并广播到WebSocket"""
     log = SystemLog(
         log_time=datetime.now(),
-        table_id=table_id,
         boot_number=boot_number,
         game_number=game_number,
         event_code=event_code,
@@ -43,7 +41,7 @@ async def write_game_log(
     await session.flush()
     
     # 广播日志到WebSocket（实时推送）
-    await broadcast_event(table_id, "log", {
+    await broadcast_event("log", {
         "id": log.id,
         "log_time": log.log_time.isoformat() if log.log_time else None,
         "game_number": log.game_number,

@@ -44,7 +44,7 @@ export const useAdminLogin = (
   const [loading, setLoading] = useState(false);
   
   // 系统诊断（使用默认桌号）
-  const { addIssue } = useSystemDiagnostics({ tableId: '26' });
+  const { addIssue } = useSystemDiagnostics({});
 
   const openLogin = useCallback(() => {
     setVisible(true);

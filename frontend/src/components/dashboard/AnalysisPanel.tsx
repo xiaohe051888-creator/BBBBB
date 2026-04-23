@@ -26,14 +26,12 @@ interface AnalysisPanelProps {
   analysis: Analysis | null;
   hasGameData: boolean;
   aiAnalyzing: boolean;
-  tableId: string;
 }
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   analysis,
   hasGameData,
   aiAnalyzing,
-  tableId,
 }) => {
   const navigate = useNavigate();
 
@@ -122,7 +120,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <Button
             type="primary"
             icon={<UploadIcon />}
-            onClick={() => navigate(`/upload/${tableId}`)}
+            onClick={() => navigate("/")}
             style={{ borderRadius: 6 }}
           >
             上传数据

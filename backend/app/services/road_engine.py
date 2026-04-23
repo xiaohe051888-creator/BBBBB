@@ -642,12 +642,11 @@ class UnifiedRoadEngine(RoadEngine):
     支持从数据库直接获取路牌数据
     """
     
-    async def get_all_roads(self, table_id: str, boot_number: int) -> Dict[str, RoadData]:
+    async def get_all_roads(self, boot_number: int) -> Dict[str, RoadData]:
         """
         从数据库获取路牌数据（兼容旧API）
         
         Args:
-            table_id: 桌台ID
             boot_number: 靴号
             
         Returns:
@@ -661,7 +660,6 @@ class UnifiedRoadEngine(RoadEngine):
         async with async_session() as session:
             # 获取所有记录（包括和局），用于珠盘路显示
             query = select(GameRecord).where(
-                GameRecord.table_id == table_id,
                 GameRecord.boot_number == boot_number,
             ).order_by(GameRecord.game_number)
             

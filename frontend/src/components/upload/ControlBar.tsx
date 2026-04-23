@@ -11,9 +11,7 @@ import {
 } from './uploadConstants';
 
 interface ControlBarProps {
-  tableId: '19' | '20' | '21' | '22';
   rowCount: number;
-  onTableIdChange: (id: '19' | '20' | '21' | '22') => void;
   onRowCountChange: (n: number) => void;
   onQuickFill: (pattern: GameResult[]) => void;
   onNumberFillClick: () => void;
@@ -21,9 +19,7 @@ interface ControlBarProps {
 }
 
 export const ControlBar: React.FC<ControlBarProps> = ({
-  tableId,
   rowCount,
-  onTableIdChange,
   onRowCountChange,
   onQuickFill,
   onNumberFillClick,
@@ -49,33 +45,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {/* 桌台选择 */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>桌台</span>
-          {(['19', '20', '21', '22'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => onTableIdChange(t)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 10,
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: 700,
-                fontSize: 13,
-                background: tableId === t
-                  ? 'linear-gradient(135deg,#ffd700,#f0b90b)'
-                  : 'rgba(255,255,255,0.06)',
-                color: tableId === t ? '#000' : 'rgba(255,255,255,0.5)',
-                boxShadow: tableId === t ? '0 4px 16px rgba(255,215,0,0.35)' : 'none',
-                transition: 'all 0.2s',
-                minWidth: 52,
-              }}
-            >
-              {t}号
-            </button>
-          ))}
-        </div>
+        
 
         {/* 局数控制 */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

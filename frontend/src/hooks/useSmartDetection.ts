@@ -44,7 +44,7 @@ interface UseSmartDetectionOptions {
   games: GameRecord[];
   bets: BetRecord[];
   systemState: SystemState | null;
-  tableId: string | undefined;
+  
 }
 
 interface UseSmartDetectionReturn {
@@ -81,8 +81,7 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
  * 智能检测系统 Hook
  */
 export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDetectionReturn => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { games, bets, systemState, tableId: _tableId } = options;
+    const { games, bets, systemState,  } = options;
   
   // ====== 状态 ======
   const [integrityIssues, setIntegrityIssues] = useState<DataIntegrityIssue[]>([]);

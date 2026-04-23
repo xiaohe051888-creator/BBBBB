@@ -14,31 +14,29 @@ from .state import get_or_create_state
 from .logging import write_game_log
 
 
-async def _reset_table_data(db: AsyncSession, table_id: str) -> None:
+async def _reset_table_data(db: AsyncSession, boot_number: Optional[int] = None) -> None:
     """
-    重置桌子数据 - 清空该桌的所有历史记录
-    这是上传新数据的必要步骤，防止数据错乱
+    重置数据
+    如果是新靴（boot_number is None），不删除历史数据，只开启新靴
+    如果是覆盖当前靴（传入 boot_number），删除该靴的所有记录
     """
-    # 删除该桌的所有游戏记录
-    await db.execute(
-        delete(GameRecord).where(GameRecord.table_id == table_id)
-    )
-    # 删除该桌的所有下注记录
-    await db.execute(
-        delete(BetRecord).where(BetRecord.table_id == table_id)
-    )
-    # 删除该桌的系统日志（保留最近100条用于审计）
-    await db.execute(
-        delete(SystemLog).where(SystemLog.table_id == table_id)
-    )
-    await db.flush()
+    if boot_number is not None:
+        # 删除当前靴的游戏记录
+        await db.execute(
+            delete(GameRecord).where(GameRecord.boot_number == boot_number)
+        )
+        # 删除当前靴的下注记录
+        await db.execute(
+            delete(BetRecord).where(BetRecord.boot_number == boot_number)
+        )
+        await db.flush()
 
 
-async def _reset_session_state(table_id: str) -> None:
+async def _reset_session_state(keep_balance: bool = True) -> None:
     """
-    重置会话状态 - 清理内存中的工作流状态
+    重置会话状态 - 清理内存中的工作流状态，强制清场
     """
-    sess = get_session(table_id)
+    sess = get_session()
     
     # 重置所有状态
     sess.status = "空闲"
@@ -55,7 +53,8 @@ async def _reset_session_state(table_id: str) -> None:
     sess.pending_game_number = None
     
     # 重置统计
-    sess.balance = settings.DEFAULT_BALANCE
+    if not keep_balance:
+        sess.balance = settings.DEFAULT_BALANCE
     sess.consecutive_errors = 0
     
     # 清理AI分析缓存
@@ -68,27 +67,24 @@ async def _reset_session_state(table_id: str) -> None:
 
 async def upload_games(
     db: AsyncSession,
-    table_id: str,
     games: List[Dict[str, Any]],
-    boot_number: Optional[int] = None,
+    is_new_boot: bool = False,
 ) -> Dict[str, Any]:
     """
     上传批量开奖记录
     
-    ⚠️ 重要：上传新数据会重置该桌的所有历史数据和工作流状态！
-    
     Args:
         games: [{game_number: int, result: "庄"/"闲"/"和"}, ...]
-        boot_number: 靴号，None则自动推断
+        is_new_boot: True表示开启新靴(靴号+1)，False表示覆盖当前靴
     
     Returns:
         {"success": True, "uploaded": N, "boot_number": X, "next_game_number": Y}
     """
-    sess = get_session(table_id)
+    sess = get_session()
     
     if not games:
         await write_game_log(
-            db, table_id, 0, None,
+            db, 0, None,
             "LOG-VAL-001", "参数校验", "失败",
             "批量上传失败：上传数据为空",
             priority="P2",
@@ -100,22 +96,24 @@ async def upload_games(
     old_status = sess.status
     old_boot = sess.boot_number
     
-    # ========== 步骤1：重置数据 ==========
-    # 清空该桌的所有历史数据，防止数据错乱
-    await _reset_table_data(db, table_id)
+    # 推断靴号：取现有最大靴号
+    stmt = select(GameRecord.boot_number).order_by(GameRecord.boot_number.desc()).limit(1)
+    result = await db.execute(stmt)
+    existing_boot = result.scalar_one_or_none() or 0
     
-    # ========== 步骤2：重置会话状态 ==========
+    if is_new_boot:
+        boot_number = existing_boot + 1
+        # 开启新靴，不需要清理上靴数据
+        await _reset_table_data(db, boot_number=None)
+    else:
+        # 覆盖当前靴
+        boot_number = existing_boot if existing_boot > 0 else 1
+        # 清理当前靴数据，以便覆盖
+        await _reset_table_data(db, boot_number=boot_number)
+    
+    # ========== 强力清场：重置会话状态 ==========
     # 清理内存中的工作流状态，终止所有进行中的操作
-    await _reset_session_state(table_id)
-    
-    # 推断靴号：取现有最大靴号，或使用传入值
-    if boot_number is None:
-        stmt = select(GameRecord.boot_number).where(
-            GameRecord.table_id == table_id
-        ).order_by(GameRecord.boot_number.desc()).limit(1)
-        result = await db.execute(stmt)
-        existing_boot = result.scalar_one_or_none()
-        boot_number = (existing_boot or 0) + 1
+    await _reset_session_state(keep_balance=True)
     
     sess.boot_number = boot_number
     
@@ -126,7 +124,6 @@ async def upload_games(
         
         # 检查是否已存在（避免重复）
         stmt = select(GameRecord).where(
-            GameRecord.table_id == table_id,
             GameRecord.boot_number == boot_number,
             GameRecord.game_number == game_number,
         )
@@ -139,7 +136,6 @@ async def upload_games(
             existing.result_time = datetime.now()
         else:
             record = GameRecord(
-                table_id=table_id,
                 boot_number=boot_number,
                 game_number=game_number,
                 result=result_val,
@@ -156,32 +152,33 @@ async def upload_games(
     sess.status = "分析中"
     
     # 更新系统状态
-    state = await get_or_create_state(db, table_id)
+    state = await get_or_create_state(db)
     state.status = "分析中"
     state.boot_number = boot_number
     state.game_number = max_game
     state.balance = sess.balance
     
     # 记录重置日志
+    action_type = "开启新靴" if is_new_boot else "覆盖本靴"
     if old_status != "空闲":
         await write_game_log(
-            db, table_id, boot_number, 0,
+            db, boot_number, 0,
             "LOG-SYS-003", "系统重置", "成功",
-            f"上传新数据触发重置：原状态[{old_status}]靴号[{old_boot}]已清理",
+            f"上传数据触发强力清场：原状态[{old_status}]已终止，执行[{action_type}]",
             priority="P1",
         )
     
     await write_game_log(
-        db, table_id, boot_number, max_game,
+        db, boot_number, max_game,
         "LOG-MNL-001", "批量上传", "成功",
-        f"上传第{games[0]['game_number']}~{max_game}局共{uploaded}条记录，靴号{boot_number}，数据已重置",
+        f"上传第{games[0]['game_number']}~{max_game}局共{uploaded}条记录，执行[{action_type}]",
         priority="P2",
     )
     
     await db.commit()
     
     # 广播状态更新
-    await broadcast_event(table_id, "state_update", {
+    await broadcast_event("state_update", {
         "status": "分析中",
         "boot_number": boot_number,
         "game_number": max_game,

@@ -3,7 +3,7 @@
  * 
  * 包含: 系统状态、桌台信息、当前/预测局、余额、健康分、操作按钮
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { Button, Tag, Space, Tooltip, Modal } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -14,7 +14,6 @@ import {
   RobotIcon,
   CoinIcon,
   ShieldIcon,
-  TargetIcon,
   ArrowRightIcon,
 } from '../icons';
 import { SystemStatusPanel } from '../ui/SystemStatusPanel';
@@ -23,7 +22,6 @@ import type { SystemDiagnostics } from '../../hooks/useSystemDiagnostics';
 import type { BettingAdvice } from '../../hooks/useSmartDetection';
 
 interface DashboardHeaderProps {
-  tableId: string;
   systemState: {
     status?: string;
     boot_number?: number;
@@ -51,13 +49,10 @@ interface DashboardHeaderProps {
   gameCount: number;
 }
 
-export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-  tableId,
-  systemState,
+export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ systemState,
   healthScore,
   healthScoreLoading,
   onFetchHealthScore,
-  bettingAdvice,
   diagnostics,
   onDismissIssue,
   onRetryConnection,
@@ -65,7 +60,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onOpenLogin,
   gameCount,
 }) => {
-  const [adviceModalOpen, setAdviceModalOpen] = useState(false);
+  
   const navigate = useNavigate();
 
   const getStatusColor = (status?: string) => {
@@ -113,7 +108,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <div className="info-card-mini">
             <span style={{ color: '#58a6ff' }}><GlobeIcon /></span>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-              <strong style={{ color: '#ffd700', marginRight: 4 }}>{tableId}桌</strong>
+              <strong style={{ color: '#ffd700', marginRight: 4 }}>{ }桌</strong>
               · 第{systemState?.boot_number || 0}靴
               · 已{systemState?.game_number || 0}局
             </span>
@@ -183,187 +178,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             </div>
           </div>
 
-          {/* 智能下注建议 */}
-          <>
-            <div 
-              className="info-card-mini" 
-              onClick={() => setAdviceModalOpen(true)}
-              style={{
-                background: gameCount > 0
-                  ? (bettingAdvice.canBet ? 'rgba(82,196,26,0.08)' : 'rgba(255,77,79,0.08)')
-                  : 'rgba(140,140,140,0.08)',
-                border: `1px solid ${gameCount > 0 
-                  ? (bettingAdvice.canBet ? 'rgba(82,196,26,0.2)' : 'rgba(255,77,79,0.2)')
-                  : 'rgba(140,140,140,0.2)'}`,
-                cursor: 'pointer'
-              }}
-            >
-              <span style={{
-                fontSize: 14,
-                color: gameCount > 0 ? (bettingAdvice.canBet ? '#52c41a' : '#ff4d4f') : '#8c8c8c'
-              }}>
-                <TargetIcon width={16} height={16} />
-              </span>
-              <div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>下注建议</div>
-                <div style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: gameCount > 0 ? (bettingAdvice.canBet ? '#95de64' : '#ff7875') : '#8c8c8c',
-                  maxWidth: 120,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {gameCount > 0
-                    ? (bettingAdvice.canBet
-                      ? (bettingAdvice.suggestedAmount ? `建议下注¥${bettingAdvice.suggestedAmount}` : '可以下注')
-                      : bettingAdvice.reason)
-                    : '等待数据上传'
-                  }
-                </div>
-              </div>
-            </div>
-            <Modal
-              title="下注建议详情"
-              open={adviceModalOpen}
-              onCancel={() => setAdviceModalOpen(false)}
-              footer={[
-                <Button key="close" onClick={() => setAdviceModalOpen(false)}>
-                  关闭
-                </Button>
-              ]}
-              width={480}
-            >
-              <div style={{ padding: '16px 0' }}>
-                {gameCount === 0 ? (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 12, 
-                    padding: 16,
-                    borderRadius: 8,
-                    background: 'rgba(140,140,140,0.08)',
-                    border: '1px solid rgba(140,140,140,0.3)'
-                  }}>
-                    <div style={{ 
-                      width: 48, 
-                      height: 48, 
-                      borderRadius: '50%', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      background: '#8c8c8c',
-                      color: '#fff',
-                      fontSize: 24
-                    }}>
-                      ⏸
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 600, color: '#8c8c8c' }}>
-                        等待数据上传
-                      </div>
-                      <div style={{ fontSize: 14, color: '#666', marginTop: 4 }}>
-                        请先上传开奖记录，系统将分析后给出下注建议
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 12, 
-                      marginBottom: 20,
-                      padding: 16,
-                      borderRadius: 8,
-                      background: bettingAdvice.canBet ? 'rgba(82,196,26,0.08)' : 'rgba(255,77,79,0.08)',
-                      border: `1px solid ${bettingAdvice.canBet ? 'rgba(82,196,26,0.3)' : 'rgba(255,77,79,0.3)'}`
-                    }}>
-                      <div style={{ 
-                        width: 48, 
-                        height: 48, 
-                        borderRadius: '50%', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        background: bettingAdvice.canBet ? '#52c41a' : '#ff4d4f',
-                        color: '#fff',
-                        fontSize: 24
-                      }}>
-                        {bettingAdvice.canBet ? '✓' : '✗'}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 16, fontWeight: 600, color: bettingAdvice.canBet ? '#52c41a' : '#ff4d4f' }}>
-                          {bettingAdvice.canBet ? '建议下注' : '暂不建议下注'}
-                        </div>
-                        <div style={{ fontSize: 14, color: '#666', marginTop: 4 }}>
-                          {bettingAdvice.canBet 
-                            ? (bettingAdvice.suggestedAmount 
-                              ? `建议下注金额：¥${bettingAdvice.suggestedAmount.toLocaleString()}` 
-                              : '当前条件适合下注')
-                            : (bettingAdvice.reason || '存在风险因素')
-                          }
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#333' }}>当前状态</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                        <div style={{ padding: 12, background: '#f5f5f5', borderRadius: 6 }}>
-                          <div style={{ fontSize: 12, color: '#666' }}>当前余额</div>
-                          <div style={{ fontSize: 16, fontWeight: 600, color: '#52c41a' }}>
-                            ¥{(systemState?.balance || 20000).toLocaleString()}
-                          </div>
-                        </div>
-                        <div style={{ padding: 12, background: '#f5f5f5', borderRadius: 6 }}>
-                          <div style={{ fontSize: 12, color: '#666' }}>当前局数</div>
-                          <div style={{ fontSize: 16, fontWeight: 600, color: '#1890ff' }}>
-                            第{systemState?.game_number || 0}局
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {systemState?.predict_direction && (
-                      <div style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#333' }}>AI预测</div>
-                        <div style={{ 
-                          padding: 12, 
-                          background: '#f5f5f5', 
-                          borderRadius: 6,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8
-                        }}>
-                          <span style={{ fontSize: 14, color: '#666' }}>预测方向：</span>
-                          <Tag color={systemState.predict_direction === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 14, fontWeight: 600 }}>
-                            {systemState.predict_direction}
-                          </Tag>
-                        </div>
-                      </div>
-                    )}
-
-                    {!bettingAdvice.canBet && bettingAdvice.reason && (
-                      <div style={{ 
-                        padding: 12, 
-                        background: 'rgba(255,77,79,0.05)', 
-                        borderRadius: 6,
-                        border: '1px solid rgba(255,77,79,0.2)'
-                      }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#ff4d4f' }}>⚠️ 风险提示</div>
-                        <div style={{ fontSize: 14, color: '#666', lineHeight: 1.6 }}>
-                          {bettingAdvice.reason}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </Modal>
-          </>
-
           {/* 健康分 */}
           <Tooltip
             title={healthScore?.details ? (
@@ -421,8 +235,39 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           {/* 操作按钮 */}
           <Space size={8}>
             <Button
+              type="primary"
+              danger
+              onClick={async () => {
+                if (systemState?.status === '深度学习中') {
+                  Modal.warning({
+                    title: '操作被拒绝',
+                    content: '当前靴正在进行深度学习，请等待完成后再开启新靴。',
+                  });
+                  return;
+                }
+                
+                Modal.confirm({
+                  title: '结束本靴并开启新靴？',
+                  content: '这将会触发深度学习，并进入上传页面录入新靴数据。',
+                  onOk: async () => {
+                    try {
+                      const { endBoot } = await import('../../services/api');
+                      await endBoot();
+                      navigate('/', { state: { isNewBoot: true } });
+                    } catch (e: unknown) {
+                      Modal.error({ title: '结束本靴失败', content: (e as Error).message });
+                    }
+                  }
+                });
+              }}
+              style={{ borderRadius: 8, fontWeight: 600 }}
+            >
+              结束本靴
+            </Button>
+            
+            <Button
               icon={<UploadIcon />}
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/', { state: { isNewBoot: false } })}
               style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)', borderRadius: 8 }}
             >
               上传数据

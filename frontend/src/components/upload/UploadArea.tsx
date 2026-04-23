@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 // UploadIcons组件暂未使用
 
 interface UploadAreaProps {
-  tableId: string;
   filled: number;
   uploading: boolean;
   onUpload: () => void;
@@ -35,7 +34,6 @@ const WarningIcon: React.FC = () => (
 );
 
 export const UploadArea: React.FC<UploadAreaProps> = ({
-  tableId,
   filled,
   uploading,
   onUpload,
@@ -81,7 +79,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
       }}>
         {/* 查看仪表盘（不上传） */}
         <button
-          onClick={() => navigate(`/dashboard/${tableId}`)}
+          onClick={() => navigate('/dashboard')}
           style={{
             padding: '14px 28px',
             borderRadius: 12,

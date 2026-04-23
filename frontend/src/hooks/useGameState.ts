@@ -91,7 +91,6 @@ export interface AnalysisData {
 }
 
 interface UseGameStateOptions {
-  tableId: string | undefined;
   autoRefresh?: boolean;
   refreshInterval?: number;
 }
@@ -138,7 +137,7 @@ interface UseGameStateReturn {
  * @returns 游戏状态和操作方法
  */
 export const useGameState = (options: UseGameStateOptions): UseGameStateReturn => {
-  const { tableId, autoRefresh = true, refreshInterval = 5000 } = options;
+  const { autoRefresh = true, refreshInterval = 5000 } = options;
 
   // 系统状态
   const [systemState, setSystemState] = useState<SystemState | null>(null);
@@ -167,34 +166,30 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
   // ====== 数据加载方法 ======
 
   const loadSystemState = useCallback(async () => {
-    if (!tableId) return;
     try {
-      const res = await api.getSystemState(tableId);
+      const res = await api.getSystemState();
       setSystemState(res.data);
     } catch (err) {
       console.error('[useGameState] 加载系统状态失败:', err);
       message.error('加载系统状态失败');
     }
-  }, [tableId]);
+  }, []);
 
   const loadStats = useCallback(async () => {
-    if (!tableId) return;
     try {
-      const res = await api.getStatistics(tableId);
+      const res = await api.getStatistics();
       setStats(res.data);
     } catch (err) {
       console.error('[useGameState] 加载统计数据失败:', err);
       message.error('加载统计数据失败');
     }
-  }, [tableId]);
+  }, []);
 
   const loadLogs = useCallback(
     async (page = 1, category?: string) => {
-      if (!tableId) return;
       try {
         const cat = category ?? logCategory;
         const res = await api.getLogs({
-          table_id: tableId,
           category: cat || undefined,
           page,
           page_size: 50,
@@ -205,15 +200,13 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
         message.error('加载日志失败');
       }
     },
-    [tableId, logCategory]
+    [ logCategory]
   );
 
   const loadGames = useCallback(
     async (page = 1) => {
-      if (!tableId) return;
       try {
         const res = await api.getGameRecords({
-          table_id: tableId,
           page,
           page_size: 20,
         });
@@ -224,15 +217,13 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
         message.error('加载游戏记录失败');
       }
     },
-    [tableId]
+    []
   );
 
   const loadBets = useCallback(
     async (page = 1) => {
-      if (!tableId) return;
       try {
         const res = await api.getBetRecords({
-          table_id: tableId,
           page,
           page_size: 20,
         });
@@ -243,14 +234,13 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
         message.error('加载下注记录失败');
       }
     },
-    [tableId]
+    []
   );
 
   const loadRoadData = useCallback(async () => {
-    if (!tableId) return;
     setRoadLoading(true);
     try {
-      const res = await api.getRoadMaps(tableId);
+      const res = await api.getRoadMaps();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (res.data && (res.data as any).roads) {
         setRoadData(res.data as api.FiveRoadsResponse);
@@ -262,12 +252,11 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
     } finally {
       setRoadLoading(false);
     }
-  }, [tableId]);
+  }, []);
 
   const loadLatestAnalysis = useCallback(async () => {
-    if (!tableId) return;
     try {
-      const res = await api.getLatestAnalysis(tableId);
+      const res = await api.getLatestAnalysis();
       if (res.data && res.data.has_data) {
         setAnalysis({
           banker_summary: res.data.banker_model?.summary || '',
@@ -284,7 +273,7 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
       console.error('[useGameState] 加载AI分析失败:', err);
       message.error('加载AI分析失败');
     }
-  }, [tableId]);
+  }, []);
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
@@ -311,7 +300,7 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
   // ====== 自动刷新 ======
 
   useEffect(() => {
-    if (!autoRefresh || !tableId) return;
+    if (!autoRefresh) return;
 
     // 初始加载
     refreshAll();
@@ -327,7 +316,6 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
     return () => clearInterval(interval);
   }, [
     autoRefresh,
-    tableId,
     refreshInterval,
     refreshAll,
     loadSystemState,
@@ -338,12 +326,11 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
 
   // 走势图独立刷新（10秒）
   useEffect(() => {
-    if (!tableId) return;
     const interval = setInterval(() => {
       loadRoadData();
     }, 10000);
     return () => clearInterval(interval);
-  }, [tableId, loadRoadData]);
+  }, [ loadRoadData]);
 
   return {
     // 系统状态

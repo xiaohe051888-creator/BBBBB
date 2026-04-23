@@ -98,7 +98,7 @@ class AILearningService:
         cls._current_task = None
         logger.info("[AI学习] 任务锁已释放")
     
-    async def check_preconditions(self, table_id: str, boot_number: int) -> tuple[bool, str]:
+    async def check_preconditions(self, boot_number: int) -> tuple[bool, str]:
         """
         检查学习前置条件
         
@@ -111,7 +111,6 @@ class AILearningService:
         # 2. 检查最低样本数
         stmt = select(func.count()).select_from(
             select(GameRecord).where(
-                GameRecord.table_id == table_id,
                 GameRecord.boot_number == boot_number,
                 GameRecord.predict_correct.isnot(None),  # 仅有效结算局
             ).subquery()
@@ -136,7 +135,6 @@ class AILearningService:
     
     async def start_learning(
         self,
-        table_id: str,
         boot_number: int,
     ) -> LearningResult:
         """
@@ -152,10 +150,10 @@ class AILearningService:
         7. 释放锁
         """
         start_time = datetime.now()
-        task_id = f"{table_id}_boot{boot_number}"
+        task_id = f"boot_{boot_number}"
         
         # 步骤1：前置条件检查
-        ok, reason = await self.check_preconditions(table_id, boot_number)
+        ok, reason = await self.check_preconditions(boot_number)
         if not ok:
             return LearningResult(success=False, error=reason)
         
@@ -166,7 +164,7 @@ class AILearningService:
         
         try:
             # 步骤3：收集训练数据
-            training_data = await self._collect_training_data(table_id, boot_number)
+            training_data = await self._collect_training_data(boot_number)
             
             if not training_data["records"]:
                 return LearningResult(success=False, error="未找到有效的训练数据")
@@ -179,7 +177,6 @@ class AILearningService:
             
             # 步骤5：创建新版本
             version = await self._create_model_version(
-                table_id=table_id,
                 boot_number=boot_number,
                 training_data=training_data,
                 ai_analysis=ai_analysis,
@@ -194,7 +191,7 @@ class AILearningService:
             result = LearningResult(
                 success=True,
                 version=version.version,
-                training_range=f"{table_id} 第{boot_number}靴",
+                training_range=f"第{boot_number}靴",
                 sample_count=len(training_data["records"]),
                 accuracy_before=accuracy_before,
                 accuracy_after=version.accuracy_after,
@@ -232,11 +229,10 @@ class AILearningService:
         finally:
             self.release_lock()
     
-    async def _collect_training_data(self, table_id: str, boot_number: int) -> Dict[str, Any]:
-        """收集指定桌号+靴号的训练数据"""
+    async def _collect_training_data(self, boot_number: int) -> Dict[str, Any]:
+        """收集指定靴号的训练数据"""
         # 获取所有开奖记录（含预测结果）
         stmt = select(GameRecord).where(
-            GameRecord.table_id == table_id,
             GameRecord.boot_number == boot_number,
             GameRecord.predict_correct.isnot(None),
         ).order_by(GameRecord.game_number)
@@ -246,7 +242,6 @@ class AILearningService:
         
         # 获取错题本记录
         mistake_stmt = select(MistakeBook).where(
-            MistakeBook.table_id == table_id,
             MistakeBook.boot_number == boot_number,
         ).order_by(MistakeBook.game_number)
         
@@ -375,7 +370,6 @@ class AILearningService:
     
     async def _create_model_version(
         self,
-        table_id: str,
         boot_number: int,
         training_data: Dict,
         ai_analysis: Dict,
@@ -406,14 +400,14 @@ class AILearningService:
         
         # 构建三级记忆内容
         short_term, medium_term, long_term = await self._build_tiered_memory(
-            table_id, boot_number, ai_analysis, training_data
+            boot_number, ai_analysis, training_data
         )
         
         # 创建版本记录
         version = ModelVersion(
             version=version_name,
             created_at=datetime.now(),
-            training_range=f"{table_id} Boot#{boot_number} ({len(training_data['records'])} samples)",
+            training_range=f"Boot#{boot_number} ({len(training_data['records'])} samples)",
             training_sample_count=len(training_data["records"]),
             accuracy_before=accuracy_before,
             accuracy_after=accuracy_before,  # AI学习后准确率由实际数据决定
@@ -434,7 +428,6 @@ class AILearningService:
     
     async def _build_tiered_memory(
         self,
-        table_id: str,
         current_boot: int,
         ai_analysis: Dict,
         training_data: Dict,
@@ -451,7 +444,7 @@ class AILearningService:
         short_term_errors = ai_analysis.get("error_patterns", "")
         short_term_insight = ai_analysis.get("key_insight", "")
         
-        short_term = f"""【当前靴({table_id} #{current_boot})核心记忆】
+        short_term = f"""【当前靴(#{current_boot})核心记忆】
 模式发现：{short_term_patterns[:100]}
 错误热点：{short_term_errors[:100]}
 关键洞察：{short_term_insight[:100]}
@@ -461,7 +454,6 @@ class AILearningService:
         # 2. 中期记忆：最近5靴的共性规律
         # 获取最近5靴的数据
         recent_boots_stmt = select(GameRecord).where(
-            GameRecord.table_id == table_id,
             GameRecord.boot_number >= current_boot - 4,
             GameRecord.boot_number <= current_boot,
             GameRecord.predict_correct.isnot(None),
@@ -799,7 +791,6 @@ class AILearningService:
     
     async def micro_learning(
         self,
-        table_id: str,
         boot_number: int,
         game_number: int,
         version_id: str,
@@ -823,7 +814,7 @@ class AILearningService:
             
             if not is_correct:
                 error_analysis = await self._analyze_error_deep(
-                    table_id, boot_number, game_number,
+                    boot_number, game_number,
                     prediction, actual_result,
                     banker_evidence, player_evidence, road_data
                 )
@@ -835,7 +826,6 @@ class AILearningService:
             
             # 3. 记录到AI记忆
             memory = AIMemory(
-                table_id=table_id,
                 boot_number=boot_number,
                 game_number=game_number,
                 version_id=version_id,
@@ -871,7 +861,6 @@ class AILearningService:
     
     async def _analyze_error_deep(
         self,
-        table_id: str,
         boot_number: int,
         game_number: int,
         prediction: str,

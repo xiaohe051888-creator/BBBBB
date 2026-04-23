@@ -14,12 +14,11 @@ router = APIRouter(prefix="/api", tags=["统计和走势"])
 
 
 @router.get("/stats")
-async def get_statistics(table_id: str = Query(...)):
+async def get_statistics():
     """获取统计信息"""
     async with async_session() as session:
         total_stmt = select(func.count()).select_from(
             select(GameRecord).where(
-                GameRecord.table_id == table_id,
                 GameRecord.predict_correct.isnot(None),
             ).subquery()
         )
@@ -28,7 +27,6 @@ async def get_statistics(table_id: str = Query(...)):
         
         hit_stmt = select(func.count()).select_from(
             select(GameRecord).where(
-                GameRecord.table_id == table_id,
                 GameRecord.predict_correct == True,
             ).subquery()
         )
@@ -42,18 +40,18 @@ async def get_statistics(table_id: str = Query(...)):
             "hit_count": hit_count,
             "miss_count": total_games - hit_count,
             "accuracy": round(accuracy, 1),
-            "balance": await _get_balance(table_id, session),
+            "balance": await _get_balance(session),
         }
 
 
-async def _get_balance(table_id: str, session) -> float:
+async def _get_balance(session) -> float:
     """获取当前余额（优先从内存获取）"""
     from app.services.manual_game_service import get_session
-    sess = get_session(table_id)
+    sess = get_session()
     if sess.balance != settings.DEFAULT_BALANCE or sess.next_game_number > 1:
         return sess.balance
     
-    stmt = select(SystemState).where(SystemState.table_id == table_id)
+    stmt = select(SystemState)
     result = await session.execute(stmt)
     state = result.scalar_one_or_none()
     return state.balance if state else settings.DEFAULT_BALANCE
@@ -61,15 +59,12 @@ async def _get_balance(table_id: str, session) -> float:
 
 @router.get("/roads")
 async def get_road_maps(
-    table_id: str = Query(...),
     boot_number: Optional[int] = Query(None),
 ):
     """获取五路走势图数据"""
     async with async_session() as session:
         # 获取所有记录（包括和局），用于珠盘路显示
-        query = select(GameRecord).where(
-            GameRecord.table_id == table_id,
-        ).order_by(GameRecord.game_number)
+        query = select(GameRecord).order_by(GameRecord.game_number)
         
         if boot_number is not None:
             query = query.where(GameRecord.boot_number == boot_number)
@@ -79,7 +74,6 @@ async def get_road_maps(
         
         if not records:
             return {
-                "table_id": table_id,
                 "boot_number": boot_number,
                 "total_games": 0,
                 "roads": {
@@ -95,7 +89,6 @@ async def get_road_maps(
         
         # 获取错题本并设置错误标记
         stmt = select(MistakeBook).where(
-            MistakeBook.table_id == table_id,
             MistakeBook.boot_number == (boot_number or records[0].boot_number),
         )
         mb_result = await session.execute(stmt)
@@ -132,7 +125,6 @@ async def get_road_maps(
         actual_boot = boot_number or (records[0].boot_number if records else 0)
         
         return {
-            "table_id": table_id,
             "boot_number": actual_boot,
             "total_games": len(records),
             "roads": {
@@ -147,12 +139,11 @@ async def get_road_maps(
 
 @router.get("/roads/raw")
 async def get_road_raw_data(
-    table_id: str = Query(...),
     boot_number: Optional[int] = Query(None),
 ):
     """获取原始开奖结果列表（用于前端本地计算走势图）"""
     async with async_session() as session:
-        query = select(GameRecord).where(GameRecord.table_id == table_id).order_by(GameRecord.game_number)
+        query = select(GameRecord).order_by(GameRecord.game_number)
         
         if boot_number is not None:
             query = query.where(GameRecord.boot_number == boot_number)
@@ -161,7 +152,6 @@ async def get_road_raw_data(
         records = result.scalars().all()
         
         return {
-            "table_id": table_id,
             "boot_number": boot_number or (records[0].boot_number if records else 0),
             "total": len(records),
             "data": [

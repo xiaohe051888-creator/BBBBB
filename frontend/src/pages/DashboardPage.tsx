@@ -5,7 +5,7 @@
  * 优化：乐观UI策略 - 数据立即显示，后台静默刷新，零等待体验
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Progress } from 'antd';
 import { getToken } from '../services/api';
 import type { HealthScoreResponse } from '../services/api';
@@ -46,22 +46,22 @@ interface TimerState {
 }
 
 const DashboardPage: React.FC = () => {
-  const { tableId } = useParams<{ tableId: string }>();
+  
   // navigate暂未使用，保留以备后续路由跳转
   void useNavigate;
   const queryClient = useQueryClient();
 
   // 系统实时诊断
-  const { diagnostics, dismissIssue, retryConnection, addIssue } = useSystemDiagnostics({ tableId });
+  const { diagnostics, dismissIssue, retryConnection, addIssue } = useSystemDiagnostics({});
 
   // React Query 数据获取（乐观UI）
-  const { data: systemState } = useSystemStateQuery({ tableId });
-  const { data: stats } = useStatsQuery({ tableId });
-  const { data: analysis, isFetching: analysisFetching } = useAnalysisQuery({ tableId });
-  const { data: logsData } = useLogsQuery({ tableId, pageSize: 50 });
-  const { data: gamesData } = useGamesQuery({ tableId, page: 1 });
-  const { data: betsData } = useBetsQuery({ tableId, page: 1 });
-  const { data: roadData } = useRoadsQuery({ tableId });
+  const { data: systemState } = useSystemStateQuery({});
+  const { data: stats } = useStatsQuery({});
+  const { data: analysis, isFetching: analysisFetching } = useAnalysisQuery({});
+  const { data: logsData } = useLogsQuery({ pageSize: 50 });
+  const { data: gamesData } = useGamesQuery({ page: 1 });
+  const { data: betsData } = useBetsQuery({ page: 1 });
+  const { data: roadData } = useRoadsQuery({});
 
   const logs = logsData?.logs || [];
   const games = gamesData?.games || [];
@@ -77,10 +77,10 @@ const DashboardPage: React.FC = () => {
   const [healthScoreLoading, setHealthScoreLoading] = useState(false);
 
   const fetchHealthScore = useCallback(async () => {
-    if (!tableId) return;
+    
     setHealthScoreLoading(true);
     try {
-      const response = await api.getHealthScore(tableId);
+      const response = await api.getHealthScore();
       setHealthScore(response);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : '获取健康分失败';
@@ -93,7 +93,7 @@ const DashboardPage: React.FC = () => {
     } finally {
       setHealthScoreLoading(false);
     }
-  }, [tableId, addIssue]);
+  }, [ addIssue]);
 
   useEffect(() => {
     fetchHealthScore();
@@ -120,7 +120,7 @@ const DashboardPage: React.FC = () => {
   const placeBetMutation = usePlaceBetMutation();
 
   useEffect(() => {
-    if (analysis?.prediction && !systemState?.pending_bet && !hasAutoBetRef.current && tableId) {
+    if (analysis?.prediction && !systemState?.pending_bet && !hasAutoBetRef.current ) {
       const gameNumber = systemState?.next_game_number;
       if (!gameNumber) return;
 
@@ -129,7 +129,7 @@ const DashboardPage: React.FC = () => {
       const timer = setTimeout(async () => {
         try {
           await placeBetMutation.mutateAsync({
-            tableId,
+            
             direction: analysis.prediction as '庄' | '闲',
             amount: DEFAULT_BET_AMOUNT,
           });
@@ -147,7 +147,7 @@ const DashboardPage: React.FC = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [analysis, systemState?.pending_bet, systemState?.next_game_number, tableId, placeBetMutation, addIssue]);
+  }, [analysis, systemState?.pending_bet, systemState?.next_game_number, placeBetMutation, addIssue]);
 
   useEffect(() => {
     if (hasGameData && !analysis) {
@@ -160,7 +160,7 @@ const DashboardPage: React.FC = () => {
     games,
     bets,
     systemState: systemState || null,
-    tableId,
+    
   });
 
   // 工作流计时器
@@ -200,26 +200,26 @@ const DashboardPage: React.FC = () => {
 
   // 页面可见性变化时刷新数据（从上传页面返回时）
   useEffect(() => {
-    if (!tableId) return;
+    
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         // 页面重新可见时刷新所有数据
-        queryClient.invalidateQueries({ queryKey: queryKeys.systemState(tableId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.roads(tableId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.games(tableId, 1) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.analysis(tableId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.stats(tableId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.roads() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.games( 1) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.stats() });
       }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [tableId, queryClient]);
+  }, [ queryClient]);
 
   // WebSocket
   useEffect(() => {
-    if (!tableId) return;
+    
 
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let isUnmounted = false;
@@ -227,7 +227,7 @@ const DashboardPage: React.FC = () => {
     const connectWS = () => {
       if (isUnmounted) return;
       try {
-        const ws = api.createWebSocket(tableId);
+        const ws = api.createWebSocket();
 
         ws.onmessage = (event) => {
           try {
@@ -236,11 +236,11 @@ const DashboardPage: React.FC = () => {
 
             switch (type) {
               case 'log':
-                if (data) addLogOptimistically(tableId, data);
+                if (data) addLogOptimistically( data);
                 break;
               case 'bet_placed':
                 if (data) {
-                  addBetOptimistically(tableId, {
+                  addBetOptimistically( {
                     game_number: data.game_number,
                     bet_direction: data.direction,
                     bet_amount: data.amount,
@@ -255,7 +255,7 @@ const DashboardPage: React.FC = () => {
                     profit_loss: null,
                     adapt_summary: null,
                   });
-                  updateStateOptimistically(tableId, {
+                  updateStateOptimistically( {
                     balance: data.balance_after,
                     pending_bet: {
                       direction: data.direction,
@@ -270,7 +270,7 @@ const DashboardPage: React.FC = () => {
                 break;
               case 'game_revealed':
                 if (data) {
-                  addGameOptimistically(tableId, {
+                  addGameOptimistically( {
                     game_number: data.game_number,
                     result: data.result,
                     predict_direction: data.predict_direction,
@@ -282,7 +282,7 @@ const DashboardPage: React.FC = () => {
                     error_id: null,
                   });
                   if (data.settlement) {
-                    updateBetOptimistically(tableId, data.game_number, {
+                    updateBetOptimistically( data.game_number, {
                       status: data.settlement.status,
                       game_result: data.result,
                       settlement_amount: data.settlement.settlement_amount,
@@ -290,14 +290,13 @@ const DashboardPage: React.FC = () => {
                     });
                   }
                   if (data.roads) {
-                    updateRoadsOptimistically(tableId, {
-                      table_id: tableId,
+                    updateRoadsOptimistically( {
                       boot_number: data.boot_number,
                       total_games: data.game_number,
                       roads: data.roads,
                     });
                   }
-                  updateStateOptimistically(tableId, {
+                  updateStateOptimistically( {
                     balance: data.balance,
                     game_number: data.game_number,
                     current_game_result: data.result,
@@ -309,14 +308,14 @@ const DashboardPage: React.FC = () => {
               case 'ai_analysis':
                 if (data) {
                   // 更新系统状态
-                  updateStateOptimistically(tableId, {
+                  updateStateOptimistically( {
                     predict_direction: data.prediction,
                     predict_confidence: data.confidence,
                     current_bet_tier: data.tier,
                     status: '等待下注',
                   });
                   // 更新AI分析数据（关键修复：使分析结果立即显示在UI上）
-                  updateAnalysisOptimistically(tableId, {
+                  updateAnalysisOptimistically( {
                     banker_summary: data.banker_summary || '',
                     player_summary: data.player_summary || '',
                     combined_summary: data.combined_summary || '',
@@ -329,7 +328,7 @@ const DashboardPage: React.FC = () => {
                 break;
               case 'state_update':
                 if (data) {
-                  updateStateOptimistically(tableId, {
+                  updateStateOptimistically( {
                     status: data.status,
                     boot_number: data.boot_number,
                     game_number: data.game_number,
@@ -360,7 +359,7 @@ const DashboardPage: React.FC = () => {
       isUnmounted = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
-  }, [tableId, addLogOptimistically, addBetOptimistically, updateBetOptimistically, addGameOptimistically, updateRoadsOptimistically, updateStateOptimistically, updateAnalysisOptimistically]);
+  }, [ addLogOptimistically, addBetOptimistically, updateBetOptimistically, addGameOptimistically, updateRoadsOptimistically, updateStateOptimistically, updateAnalysisOptimistically]);
 
   // 等待开奖计时器
   const hasPendingBet = !!systemState?.pending_bet;
@@ -384,11 +383,11 @@ const DashboardPage: React.FC = () => {
   const handleConfirmReveal = async () => {
     if (!revealResult) return;
     const gameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
-    if (!gameNumber || !tableId) return;
+    if (!gameNumber) return;
 
     setRevealLoading(true);
     try {
-      await revealResultMutation.mutateAsync({ tableId, result: revealResult });
+      await revealResultMutation.mutateAsync({  result: revealResult });
       setRevealVisible(false);
       setAiAnalyzing(true);
     } catch (err: unknown) {
@@ -410,7 +409,7 @@ const DashboardPage: React.FC = () => {
     <div className="dashboard-container">
       {/* 顶部状态栏 */}
       <DashboardHeader
-        tableId={tableId || ''}
+        
         systemState={systemState ?? null}
         healthScore={healthScore}
         healthScoreLoading={healthScoreLoading}
@@ -481,7 +480,7 @@ const DashboardPage: React.FC = () => {
           </div>
 
           {/* AI学习状态 */}
-          <LearningStatusPanel tableId={tableId || ''} compact />
+          <LearningStatusPanel  compact />
         </div>
 
         {/* 右侧：分析面板 + 数据表格 */}
@@ -491,7 +490,7 @@ const DashboardPage: React.FC = () => {
             analysis={analysis ?? null}
             hasGameData={hasGameData}
             aiAnalyzing={aiAnalyzing}
-            tableId={tableId || ''}
+            
           />
 
           {/* 智能提示 */}

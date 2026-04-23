@@ -70,8 +70,8 @@ api.interceptors.response.use(
 
 // ====== 系统状态 ======
 
-export const getSystemState = async (tableId: string) => {
-  return api.get('/system/state', { params: { table_id: tableId } });
+export const getSystemState = async () => {
+  return api.get('/system/state', { params: { } });
 };
 
 export interface HealthScoreResponse {
@@ -90,13 +90,13 @@ export interface HealthScoreResponse {
   timestamp: string;
 }
 
-export const getHealthScore = async (tableId: string): Promise<HealthScoreResponse> => {
-  return api.get('/system/health', { params: { table_id: tableId } });
+export const getHealthScore = async (): Promise<HealthScoreResponse> => {
+  return api.get('/system/health', { params: { } });
 };
 
 /** 后端健康检查（轻量ping） */
-export const getSystemHealth = async (tableId: string) => {
-  return api.get('/system/health', { params: { table_id: tableId } });
+export const getSystemHealth = async () => {
+  return api.get('/system/health', { params: { } });
 };
 
 export interface SystemDiagnosticsResponse {
@@ -111,8 +111,8 @@ export interface SystemDiagnosticsResponse {
 }
 
 /** 获取系统诊断信息（AI Key配置、DB状态、WS连接数等） */
-export const getSystemDiagnostics = async (tableId: string) => {
-  return api.get<SystemDiagnosticsResponse>('/system/diagnostics', { params: { table_id: tableId } });
+export const getSystemDiagnostics = async () => {
+  return api.get<SystemDiagnosticsResponse>('/system/diagnostics', { params: { } });
 };
 
 // ====== 手动游戏 API ======
@@ -149,7 +149,6 @@ export interface RevealResponse {
 }
 
 export interface CurrentGameState {
-  table_id: string;
   status: string;
   boot_number: number;
   next_game_number: number;
@@ -176,12 +175,10 @@ export interface CurrentGameState {
 
 /** 手动上传批量开奖记录（最多72局），上传后自动触发AI分析 */
 export const uploadGameResults = async (
-  tableId: string,
   games: GameUploadItem[],
   bootNumber?: number,
 ) => {
   return api.post<UploadResponse>('/games/upload', {
-    table_id: tableId,
     games,
     boot_number: bootNumber,
   });
@@ -189,13 +186,11 @@ export const uploadGameResults = async (
 
 /** 下注 */
 export const placeBet = async (
-  tableId: string,
   gameNumber: number,
   direction: '庄' | '闲',
   amount: number,
 ) => {
   return api.post('/games/bet', {
-    table_id: tableId,
     game_number: gameNumber,
     direction,
     amount,
@@ -204,36 +199,33 @@ export const placeBet = async (
 
 /** 开奖 - 输入结果，触发结算和下一局分析 */
 export const revealGame = async (
-  tableId: string,
   gameNumber: number,
   result: '庄' | '闲' | '和',
 ) => {
   return api.post<RevealResponse>('/games/reveal', {
-    table_id: tableId,
     game_number: gameNumber,
     result,
   });
 };
 
 /** 获取当前游戏状态（内存态） */
-export const getCurrentGameState = async (tableId: string) => {
-  return api.get<CurrentGameState>('/games/current-state', { params: { table_id: tableId } });
+export const getCurrentGameState = async () => {
+  return api.get<CurrentGameState>('/games/current-state', { params: { } });
 };
 
 /** 结束本靴 - 触发深度学习 */
-export const endBoot = async (tableId: string) => {
-  return api.post('/games/end-boot', null, { params: { table_id: tableId } });
+export const endBoot = async () => {
+  return api.post('/games/end-boot', null, { params: { } });
 };
 
 /** 获取深度学习状态 */
-export const getDeepLearningStatus = async (tableId: string) => {
-  return api.get('/games/deep-learning-status', { params: { table_id: tableId } });
+export const getDeepLearningStatus = async () => {
+  return api.get('/games/deep-learning-status', { params: { } });
 };
 
 // ====== 开奖记录 ======
 
 export const getGameRecords = async (params: {
-  table_id: string;
   boot_number?: number;
   page?: number;
   page_size?: number;
@@ -246,7 +238,6 @@ export const getGameRecords = async (params: {
 // ====== 下注记录 ======
 
 export const getBetRecords = async (params: {
-  table_id: string;
   boot_number?: number;
   page?: number;
   page_size?: number;
@@ -257,7 +248,6 @@ export const getBetRecords = async (params: {
 // ====== 系统日志 ======
 
 export const getLogs = async (params: {
-  table_id: string;
   category?: string;
   priority?: string;
   game_number?: number;
@@ -269,8 +259,8 @@ export const getLogs = async (params: {
 
 // ====== 统计 ======
 
-export const getStatistics = async (tableId: string) => {
-  return api.get('/stats', { params: { table_id: tableId } });
+export const getStatistics = async () => {
+  return api.get('/stats', { params: { } });
 };
 
 // ====== 管理员 ======
@@ -312,7 +302,6 @@ export interface SingleRoadData {
 }
 
 export interface FiveRoadsResponse {
-  table_id: string;
   boot_number: number | null;
   total_games: number;
   roads: {
@@ -324,30 +313,30 @@ export interface FiveRoadsResponse {
   };
 }
 
-export const getRoadMaps = async (tableId: string, bootNumber?: number) => {
+export const getRoadMaps = async (bootNumber?: number) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const params: Record<string, any> = { table_id: tableId };
+  const params: Record<string, any> = { };
   if (bootNumber !== undefined) params.boot_number = bootNumber;
   return api.get('/roads', { params });
 };
 
-export const getRoadRawData = async (tableId: string, bootNumber?: number) => {
+export const getRoadRawData = async (bootNumber?: number) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const params: Record<string, any> = { table_id: tableId };
+  const params: Record<string, any> = { };
   if (bootNumber !== undefined) params.boot_number = bootNumber;
   return api.get('/roads/raw', { params });
 };
 
 // ====== WebSocket（带可选token认证）======
 
-export const createWebSocket = (tableId: string): WebSocket => {
+export const createWebSocket = (): WebSocket => {
   const token = getToken();
   // WebSocket URL 格式: ws://localhost:8000/ws/{table_id}
   const baseWsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
   // 如果环境变量已包含完整路径，使用它；否则拼接 table_id
   const wsUrl = baseWsUrl.includes('/ws/')
     ? baseWsUrl
-    : `${baseWsUrl}/ws/${tableId}`;
+    : `${baseWsUrl}/ws`;
   const urlWithToken = token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl;
   return new WebSocket(urlWithToken);
 };
@@ -355,15 +344,14 @@ export const createWebSocket = (tableId: string): WebSocket => {
 // ====== AI模型分析 ======
 
 export interface LatestAnalysis {
-  table_id: string;
   banker_model: { summary: string | null; time: string | null };
   player_model: { summary: string | null; time: string | null };
   combined_model: { summary: string | null; confidence: number | null; bet_tier: string | null; prediction: string | null; time: string | null };
   has_data: boolean;
 }
 
-export const getLatestAnalysis = async (tableId: string) => {
-  return api.get<LatestAnalysis>('/analysis/latest', { params: { table_id: tableId } });
+export const getLatestAnalysis = async () => {
+  return api.get<LatestAnalysis>('/analysis/latest', { params: { } });
 };
 
 // ====== 错题本 ======
@@ -374,7 +362,6 @@ export const getLatestAnalysis = async (tableId: string) => {
 export type MistakeRecord = import('../hooks/useQueries').MistakeRecord;
 
 export const getMistakeRecords = async (params: {
-  table_id: string;
   boot_number?: number;
   page?: number;
   page_size?: number;
@@ -392,9 +379,9 @@ export interface AILearningStatus {
 }
 
 /** 启动AI学习（需管理员认证） */
-export const startAiLearning = async (tableId: string, bootNumber: number) => {
+export const startAiLearning = async (bootNumber: number) => {
   return api.post('/admin/ai-learning/start', null, {
-    params: { table_id: tableId, boot_number: bootNumber },
+    params: { boot_number: bootNumber },
   });
 };
 

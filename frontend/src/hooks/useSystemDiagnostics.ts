@@ -53,7 +53,6 @@ export interface SystemIssue {
 }
 
 interface UseSystemDiagnosticsOptions {
-  tableId: string | undefined;
   enabled?: boolean;
 }
 
@@ -61,7 +60,7 @@ interface UseSystemDiagnosticsOptions {
  * 系统诊断 Hook - 实时监控所有系统状态
  */
 export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
-  const { tableId, enabled = true } = options;
+  const { enabled = true } = options;
 
   const [wsStatus, setWsStatus] = useState<WsStatus>('connecting');
   const [wsLatency, setWsLatency] = useState<number | null>(null);
@@ -110,13 +109,13 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
   const connectWSRef = useRef<(() => void) | null>(null);
 
   const connectWS = useCallback(() => {
-    if (!tableId || isUnmountedRef.current) return;
+    if (isUnmountedRef.current) return;
     if (!enabled) return;
 
     setWsStatus('connecting');
 
     try {
-      const ws = api.createWebSocket(tableId);
+      const ws = api.createWebSocket();
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -199,7 +198,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         }, 5000);
       }
     }
-  }, [tableId, enabled, addIssue, removeIssueBySource]);
+  }, [enabled, addIssue, removeIssueBySource]);
 
   // 使用useEffect更新ref，避免在渲染期间修改
   useEffect(() => {
@@ -207,7 +206,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
   }, [connectWS]);
 
   useEffect(() => {
-    if (!tableId || !enabled) return;
+    if (!enabled) return;
     isUnmountedRef.current = false;
     // 使用setTimeout避免在渲染期间同步调用
     const timer = setTimeout(() => {
@@ -227,14 +226,14 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         wsRef.current = null;
       }
     };
-  }, [tableId, enabled]);
+  }, [enabled]);
 
   // ====== 后端健康检查（每15秒） ======
   const checkBackend = useCallback(async () => {
-    if (!tableId || isUnmountedRef.current) return;
+    if (isUnmountedRef.current) return;
     const start = Date.now();
     try {
-      await api.getSystemHealth(tableId);
+      await api.getSystemHealth();
       const latency = Date.now() - start;
       setBackendStatus('online');
       setBackendLatency(latency);
@@ -261,10 +260,10 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         source: 'backend',
       });
     }
-  }, [tableId, addIssue, removeIssueBySource]);
+  }, [addIssue, removeIssueBySource]);
 
   useEffect(() => {
-    if (!tableId || !enabled) return;
+    if (!enabled) return;
     // 使用setTimeout避免同步调用
     const initialTimer = setTimeout(() => {
       checkBackend();
@@ -274,16 +273,16 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
       clearTimeout(initialTimer);
       if (backendCheckRef.current) clearInterval(backendCheckRef.current);
     };
-  }, [tableId, enabled, checkBackend]);
+  }, [enabled, checkBackend]);
 
   // ====== AI模型状态检查（通过诊断API，每30秒） ======
   useEffect(() => {
-    if (!tableId || !enabled) return;
+    if (!enabled) return;
 
     const checkAI = async () => {
       if (isUnmountedRef.current) return;
       try {
-        const res = await api.getSystemDiagnostics(tableId);
+        const res = await api.getSystemDiagnostics();
         const diag = res.data;
         if (!diag) return;
 
@@ -350,7 +349,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
       clearTimeout(initialTimer);
       clearInterval(timer);
     };
-  }, [tableId, enabled, addIssue, removeIssueBySource]);
+  }, [enabled, addIssue, removeIssueBySource]);
 
   // ====== 计算衍生状态 ======
   const aiAnyOk = aiModels.some(m => m.status === 'ok');

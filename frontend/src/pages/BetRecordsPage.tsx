@@ -5,7 +5,7 @@
  * 优化：使用React Query + 乐观UI策略，自适应布局，精致图标
  */
 import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Statistic,
   Select, Input, Modal, Empty,
@@ -71,7 +71,7 @@ interface BetSummary {
 }
 
 const BetRecordsPage: React.FC = () => {
-  const { tableId } = useParams<{ tableId: string }>();
+  
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -80,11 +80,7 @@ const BetRecordsPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
 
   // React Query获取数据（乐观UI：永远不显示loading，数据来了直接渲染）
-  const { data: betsData } = useBetsQuery({ 
-    tableId, 
-    page, 
-    pageSize 
-  });
+  const { data: betsData } = useBetsQuery({});
 
   // 使用useMemo缓存数据，避免useMemo依赖变化
   const bets = useMemo(() => betsData?.bets || [], [betsData]);
@@ -102,8 +98,7 @@ const BetRecordsPage: React.FC = () => {
 
   // 手动刷新
   const handleRefresh = () => {
-    if (!tableId) return;
-    queryClient.invalidateQueries({ queryKey: ['bets', tableId] });
+        queryClient.invalidateQueries({ queryKey: ['bets'] });
   };
 
   // 计算汇总数据（使用useMemo优化性能）
@@ -262,12 +257,12 @@ const BetRecordsPage: React.FC = () => {
       {/* 顶部导航 */}
       <div className="page-nav-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div className="page-nav-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<Icons.Back />} onClick={() => navigate(`/dashboard/${tableId}`)} size="small">
+          <Button icon={<Icons.Back />} onClick={() => navigate("/dashboard")} size="small">
             返回
           </Button>
           <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icons.Dollar />
-            下注记录 — {tableId}
+            下注记录 — {}
           </span>
           <Badge count={filteredBets.length} showZero style={{ backgroundColor: '#58a6ff' }} />
         </div>

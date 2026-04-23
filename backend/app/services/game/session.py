@@ -11,8 +11,7 @@ from app.core.config import settings
 
 @dataclass
 class ManualSession:
-    """手动游戏会话 - 内存态，每桌一个实例"""
-    table_id: str
+    """手动游戏会话 - 内存态，全局单例"""
     boot_number: int = 1
     next_game_number: int = 1           # 下一局的局号（等待开奖的局号）
     status: str = "空闲"               # 空闲/分析中/等待开奖/等待下注/深度学习中/等待新靴
@@ -44,17 +43,18 @@ class ManualSession:
     deep_learning_status: Optional[Dict] = None  # 深度学习进度状态
 
 
-# 全局会话管理器
-_sessions: Dict[str, ManualSession] = {}
+# 全局单例会话
+_session: Optional[ManualSession] = None
 # WebSocket广播函数（由main.py注入）
 _broadcast_func: Optional[Callable] = None
 
 
-def get_session(table_id: str) -> ManualSession:
-    """获取或创建桌子的会话"""
-    if table_id not in _sessions:
-        _sessions[table_id] = ManualSession(table_id=table_id)
-    return _sessions[table_id]
+def get_session() -> ManualSession:
+    """获取单例会话"""
+    global _session
+    if _session is None:
+        _session = ManualSession()
+    return _session
 
 
 def set_broadcast_func(func: Callable):
@@ -63,18 +63,13 @@ def set_broadcast_func(func: Callable):
     _broadcast_func = func
 
 
-async def broadcast_event(table_id: str, event_type: str, data: Dict):
+async def broadcast_event(event_type: str, data: Dict):
     """广播事件到WebSocket"""
     if _broadcast_func:
-        await _broadcast_func(table_id, event_type, data)
+        await _broadcast_func(event_type, data)
 
 
-def get_all_sessions() -> Dict[str, ManualSession]:
-    """获取所有会话（用于管理）"""
-    return _sessions.copy()
-
-
-def clear_session(table_id: str):
-    """清除指定桌子的会话"""
-    if table_id in _sessions:
-        del _sessions[table_id]
+def clear_session():
+    """重置单例会话"""
+    global _session
+    _session = ManualSession()

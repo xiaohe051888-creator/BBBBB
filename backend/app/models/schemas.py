@@ -73,11 +73,10 @@ class ErrorType(str, PyEnum):
 
 # ============ 开奖记录表 ============
 class GameRecord(Base):
-    """开奖记录 - 唯一键：桌号+靴号+局号"""
+    """开奖记录 - 唯一键：靴号+局号"""
     __tablename__ = "game_records"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    table_id = Column(String(10), nullable=False, comment="桌号")
     boot_number = Column(Integer, nullable=False, comment="靴号")
     game_number = Column(Integer, nullable=False, comment="局号")
     result = Column(String(4), nullable=False, comment="开奖结果：庄/闲/和")
@@ -91,8 +90,8 @@ class GameRecord(Base):
     created_at = Column(DateTime, server_default=func.now())
     
     __table_args__ = (
-        UniqueConstraint("table_id", "boot_number", "game_number", name="uq_game_record"),
-        Index("idx_game_table_boot_number", "table_id", "boot_number", "game_number"),
+        UniqueConstraint("boot_number", "game_number", name="uq_game_record"),
+        Index("idx_game_boot_number", "boot_number", "game_number"),
     )
 
 
@@ -102,7 +101,6 @@ class RoadMap(Base):
     __tablename__ = "road_maps"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    table_id = Column(String(10), nullable=False)
     boot_number = Column(Integer, nullable=False)
     game_number = Column(Integer, nullable=False)
     road_type = Column(String(20), nullable=False, comment="路类型：大路/珠盘路/大眼仔路/小路/螳螂路")
@@ -113,17 +111,16 @@ class RoadMap(Base):
     created_at = Column(DateTime, server_default=func.now())
     
     __table_args__ = (
-        Index("idx_road_table_boot", "table_id", "boot_number", "road_type"),
+        Index("idx_road_boot", "boot_number", "road_type"),
     )
 
 
 # ============ 下注记录表 ============
 class BetRecord(Base):
-    """下注记录 - 唯一键：桌号+靴号+局号+下注序号"""
+    """下注记录 - 唯一键：靴号+局号+下注序号"""
     __tablename__ = "bet_records"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    table_id = Column(String(10), nullable=False)
     boot_number = Column(Integer, nullable=False)
     game_number = Column(Integer, nullable=False)
     bet_seq = Column(Integer, default=1, comment="下注序号")
@@ -143,9 +140,9 @@ class BetRecord(Base):
     created_at = Column(DateTime, server_default=func.now())
     
     __table_args__ = (
-        UniqueConstraint("table_id", "boot_number", "game_number", "bet_seq", name="uq_bet_record"),
+        UniqueConstraint("boot_number", "game_number", "bet_seq", name="uq_bet_record"),
         Index("idx_bet_status_time", "status", "bet_time"),
-        Index("idx_bet_table_boot", "table_id", "boot_number"),
+        Index("idx_bet_boot", "boot_number"),
     )
 
 
@@ -156,7 +153,6 @@ class SystemLog(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     log_time = Column(DateTime, nullable=False, comment="时间")
-    table_id = Column(String(10), nullable=True, comment="桌号")
     boot_number = Column(Integer, nullable=True, comment="靴号")
     game_number = Column(Integer, nullable=True, comment="局号")
     event_code = Column(String(20), nullable=False, comment="事件编码")
@@ -184,7 +180,6 @@ class MistakeBook(Base):
     __tablename__ = "mistake_book"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    table_id = Column(String(10), nullable=False)
     boot_number = Column(Integer, nullable=False)
     game_number = Column(Integer, nullable=False)
     error_id = Column(String(20), nullable=False, comment="错误编号")
@@ -201,7 +196,7 @@ class MistakeBook(Base):
     created_at = Column(DateTime, server_default=func.now())
     
     __table_args__ = (
-        Index("idx_mistake_table_boot", "table_id", "boot_number"),
+        Index("idx_mistake_boot", "boot_number"),
     )
 
 
@@ -268,7 +263,6 @@ class AIMemory(Base):
     created_at = Column(DateTime, server_default=func.now(), comment="记忆创建时间")
     
     # 关联信息
-    table_id = Column(String(10), nullable=False, comment="桌号")
     boot_number = Column(Integer, nullable=False, comment="靴号")
     game_number = Column(Integer, nullable=False, comment="局号")
     version_id = Column(String(30), nullable=True, comment="使用的模型版本")
@@ -320,7 +314,6 @@ class SystemState(Base):
     __tablename__ = "system_state"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    table_id = Column(String(10), unique=True, nullable=False)
     status = Column(String(20), default="已停止")
     boot_number = Column(Integer, default=0)
     game_number = Column(Integer, default=0)

@@ -15,7 +15,6 @@ from .logging import write_game_log
 
 async def reveal_game(
     db: AsyncSession,
-    table_id: str,
     game_number: int,
     result: str,
 ) -> Dict[str, Any]:
@@ -26,11 +25,11 @@ async def reveal_game(
         game_number: 开奖局号
         result: "庄"/"闲"/"和"
     """
-    sess = get_session(table_id)
+    sess = get_session()
     
     if result not in ("庄", "闲", "和"):
         await write_game_log(
-            db, table_id, sess.boot_number, game_number,
+            db, sess.boot_number, game_number,
             "LOG-VAL-002", "参数校验", "失败",
             f"开奖失败：无效的结果'{result}'，只能是庄、闲、和",
             priority="P2",
@@ -40,7 +39,6 @@ async def reveal_game(
     
     # 写入或更新开奖记录
     stmt = select(GameRecord).where(
-        GameRecord.table_id == table_id,
         GameRecord.boot_number == sess.boot_number,
         GameRecord.game_number == game_number,
     )
@@ -49,7 +47,6 @@ async def reveal_game(
     
     if not game_record:
         game_record = GameRecord(
-            table_id=table_id,
             boot_number=sess.boot_number,
             game_number=game_number,
             result=result,
@@ -72,14 +69,14 @@ async def reveal_game(
     game_record.predict_correct = predict_correct
     
     # 结算注单
-    settlement_info = await _settle_bet(db, table_id, game_number, result, sess)
+    settlement_info = await _settle_bet(db, game_number, result, sess)
     
     # 更新下一局号
     sess.next_game_number = game_number + 1
     sess.status = "分析中"
     
     # 更新系统状态
-    state = await get_or_create_state(db, table_id)
+    state = await get_or_create_state(db)
     state.status = "分析中"
     state.game_number = game_number
     state.current_game_result = result
@@ -87,7 +84,7 @@ async def reveal_game(
     state.consecutive_errors = sess.consecutive_errors
     
     await write_game_log(
-        db, table_id, sess.boot_number, game_number,
+        db, sess.boot_number, game_number,
         "LOG-MNL-002", "开奖", "成功",
         f"第{game_number}局开奖：{result}",
         priority="P2",
@@ -98,7 +95,7 @@ async def reveal_game(
     # 准备五路数据
     from app.services.road_engine import UnifiedRoadEngine
     road_engine = UnifiedRoadEngine()
-    roads_result = await road_engine.get_all_roads(table_id, sess.boot_number)
+    roads_result = await road_engine.get_all_roads(sess.boot_number)
     
     # 序列化路牌数据为JSON可传输格式
     def road_to_dict(road):
@@ -130,7 +127,7 @@ async def reveal_game(
     }
     
     # 广播开奖结果
-    await broadcast_event(table_id, "game_revealed", {
+    await broadcast_event("game_revealed", {
         "game_number": game_number,
         "result": result,
         "predict_direction": sess.predict_direction,
@@ -155,7 +152,6 @@ async def reveal_game(
 
 async def _settle_bet(
     db: AsyncSession,
-    table_id: str,
     game_number: int,
     result: str,
     sess,
@@ -179,7 +175,6 @@ async def _settle_bet(
         
         # 更新下注记录
         stmt2 = select(BetRecord).where(
-            BetRecord.table_id == table_id,
             BetRecord.boot_number == sess.boot_number,
             BetRecord.game_number == game_number,
             BetRecord.status == "待开奖",
@@ -197,7 +192,6 @@ async def _settle_bet(
         
         # 更新游戏记录
         stmt = select(GameRecord).where(
-            GameRecord.table_id == table_id,
             GameRecord.boot_number == sess.boot_number,
             GameRecord.game_number == game_number,
         )
@@ -219,10 +213,9 @@ async def _settle_bet(
                 # 错题本记录
                 if sess.consecutive_errors >= 1:
                     mistake = MistakeBook(
-                        table_id=table_id,
                         boot_number=sess.boot_number,
                         game_number=game_number,
-                        error_id=f"ERR-{table_id}-B{sess.boot_number}G{game_number}",
+                        error_id=f"ERR-B{sess.boot_number}G{game_number}",
                         error_type="趋势误判",
                         predict_direction=sess.predict_direction or "",
                         actual_result=result,
@@ -235,7 +228,7 @@ async def _settle_bet(
                     db.add(mistake)
         
         await write_game_log(
-            db, table_id, sess.boot_number, game_number,
+            db, sess.boot_number, game_number,
             "LOG-STL-001", "结算", settle["status"],
             f"第{game_number}局开{result}，注单结算：{settle['reason']}，盈亏{settle['profit_loss']:+.0f}，余额{sess.balance:.0f}",
             category="资金事件",

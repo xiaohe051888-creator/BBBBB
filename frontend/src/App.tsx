@@ -82,11 +82,11 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   const navItems = [
-    { key: 'home', Icon: NavIcons.Home, label: '首页总览', path: `/dashboard/:tableId`, desc: '智能分析+五路图' },
-    { key: 'roadmap', Icon: NavIcons.Chart, label: '五路走势图', path: `/dashboard/:tableId/roadmap`, desc: '大路·珠盘·下三路' },
-    { key: 'bets', Icon: NavIcons.Coin, label: '下注记录', path: `/dashboard/:tableId/bets`, desc: '仿真下注流水' },
-    { key: 'logs', Icon: NavIcons.File, label: '实盘日志', path: `/dashboard/:tableId/logs`, desc: '实时运行日志' },
-    { key: 'mistakes', Icon: NavIcons.Book, label: '错题本', path: `/dashboard/:tableId/mistakes`, desc: '本靴复盘修正' },
+    { key: 'home', Icon: NavIcons.Home, label: '首页总览', path: `/dashboard`, desc: '智能分析+五路图' },
+    { key: 'roadmap', Icon: NavIcons.Chart, label: '五路走势图', path: `/dashboard/roadmap`, desc: '大路·珠盘·下三路' },
+    { key: 'bets', Icon: NavIcons.Coin, label: '下注记录', path: `/dashboard/bets`, desc: '仿真下注流水' },
+    { key: 'logs', Icon: NavIcons.File, label: '实盘日志', path: `/dashboard/logs`, desc: '实时运行日志' },
+    { key: 'mistakes', Icon: NavIcons.Book, label: '错题本', path: `/dashboard/mistakes`, desc: '本靴复盘修正' },
   ];
 
   const getActiveKey = () => {
@@ -98,16 +98,13 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return 'home';
   };
 
-  const match = location.pathname.match(/\/dashboard\/([^/]+)/);
-  const tableId = match ? match[1] : '';
-
   const handleNav = (key: string) => {
     switch (key) {
-      case 'home': navigate(`/dashboard/${tableId}`); break;
-      case 'roadmap': navigate(`/dashboard/${tableId}/roadmap`); break;
-      case 'bets': navigate(`/dashboard/${tableId}/bets`); break;
-      case 'logs': navigate(`/dashboard/${tableId}/logs`); break;
-      case 'mistakes': navigate(`/dashboard/${tableId}/mistakes`); break;
+      case 'home': navigate(`/dashboard`); break;
+      case 'roadmap': navigate(`/dashboard/roadmap`); break;
+      case 'bets': navigate(`/dashboard/bets`); break;
+      case 'logs': navigate(`/dashboard/logs`); break;
+      case 'mistakes': navigate(`/dashboard/mistakes`); break;
     }
   };
 
@@ -262,11 +259,11 @@ const App: React.FC = () => {
             <AppLayout>
               <Routes>
                 <Route path="/" element={<UploadPage />} />
-                <Route path="/dashboard/:tableId" element={<DashboardPage />} />
-                <Route path="/dashboard/:tableId/roadmap" element={<RoadMapPage />} />
-                <Route path="/dashboard/:tableId/bets" element={<BetRecordsPage />} />
-                <Route path="/dashboard/:tableId/logs" element={<LogsPage />} />
-                <Route path="/dashboard/:tableId/mistakes" element={<MistakeBookPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/dashboard/roadmap" element={<RoadMapPage />} />
+                <Route path="/dashboard/bets" element={<BetRecordsPage />} />
+                <Route path="/dashboard/logs" element={<LogsPage />} />
+                <Route path="/dashboard/mistakes" element={<MistakeBookPage />} />
                 <Route path="/admin" element={getToken() ? <AdminPage /> : <Navigate to="/" replace />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

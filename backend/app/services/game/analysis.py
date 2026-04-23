@@ -15,7 +15,6 @@ from .logging import write_game_log
 
 async def run_ai_analysis(
     db: AsyncSession,
-    table_id: str,
     boot_number: int,
 ) -> Dict[str, Any]:
     """
@@ -28,12 +27,11 @@ async def run_ai_analysis(
     from app.services.road_engine import UnifiedRoadEngine
     from app.services.smart_model_selector import SmartModelSelector
     
-    sess = get_session(table_id)
+    sess = get_session()
     sess.status = "分析中"
     
     # 获取该靴的所有历史记录
     stmt = select(GameRecord).where(
-        GameRecord.table_id == table_id,
         GameRecord.boot_number == boot_number,
     ).order_by(GameRecord.game_number)
     result = await db.execute(stmt)
@@ -41,7 +39,7 @@ async def run_ai_analysis(
     
     if not records:
         await write_game_log(
-            db, table_id, boot_number, sess.next_game_number,
+            db, boot_number, sess.next_game_number,
             "LOG-VAL-003", "AI分析", "失败",
             f"AI分析失败：靴号{boot_number}无历史数据",
             priority="P2",
@@ -54,7 +52,6 @@ async def run_ai_analysis(
     
     # 获取错题本（需要在设置错误标记之前）
     stmt2 = select(MistakeBook).where(
-        MistakeBook.table_id == table_id,
         MistakeBook.boot_number == boot_number,
     ).order_by(MistakeBook.game_number.desc()).limit(5)
     mb_result = await db.execute(stmt2)
@@ -66,7 +63,7 @@ async def run_ai_analysis(
         engine.set_error_marks(error_map)
     
     # 获取五路数据
-    road_data = await engine.get_all_roads(table_id, boot_number)
+    road_data = await engine.get_all_roads(boot_number)
     
     # 构建游戏历史
     game_history = [
@@ -79,7 +76,7 @@ async def run_ai_analysis(
     
     # 获取当前版本（用于学习）
     selector = SmartModelSelector(db)
-    current_version = await selector.get_current_version(table_id)
+    current_version = await selector.get_current_version()
     version_id = current_version.version_id if current_version else "default"
     
     # 构建错题上下文
@@ -121,12 +118,12 @@ async def run_ai_analysis(
     sess.analysis_time = datetime.now()
     
     # 更新系统状态
-    state = await get_or_create_state(db, table_id)
+    state = await get_or_create_state(db)
     state.predict_direction = sess.predict_direction
     state.predict_confidence = sess.predict_confidence
     
     await write_game_log(
-        db, table_id, boot_number, sess.next_game_number,
+        db, boot_number, sess.next_game_number,
         "LOG-MDL-001", "AI分析", "完成",
         f"AI三模型分析完成，预测{sess.predict_direction}，置信{sess.predict_confidence:.0%}，建议{sess.predict_bet_tier}档",
         category="AI事件",
@@ -140,7 +137,7 @@ async def run_ai_analysis(
     await db.commit()
     
     # 广播AI分析结果和状态更新
-    await broadcast_event(table_id, "ai_analysis", {
+    await broadcast_event("ai_analysis", {
         "game_number": sess.next_game_number,
         "prediction": sess.predict_direction,
         "confidence": sess.predict_confidence,
@@ -152,7 +149,7 @@ async def run_ai_analysis(
     })
     
     # 广播状态变更
-    await broadcast_event(table_id, "state_update", {
+    await broadcast_event("state_update", {
         "status": "等待下注",
         "game_number": sess.next_game_number,
         "predict_direction": sess.predict_direction,

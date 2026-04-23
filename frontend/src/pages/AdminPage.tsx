@@ -84,7 +84,7 @@ const AdminPage: React.FC = () => {
   const token = (location.state as any)?.token || api.getToken();
   
   // 系统诊断（AdminPage使用默认桌号）
-  const { addIssue } = useSystemDiagnostics({ tableId: '26' });
+  const { addIssue } = useSystemDiagnostics({});
   
   // 未登录则重定向到首页
   React.useEffect(() => {

@@ -13,14 +13,16 @@ router = APIRouter(prefix="/api/bets", tags=["下注"])
 
 @router.get("")
 async def get_bet_records(
-    table_id: str = Query(...),
     boot_number: Optional[int] = Query(None),
+    status: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    sort_by: str = Query("bet_time", pattern="^(bet_time|game_number|bet_amount|profit_loss)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
 ):
-    """获取下注记录（分页）"""
+    """获取下注记录（分页+筛选）"""
     async with async_session() as session:
-        query = select(BetRecord).where(BetRecord.table_id == table_id)
+        query = select(BetRecord)
         
         if boot_number is not None:
             query = query.where(BetRecord.boot_number == boot_number)

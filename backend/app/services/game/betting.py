@@ -17,7 +17,6 @@ from .logging import write_game_log
 
 async def place_bet(
     db: AsyncSession,
-    table_id: str,
     game_number: int,
     direction: str,
     amount: float,
@@ -30,7 +29,7 @@ async def place_bet(
         direction: "庄" 或 "闲"
         amount: 下注金额
     """
-    sess = get_session(table_id)
+    sess = get_session()
     
     if direction not in ("庄", "闲"):
         return {"success": False, "error": "下注方向只能是庄或闲"}
@@ -40,7 +39,7 @@ async def place_bet(
     
     if amount > sess.balance:
         await write_game_log(
-            db, table_id, sess.boot_number, game_number,
+            db, sess.boot_number, game_number,
             "LOG-BET-ERR", "下注失败", "余额不足",
             f"第{game_number}局下注{direction}{amount:.0f}元失败，当前余额{sess.balance:.0f}元",
             category="资金事件",
@@ -58,7 +57,6 @@ async def place_bet(
     
     # 写入下注记录
     bet = BetRecord(
-        table_id=table_id,
         boot_number=sess.boot_number,
         game_number=game_number,
         bet_direction=direction,
@@ -81,12 +79,12 @@ async def place_bet(
     sess.status = "等待开奖"
     
     # 更新系统状态
-    state = await get_or_create_state(db, table_id)
+    state = await get_or_create_state(db)
     state.status = "等待开奖"
     state.balance = balance_after
     
     await write_game_log(
-        db, table_id, sess.boot_number, game_number,
+        db, sess.boot_number, game_number,
         "LOG-BET-001", "下注", f"已下注{direction}{amount:.0f}元",
         f"第{game_number}局下注{direction}{amount:.0f}元（{tier}档），余额{balance_before:.0f}→{balance_after:.0f}",
         category="资金事件",
@@ -103,11 +101,11 @@ async def place_bet(
         
         async def run_micro_learning():
             async with async_session() as new_db:
-                await micro_learning_previous_game(new_db, table_id, sess.boot_number, game_number - 1)
+                await micro_learning_previous_game(new_db, sess.boot_number, game_number - 1)
         
         asyncio.create_task(run_micro_learning())
     
-    await broadcast_event(table_id, "bet_placed", {
+    await broadcast_event("bet_placed", {
         "game_number": game_number,
         "direction": direction,
         "amount": amount,

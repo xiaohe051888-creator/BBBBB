@@ -16,8 +16,8 @@ ws_clients: List[WebSocket] = []
 ws_clients_lock = asyncio.Lock()
 
 
-@router.websocket("/ws/{table_id}")
-async def websocket_endpoint(websocket: WebSocket, table_id: str):
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
     """WebSocket 实时推送"""
     token = websocket.query_params.get("token")
     if token:
@@ -49,11 +49,10 @@ async def _remove_client(client: WebSocket):
             ws_clients.remove(client)
 
 
-async def broadcast_update(table_id: str, event_type: str, data: Dict):
+async def broadcast_update(event_type: str, data: Dict):
     """广播更新到WebSocket客户端"""
     message = {
         "type": event_type,
-        "table_id": table_id,
         "data": data,
         "timestamp": datetime.now().isoformat(),
     }

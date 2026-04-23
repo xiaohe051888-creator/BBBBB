@@ -26,9 +26,8 @@ class GameUploadItem(BaseModel):
 
 class UploadRequest(BaseModel):
     """批量上传请求"""
-    table_id: str
     games: List[GameUploadItem]
-    boot_number: Optional[int] = None
+    is_new_boot: bool = False
     
     @validator("games")
     def validate_games(cls, v):
@@ -41,7 +40,6 @@ class UploadRequest(BaseModel):
 
 class RevealRequest(BaseModel):
     """开奖请求"""
-    table_id: str
     game_number: int
     result: str
     
@@ -54,7 +52,6 @@ class RevealRequest(BaseModel):
 
 class BetRequest(BaseModel):
     """下注请求"""
-    table_id: str
     game_number: int
     direction: str
     amount: float

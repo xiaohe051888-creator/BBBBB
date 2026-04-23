@@ -35,7 +35,6 @@ export interface WorkflowTimer {
 }
 
 interface UseWorkflowStateOptions {
-  tableId: string | undefined;
   systemStatus: string;
   pendingBet: {
     direction: string;
@@ -87,7 +86,7 @@ const WARNING_THRESHOLD = 30;
  * 智能工作流状态管理 Hook
  */
 export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowStateReturn => {
-  const { tableId, systemStatus, pendingBet, currentGameNumber } = options;
+  const { systemStatus, pendingBet, currentGameNumber } = options;
   
   // ====== 状态 ======
   const [workflowState, setWorkflowState] = useState<WorkflowState>({
@@ -104,8 +103,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
   // ====== 根据系统状态自动推断工作流状态 ======
 
   useEffect(() => {
-    if (!tableId) return;
-
+    
     let newStatus: WorkflowStatus = 'idle';
 
     switch (systemStatus) {
@@ -150,7 +148,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [systemStatus, pendingBet, currentGameNumber, tableId]);
+  }, [systemStatus, pendingBet, currentGameNumber]);
   
   // ====== 计时器 ======
 

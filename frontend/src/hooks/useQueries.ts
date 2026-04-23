@@ -10,26 +10,23 @@ import type { SystemState, Stats, LogEntry, GameRecord, BetRecord, AnalysisData 
 // ====== System State Query ======
 
 interface UseSystemStateQueryOptions {
-  tableId: string | undefined;
   enabled?: boolean;
 }
 
 export const useSystemStateQuery = (options: UseSystemStateQueryOptions) => {
-  const { tableId, enabled = true } = options;
+  const { enabled = true } = options;
   const queryClient = useQueryClient();
 
   return useQuery<SystemState | null>({
-    queryKey: tableId ? queryKeys.systemState(tableId) : ['systemState', ''],
+    queryKey: queryKeys.systemState(),
     queryFn: async () => {
-      if (!tableId) return null;
-      const res = await api.getSystemState(tableId);
+            const res = await api.getSystemState();
       return res.data;
     },
-    enabled: !!tableId && enabled,
+    enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-      if (!tableId) return null;
-      return queryClient.getQueryData(queryKeys.systemState(tableId)) || null;
+            return queryClient.getQueryData(queryKeys.systemState()) || null;
     },
     // 后台每5秒静默刷新
     refetchInterval: 5000,
@@ -41,26 +38,23 @@ export const useSystemStateQuery = (options: UseSystemStateQueryOptions) => {
 // ====== Stats Query ======
 
 interface UseStatsQueryOptions {
-  tableId: string | undefined;
   enabled?: boolean;
 }
 
 export const useStatsQuery = (options: UseStatsQueryOptions) => {
-  const { tableId, enabled = true } = options;
+  const { enabled = true } = options;
   const queryClient = useQueryClient();
 
   return useQuery<Stats | null>({
-    queryKey: tableId ? queryKeys.stats(tableId) : ['stats', ''],
+    queryKey: queryKeys.stats(),
     queryFn: async () => {
-      if (!tableId) return null;
-      const res = await api.getStatistics(tableId);
+            const res = await api.getStatistics();
       return res.data;
     },
-    enabled: !!tableId && enabled,
+    enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-      if (!tableId) return null;
-      return queryClient.getQueryData(queryKeys.stats(tableId)) || null;
+            return queryClient.getQueryData(queryKeys.stats()) || null;
     },
     refetchInterval: 10000,
     notifyOnChangeProps: ['data', 'error'],
@@ -70,7 +64,6 @@ export const useStatsQuery = (options: UseStatsQueryOptions) => {
 // ====== Logs Query ======
 
 interface UseLogsQueryOptions {
-  tableId: string | undefined;
   category?: string;
   page?: number;
   pageSize?: number;
@@ -78,19 +71,17 @@ interface UseLogsQueryOptions {
 }
 
 export const useLogsQuery = (options: UseLogsQueryOptions) => {
-  const { tableId, category, page = 1, pageSize = 50, enabled = true } = options;
+  const { category, page = 1, pageSize = 50, enabled = true } = options;
   const queryClient = useQueryClient();
 
   return useQuery<{
     logs: LogEntry[];
     total: number;
   }>({
-    queryKey: tableId ? queryKeys.logs(tableId, category) : ['logs', ''],
+    queryKey: queryKeys.logs(category),
     queryFn: async () => {
-      if (!tableId) return { logs: [], total: 0 };
-      const res = await api.getLogs({
-        table_id: tableId,
-        category: category || undefined,
+            const res = await api.getLogs({
+                category: category || undefined,
         page,
         page_size: pageSize,
       });
@@ -99,11 +90,10 @@ export const useLogsQuery = (options: UseLogsQueryOptions) => {
         total: res.data.total || 0,
       };
     },
-    enabled: !!tableId && enabled,
+    enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-      if (!tableId) return { logs: [], total: 0 };
-      return queryClient.getQueryData(queryKeys.logs(tableId, category)) || { logs: [], total: 0 };
+            return queryClient.getQueryData(queryKeys.logs(category)) || { logs: [], total: 0 };
     },
     notifyOnChangeProps: ['data', 'error'],
   });
@@ -112,26 +102,23 @@ export const useLogsQuery = (options: UseLogsQueryOptions) => {
 // ====== Games Query ======
 
 interface UseGamesQueryOptions {
-  tableId: string | undefined;
   page?: number;
   pageSize?: number;
   enabled?: boolean;
 }
 
 export const useGamesQuery = (options: UseGamesQueryOptions) => {
-  const { tableId, page = 1, pageSize = 20, enabled = true } = options;
+  const { page = 1, pageSize = 20, enabled = true } = options;
   const queryClient = useQueryClient();
 
   return useQuery<{
     games: GameRecord[];
     total: number;
   }>({
-    queryKey: tableId ? queryKeys.games(tableId, page) : ['games', '', page],
+    queryKey: queryKeys.games(page),
     queryFn: async () => {
-      if (!tableId) return { games: [], total: 0 };
-      const res = await api.getGameRecords({
-        table_id: tableId,
-        page,
+            const res = await api.getGameRecords({
+                page,
         page_size: pageSize,
       });
       return {
@@ -139,11 +126,10 @@ export const useGamesQuery = (options: UseGamesQueryOptions) => {
         total: res.data.total || 0,
       };
     },
-    enabled: !!tableId && enabled,
+    enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-      if (!tableId) return { games: [], total: 0 };
-      return queryClient.getQueryData(queryKeys.games(tableId, page)) || { games: [], total: 0 };
+            return queryClient.getQueryData(queryKeys.games(page)) || { games: [], total: 0 };
     },
     notifyOnChangeProps: ['data', 'error'],
   });
@@ -152,26 +138,23 @@ export const useGamesQuery = (options: UseGamesQueryOptions) => {
 // ====== Bets Query ======
 
 interface UseBetsQueryOptions {
-  tableId: string | undefined;
   page?: number;
   pageSize?: number;
   enabled?: boolean;
 }
 
 export const useBetsQuery = (options: UseBetsQueryOptions) => {
-  const { tableId, page = 1, pageSize = 20, enabled = true } = options;
+  const { page = 1, pageSize = 20, enabled = true } = options;
   const queryClient = useQueryClient();
 
   return useQuery<{
     bets: BetRecord[];
     total: number;
   }>({
-    queryKey: tableId ? queryKeys.bets(tableId, page) : ['bets', '', page],
+    queryKey: queryKeys.bets(page),
     queryFn: async () => {
-      if (!tableId) return { bets: [], total: 0 };
-      const res = await api.getBetRecords({
-        table_id: tableId,
-        page,
+            const res = await api.getBetRecords({
+                page,
         page_size: pageSize,
       });
       return {
@@ -179,11 +162,10 @@ export const useBetsQuery = (options: UseBetsQueryOptions) => {
         total: res.data.total || 0,
       };
     },
-    enabled: !!tableId && enabled,
+    enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-      if (!tableId) return { bets: [], total: 0 };
-      return queryClient.getQueryData(queryKeys.bets(tableId, page)) || { bets: [], total: 0 };
+            return queryClient.getQueryData(queryKeys.bets(page)) || { bets: [], total: 0 };
     },
     notifyOnChangeProps: ['data', 'error'],
   });
@@ -192,26 +174,23 @@ export const useBetsQuery = (options: UseBetsQueryOptions) => {
 // ====== Roads Query ======
 
 interface UseRoadsQueryOptions {
-  tableId: string | undefined;
   enabled?: boolean;
 }
 
 export const useRoadsQuery = (options: UseRoadsQueryOptions) => {
-  const { tableId, enabled = true } = options;
+  const { enabled = true } = options;
   const queryClient = useQueryClient();
 
   return useQuery<api.FiveRoadsResponse | null>({
-    queryKey: tableId ? queryKeys.roads(tableId) : ['roads', ''],
+    queryKey: queryKeys.roads(),
     queryFn: async () => {
-      if (!tableId) return null;
-      const res = await api.getRoadMaps(tableId);
+            const res = await api.getRoadMaps();
       return res.data;
     },
-    enabled: !!tableId && enabled,
+    enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-      if (!tableId) return null;
-      return queryClient.getQueryData(queryKeys.roads(tableId)) || null;
+            return queryClient.getQueryData(queryKeys.roads()) || null;
     },
     refetchInterval: 10000,
     notifyOnChangeProps: ['data', 'error'],
@@ -221,19 +200,17 @@ export const useRoadsQuery = (options: UseRoadsQueryOptions) => {
 // ====== Analysis Query ======
 
 interface UseAnalysisQueryOptions {
-  tableId: string | undefined;
   enabled?: boolean;
 }
 
 export const useAnalysisQuery = (options: UseAnalysisQueryOptions) => {
-  const { tableId, enabled = true } = options;
+  const { enabled = true } = options;
   const queryClient = useQueryClient();
 
   return useQuery<AnalysisData | null>({
-    queryKey: tableId ? queryKeys.analysis(tableId) : ['analysis', ''],
+    queryKey: queryKeys.analysis(),
     queryFn: async () => {
-      if (!tableId) return null;
-      const res = await api.getLatestAnalysis(tableId);
+            const res = await api.getLatestAnalysis();
       if (res.data && res.data.has_data) {
         return {
           banker_summary: res.data.banker_model?.summary || '',
@@ -247,11 +224,10 @@ export const useAnalysisQuery = (options: UseAnalysisQueryOptions) => {
       }
       return null;
     },
-    enabled: !!tableId && enabled,
+    enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-      if (!tableId) return null;
-      return queryClient.getQueryData(queryKeys.analysis(tableId)) || null;
+            return queryClient.getQueryData(queryKeys.analysis()) || null;
     },
     notifyOnChangeProps: ['data', 'error'],
   });
@@ -265,18 +241,17 @@ export const usePlaceBetMutation = () => {
 
   return useMutation({
     mutationFn: async (params: {
-      tableId: string;
       direction: '庄' | '闲';
       amount: number;
     }) => {
       // 先获取当前游戏状态以获取 gameNumber
-      const stateRes = await api.getCurrentGameState(params.tableId);
+      const stateRes = await api.getCurrentGameState();
       const gameNumber = stateRes.data.next_game_number;
-      return api.placeBet(params.tableId, gameNumber, params.direction, params.amount);
+      return api.placeBet(gameNumber, params.direction, params.amount);
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.systemState(variables.tableId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.bets(variables.tableId, 1) });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bets(1) });
     },
   });
 };
@@ -287,21 +262,20 @@ export const useRevealResultMutation = () => {
 
   return useMutation({
     mutationFn: async (params: {
-      tableId: string;
       result: '庄' | '闲' | '和';
     }) => {
       // 先获取当前游戏状态以获取 pending game number
-      const stateRes = await api.getCurrentGameState(params.tableId);
+      const stateRes = await api.getCurrentGameState();
       const gameNumber = stateRes.data.pending_bet?.game_number ?? stateRes.data.next_game_number;
-      return api.revealGame(params.tableId, gameNumber, params.result);
+      return api.revealGame(gameNumber, params.result);
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.systemState(variables.tableId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.stats(variables.tableId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.games(variables.tableId, 1) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.bets(variables.tableId, 1) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.roads(variables.tableId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis(variables.tableId) });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.games(1) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.bets(1) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.roads() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
     },
   });
 };
@@ -310,9 +284,9 @@ export const useRevealResultMutation = () => {
 export const useAddLogOptimistically = () => {
   const queryClient = useQueryClient();
 
-  return (tableId: string, newLog: LogEntry) => {
+  return (newLog: LogEntry) => {
     queryClient.setQueryData(
-      queryKeys.logs(tableId),
+      queryKeys.logs(),
       (oldData: { logs: LogEntry[]; total: number } | undefined) => {
         if (!oldData) return { logs: [newLog], total: 1 };
         return {
@@ -328,9 +302,9 @@ export const useAddLogOptimistically = () => {
 export const useAddBetOptimistically = () => {
   const queryClient = useQueryClient();
 
-  return (tableId: string, newBet: BetRecord) => {
+  return (newBet: BetRecord) => {
     queryClient.setQueryData(
-      queryKeys.bets(tableId, 1),
+      queryKeys.bets(1),
       (oldData: { bets: BetRecord[]; total: number } | undefined) => {
         if (!oldData) return { bets: [newBet], total: 1 };
         return {
@@ -346,9 +320,9 @@ export const useAddBetOptimistically = () => {
 export const useUpdateBetOptimistically = () => {
   const queryClient = useQueryClient();
 
-  return (tableId: string, gameNumber: number, updates: Partial<BetRecord>) => {
+  return (gameNumber: number, updates: Partial<BetRecord>) => {
     queryClient.setQueryData(
-      queryKeys.bets(tableId, 1),
+      queryKeys.bets(1),
       (oldData: { bets: BetRecord[]; total: number } | undefined) => {
         if (!oldData) return oldData;
         return {
@@ -366,9 +340,9 @@ export const useUpdateBetOptimistically = () => {
 export const useAddGameOptimistically = () => {
   const queryClient = useQueryClient();
 
-  return (tableId: string, newGame: GameRecord) => {
+  return (newGame: GameRecord) => {
     queryClient.setQueryData(
-      queryKeys.games(tableId, 1),
+      queryKeys.games(1),
       (oldData: { games: GameRecord[]; total: number } | undefined) => {
         if (!oldData) return { games: [newGame], total: 1 };
         return {
@@ -384,8 +358,8 @@ export const useAddGameOptimistically = () => {
 export const useUpdateRoadsOptimistically = () => {
   const queryClient = useQueryClient();
 
-  return (tableId: string, newRoadData: api.FiveRoadsResponse) => {
-    queryClient.setQueryData(queryKeys.roads(tableId), newRoadData);
+  return (newRoadData: api.FiveRoadsResponse) => {
+    queryClient.setQueryData(queryKeys.roads(), newRoadData);
   };
 };
 
@@ -393,9 +367,9 @@ export const useUpdateRoadsOptimistically = () => {
 export const useUpdateStateOptimistically = () => {
   const queryClient = useQueryClient();
 
-  return (tableId: string, updates: Partial<SystemState>) => {
+  return (updates: Partial<SystemState>) => {
     queryClient.setQueryData(
-      queryKeys.systemState(tableId),
+      queryKeys.systemState(),
       (oldData: SystemState | undefined) => {
         if (!oldData) return oldData;
         return { ...oldData, ...updates };
@@ -408,8 +382,8 @@ export const useUpdateStateOptimistically = () => {
 export const useUpdateAnalysisOptimistically = () => {
   const queryClient = useQueryClient();
 
-  return (tableId: string, analysisData: AnalysisData) => {
-    queryClient.setQueryData(queryKeys.analysis(tableId), analysisData);
+  return (analysisData: AnalysisData) => {
+    queryClient.setQueryData(queryKeys.analysis(), analysisData);
   };
 };
 
@@ -435,26 +409,23 @@ export interface MistakeRecord {
 }
 
 interface UseMistakesQueryOptions {
-  tableId: string | undefined;
   page?: number;
   pageSize?: number;
   enabled?: boolean;
 }
 
 export const useMistakesQuery = (options: UseMistakesQueryOptions) => {
-  const { tableId, page = 1, pageSize = 20, enabled = true } = options;
+  const { page = 1, pageSize = 20, enabled = true } = options;
   const queryClient = useQueryClient();
 
   return useQuery<{
     mistakes: MistakeRecord[];
     total: number;
   }>({
-    queryKey: tableId ? ['mistakes', tableId, page] : ['mistakes', '', page],
+    queryKey: ['mistakes', page],
     queryFn: async () => {
-      if (!tableId) return { mistakes: [], total: 0 };
-      const res = await api.getMistakeRecords({
-        table_id: tableId,
-        page,
+            const res = await api.getMistakeRecords({
+                page,
         page_size: pageSize,
       });
       const rawData = res.data.data || [];
@@ -481,11 +452,10 @@ export const useMistakesQuery = (options: UseMistakesQueryOptions) => {
       });
       return { mistakes: mapped, total: res.data.total || 0 };
     },
-    enabled: !!tableId && enabled,
+    enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-      if (!tableId) return { mistakes: [], total: 0 };
-      return queryClient.getQueryData(['mistakes', tableId, page]) || { mistakes: [], total: 0 };
+            return queryClient.getQueryData(['mistakes', page]) || { mistakes: [], total: 0 };
     },
     notifyOnChangeProps: ['data', 'error'],
   });

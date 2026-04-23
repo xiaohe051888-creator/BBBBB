@@ -13,7 +13,6 @@ interface WebSocketMessage {
 }
 
 interface UseWebSocketOptions {
-  tableId: string | undefined;
   onStateUpdate?: (data: Record<string, unknown>) => void;
   onLog?: () => void;
   onAnalysis?: (data: Record<string, unknown>) => void;
@@ -37,9 +36,7 @@ interface UseWebSocketReturn {
  * @returns WebSocket 操作方法
  */
 export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn => {
-  const {
-    tableId,
-    onStateUpdate,
+  const { onStateUpdate,
     onLog,
     onAnalysis,
     onGameRevealed,
@@ -88,10 +85,10 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     }, 0);
 
     const connect = () => {
-      if (!tableId || isUnmountedRef.current) return;
+      if (isUnmountedRef.current) return;
 
       try {
-        const ws = api.createWebSocket(tableId);
+        const ws = api.createWebSocket();
         wsRef.current = ws;
 
         ws.onopen = () => {
@@ -160,7 +157,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
         wsRef.current = null;
       }
     };
-  }, [tableId, reconnectInterval, reconnectTrigger]);
+  }, [reconnectInterval, reconnectTrigger]);
 
   const reconnect = useCallback(() => {
     if (reconnectTimerRef.current) {

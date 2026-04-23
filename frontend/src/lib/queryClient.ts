@@ -32,19 +32,19 @@ export const queryClient = new QueryClient({
 // Query Key 工厂 - 统一管理缓存键
 export const queryKeys = {
   // 系统状态
-  systemState: (tableId: string) => ['systemState', tableId] as const,
+  systemState: () => ['systemState'] as const,
   // 统计数据
-  stats: (tableId: string) => ['stats', tableId] as const,
+  stats: () => ['stats'] as const,
   // 日志
-  logs: (tableId: string, category?: string) => ['logs', tableId, category] as const,
+  logs: (category?: string) => ['logs', category] as const,
   // 游戏记录
-  games: (tableId: string, page: number) => ['games', tableId, page] as const,
+  games: (page: number) => ['games', page] as const,
   // 下注记录
-  bets: (tableId: string, page: number) => ['bets', tableId, page] as const,
+  bets: (page: number) => ['bets', page] as const,
   // 走势图
-  roads: (tableId: string) => ['roads', tableId] as const,
+  roads: () => ['roads'] as const,
   // AI分析
-  analysis: (tableId: string) => ['analysis', tableId] as const,
+  analysis: () => ['analysis'] as const,
 };
 
 export default queryClient;

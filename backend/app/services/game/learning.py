@@ -14,7 +14,6 @@ from .logging import write_game_log
 
 async def micro_learning_previous_game(
     db: AsyncSession,
-    table_id: str,
     boot_number: int,
     prev_game_number: int,
 ):
@@ -25,7 +24,6 @@ async def micro_learning_previous_game(
     try:
         # 获取上一局的游戏记录
         stmt = select(GameRecord).where(
-            GameRecord.table_id == table_id,
             GameRecord.boot_number == boot_number,
             GameRecord.game_number == prev_game_number,
         )
@@ -37,7 +35,7 @@ async def micro_learning_previous_game(
         
         # 跳过和局
         if prev_game.result == "和":
-            await broadcast_event(table_id, "micro_learning", {
+            await broadcast_event("micro_learning", {
                 "game_number": prev_game_number,
                 "status": "跳过",
                 "reason": "和局不学习",
@@ -46,7 +44,6 @@ async def micro_learning_previous_game(
         
         # 检查是否已经学习过
         stmt2 = select(AIMemory).where(
-            AIMemory.table_id == table_id,
             AIMemory.boot_number == boot_number,
             AIMemory.game_number == prev_game_number,
         )
@@ -62,14 +59,13 @@ async def micro_learning_previous_game(
         ai_learning = AILearningService(db)
         selector = SmartModelSelector(db)
         
-        current_version = await selector.get_current_version(table_id)
+        current_version = await selector.get_current_version()
         road_engine = UnifiedRoadEngine()
-        road_data = await road_engine.get_all_roads(table_id, boot_number)
+        road_data = await road_engine.get_all_roads(boot_number)
         
         is_correct = prev_game.predict_correct if prev_game.predict_direction else False
         
         await ai_learning.micro_learning(
-            table_id=table_id,
             boot_number=boot_number,
             game_number=prev_game_number,
             version_id=current_version.version_id if current_version else "default",
@@ -82,7 +78,7 @@ async def micro_learning_previous_game(
             player_evidence={"summary": "", "confidence": 0.5},
         )
         
-        await broadcast_event(table_id, "micro_learning", {
+        await broadcast_event("micro_learning", {
             "game_number": prev_game_number,
             "status": "完成",
             "prediction": prev_game.predict_direction,
@@ -91,7 +87,7 @@ async def micro_learning_previous_game(
         })
         
     except Exception as e:
-        await broadcast_event(table_id, "micro_learning", {
+        await broadcast_event("micro_learning", {
             "game_number": prev_game_number,
             "status": "失败",
             "error": str(e),

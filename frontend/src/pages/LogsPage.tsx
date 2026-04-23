@@ -5,7 +5,7 @@
  * 优化：使用React Query + 乐观UI策略，页面切换无加载转圈
  */
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Badge, Switch, message,
 } from 'antd';
@@ -20,13 +20,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as api from '../services/api';
 
 const LogsPage: React.FC = () => {
-  const { tableId } = useParams<{ tableId: string }>();
+  
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const addLogOptimistically = useAddLogOptimistically();
 
   // 系统实时诊断
-  const { diagnostics, dismissIssue, retryConnection } = useSystemDiagnostics({ tableId });
+  const { diagnostics, dismissIssue, retryConnection } = useSystemDiagnostics({});
 
   // 分页
   const [page, setPage] = useState(1);
@@ -47,12 +47,7 @@ const LogsPage: React.FC = () => {
   }, [searchText]);
 
   // React Query获取数据（乐观UI：永远不显示loading，数据来了直接渲染）
-  const { data: logsData } = useLogsQuery({ 
-    tableId, 
-    category: filterCategory || undefined,
-    page, 
-    pageSize 
-  });
+  const { data: logsData } = useLogsQuery({});
 
   // 使用useMemo缓存logs，避免useMemo依赖变化
   const logs = useMemo(() => logsData?.logs || [], [logsData]);
@@ -70,21 +65,19 @@ const LogsPage: React.FC = () => {
 
   // 手动刷新
   const handleRefresh = () => {
-    if (!tableId) return;
-    queryClient.invalidateQueries({ queryKey: ['logs', tableId] });
+        queryClient.invalidateQueries({ queryKey: ['logs'] });
   };
 
   // WebSocket实时推送
   useEffect(() => {
-    if (!tableId) return;
-
+    
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let isUnmounted = false;
 
     const connectWS = () => {
       if (isUnmounted) return;
       try {
-        const ws = api.createWebSocket(tableId);
+        const ws = api.createWebSocket();
         wsRef.current = ws;
 
         ws.onmessage = (event) => {
@@ -92,7 +85,7 @@ const LogsPage: React.FC = () => {
             const data = JSON.parse(event.data);
             if (data.type === 'log') {
               // 乐观更新：立即将新日志添加到缓存
-              addLogOptimistically(tableId, data.data);
+              addLogOptimistically(data.data);
             }
           } catch {
             // WebSocket消息解析错误，忽略
@@ -122,7 +115,7 @@ const LogsPage: React.FC = () => {
         wsRef.current = null;
       }
     };
-  }, [tableId, addLogOptimistically]);
+  }, [addLogOptimistically]);
 
   // 筛选后的数据（客户端筛选）
   const filteredLogs = useMemo(() => {
@@ -179,14 +172,14 @@ const LogsPage: React.FC = () => {
       `"${(l.description || '').replace(/"/g, '""')}"`,
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    downloadFile(csv, `logs_${tableId}_${dayjs().format('YYYYMMDD_HHmmss')}.csv`, 'text/csv;charset=utf-8;');
+    downloadFile(csv, `logs_${dayjs().format('YYYYMMDD_HHmmss')}.csv`, 'text/csv;charset=utf-8;');
     message.success(`已导出 ${filteredLogs.length} 条日志（CSV）`);
   };
 
   const exportToJSON = () => {
     if (!filteredLogs.length) { message.warning('暂无数据可导出'); return; }
     const json = JSON.stringify(filteredLogs, null, 2);
-    downloadFile(json, `logs_${tableId}_${dayjs().format('YYYYMMDD_HHmmss')}.json`, 'application/json');
+    downloadFile(json, `logs_${dayjs().format('YYYYMMDD_HHmmss')}.json`, 'application/json');
     message.success(`已导出 ${filteredLogs.length} 条日志（JSON）`);
   };
 
@@ -295,12 +288,12 @@ const LogsPage: React.FC = () => {
       {/* 顶部导航 */}
       <div className="page-nav-bar">
         <div className="page-nav-left">
-          <Button icon={<Icons.Back />} onClick={() => navigate(`/dashboard/${tableId}`)}>
+          <Button icon={<Icons.Back />} onClick={() => navigate("/dashboard")}>
             返回
           </Button>
           <span className="page-nav-title">
             <Icons.FileText />
-            <span style={{ marginLeft: 8 }}>实盘日志 — {tableId}</span>
+            <span style={{ marginLeft: 8 }}>实盘日志 </span>
           </span>
           <Space size="small">
             <Badge count={stats.total} showZero style={{ backgroundColor: '#58a6ff' }} overflowCount={9999} />
