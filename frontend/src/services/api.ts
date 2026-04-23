@@ -56,9 +56,12 @@ api.interceptors.response.use(
       }
     }
     
-    // 处理 Network Error
+    // 处理网络连接错误 (axios 内部默认英文信息)
     if (error.message === 'Network Error') {
-      error.message = '网络连接失败，请检查后端服务是否启动';
+      error.message = '网络连接失败，请检查后端服务是否正常运行';
+    }
+    if (error.code === 'ECONNABORTED') {
+      error.message = '请求超时，请重试';
     }
     
     return Promise.reject(error);
