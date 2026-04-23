@@ -1,6 +1,7 @@
-# BBBBB — 百家乐走势分析与预测系统（手动模式 v2.0.0）
+# 百家乐智能分析与预测系统 (Mobile App v3.0)
 
-> 一套基于手动数据录入、五路走势图分析、三AI大模型协作预测的智能辅助系统。
+> 一套基于手动数据录入、原生高性能五路走势图分析、三 AI 大模型协作预测的智能辅助系统。
+> **目前已全面重构为 React Native (Expo) 移动端应用。**
 
 ---
 
@@ -10,311 +11,103 @@
 - [系统架构](#系统架构)
 - [功能特性](#功能特性)
 - [快速启动](#快速启动)
-- [环境变量配置](#环境变量配置)
-- [API 文档](#api-文档)
 - [项目结构](#项目结构)
-- [技术栈](#技术栈)
-- [开发规范](#开发规范)
 
 ---
 
 ## 项目简介
 
-BBBBB 是一套**百家乐走势分析与预测系统**（v2.0.0 手动模式），核心流程：
+BBBBB 是一套**百家乐走势分析与预测系统**（v3.0.0 移动端模式），专为手机单手操作和高性能渲染而设计。
 
+核心工作流：
+```text
+手机快捷录入本靴数据 → 生成原生 Skia 五路走势图 → 三模型 AI 深度预测 
+→ 用户参考下注 → 底部抽屉录入开奖结果 → 自动结算与复盘记录 → 触发下一局预测
 ```
-手动输入开奖记录 → 生成五路走势图 → 三模型 AI 分析预测 → 用户下注决策 → 输入开奖结果 → 结算复盘 → 自动分析下一局
-```
 
-- **手动数据录入**：支持批量上传 1-66 局开奖记录
-- **多桌台支持**：可同时管理 26桌、27桌 等多个桌台数据
-- **权威五路走势图**：大路、珠盘路、大眼仔路、小路、蟑螂路
-- **三 AI 大模型协作预测**：**OpenAI GPT-4o-mini**（庄模型）+ **Claude Sonnet 4**（闲模型）+ **Gemini 1.5 Flash**（综合模型）
-- **完整的错题本、模型版本管理与 AI 学习机制**
-
-> 📝 **v2.0.0 更新说明**：系统已从自动爬虫采集模式全面重构为纯手动输入模式，移除了所有自动采集相关代码，专注于手动数据录入与AI分析预测。
+**亮点：**
+- **原生应用体验**：基于 React Native 打造，拥有极致丝滑的 Bottom Sheet 抽屉交互与底层手势支持。
+- **电竞级走势图**：废弃了传统的 DOM 节点堆叠，采用 `@shopify/react-native-skia` 2D 绘图引擎重写了珠盘路与大路，支持百局走势流畅滑动。
+- **移动端防挂机断线**：集成 `AppState` 监听，App 从后台唤醒后自动重连 WebSocket 并静默刷新全量数据，防止锁屏漏单。
+- **高性能长列表**：历史注单与错题本使用 `@shopify/flash-list` 渲染，支持千条数据 60FPS 滚动不卡顿。
+- **单靴纯净隔离**：彻底移除了旧版多桌台 (`tableId`) 概念，系统每次仅专注分析当前一靴，换靴时彻底物理清空旧有数据与错题本残留，避免“幽灵血迹”污染 AI。
 
 ---
 
 ## 系统架构
 
-```
-┌─────────────────────────────────────────────────┐
-│                前端 (React + Vite)               │
-│  启动页 → 上传页 → 仪表盘 → 分析板块 → 管理员页  │
-│                   端口: 5173                     │
-└──────────────────┬──────────────────────────────┘
-                   │  REST API + WebSocket
-┌──────────────────▼──────────────────────────────┐
-│             后端 (FastAPI + Python)              │
-│                   端口: 8000                     │
-│                                                 │
-│  ┌──────────────┐   ┌──────────────────────────┐│
-│  │  手动游戏    │   │     三模型服务            ││
-│  │ 服务         │   │  庄模型 / 闲模型 / 综合  ││
-│  │ manual_game  │   │                          ││
-│  └──────┬───────┘   └────────────┬─────────────┘│
-│         │                        │              │
-│  ┌──────▼───────┐   ┌────────────▼─────────────┐│
-│  │  五路引擎    │   │     AI学习服务            ││
-│  │ road_engine  │   │  ai_learning_service     ││
-│  └──────────────┘   └──────────────────────────┘│
-│                                                 │
-│  ┌──────────────────────────────────────────────┤
-│  │         SQLite 数据库 (8张数据表)             │
-│  └──────────────────────────────────────────────┤
-└─────────────────────────────────────────────────┘
-```
+系统分为两个主要部分：
+
+1. **Backend (后端)**: FastAPI + SQLite + WebSockets
+   - 提供 RESTful API 用于数据上传、开奖结果提报、错题本查询。
+   - 包含智能 AI 分析代理（DeepSeek, OpenAI, Claude）的三模型联合预测服务。
+   - 通过 WebSocket 实时推送系统状态、走势更新、结算结果与系统日志。
+
+2. **Mobile (移动端)**: React Native + Expo
+   - 使用 `@react-navigation/bottom-tabs` 进行页面路由。
+   - 使用 `@tanstack/react-query` 管理 API 数据缓存与状态同步。
+   - 使用 `@gorhom/bottom-sheet` 实现流畅的开奖、上传交互。
 
 ---
 
 ## 功能特性
 
-### 手动数据录入
-- **批量上传**：支持 1-66 局开奖记录一次性上传
-- **珠盘路输入界面**：6×11 网格布局，直观输入庄/闲/和
-- **多桌台管理**：支持 26桌、27桌等多个桌台独立数据
-- **自动检测新靴**：按靴号隔离历史数据，最多保存 1000 局记录
-
-### 五路走势图
-严格遵循 baccarat.net 等权威网站的国际标准算法：
-
-| 路图 | 说明 | 颜色含义 |
-|------|------|---------|
-| 大路 | 每列 ≤6 个，超限右移一格 | 红=庄，蓝=闲，绿=和 |
-| 珠盘路 | 14列×6行，含庄/闲/和文字 | 同大路 |
-| 大眼仔路 | 基于大路规律性，实心圆 | 红=延续，蓝=转折 |
-| 小路 | 基于大路规律性，空心圆 | 红=延续，蓝=转折 |
-| 蟑螂路 | 基于大路规律性，斜杠 | 红=延续，蓝=转折 |
-
-> ⚠️ 下三路颜色**不代表庄闲**，代表走势的延续/转折规律
-
-### 三模型 AI 预测
-- **庄模型（OpenAI）**：负责庄向证据分析
-- **闲模型（Anthropic）**：负责闲向证据分析  
-- **综合模型（Gemini）**：汇总两侧证据，输出最终预测 + 置信度
-- **永不降级**：分析预测必须满血三模型（OpenAI GPT + Claude Sonnet + Gemini Flash），全部通过 httpx 直接调用 REST API。若任何单一模型重试5次后依然失败，系统将直接抛出异常，**坚决不跨模型顶替或返回模拟数据**。
-
-### 完整游戏流程
-```
-上传开奖记录 → AI三模型分析 → 用户下注 → 等待开奖 → 输入结果 → 结算 → 自动分析下一局
-```
-
-### 管理员系统
-- JWT 认证，默认密码 `8888`（首次登录必须改密）
-- 功能：AI 学习触发、模型版本管理、数据库查看、三模型状态监控
-- 最多保留 5 个模型版本，智能切换
+* **单靴精准分析**：彻底抛弃复杂的桌台选择，一键“换靴”，数据独立，AI 分析更纯粹。
+* **快捷数据上传**：通过底部抽屉输入纯数字序列（1=庄, 2=闲, 3=和），即可极速初始化一靴数据。
+* **AI 三模型预测机制**：
+  * 在开奖后或数据上传后自动触发。
+  * 若模型遇到网络波动或限流，系统支持最高 5 次的指数退避重试（1s -> 16s）。
+  * 若分析彻底失败，系统自动回退至“等待开奖”状态，并显示【开奖】按钮，允许用户手动继续，绝生死锁。
+* **深度学习与错题本**：
+  * 当用户点击“换靴”时，触发后台长达数十秒的 AI 深度学习。
+  * 生成详细的错误原因分析并记录入库，App 内置独立的《错题本》Tab 供用户随时复盘。
 
 ---
 
 ## 快速启动
 
-### 前置要求
-- Python 3.10+
-- Node.js 18+
+### 1. 启动后端 (Backend)
 
-### 方式一：手动启动
-
-**后端**
 ```bash
 cd backend
-
-# 安装依赖
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
-# 配置环境变量（复制并编辑）
-cp .env.example .env
-# 编辑 .env 填入三个 AI 模型的 API 密钥
-
-# 启动后端
-python main.py
-# 或：uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# 启动 FastAPI 服务 (默认运行在 http://localhost:8000)
+python3 -m uvicorn app.api.main:app --host 0.0.0.0 --port 8000
 ```
 
-**前端**
+### 2. 启动移动端 App (Mobile)
+
+请确保你的开发机已安装 Node.js (v18+)
+
 ```bash
-cd frontend
+cd mobile
 npm install
-npm run dev
+
+# 启动 Expo 开发服务器
+npm run start
 ```
-
-访问 http://localhost:5173
-
-### 方式二：Docker 启动
-
-```bash
-# 在项目根目录
-cp backend/.env.example backend/.env
-# 编辑 .env 填入 API 密钥
-
-docker-compose up -d
-```
-
-访问 http://localhost:5173
-
----
-
-## 环境变量配置
-
-复制 `backend/.env.example` 为 `backend/.env` 并填写以下配置：
-
-```env
-# ===== AI 三模型 API 密钥（必填，三个都要配置）=====
-OPENAI_API_KEY=sk-xxx           # GPT-4o-mini，用于庄模型
-ANTHROPIC_API_KEY=sk-ant-xxx    # Claude Sonnet 4，用于闲模型
-GEMINI_API_KEY=AIzaxxx          # Gemini 1.5 Flash，用于综合模型
-
-# ===== 可选：自定义 API Base（代理加速）=====
-OPENAI_API_BASE=https://api.openai.com/v1
-ANTHROPIC_API_BASE=https://api.anthropic.com
-GEMINI_API_BASE=https://generativelanguage.googleapis.com/v1beta
-
-# ===== 可选：ofox.ai 统一代理 =====
-OFOX_API_BASE=https://api.ofox.ai/v1
-OFOX_API_KEY=ofox-xxx
-
-# ===== 安全配置（生产环境必须修改）=====
-JWT_SECRET_KEY=your-secret-key-change-in-production
-ADMIN_DEFAULT_PASSWORD=8888
-
-# ===== 跨域配置 =====
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
-```
-
-> ⚠️ **安全提示**：`JWT_SECRET_KEY` 和 `ADMIN_DEFAULT_PASSWORD` 在生产环境中必须通过环境变量传入，不要使用默认值！
-
----
-
-## API 文档
-
-后端启动后，访问 http://localhost:8000/docs 查看完整 Swagger 文档。
-
-### 公开 API（无需认证）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/system/health` | 系统健康状态 |
-| GET | `/api/system/state` | 系统运行状态 |
-| GET | `/api/games` | 游戏记录列表（分页） |
-| POST | `/api/games/upload` | 上传开奖记录 |
-| POST | `/api/games/bet` | 下注 |
-| POST | `/api/games/reveal` | 揭晓开奖结果 |
-| GET | `/api/games/current-state` | 获取当前游戏状态 |
-| GET | `/api/stats` | 统计数据 |
-| GET | `/api/roads` | 五路走势图数据 |
-| GET | `/api/roads/raw` | 原始走势数据 |
-| GET | `/api/analysis/latest` | 最新 AI 分析结果 |
-| GET | `/api/logs` | 系统日志 |
-| GET | `/api/bets` | 下注记录 |
-| WS  | `/ws/{table_id}` | WebSocket 实时推送 |
-
-### 管理员 API（需 JWT 认证）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/admin/login` | 管理员登录 |
-| POST | `/api/admin/change-password` | 修改密码 |
-| GET | `/api/admin/model-versions` | 模型版本列表 |
-| GET | `/api/admin/database-records` | 数据库记录查看 |
-| POST | `/api/admin/ai-learning/start` | 触发 AI 学习 |
-| GET | `/api/admin/ai-learning/status` | AI 学习状态 |
-| GET | `/api/admin/three-model-status` | 三模型健康状态 |
-| POST | `/api/system/select-model` | 切换模型版本 |
-
-> 📝 **v2.0.0 变更**：移除了 `/api/system/start`、`/api/system/stop`、`/api/crawler/*` 等爬虫相关 API
+*在终端中按 `a` 可在 Android 模拟器中打开，按 `i` 可在 iOS 模拟器中打开，或者使用手机上的 Expo Go 扫码预览。*
 
 ---
 
 ## 项目结构
 
+```text
+/workspace
+├── backend/                # FastAPI 后端目录
+│   ├── app/                # 核心应用逻辑 (API, Services, Models)
+│   ├── requirements.txt    # 后端依赖
+│   └── tests/              # 自动化测试用例
+└── mobile/                 # React Native (Expo) 移动端目录
+    ├── src/
+    │   ├── api/            # API 请求与拦截器
+    │   ├── components/     # UI 组件 (WorkflowStatusBar, FiveRoadsChart, BottomSheets)
+    │   ├── hooks/          # React Query 与 WebSocket 逻辑
+    │   ├── navigation/     # AppNavigator 底部导航路由
+    │   └── screens/        # 页面 (Dashboard, Records, Mistakes)
+    ├── App.js              # 移动端入口文件
+    └── package.json        # 前端依赖
 ```
-BBBBB/
-├── backend/                    # Python FastAPI 后端
-│   ├── main.py                 # 应用入口（FastAPI 主应用）
-│   ├── requirements.txt        # Python 依赖
-│   ├── .env.example            # 环境变量模板
-│   └── app/
-│       ├── api/                # API 路由
-│       │   └── main.py         # 所有 API 端点（集中式）
-│       ├── core/
-│       │   ├── config.py       # 全局配置
-│       │   └── database.py     # 数据库初始化
-│       ├── models/             # SQLAlchemy ORM 模型
-│       │   └── schemas.py      # 数据模型定义
-│       └── services/
-│           ├── manual_game_service.py  # 手动游戏服务（核心）
-│           ├── road_engine.py          # 五路走势图引擎
-│           ├── three_model_service.py  # 三模型 AI 服务
-│           ├── ai_learning_service.py  # AI 学习服务
-│           ├── betting_service.py      # 下注服务
-│           ├── smart_model_selector.py # 智能模型选择器
-│           └── deprecated/             # 已废弃文件（备用）
-│
-├── frontend/                   # React + TypeScript 前端
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── src/
-│       ├── App.tsx
-│       ├── pages/              # 7 个页面
-│       │   ├── StartPage.tsx   # 启动页（选桌号 / 管理员入口）
-│       │   ├── UploadPage.tsx  # 数据上传页（手动输入核心）
-│       │   ├── DashboardPage.tsx  # 主仪表盘
-│       │   ├── AdminPage.tsx   # 管理员功能页
-│       │   ├── MistakeBookPage.tsx  # 错题本页
-│       │   ├── BetRecordsPage.tsx   # 下注记录页
-│       │   └── RoadMapPage.tsx      # 走势图详情页
-│       ├── components/         # 共享组件
-│       │   └── roads/          # 五路走势图组件
-│       ├── services/           # API 调用层
-│       ├── hooks/              # 自定义 Hooks
-│       └── utils/              # 工具函数
-│
-├── docs/                       # 开发文档（21 份）
-│   ├── 00-主文档-总索引.md
-│   ├── 01-项目总览.md
-│   ├── ...
-│   └── 20-智能分析板块实施与文案模板.md
-│
-├── scripts/                    # 测试脚本（44个）
-├── docker-compose.yml          # Docker 编排
-└── README.md                   # 本文件
-```
-
----
-
-## 技术栈
-
-| 层 | 技术 |
-|----|------|
-| 前端框架 | React 19 + TypeScript + Vite |
-| UI 组件库 | Ant Design 6 |
-| 后端框架 | FastAPI + Python 3.10+ |
-| 数据库 | SQLite + SQLAlchemy 2.0 (async) |
-| 实时通信 | WebSocket (FastAPI) |
-| AI 接入 | httpx 直调 REST API（无 SDK 依赖） |
-| 容器化 | Docker + docker-compose |
-| 认证 | JWT (python-jose) |
-
----
-
-## 开发规范
-
-### 核心铁律（不可违反）
-1. **禁止虚拟/Mock 数据** — 所有 API 失败时显示空数据，绝不 fallback 到模拟数据
-2. **三模型永不降级** — AI 预测必须调用满血三模型（GPT-4o-mini + Claude Sonnet 4 + Gemini 1.5 Flash）
-3. **五路走势图标准** — 严格遵循国际权威算法，下三路颜色代表延续/转折，不代表庄闲
-
-### 文档体系
-`docs/` 目录包含 21 份设计文档，覆盖所有模块规范，开发前必读对应文档。
-
-### 管理员密码
-- 默认密码：`8888`
-- 首次登录后**必须修改**
-
-### 版本历史
-- **v2.0.0** (2026-04-09): 全面重构为手动模式，移除爬虫自动采集
-- **v1.0.0** (2026-04-07): 初始版本，支持自动爬虫采集
-
----
-
-*文档版本：v2.0.0 | 最后更新：2026-04-09*
