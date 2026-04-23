@@ -26,10 +26,10 @@
 1. **铁律一：禁止虚拟/Mock 数据**
    - **检查结果**: **合规 ✅**。通过全局代码排查，前后端均未发现 `mock` 或写死的虚拟数据逻辑。
 2. **铁律二：三模型永不降级**
-   - **检查结果**: **存在隐患 ⚠️**。在 `backend/app/services/three_model_service.py` 中发现 `_banker_model_with_fallback` 等方法。当庄模型（OpenAI）调用失败时，系统会尝试使用闲模型（Claude）或综合模型（Gemini）进行**跨模型降级调用**。虽然保证了“不输出空数据”，但这严格意义上违背了文档中“庄必须是GPT，闲必须是Claude”的**满血永不降级**定义。建议后续明确业务边界，如果要求绝对不能降级，需移除此处的轮询逻辑，改为直接返回报错。
+   - **检查结果**: **已修复并合规 ✅**。之前在 `backend/app/services/three_model_service.py` 中发现存在 `_banker_model_with_fallback` 等方法。当庄模型（OpenAI）调用失败时，系统会尝试使用闲模型（Claude）或综合模型（Gemini）进行跨模型降级调用。
+   - **修复动作**: 已全面移除 `three_model_service.py` 中关于跨模型轮询和 fallback 的代码。现在的实现严格遵守铁律：**各模型专属调用（OpenAI 负责庄，Claude 负责闲，Gemini 负责综合）。任何一个模型如果在内部的5次重试后依然失败，系统将直接抛出异常阻断流程，坚决不进行任何形式的模型替换与降级**。
 3. **铁律三：五路走势图标准**
    - **检查结果**: **合规 ✅**。下三路的颜色生成明确为 `红=延续`，`蓝=转折`，且独立于大路的庄闲颜色逻辑，严格遵循澳门国际算法。
 
 ## 四、后续建议
-1. 建议重新评估 `three_model_service.py` 中的 `fallback`（降级）策略是否被允许。如果不被允许，应当移除 `self.all_clients` 的跨模型重试代码。
-2. `LogsPage` 实盘日志组件（如 `LogTimeline`, `CategoryStats`）目前由占位符实现，建议前端开发团队尽快补齐业务逻辑。
+1. `LogsPage` 实盘日志组件（如 `LogTimeline`, `CategoryStats`）目前由占位符实现，建议前端开发团队尽快补齐业务逻辑。

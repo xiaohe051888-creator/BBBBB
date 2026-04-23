@@ -291,10 +291,10 @@ class ThreeModelService:
         
         # 并行执行庄模型和闲模型（带全局超时保护）
         banker_task = asyncio.create_task(
-            self._banker_model_with_fallback(game_history, road_data, mistake_context)
+            self._banker_model(game_history, road_data, mistake_context)
         )
         player_task = asyncio.create_task(
-            self._player_model_with_fallback(game_history, road_data, mistake_context)
+            self._player_model(game_history, road_data, mistake_context)
         )
         
         try:
@@ -308,8 +308,8 @@ class ThreeModelService:
             player_task.cancel()
             raise Exception(f"三模型分析超时（>{self.global_timeout}秒），请检查API连接")
         
-        # 综合模型汇总（永不失败）
-        combined_result = await self._combined_model_with_fallback(
+        # 综合模型汇总（永不降级）
+        combined_result = await self._combined_model(
             banker_result, player_result, 
             consecutive_errors, game_history,
             road_data, mistake_context, prompt_template
@@ -327,88 +327,54 @@ class ThreeModelService:
             "mode": "满血运行/永不降级"
         }
     
-    async def _banker_model_with_fallback(
+    async def _banker_model(
         self, game_history: List[Dict], road_data: Dict, mistake_context: Optional[List[Dict]]
     ) -> Dict:
         """
-        庄模型 - 永不失败实现
-        1. 先尝试主模型（OpenAI）
-        2. 失败时轮流尝试其他备用模型
-        3. 所有模型都有5次重试机会
+        庄模型 - 永不降级实现
+        1. 只尝试主模型（OpenAI）
+        2. 依赖底层AIClient自身的5次重试机会
         """
         prompt = self._build_banker_prompt(game_history, road_data, mistake_context)
         
         # 主模型优先
-        try:
-            result = await self.banker_client.call(prompt)
-            parsed = self._parse_model_output(result, "庄模型")
-            if parsed.get("is_complete"):
-                return parsed
-        except Exception as e:
-            print(f"[庄模型] 主模型失败: {e}")
+        result = await self.banker_client.call(prompt)
+        parsed = self._parse_model_output(result, "庄模型")
+        if parsed.get("is_complete"):
+            return parsed
         
-        # 主模型失败，轮流尝试备用模型
-        for client in [self.player_client, self.combined_client]:
-            try:
-                print(f"[庄模型] 尝试备用模型: {client.client_type}")
-                result = await client.call(prompt)
-                parsed = self._parse_model_output(result, "庄模型")
-                if parsed.get("is_complete"):
-                    parsed["used_fallback"] = client.client_type  # 标记使用了备用
-                    return parsed
-            except Exception as e:
-                print(f"[庄模型] 备用模型 {client.client_type} 失败: {e}")
-                continue
-        
-        # 所有模型都失败（理论上不会发生，因为每个模型都有5次重试）
-        raise Exception("庄模型：所有可用模型均失败，请检查API配置")
+        # 严格执行铁律：不允许降级到其他模型，直接抛出异常
+        raise Exception("庄模型（OpenAI GPT）调用失败且重试耗尽，严格禁止降级，请检查API配置或网络状态")
     
-    async def _player_model_with_fallback(
+    async def _player_model(
         self, game_history: List[Dict], road_data: Dict, mistake_context: Optional[List[Dict]]
     ) -> Dict:
         """
-        闲模型 - 永不失败实现
-        1. 先尝试主模型（Anthropic）
-        2. 失败时轮流尝试其他备用模型
-        3. 所有模型都有5次重试机会
+        闲模型 - 永不降级实现
+        1. 只尝试主模型（Anthropic）
+        2. 依赖底层AIClient自身的5次重试机会
         """
         prompt = self._build_player_prompt(game_history, road_data, mistake_context)
         
         # 主模型优先
-        try:
-            result = await self.player_client.call(prompt)
-            parsed = self._parse_model_output(result, "闲模型")
-            if parsed.get("is_complete"):
-                return parsed
-        except Exception as e:
-            print(f"[闲模型] 主模型失败: {e}")
+        result = await self.player_client.call(prompt)
+        parsed = self._parse_model_output(result, "闲模型")
+        if parsed.get("is_complete"):
+            return parsed
         
-        # 主模型失败，轮流尝试备用模型
-        for client in [self.banker_client, self.combined_client]:
-            try:
-                print(f"[闲模型] 尝试备用模型: {client.client_type}")
-                result = await client.call(prompt)
-                parsed = self._parse_model_output(result, "闲模型")
-                if parsed.get("is_complete"):
-                    parsed["used_fallback"] = client.client_type
-                    return parsed
-            except Exception as e:
-                print(f"[闲模型] 备用模型 {client.client_type} 失败: {e}")
-                continue
-        
-        raise Exception("闲模型：所有可用模型均失败，请检查API配置")
+        # 严格执行铁律：不允许降级到其他模型，直接抛出异常
+        raise Exception("闲模型（Claude Sonnet）调用失败且重试耗尽，严格禁止降级，请检查API配置或网络状态")
     
-    async def _combined_model_with_fallback(
+    async def _combined_model(
         self, banker_result: Dict, player_result: Dict,
         consecutive_errors: int, game_history: List[Dict],
         road_data: Dict = None, mistake_context: List[Dict] = None,
         prompt_template: Optional[str] = None,
     ) -> Dict:
         """
-        综合模型 - 永不失败实现
-        1. 先尝试主模型（Gemini）
-        2. 失败时轮流尝试其他备用模型
-        3. 所有模型都有5次重试机会
+        综合模型 - 永不降级实现
+        1. 只尝试主模型（Gemini）
+        2. 依赖底层AIClient自身的5次重试机会
         """
         # 构建提示词
         if prompt_template:
@@ -423,28 +389,13 @@ class ThreeModelService:
             )
         
         # 主模型优先
-        try:
-            result = await self.combined_client.call(prompt)
-            parsed = self._parse_combined_output(result, consecutive_errors)
-            if parsed.get("is_complete"):
-                return parsed
-        except Exception as e:
-            print(f"[综合模型] 主模型失败: {e}")
+        result = await self.combined_client.call(prompt)
+        parsed = self._parse_combined_output(result, consecutive_errors)
+        if parsed.get("is_complete"):
+            return parsed
         
-        # 主模型失败，轮流尝试备用模型
-        for client in [self.banker_client, self.player_client]:
-            try:
-                print(f"[综合模型] 尝试备用模型: {client.client_type}")
-                result = await client.call(prompt)
-                parsed = self._parse_combined_output(result, consecutive_errors)
-                if parsed.get("is_complete"):
-                    parsed["used_fallback"] = client.client_type
-                    return parsed
-            except Exception as e:
-                print(f"[综合模型] 备用模型 {client.client_type} 失败: {e}")
-                continue
-        
-        raise Exception("综合模型：所有可用模型均失败，请检查API配置")
+        # 严格执行铁律：不允许降级到其他模型，直接抛出异常
+        raise Exception("综合模型（Gemini）调用失败且重试耗尽，严格禁止降级，请检查API配置或网络状态")
     
     def _build_banker_prompt(self, game_history, road_data, mistake_context) -> str:
         """构建庄模型提示词"""

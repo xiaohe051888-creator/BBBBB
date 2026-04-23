@@ -53,17 +53,12 @@ def test_case_2_tie_handling():
     print(f"大路点数: {len(big_road.points)}")
     print(f"珠盘路点数: {len(bead_road.points)}")
     
-    # 验证和局点
-    tie_points = [p for p in big_road.points if p.value == "和"]
-    print(f"大路中和局点数: {len(tie_points)}")
+    # 验证和局点标记
+    tie_points = [p for p in big_road.points if p.has_tie]
+    print(f"大路中带有和局标记的点数: {len(tie_points)}")
     
-    # 每个和局都应该有对应的庄/闲位置
-    assert len(tie_points) == 3, f"预期3个和局点，实际{len(tie_points)}个"
-    
-    # 检查位置
-    for point in tie_points:
-        print(f"  和局 局号{point.game_number}: 列{point.column}, 行{point.row}, is_tie={point.is_tie}")
-        assert point.is_tie == True, f"局号{point.game_number}的is_tie应为True"
+    # 庄(含和) 闲(含2和)，所以有2个点带和局标记
+    assert len(tie_points) == 2, f"预期2个带和局标记的点，实际{len(tie_points)}个"
     
     print("✅ 测试2通过")
 
