@@ -74,7 +74,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   const getDisplayStatus = (status?: string) => {
     if (!status || status === '空闲') {
-      return gameCount === 0 ? '等待开局 (未上传数据)' : '等待操作';
+      if (gameCount === 0) return '等待开局 (未上传数据)';
+      if (gameCount >= 72) return '本靴已结束 (请结束本靴)';
+      return '请录入下一局开奖结果';
     }
     return status;
   };
