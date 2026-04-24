@@ -75,7 +75,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const getDisplayStatus = (status?: string) => {
     if (!status || status === '空闲') {
       if (gameCount === 0) return '等待开局 (未上传数据)';
-      if ((systemState?.game_number || 0) >= 72) return '本靴已结束 (请结束本靴)';
+      if ((systemState?.game_number || 0) >= 72) return '本靴已满（请在下方点击结束本靴）';
       return '请录入下一局开奖结果';
     }
     return status;
@@ -93,6 +93,15 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               第 <span style={{ color: '#ffd700', fontSize: 16 }}>{systemState?.boot_number || 1}</span> 靴
               <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.2)' }}>|</span>
               已开 <span style={{ color: '#fff', fontSize: 16 }}>{systemState?.game_number || 0}</span> 局
+              {systemState?.current_game_result && (
+                <>
+                  <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.2)' }}>|</span>
+                  <Tag color={systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff'}
+                    style={{ margin: 0, fontWeight: 800, borderRadius: 6, width: 32, textAlign: 'center', padding: '0 4px', fontSize: 12 }}>
+                    {systemState.current_game_result}
+                  </Tag>
+                </>
+              )}
             </span>
           </div>
 
@@ -104,29 +113,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </div>
         </div>
 
-        {/* 中间：当前/预测局 */}
+        {/* 中间：已删除当前局单独展示（合并到左侧）*/}
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }} className="hide-on-mobile">
-          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 140, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, marginBottom: 4 }}>当前局</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>第{systemState?.game_number || 0}局</span>
-              {systemState?.current_game_result ? (
-                <Tag color={systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff'}
-                  style={{ margin: 0, fontWeight: 800, borderRadius: 6, width: 32, textAlign: 'center' }}>
-                  {systemState.current_game_result}
-                </Tag>
-              ) : (
-                <div style={{ width: 32, height: 22, borderRadius: 6, background: 'rgba(255,255,255,0.1)', border: '1px dashed rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>?</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div style={{ color: 'rgba(255,215,0,0.4)' }}>
-            <ArrowRightIcon />
-          </div>
-
           <div style={{ background: 'linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,215,0,0.02))', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 170, border: '1px solid rgba(255,215,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,215,0,0.6)', letterSpacing: 1.5, marginBottom: 4 }}>预测下一局</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#ffd666', display: 'flex', alignItems: 'center', gap: 8 }}>
