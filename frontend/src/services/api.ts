@@ -46,6 +46,21 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // 优先提取后端返回的详细错误信息 (FastAPI 默认在 detail 字段中)
+    if (error.response?.data?.detail) {
+      const detail = error.response.data.detail;
+      // 处理 detail 可能是数组的情况（FastAPI 的 Pydantic 验证错误）
+      error.message = Array.isArray(detail) 
+        ? detail.map(e => e.msg || '验证错误').join(', ') 
+        : detail;
+    } else if (error.response?.status === 403) {
+      error.message = '拒绝访问 (403)';
+    } else if (error.response?.status === 404) {
+      error.message = '请求的资源不存在 (404)';
+    } else if (error.response?.status === 500) {
+      error.message = '服务器内部错误 (500)';
+    }
+
     if (error.response?.status === 401) {
       clearToken();
       // 只在非登录页面时跳转
