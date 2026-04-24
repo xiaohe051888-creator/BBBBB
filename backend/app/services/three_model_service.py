@@ -938,17 +938,17 @@ class ThreeModelService:
         
         return "\n".join(lines)
     
-    def _analyze_road_columns(self, points: List[Dict]) -> List[List[Dict]]:
+    def _analyze_road_columns(self, points: List[Any]) -> List[List[Any]]:
         """分析大路的列结构"""
         if not points:
             return []
-        
+
         columns = []
         current_col = []
         current_value = None
-        
+
         for p in points:
-            value = p.get("value")
+            value = getattr(p, 'value', None) if not isinstance(p, dict) else p.get("value")
             if value != current_value:
                 # 新列开始
                 if current_col:
@@ -958,20 +958,21 @@ class ThreeModelService:
             else:
                 # 同一列延续
                 current_col.append(p)
-        
+
         if current_col:
             columns.append(current_col)
-        
+
         return columns
     
-    def _count_streak(self, points: List[Dict], target_value: str) -> int:
+    def _count_streak(self, points: List[Any], target_value: str) -> int:
         """计算当前连胜/连败数"""
         if not points:
             return 0
-        
+
         streak = 0
         for p in reversed(points):
-            if p.get("value") == target_value:
+            value = getattr(p, 'value', None) if not isinstance(p, dict) else p.get("value")
+            if value == target_value:
                 streak += 1
             else:
                 break
