@@ -86,23 +86,12 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     <div className="top-status-bar" style={{ padding: '16px 24px', background: 'linear-gradient(180deg, #141b26 0%, #0f151e 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         
-        {/* 左侧：桌台信息 & 系统状态 */}
+        {/* 左侧：系统信息 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.15)', padding: '6px 14px', borderRadius: 20 }}>
             <span style={{ color: '#ffd700', fontSize: 16 }}><GlobeIcon /></span>
             <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: 0.5 }}>
               第 <span style={{ color: '#ffd700', fontSize: 16 }}>{systemState?.boot_number || 1}</span> 靴
-              <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.2)' }}>|</span>
-              已开 <span style={{ color: '#fff', fontSize: 16 }}>{systemState?.game_number || 0}</span> 局
-              {systemState?.current_game_result && (
-                <>
-                  <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.2)' }}>|</span>
-                  <Tag color={systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff'}
-                    style={{ margin: 0, fontWeight: 800, borderRadius: 6, width: 32, textAlign: 'center', padding: '0 4px', fontSize: 12 }}>
-                    {systemState.current_game_result}
-                  </Tag>
-                </>
-              )}
             </span>
           </div>
 
@@ -116,9 +105,31 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           )}
         </div>
 
-        {/* 中间：已删除当前局单独展示（合并到左侧）*/}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }} className="hide-on-mobile">
-          <div style={{ background: 'linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,215,0,0.02))', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 170, border: '1px solid rgba(255,215,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* 中间：已开局信息 & 预测下一局 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }} className="hide-on-mobile">
+          {/* 左半部分：已开局 */}
+          <div style={{ padding: '8px 18px', textAlign: 'center', minWidth: 140, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, marginBottom: 4 }}>当前进度</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>已开 {systemState?.game_number || 0} 局</span>
+              {systemState?.current_game_result ? (
+                <Tag color={systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff'}
+                  style={{ margin: 0, fontWeight: 800, borderRadius: 6, width: 32, textAlign: 'center' }}>
+                  {systemState.current_game_result}
+                </Tag>
+              ) : (
+                <div style={{ width: 32, height: 22, borderRadius: 6, background: 'rgba(255,255,255,0.1)', border: '1px dashed rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14, fontWeight: 600 }}>?</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,0.1)' }}></div>
+
+          {/* 右半部分：预测下一局 */}
+          <div style={{ background: 'linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,215,0,0.02))', padding: '8px 18px', textAlign: 'center', minWidth: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', borderRadius: '0 12px 12px 0' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,215,0,0.6)', letterSpacing: 1.5, marginBottom: 4 }}>预测下一局</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#ffd666', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span>第{systemState?.next_game_number || (systemState?.game_number || 0) + 1}局</span>
