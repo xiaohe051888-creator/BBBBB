@@ -104,15 +104,19 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
         {/* 中间：当前/预测局 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }} className="hide-on-mobile">
-          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 140 }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, marginBottom: 2 }}>当前局</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>
-              第{systemState?.game_number || 0}局
-              {systemState?.current_game_result && (
+          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 140, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, marginBottom: 4 }}>当前局</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>第{systemState?.game_number || 0}局</span>
+              {systemState?.current_game_result ? (
                 <Tag color={systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff'}
-                  style={{ marginLeft: 8, fontWeight: 800, borderRadius: 6 }}>
+                  style={{ margin: 0, fontWeight: 800, borderRadius: 6, width: 32, textAlign: 'center' }}>
                   {systemState.current_game_result}
                 </Tag>
+              ) : (
+                <div style={{ width: 32, height: 22, borderRadius: 6, background: 'rgba(255,255,255,0.1)', border: '1px dashed rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>?</span>
+                </div>
               )}
             </div>
           </div>
@@ -121,15 +125,17 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <ArrowRightIcon />
           </div>
 
-          <div style={{ background: 'linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,215,0,0.02))', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 170, border: '1px solid rgba(255,215,0,0.1)' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,215,0,0.6)', letterSpacing: 1.5, marginBottom: 2 }}>预测下一局</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#ffd666' }}>
-              第{systemState?.next_game_number || (systemState?.game_number || 0) + 1}局
-              {systemState?.predict_direction && (
+          <div style={{ background: 'linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,215,0,0.02))', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 170, border: '1px solid rgba(255,215,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,215,0,0.6)', letterSpacing: 1.5, marginBottom: 4 }}>预测下一局</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#ffd666', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>第{systemState?.next_game_number || (systemState?.game_number || 0) + 1}局</span>
+              {systemState?.predict_direction ? (
                 <Tag style={{
-                  marginLeft: 8,
+                  margin: 0,
                   fontWeight: 800,
                   borderRadius: 6,
+                  width: 32,
+                  textAlign: 'center',
                   background: systemState.predict_direction === '庄'
                     ? 'linear-gradient(135deg,#ff4d4f,#cf1322)'
                     : 'linear-gradient(135deg,#1890ff,#0050b3)',
@@ -139,6 +145,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 }}>
                   {systemState.predict_direction}
                 </Tag>
+              ) : (
+                <div style={{ width: 32, height: 22, borderRadius: 6, background: 'rgba(255,215,0,0.05)', border: '1px dashed rgba(255,215,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'rgba(255,215,0,0.4)' }}>?</span>
+                </div>
               )}
             </div>
           </div>
