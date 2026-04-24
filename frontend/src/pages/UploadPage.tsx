@@ -21,8 +21,10 @@ import {
   UploadIcons,
 } from '../components/upload';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
+import { ConfirmUploadModal } from '../components/upload/ConfirmUploadModal';
+import { ClearDataModal } from '../components/upload/ClearDataModal';
 
-// UploadPage组件暂不需要外部props
+// UploadPage 组件暂不需要外部props
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface UploadPageProps {
   // 可选的外部props
@@ -46,6 +48,13 @@ const UploadPage: React.FC<UploadPageProps> = () => {
 
   // 数字填充弹窗
   const [numberFillVisible, setNumberFillVisible] = useState(false);
+
+  // 清空确认弹窗
+  const [clearVisible, setClearVisible] = useState(false);
+
+  // 上传确认弹窗
+  const [uploadConfirmVisible, setUploadConfirmVisible] = useState(false);
+  const [activeGameState, setActiveGameState] = useState({ hasActiveGame: false, currentStatus: '' });
 
   // 统计
   const filled = games.filter(g => g !== '').length;
@@ -83,52 +92,11 @@ const UploadPage: React.FC<UploadPageProps> = () => {
 
   // 清空
   const handleClear = () => {
-    Modal.confirm({
-      title: (
-        <span style={{ color: '#ff4d4f', fontSize: 16, fontWeight: 600 }}>
-          确认清空数据
-        </span>
-      ),
-      content: (
-        <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14 }}>
-          <p style={{ margin: '0 0 12px 0' }}>确定要清空所有已填写的数据吗？</p>
-          <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-            此操作不可撤销，已填写的 {filled} 局数据将被清除
-          </p>
-        </div>
-      ),
-      okText: '确认清空',
-      cancelText: '取消',
-      okButtonProps: {
-        danger: true,
-        style: {
-          background: 'linear-gradient(135deg,#ff4d4f,#ff7875)',
-          borderColor: '#ff4d4f',
-          color: '#fff',
-          fontWeight: 600,
-        },
-      },
-      cancelButtonProps: {
-        style: {
-          background: 'rgba(255,255,255,0.1)',
-          borderColor: 'rgba(255,255,255,0.2)',
-          color: 'rgba(255,255,255,0.8)',
-        },
-      },
-      styles: {
-        mask: { backdropFilter: 'blur(8px)' },
-        header: { borderBottom: '1px solid rgba(255,255,255,0.1)' },
-        body: { padding: '20px 24px' },
-        footer: { borderTop: '1px solid rgba(255,255,255,0.1)' },
-      },
-      style: {
-        background: 'linear-gradient(145deg, #1a2332, #141b26)',
-        borderRadius: 12,
-        border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 20px 48px rgba(0,0,0,0.4)',
-      },
-      onOk: () => setGames(Array(rowCount).fill('')),
-    });
+    setClearVisible(true);
+  };
+
+  const confirmClear = () => {
+    setGames(Array(rowCount).fill(''));
   };
 
   // 数字填充处理
@@ -186,100 +154,34 @@ const UploadPage: React.FC<UploadPageProps> = () => {
       return;
     }
 
-    Modal.confirm({
-      title: (
-        <span style={{ color: '#ff4d4f' }}>
-          ⚠️ 警告：上传将重置当前数据
-        </span>
-      ),
-      content: (
-        <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14 }}>
-          {/* 重置警告区域 */}
-          <div style={{
-            background: 'rgba(255,77,79,0.1)',
-            border: '1px solid rgba(255,77,79,0.3)',
-            borderRadius: 8,
-            padding: 12,
-            marginBottom: 16,
-          }}>
-            <p style={{ margin: '0 0 8px 0', color: '#ff4d4f', fontWeight: 600 }}>
-              上传新数据将执行以下操作：
-            </p>
-            <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
-              <li>清空当前桌所有历史数据</li>
-              <li>重置所有工作流状态</li>
-              <li>终止正在进行的AI分析</li>
-              <li>取消待处理的下注</li>
-            </ul>
-            {hasActiveGame && (
-              <p style={{ margin: '8px 0 0 0', color: '#ff4d4f', fontSize: 12 }}>
-                🔴 当前状态：{currentStatus} - 上传将中断当前流程！
-              </p>
-            )}
-          </div>
+    setActiveGameState({ hasActiveGame, currentStatus });
+    setUploadConfirmVisible(true);
+  };
 
-          {/* 上传信息 */}
-          <p>将上传 <strong style={{ color: '#ffd700' }}>{validGames.length}</strong> 局数据到 <strong style={{ color: '#ffd700' }}>{}桌</strong></p>
-          <p style={{ marginBottom: 0, color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-            庄{bankerCount}次 · 闲{playerCount}次 · 和{tieCount}次
-          </p>
-          <p style={{ marginTop: 8, color: 'rgba(255,165,0,0.8)', fontSize: 12 }}>
-            上传后系统将自动计算五路走势图并开始AI分析预测
-          </p>
-        </div>
-      ),
-      okText: '确认上传并重置',
-      cancelText: '取消',
-      okButtonProps: {
-        danger: true,
-        style: {
-          background: 'linear-gradient(135deg,#ff4d4f,#ff7875)',
-          borderColor: '#ff4d4f',
-          color: '#fff',
-          fontWeight: 600,
-        },
-      },
-      cancelButtonProps: {
-        style: {
-          background: 'rgba(255,255,255,0.1)',
-          borderColor: 'rgba(255,255,255,0.2)',
-          color: 'rgba(255,255,255,0.8)',
-        },
-      },
-      styles: {
-        mask: { backdropFilter: 'blur(8px)' },
-        wrapper: {
-          background: 'linear-gradient(145deg, #1a2332, #141b26)',
-          borderRadius: 12,
-          border: '1px solid rgba(255,255,255,0.1)',
-          boxShadow: '0 20px 48px rgba(0,0,0,0.4)',
-        },
-        header: { borderBottom: '1px solid rgba(255,255,255,0.1)' },
-        body: { padding: '20px 24px', background: 'transparent' },
-        footer: { borderTop: '1px solid rgba(255,255,255,0.1)' },
-      },
-      onOk: async () => {
-        setUploading(true);
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const res = await api.uploadGameResults(validGames as any, isNewBoot);
-          if (res.data.success) {
-            message.success(`上传成功！${res.data.uploaded}局数据已入库，AI分析进行中...`);
-            navigate("/dashboard");
-          }
-        } catch (err: unknown) {
-          const errorMsg = (err as Error)?.message === 'Network Error' ? '网络连接失败，请检查后端服务是否正常运行' : (err instanceof Error ? err.message : '上传失败，请重试');
-          message.error(errorMsg);
-          addIssue({
-            level: 'critical',
-            title: '数据上传失败',
-            detail: `上传数据失败: ${errorMsg}`,
-            source: 'system',
-          });
-          setUploading(false);
-        }
-      },
-    });
+  const confirmUpload = async () => {
+    const validGames = games
+      .map((result, idx) => ({ game_number: idx + 1, result }))
+      .filter(g => g.result !== '');
+
+    setUploading(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await api.uploadGameResults(validGames as any, isNewBoot);
+      if (res.data.success) {
+        message.success(`上传成功！${res.data.uploaded}局数据已入库，AI分析进行中...`);
+        navigate("/dashboard");
+      }
+    } catch (err: unknown) {
+      const errorMsg = (err as Error)?.message === 'Network Error' ? '网络连接失败，请检查后端服务是否正常运行' : (err instanceof Error ? err.message : '上传失败，请重试');
+      message.error(errorMsg);
+      addIssue({
+        level: 'critical',
+        title: '数据上传失败',
+        detail: `上传数据失败: ${errorMsg}`,
+        source: 'system',
+      });
+      setUploading(false);
+    }
   };
 
   // 管理员登录
@@ -450,6 +352,22 @@ const UploadPage: React.FC<UploadPageProps> = () => {
         rowCount={rowCount}
         onClose={() => setNumberFillVisible(false)}
         onFill={handleNumberFill}
+      />
+
+      <ClearDataModal
+        visible={clearVisible}
+        filledCount={filled}
+        onClose={() => setClearVisible(false)}
+        onConfirm={confirmClear}
+      />
+
+      <ConfirmUploadModal
+        visible={uploadConfirmVisible}
+        filledCount={games.filter(g => g !== '').length}
+        hasActiveGame={activeGameState.hasActiveGame}
+        currentStatus={activeGameState.currentStatus}
+        onClose={() => setUploadConfirmVisible(false)}
+        onConfirm={confirmUpload}
       />
     </div>
   );

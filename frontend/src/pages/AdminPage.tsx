@@ -12,6 +12,7 @@ import {
 import * as api from '../services/api';
 import { clearToken } from '../services/api';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
+import { StartLearningModal } from '../components/dashboard/StartLearningModal';
 
 // 精致图标组件
 const Icons = {
@@ -150,6 +151,20 @@ const AdminPage: React.FC = () => {
       setThreeModelStatus(res.data);
     } catch {
       // 加载失败，静默处理
+    }
+  };
+
+  const [startLearningVisible, setStartLearningVisible] = useState(false);
+
+  const handleStartLearning = async () => {
+    try {
+      // 假设当前需要启动学习（一般从最近一靴开始，这里传 0 表示系统自动判断）
+      await api.startAiLearning(0);
+      message.success('AI深度学习已启动');
+      loadAiLearningStatus();
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : '启动学习失败';
+      message.error(errorMsg);
     }
   };
 
@@ -298,11 +313,12 @@ const AdminPage: React.FC = () => {
                       </Col>
                     </Row>
                     <Divider style={{ margin: '12px 0', borderColor: 'rgba(255,255,255,0.06)' }} />
-                    <Button 
-                      type="primary" 
-                      icon={<Icons.Experiment />} 
+                    <Button
+                      type="primary"
+                      icon={<Icons.Experiment />}
                       size="large"
                       disabled={aiLearningStatus?.is_learning}
+                      onClick={() => setStartLearningVisible(true)}
                     >
                       {aiLearningStatus?.is_learning ? '学习中...' : '开始AI学习'}
                     </Button>
@@ -393,6 +409,13 @@ const AdminPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* 开始深度学习确认弹窗 */}
+      <StartLearningModal
+        visible={startLearningVisible}
+        onClose={() => setStartLearningVisible(false)}
+        onConfirm={handleStartLearning}
+      />
     </div>
   );
 };
