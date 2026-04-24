@@ -124,7 +124,7 @@ export default function DashboardScreen() {
         onUpload={handleUploadSubmit} 
       />
 
-      <Modal transparent visible={alertConfig.visible} animationType="fade">
+      {alertConfig.visible && (<Modal transparent visible={alertConfig.visible} animationType="fade">
         <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center'}]}>
           <View style={{backgroundColor: '#161b22', padding: 20, borderRadius: 12, width: '80%', maxWidth: 400, borderWidth: 1, borderColor: '#30363d'}}>
             <Text style={{color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 8}}>{alertConfig.title}</Text>
@@ -144,7 +144,7 @@ export default function DashboardScreen() {
             </View>
           </View>
         </View>
-      </Modal>
+      </Modal>)}
     </SafeAreaView>
 
   );

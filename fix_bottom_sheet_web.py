@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useState, forwardRef, useImperativeHandle } from 'react';
+import re
+
+with open('/workspace/mobile/src/components/dashboard/UploadBottomSheet.tsx', 'r') as f:
+    content = f.read()
+
+# Replace BottomSheetModal with a custom conditional wrapper for web
+web_fix = """import React, { useCallback, useMemo, useState, forwardRef, useImperativeHandle } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Platform, Modal } from 'react-native';
 import { BottomSheetModal, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
@@ -15,13 +21,22 @@ export default function UploadBottomSheet({ bottomSheetModalRef, loading, onUplo
   const [webVisible, setWebVisible] = useState(false);
 
   // Expose present/dismiss to the ref for Web Modal fallback
-  if (Platform.OS === 'web' && bottomSheetModalRef) {
-    (bottomSheetModalRef as any).current = {
-      present: () => setWebVisible(true),
-      dismiss: () => setWebVisible(false)
-    };
-  }
-
+  useImperativeHandle(bottomSheetModalRef, () => ({
+    present: () => {
+      if (Platform.OS === 'web') {
+        setWebVisible(true);
+      } else {
+        (bottomSheetModalRef as any).current?.present();
+      }
+    },
+    dismiss: () => {
+      if (Platform.OS === 'web') {
+        setWebVisible(false);
+      } else {
+        (bottomSheetModalRef as any).current?.dismiss();
+      }
+    }
+  }));
 
   const renderBackdrop = useCallback(
     (props: any) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />,
@@ -55,16 +70,9 @@ export default function UploadBottomSheet({ bottomSheetModalRef, loading, onUplo
       <View style={styles.contentContainer}>
         <View style={styles.header}>
           <Text style={styles.title}>快捷录入本靴数据</Text>
-          <View style={{flexDirection: 'row', gap: 16}}>
-            <TouchableOpacity onPress={handleClear}>
-              <Text style={styles.clearText}>清空</Text>
-            </TouchableOpacity>
-            {Platform.OS === 'web' && (
-              <TouchableOpacity onPress={() => setWebVisible(false)}>
-                <Text style={{color: '#ff4d4f', fontSize: 16}}>关闭</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <TouchableOpacity onPress={handleClear}>
+            <Text style={styles.clearText}>清空</Text>
+          </TouchableOpacity>
         </View>
 
         {/* 显示区 */}
@@ -120,7 +128,6 @@ export default function UploadBottomSheet({ bottomSheetModalRef, loading, onUplo
   );
 
   if (Platform.OS === 'web') {
-    if (!webVisible) return null;
     return (
       <Modal transparent visible={webVisible} animationType="slide">
         <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end'}}>
@@ -147,60 +154,8 @@ export default function UploadBottomSheet({ bottomSheetModalRef, loading, onUplo
     </BottomSheetModal>
   );
 }
+"""
 
-
-const styles = StyleSheet.create({
-  container: { backgroundColor: '#161b22', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  indicator: { backgroundColor: '#8b949e', width: 40 },
-  contentContainer: { flex: 1, padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  clearText: { color: '#8b949e', fontSize: 16 },
-  displayArea: {
-    backgroundColor: '#0d1117',
-    borderWidth: 1,
-    borderColor: '#30363d',
-    borderRadius: 12,
-    padding: 16,
-    height: 100,
-    marginBottom: 24,
-    justifyContent: 'space-between',
-  },
-  placeholderText: { color: '#6e7681', fontSize: 16, fontStyle: 'italic' },
-  resultList: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  resultDot: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  bgBanker: { backgroundColor: '#ff4d4f' },
-  bgPlayer: { backgroundColor: '#1890ff' },
-  bgTie: { backgroundColor: '#52c41a' },
-  resultText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  countText: { color: '#8b949e', fontSize: 12, textAlign: 'right', marginTop: 8 },
-  keypad: { gap: 12, marginBottom: 24 },
-  keyRow: { flexDirection: 'row', gap: 12 },
-  keyBtn: { flex: 1, paddingVertical: 18, borderRadius: 12, alignItems: 'center', borderWidth: 2, backgroundColor: '#0d1117' },
-  borderBanker: { borderColor: '#ff4d4f' },
-  borderPlayer: { borderColor: '#1890ff' },
-  borderTie: { borderColor: '#52c41a' },
-  borderGray: { borderColor: '#30363d' },
-  keyText: { fontSize: 18, fontWeight: 'bold' },
-  textBanker: { color: '#ff4d4f' },
-  textPlayer: { color: '#1890ff' },
-  textTie: { color: '#52c41a' },
-  textGray: { color: '#8b949e' },
-  footer: { alignItems: 'center', marginTop: 'auto', marginBottom: 20 },
-  submitBtn: {
-    backgroundColor: '#ffd700',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    width: '100%',
-    alignItems: 'center',
-    shadowColor: '#ffd700',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  submitBtnDisabled: { backgroundColor: '#30363d', shadowOpacity: 0, elevation: 0 },
-  btnText: { color: '#0d1117', fontSize: 18, fontWeight: 'bold' },
-  btnTextDisabled: { color: '#8b949e' },
-});
+with open('/workspace/mobile/src/components/dashboard/UploadBottomSheet.tsx', 'w') as f:
+    f.write(web_fix + "\n" + content.split("const styles = StyleSheet.create({")[1])
+    

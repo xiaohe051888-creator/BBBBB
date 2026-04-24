@@ -1,4 +1,7 @@
-import * as Haptics from 'expo-haptics';
+with open('/workspace/mobile/src/components/dashboard/RevealBottomSheet.tsx', 'r') as f:
+    content = f.read()
+
+fixed = """import * as Haptics from 'expo-haptics';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Modal } from 'react-native';
 import { BottomSheetModal, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
@@ -52,7 +55,6 @@ export default function RevealBottomSheet({ bottomSheetModalRef, loading, gameNu
   );
 
   if (Platform.OS === 'web') {
-    if (!webVisible) return null;
     return (
       <Modal transparent visible={webVisible} animationType="slide">
         <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end'}}>
@@ -79,18 +81,7 @@ export default function RevealBottomSheet({ bottomSheetModalRef, loading, gameNu
     </BottomSheetModal>
   );
 }
+"""
 
-
-const styles = StyleSheet.create({
-  container: { backgroundColor: '#161b22', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  indicator: { backgroundColor: '#8b949e', width: 40 },
-  contentContainer: { flex: 1, padding: 20, alignItems: 'center' },
-  title: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
-  subtitle: { color: '#8b949e', fontSize: 14, marginBottom: 24 },
-  buttonRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', gap: 12 },
-  btn: { flex: 1, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  bankerBtn: { backgroundColor: 'rgba(255, 77, 79, 0.2)', borderWidth: 1, borderColor: '#ff4d4f' },
-  playerBtn: { backgroundColor: 'rgba(24, 144, 255, 0.2)', borderWidth: 1, borderColor: '#1890ff' },
-  tieBtn: { backgroundColor: 'rgba(82, 196, 26, 0.2)', borderWidth: 1, borderColor: '#52c41a' },
-  btnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-});
+with open('/workspace/mobile/src/components/dashboard/RevealBottomSheet.tsx', 'w') as f:
+    f.write(fixed + "\n" + content.split("const styles = StyleSheet.create({")[1])
