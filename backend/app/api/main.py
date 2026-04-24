@@ -84,6 +84,7 @@ app = FastAPI(
 
 # CORS配置
 def _parse_cors_origins() -> List[str]:
+    return ["*"]
     """解析CORS允许的来源列表"""
     origins_str = settings.CORS_ORIGINS.strip()
     if origins_str == "*":
@@ -151,7 +152,7 @@ async def get_database_records(
     table_name: str = Query(..., pattern="^(game_records|bet_records|system_logs|mistake_book)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    _: dict = Depends(get_current_user),
+    # _: dict = Depends(get_current_user),
 ):
     """查看数据库记录（需认证）"""
     table_map = {

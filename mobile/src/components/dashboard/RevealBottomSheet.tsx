@@ -37,13 +37,13 @@ export default function RevealBottomSheet({ bottomSheetModalRef, loading, gameNu
           <ActivityIndicator size="large" color="#ffd700" style={{ marginTop: 20 }} />
         ) : (
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={[styles.btn, styles.bankerBtn]} onPress={() => { if(Platform.OS!=='web')Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('庄'); }}>
+            <TouchableOpacity accessibilityRole="button" style={[styles.btn, styles.bankerBtn]} onPress={() => { if(Platform.OS!=='web')Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('庄'); }}>
               <Text style={styles.btnText}>庄赢 (B)</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, styles.playerBtn]} onPress={() => { if(Platform.OS!=='web')Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('闲'); }}>
+            <TouchableOpacity accessibilityRole="button" style={[styles.btn, styles.playerBtn]} onPress={() => { if(Platform.OS!=='web')Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('闲'); }}>
               <Text style={styles.btnText}>闲赢 (P)</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, styles.tieBtn]} onPress={() => { if(Platform.OS!=='web')Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('和'); }}>
+            <TouchableOpacity accessibilityRole="button" style={[styles.btn, styles.tieBtn]} onPress={() => { if(Platform.OS!=='web')Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onReveal('和'); }}>
               <Text style={styles.btnText}>和局 (T)</Text>
             </TouchableOpacity>
           </View>
@@ -56,7 +56,7 @@ export default function RevealBottomSheet({ bottomSheetModalRef, loading, gameNu
     return (
       <Modal transparent visible={webVisible} animationType="slide">
         <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end'}}>
-          <TouchableOpacity style={{flex: 1}} onPress={() => setWebVisible(false)} />
+          <TouchableOpacity accessibilityRole="button" style={{flex: 1}} onPress={() => setWebVisible(false)} />
           <View style={{backgroundColor: '#161b22', borderTopLeftRadius: 20, borderTopRightRadius: 20, height: '35%'}}>
             {content}
           </View>

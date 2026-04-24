@@ -90,10 +90,10 @@ export default function DashboardScreen() {
       <View style={styles.headerBar}>
         <Text style={styles.headerTitle}>单靴分析终端</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleOpenUpload} style={styles.uploadBtn}>
+          <TouchableOpacity accessibilityRole="button" onPress={handleOpenUpload} style={styles.uploadBtn}>
             <Text style={styles.uploadBtnText}>上传</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleEndBoot} style={styles.endBootBtn}>
+          <TouchableOpacity accessibilityRole="button" onPress={handleEndBoot} style={styles.endBootBtn}>
             <Text style={styles.endBootBtnText}>换靴</Text>
           </TouchableOpacity>
         </View>
@@ -131,11 +131,11 @@ export default function DashboardScreen() {
             <Text style={{color: '#c9d1d9', fontSize: 15, marginBottom: 20}}>{alertConfig.message}</Text>
             <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 12}}>
               {alertConfig.showCancel && (
-                <TouchableOpacity onPress={() => setAlertConfig({...alertConfig, visible: false})} style={{padding: 10}}>
+                <TouchableOpacity accessibilityRole="button" onPress={() => setAlertConfig({...alertConfig, visible: false})} style={{padding: 10}}>
                   <Text style={{color: '#8b949e', fontSize: 16}}>取消</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={() => {
+              <TouchableOpacity accessibilityRole="button" onPress={() => {
                 setAlertConfig({...alertConfig, visible: false});
                 alertConfig.onConfirm && alertConfig.onConfirm();
               }} style={{padding: 10}}>

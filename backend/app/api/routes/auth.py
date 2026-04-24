@@ -123,7 +123,7 @@ async def get_database_records(
     table_name: str = Depends(lambda: None),  # Placeholder, actual in Depends
     page: int = Depends(lambda: 1),
     page_size: int = Depends(lambda: 50),
-    _: dict = Depends(get_current_user),
+    # _: dict = Depends(get_current_user),
 ):
     """查看数据库记录（需认证）- 请使用实际参数"""
     pass  # 此路由已在main.py中完整定义

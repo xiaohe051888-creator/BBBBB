@@ -56,11 +56,11 @@ export default function UploadBottomSheet({ bottomSheetModalRef, loading, onUplo
         <View style={styles.header}>
           <Text style={styles.title}>快捷录入本靴数据</Text>
           <View style={{flexDirection: 'row', gap: 16}}>
-            <TouchableOpacity onPress={handleClear}>
+            <TouchableOpacity accessibilityRole="button" onPress={handleClear}>
               <Text style={styles.clearText}>清空</Text>
             </TouchableOpacity>
             {Platform.OS === 'web' && (
-              <TouchableOpacity onPress={() => setWebVisible(false)}>
+              <TouchableOpacity accessibilityRole="button" onPress={() => setWebVisible(false)}>
                 <Text style={{color: '#ff4d4f', fontSize: 16}}>关闭</Text>
               </TouchableOpacity>
             )}
@@ -86,18 +86,18 @@ export default function UploadBottomSheet({ bottomSheetModalRef, loading, onUplo
         {/* 自定义键盘 */}
         <View style={styles.keypad}>
           <View style={styles.keyRow}>
-            <TouchableOpacity style={[styles.keyBtn, styles.borderBanker]} onPress={() => handlePress('庄')}>
+            <TouchableOpacity accessibilityRole="button" style={[styles.keyBtn, styles.borderBanker]} onPress={() => handlePress('庄')}>
               <Text style={[styles.keyText, styles.textBanker]}>庄赢 (B)</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.keyBtn, styles.borderPlayer]} onPress={() => handlePress('闲')}>
+            <TouchableOpacity accessibilityRole="button" style={[styles.keyBtn, styles.borderPlayer]} onPress={() => handlePress('闲')}>
               <Text style={[styles.keyText, styles.textPlayer]}>闲赢 (P)</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.keyRow}>
-            <TouchableOpacity style={[styles.keyBtn, styles.borderTie]} onPress={() => handlePress('和')}>
+            <TouchableOpacity accessibilityRole="button" style={[styles.keyBtn, styles.borderTie]} onPress={() => handlePress('和')}>
               <Text style={[styles.keyText, styles.textTie]}>和局 (T)</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.keyBtn, styles.borderGray]} onPress={handleBackspace} disabled={inputList.length === 0}>
+            <TouchableOpacity accessibilityRole="button" style={[styles.keyBtn, styles.borderGray]} onPress={handleBackspace} disabled={inputList.length === 0}>
               <Text style={[styles.keyText, styles.textGray]}>退格 (Del)</Text>
             </TouchableOpacity>
           </View>
@@ -107,7 +107,7 @@ export default function UploadBottomSheet({ bottomSheetModalRef, loading, onUplo
           {loading ? (
             <ActivityIndicator size="large" color="#ffd700" />
           ) : (
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={[styles.submitBtn, inputList.length === 0 && styles.submitBtnDisabled]}
               onPress={handleConfirm}
               disabled={inputList.length === 0}
@@ -124,7 +124,7 @@ export default function UploadBottomSheet({ bottomSheetModalRef, loading, onUplo
     return (
       <Modal transparent visible={webVisible} animationType="slide">
         <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end'}}>
-          <TouchableOpacity style={{flex: 1}} onPress={() => setWebVisible(false)} />
+          <TouchableOpacity accessibilityRole="button" style={{flex: 1}} onPress={() => setWebVisible(false)} />
           <View style={{backgroundColor: '#161b22', borderTopLeftRadius: 20, borderTopRightRadius: 20, height: '70%'}}>
             {content}
           </View>
