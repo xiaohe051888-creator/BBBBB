@@ -164,7 +164,7 @@ export const STATUS_TEXTS: Record<string, { color: string; text: string }> = {
   stopped: { color: '#d9d9d9', text: '已停止' },
   // 手动模式状态
   ai_analyzing: { color: '#722ed1', text: 'AI分析中' },
-  pending_bet: { color: '#faad14', text: '等待下注' },
+  pending_bet: { color: '#faad14', text: '分析完成' },
   pending_reveal: { color: '#1890ff', text: '等待开奖' },
   idle: { color: '#8c8c8c', text: '空闲' },
 };

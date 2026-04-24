@@ -54,13 +54,16 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       };
     }
     if (analysis?.prediction && !hasPendingBet) {
+      const isWait = analysis.prediction === '观望';
       return {
         icon: <BulbIcon />,
-        iconColor: '#52c41a',
-        title: `AI分析完成，推荐下注：${analysis.prediction}`,
-        subtitle: 'AI分析完成，系统自动下注中...',
-        bgGradient: 'linear-gradient(135deg, rgba(82,196,26,0.15), rgba(82,196,26,0.08))',
-        borderColor: 'rgba(82,196,26,0.25)',
+        iconColor: isWait ? '#1890ff' : '#52c41a',
+        title: `AI分析完成，推荐方向：${analysis.prediction}`,
+        subtitle: isWait ? '建议本局观望，请等待开奖结果' : '系统自动下注中...',
+        bgGradient: isWait 
+          ? 'linear-gradient(135deg, rgba(24,144,255,0.15), rgba(24,144,255,0.08))'
+          : 'linear-gradient(135deg, rgba(82,196,26,0.15), rgba(82,196,26,0.08))',
+        borderColor: isWait ? 'rgba(24,144,255,0.25)' : 'rgba(82,196,26,0.25)',
       };
     }
 
@@ -133,7 +136,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       </div>
 
       {/* 等待开奖时显示开奖按钮 */}
-      {(hasGameData && systemState?.status !== '分析中' && systemState?.status !== '深度学习中') && (
+      {(systemState?.status === '等待开奖') && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* 工作流倒计时 */}
           {hasPendingBet && waitSeconds >= 0 && (

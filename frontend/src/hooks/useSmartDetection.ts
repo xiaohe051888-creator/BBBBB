@@ -87,7 +87,6 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
   const [integrityIssues, setIntegrityIssues] = useState<DataIntegrityIssue[]>([]);
   const [abnormalPatterns, setAbnormalPatterns] = useState<AbnormalPattern[]>([]);
   const [alerts, setAlerts] = useState<SmartAlert[]>([]);
-  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
   
   // ====== 数据完整性检测 ======
   
@@ -139,7 +138,11 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
       }
     });
     
-    // 4. 检测缺失数据（如果局号从大于1开始）
+    // 4. 检测缺失数据（如果局号从大于1开始且只有部分数据被加载）
+    // 注意：如果只是分页查询，首个数据的局号大于1是正常的，因此不应该在这里报缺失警告
+    // 只有当查询的是全部数据（或第一页）且最小局号不等于1时才报警
+    // 在目前的场景中，为了避免误报，我们将这个检查弱化或移除，因为上传的数据可能就是残缺的或者分页的
+    /* 
     if (sortedGames.length > 0 && sortedGames[0].game_number > 1) {
       issues.push({
         type: 'missing',
@@ -148,6 +151,7 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
         severity: 'warning',
       });
     }
+    */
     
     setIntegrityIssues(issues);
     return issues;
@@ -415,52 +419,11 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
   }, [abnormalPatterns, addAlert]);
   
   // ====== 数据同步状态 ======
-  
-  // 使用state存储计算结果，避免在useMemo中调用Date.now()
-  const [isDataStale, setIsDataStale] = useState(false);
-  
-  useEffect(() => {
-    if (!lastSyncTime) {
-      // 使用setTimeout避免同步setState
-      const timer = setTimeout(() => setIsDataStale(false), 0);
-      return () => clearTimeout(timer);
-    }
-    // 检查数据是否过期
-    const checkStale = () => {
-      setIsDataStale(Date.now() - lastSyncTime > 60000);
-    };
-    // 使用setTimeout避免同步setState
-    const initialTimer = setTimeout(checkStale, 0);
-
-    // 设置定时器定期检查
-    const timer = setInterval(checkStale, 10000);
-
-    return () => {
-      clearTimeout(initialTimer);
-      clearInterval(timer);
-    };
-  }, [lastSyncTime]);
-  
-  const markSynced = useCallback(() => {
-    setLastSyncTime(Date.now());
-  }, []);
-  
-  // 检测数据同步状态
-  useEffect(() => {
-    if (isDataStale) {
-      // 使用setTimeout避免同步setState
-      const timer = setTimeout(() => {
-        addAlert({
-          type: 'warning',
-          title: '数据同步',
-          message: '数据可能已过期，建议刷新页面',
-          autoClose: true,
-          duration: 3000,
-        });
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [isDataStale, addAlert]);
+  // 注意：原有的60秒过期提示已被移除，因为页面有React Query的自动刷新机制，
+  // 频繁提示用户刷新会造成干扰。
+  const lastSyncTime = Date.now();
+  const isDataStale = false;
+  const markSynced = useCallback(() => {}, []);
   
   return {
     integrityIssues,

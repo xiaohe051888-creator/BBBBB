@@ -42,10 +42,29 @@ async def upload_game_results(req: UploadRequest):
     async def _trigger_analysis():
         try:
             async with async_session() as session:
-                await run_ai_analysis(
+                res = await run_ai_analysis(
                     db=session,
                     boot_number=upload_result["boot_number"],
                 )
+                if res and res.get("success"):
+                    prediction = res.get("prediction")
+                    if prediction in ("庄", "闲"):
+                        from app.services.game.betting import place_bet
+                        await place_bet(
+                            db=session,
+                            game_number=res["game_number"],
+                            direction=prediction,
+                            amount=res["bet_amount"]
+                        )
+                    else:
+                        from app.services.game.session import get_session, broadcast_event
+                        from app.services.game.state import get_or_create_state
+                        sess = get_session()
+                        sess.status = "等待开奖"
+                        state = await get_or_create_state(session)
+                        state.status = "等待开奖"
+                        await session.commit()
+                        await broadcast_event("state_update", {"status": "等待开奖"})
         except Exception as e:
             import logging
             from app.services.game.logging import write_game_log
@@ -122,10 +141,29 @@ async def reveal_game_route(req: RevealRequest):
     async def _trigger_next_analysis():
         try:
             async with async_session() as session:
-                await run_ai_analysis(
+                res = await run_ai_analysis(
                     db=session,
                     boot_number=boot_number,
                 )
+                if res and res.get("success"):
+                    prediction = res.get("prediction")
+                    if prediction in ("庄", "闲"):
+                        from app.services.game.betting import place_bet
+                        await place_bet(
+                            db=session,
+                            game_number=res["game_number"],
+                            direction=prediction,
+                            amount=res["bet_amount"]
+                        )
+                    else:
+                        from app.services.game.session import get_session, broadcast_event
+                        from app.services.game.state import get_or_create_state
+                        sess = get_session()
+                        sess.status = "等待开奖"
+                        state = await get_or_create_state(session)
+                        state.status = "等待开奖"
+                        await session.commit()
+                        await broadcast_event("state_update", {"status": "等待开奖"})
         except Exception as e:
             import logging
             from app.services.game.logging import write_game_log

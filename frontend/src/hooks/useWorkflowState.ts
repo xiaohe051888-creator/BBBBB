@@ -107,7 +107,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
     let newStatus: WorkflowStatus = 'idle';
 
     switch (systemStatus) {
-      case '等待下注':
+      case '分析完成':
         newStatus = pendingBet ? 'bet_placed' : 'waiting_bet';
         break;
       case '等待开奖':
@@ -346,7 +346,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
 function getStatusDisplayName(status: WorkflowStatus): string {
   const names: Record<WorkflowStatus, string> = {
     idle: '空闲',
-    waiting_bet: '等待下注',
+    waiting_bet: '分析完成',
     bet_placed: '已下注',
     waiting_result: '等待开奖',
     revealing: '开奖中',

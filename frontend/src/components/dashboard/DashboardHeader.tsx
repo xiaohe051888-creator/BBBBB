@@ -60,14 +60,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   const getStatusColor = (status?: string) => {
     if (status === '等待开奖') return '#faad14';
-    if (status === '等待下注') return '#52c41a';
+    if (status === '分析完成') return '#52c41a';
     if (status === '分析中') return '#1890ff';
     return 'rgba(255,255,255,0.5)';
   };
 
   const getStatusDot = (status?: string) => {
     if (status === '等待开奖') return '#faad14';
-    if (status === '等待下注') return '#52c41a';
+    if (status === '分析完成') return '#52c41a';
     if (status === '分析中') return '#1890ff';
     return '#8b949e';
   };

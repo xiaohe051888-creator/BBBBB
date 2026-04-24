@@ -135,9 +135,9 @@ async def run_ai_analysis(
                 priority="P2",
             )
             
-            # 更新状态为"等待下注"
-            sess.status = "等待下注"
-            state.status = "等待下注"
+            # 自动下注前暂存状态，由后续 place_bet 决定最终状态
+            sess.status = "分析完成"
+            state.status = "分析完成"
             
             await db.commit()
             
@@ -161,7 +161,7 @@ async def run_ai_analysis(
     
     # 广播状态变更
     await broadcast_event("state_update", {
-        "status": "等待下注",
+        "status": "分析完成",
         "game_number": sess.next_game_number,
         "predict_direction": sess.predict_direction,
         "predict_confidence": sess.predict_confidence,
