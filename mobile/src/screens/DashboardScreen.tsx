@@ -1,10 +1,22 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, Suspense, lazy } from 'react';
 import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Text, Platform } from 'react-native';
 import { SafeAreaView } from "react-native";
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 
 import { WorkflowStatusBar } from '../components/dashboard/WorkflowStatusBar';
 import { FiveRoadsChart } from '../components/roads/FiveRoadsChart';
+const LazyFiveRoadsChart = lazy(() => import('../components/roads/FiveRoadsChart').then(m => ({ default: m.FiveRoadsChart })));
+
+const RenderChart = () => {
+  if (Platform.OS === 'web') {
+    return (
+      <Suspense fallback={<View style={{height: 200, justifyContent: 'center', alignItems: 'center'}}><Text style={{color: '#8b949e'}}>Loading Skia Canvas...</Text></View>}>
+        <LazyFiveRoadsChart />
+      </Suspense>
+    );
+  }
+  return <RenderChart />;
+};
 import RevealBottomSheet from '../components/dashboard/RevealBottomSheet';
 import UploadBottomSheet from '../components/dashboard/UploadBottomSheet';
 
@@ -106,7 +118,7 @@ export default function DashboardScreen() {
       />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <FiveRoadsChart />
+        <RenderChart />
       </ScrollView>
 
       <RevealBottomSheet 
