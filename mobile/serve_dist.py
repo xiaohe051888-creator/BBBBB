@@ -12,12 +12,44 @@ client = httpx.AsyncClient()
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    # Just a dummy echo/keep-alive to stop the console errors in browser
+    token = websocket.query_params.get("token", "")
+    target_ws_url = "ws://127.0.0.1:8000/ws"
+    if token:
+        target_ws_url += f"?token={token}"
+
     try:
-        while True:
-            data = await websocket.receive_text()
-    except WebSocketDisconnect:
-        pass
+        async with websockets.connect(target_ws_url) as backend_ws:
+            import asyncio
+            async def forward_to_backend():
+                try:
+                    while True:
+                        data = await websocket.receive_text()
+                        await backend_ws.send(data)
+                except websockets.exceptions.ConnectionClosed:
+                    pass
+                except WebSocketDisconnect:
+                    pass
+
+            async def forward_to_client():
+                try:
+                    while True:
+                        data = await backend_ws.recv()
+                        await websocket.send_text(data)
+                except websockets.exceptions.ConnectionClosed:
+                    pass
+                except WebSocketDisconnect:
+                    pass
+
+            await asyncio.gather(
+                forward_to_backend(),
+                forward_to_client()
+            )
+    except Exception as e:
+        print(f"WS Proxy Error: {e}")
+        try:
+            await websocket.close()
+        except:
+            pass
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
 async def proxy_api(request: Request, path: str):

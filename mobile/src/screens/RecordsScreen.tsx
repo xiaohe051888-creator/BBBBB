@@ -34,7 +34,7 @@ export default function RecordsScreen() {
 
   const renderLog = ({ item }: { item: any }) => (
     <View style={styles.logItem}>
-      <Text style={styles.logTime}>{new Date(item.created_at).toLocaleTimeString()}</Text>
+      <Text style={styles.logTime}>{new Date(item.log_time).toLocaleTimeString()}</Text>
       <Text style={styles.logCategory}>[{item.category}]</Text>
       <Text style={styles.logDesc}>{item.description}</Text>
     </View>
@@ -47,10 +47,10 @@ export default function RecordsScreen() {
       </View>
 
       <View style={styles.tabContainer}>
-        <TouchableOpacity style={[styles.tab, tab === 'bets' && styles.activeTab]} onPress={() => setTab('bets')}>
+        <TouchableOpacity accessibilityRole="button" style={[styles.tab, tab === 'bets' && styles.activeTab]} onPress={() => setTab('bets')}>
           <Text style={[styles.tabText, tab === 'bets' && styles.activeTabText]}>历史注单</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, tab === 'logs' && styles.activeTab]} onPress={() => setTab('logs')}>
+        <TouchableOpacity accessibilityRole="button" style={[styles.tab, tab === 'logs' && styles.activeTab]} onPress={() => setTab('logs')}>
           <Text style={[styles.tabText, tab === 'logs' && styles.activeTabText]}>系统日志</Text>
         </TouchableOpacity>
       </View>

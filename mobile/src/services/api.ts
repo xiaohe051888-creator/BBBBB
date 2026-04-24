@@ -328,11 +328,21 @@ export const getRoadRawData = async (bootNumber?: number) => {
 
 export const createWebSocket = async (): Promise<WebSocket> => {
   const token = await getToken();
-  const baseWsUrl = process.env.EXPO_PUBLIC_WS_URL || 'ws://localhost:8000';
+  let baseWsUrl = process.env.EXPO_PUBLIC_WS_URL || 'ws://localhost:8000';
   
+  // If it's a relative URL, prepend the window.location origin with ws/wss protocol
+  if (baseWsUrl.startsWith('/')) {
+    if (typeof window !== 'undefined' && window.location) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      baseWsUrl = `${protocol}//${window.location.host}${baseWsUrl}`;
+    } else {
+      baseWsUrl = `ws://localhost:8000${baseWsUrl}`;
+    }
+  }
+
   const wsUrl = baseWsUrl.includes('/ws/')
     ? baseWsUrl
-    : `${baseWsUrl}/ws`;
+    : `${baseWsUrl.endsWith('/ws') ? baseWsUrl : baseWsUrl + '/ws'}`;
   const urlWithToken = token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl;
   return new WebSocket(urlWithToken);
 };
