@@ -102,45 +102,44 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </div>
         </div>
 
-        {/* 中间：当前局 / 预测局（视觉焦点） */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, justifyContent: 'center' }} className="hide-on-mobile">
-          <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: 16, padding: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div style={{ padding: '8px 24px', textAlign: 'center', minWidth: 160 }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>当前局</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <span>第{systemState?.game_number || 0}局</span>
-                {systemState?.current_game_result && (
-                  <Tag color={systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff'} style={{ margin: 0, fontWeight: 800, borderRadius: 6, fontSize: 14, padding: '0 8px' }}>
-                    {systemState.current_game_result}
-                  </Tag>
-                )}
-              </div>
+        {/* 中间：当前/预测局 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }} className="hide-on-mobile">
+          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 140 }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, marginBottom: 2 }}>当前局</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>
+              第{systemState?.game_number || 0}局
+              {systemState?.current_game_result && (
+                <Tag color={systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff'}
+                  style={{ marginLeft: 8, fontWeight: 800, borderRadius: 6 }}>
+                  {systemState.current_game_result}
+                </Tag>
+              )}
             </div>
+          </div>
 
-            <div style={{ padding: '0 12px', color: 'rgba(255,215,0,0.3)' }}>
-              <ArrowRightIcon />
-            </div>
+          <div style={{ color: 'rgba(255,215,0,0.4)' }}>
+            <ArrowRightIcon />
+          </div>
 
-            <div style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,140,0,0.05))', borderRadius: 12, padding: '8px 24px', textAlign: 'center', minWidth: 180, border: '1px solid rgba(255,215,0,0.2)', boxShadow: 'inset 0 0 20px rgba(255,215,0,0.05)' }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,215,0,0.8)', marginBottom: 4 }}>预测下一局</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#ffd666', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <span>第{systemState?.next_game_number || (systemState?.game_number || 0) + 1}局</span>
-                {systemState?.predict_direction && (
-                  <Tag style={{
-                    margin: 0,
-                    fontWeight: 800,
-                    borderRadius: 6,
-                    fontSize: 14,
-                    padding: '0 8px',
-                    background: systemState.predict_direction === '庄' ? 'linear-gradient(135deg,#ff4d4f,#cf1322)' : 'linear-gradient(135deg,#1890ff,#0050b3)',
-                    color: '#fff',
-                    border: 'none',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                  }}>
-                    {systemState.predict_direction}
-                  </Tag>
-                )}
-              </div>
+          <div style={{ background: 'linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,215,0,0.02))', borderRadius: 12, padding: '8px 18px', textAlign: 'center', minWidth: 170, border: '1px solid rgba(255,215,0,0.1)' }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,215,0,0.6)', letterSpacing: 1.5, marginBottom: 2 }}>预测下一局</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#ffd666' }}>
+              第{systemState?.next_game_number || (systemState?.game_number || 0) + 1}局
+              {systemState?.predict_direction && (
+                <Tag style={{
+                  marginLeft: 8,
+                  fontWeight: 800,
+                  borderRadius: 6,
+                  background: systemState.predict_direction === '庄'
+                    ? 'linear-gradient(135deg,#ff4d4f,#cf1322)'
+                    : 'linear-gradient(135deg,#1890ff,#0050b3)',
+                  color: '#fff',
+                  border: 'none',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                }}>
+                  {systemState.predict_direction}
+                </Tag>
+              )}
             </div>
           </div>
         </div>
