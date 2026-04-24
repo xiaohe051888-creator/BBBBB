@@ -26,6 +26,7 @@ export default function RevealBottomSheet({ bottomSheetModalRef, loading, gameNu
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.container}
       handleIndicatorStyle={styles.indicator}
+      enablePanDownToClose={true}
     >
       <View style={styles.contentContainer}>
         <Text style={styles.title}>

@@ -49,6 +49,7 @@ export default function UploadBottomSheet({ bottomSheetModalRef, loading, onUplo
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.container}
       handleIndicatorStyle={styles.indicator}
+      enablePanDownToClose={true}
     >
       <View style={styles.contentContainer}>
         <View style={styles.header}>

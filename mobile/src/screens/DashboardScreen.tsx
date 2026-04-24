@@ -20,6 +20,22 @@ export default function DashboardScreen() {
 
   useWebSocket();
 
+  const [alertConfig, setAlertConfig] = useState<{visible: boolean, title: string, message: string, onConfirm?: () => void, showCancel?: boolean}>({visible: false, title: '', message: ''});
+
+  const showAlert = (title: string, message: string, onConfirm?: () => void, showCancel?: boolean) => {
+    if (Platform.OS === 'web') {
+      setAlertConfig({visible: true, title, message, onConfirm, showCancel});
+    } else {
+      if (showCancel) {
+        Alert.alert(title, message, [
+          { text: '取消', style: 'cancel' },
+          { text: '确定', style: 'destructive', onPress: onConfirm }
+        ]);
+      } else {
+        Alert.alert(title, message, [{ text: '确定', onPress: onConfirm }]);
+      }
+    }
+  };
   const revealSheetRef = useRef<BottomSheetModal>(null);
   const uploadSheetRef = useRef<BottomSheetModal>(null);
 
@@ -40,7 +56,7 @@ export default function DashboardScreen() {
       await revealMutation.mutateAsync({ result });
       revealSheetRef.current?.dismiss();
     } catch (e: any) {
-      Platform.OS === 'web' ? window.alert(`开奖失败: ${e.message}`) : Alert.alert('开奖失败', e.message);
+      showAlert('开奖失败', e.message);
     }
   };
 
@@ -49,44 +65,22 @@ export default function DashboardScreen() {
       const formatted = gamesArr.map((res, i) => ({ game_number: i + 1, result: res }));
       await uploadMutation.mutateAsync({ games: formatted as any, isNewBoot: false });
       uploadSheetRef.current?.dismiss();
-      Platform.OS === 'web' ? window.alert('成功: 上传成功') : Alert.alert('成功', '上传成功');
+      showAlert('成功', '上传成功');
     } catch (e: any) {
       Alert.alert('上传失败', e.message);
     }
   };
 
   const handleEndBoot = () => {
-    console.log('End boot clicked');
-    if (Platform.OS === 'web') {
-      if (window.confirm('确定要结束本靴并开始深度学习吗？')) {
-        endBootMutation.mutateAsync().then(() => {
-          window.alert('本靴已结束，进入深度学习');
-          uploadSheetRef.current?.present();
-        }).catch((e: any) => window.alert(e.message));
+    showAlert('结束本靴', '确定要结束本靴并开始深度学习吗？', async () => {
+      try {
+        await endBootMutation.mutateAsync();
+        showAlert('成功', '本靴已结束，进入深度学习');
+        uploadSheetRef.current?.present();
+      } catch (e: any) {
+        showAlert('错误', e.message);
       }
-      return;
-    }
-
-    Alert.alert(
-      '结束本靴',
-      '确定要结束本靴并开始深度学习吗？',
-      [
-        { text: '取消', style: 'cancel' },
-        { 
-          text: '确定', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await endBootMutation.mutateAsync();
-              Alert.alert('成功', '本靴已结束，进入深度学习');
-              uploadSheetRef.current?.present(); // Prompt to upload new data
-            } catch (e: any) {
-              Platform.OS === 'web' ? window.alert(`错误: ${e.message}`) : Alert.alert('错误', e.message);
-            }
-          }
-        }
-      ]
-    );
+    }, true);
   };
 
   return (
@@ -127,7 +121,30 @@ export default function DashboardScreen() {
         loading={uploadMutation.isPending}
         onUpload={handleUploadSubmit} 
       />
+
+      {alertConfig.visible && (
+        <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 999}]}>
+          <View style={{backgroundColor: '#161b22', padding: 20, borderRadius: 12, width: '80%', maxWidth: 400, borderWidth: 1, borderColor: '#30363d'}}>
+            <Text style={{color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 8}}>{alertConfig.title}</Text>
+            <Text style={{color: '#c9d1d9', fontSize: 15, marginBottom: 20}}>{alertConfig.message}</Text>
+            <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 12}}>
+              {alertConfig.showCancel && (
+                <TouchableOpacity onPress={() => setAlertConfig({...alertConfig, visible: false})} style={{padding: 10}}>
+                  <Text style={{color: '#8b949e', fontSize: 16}}>取消</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => {
+                setAlertConfig({...alertConfig, visible: false});
+                alertConfig.onConfirm && alertConfig.onConfirm();
+              }} style={{padding: 10}}>
+                <Text style={{color: '#58a6ff', fontSize: 16, fontWeight: 'bold'}}>确定</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
+
   );
 }
 
