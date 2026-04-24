@@ -336,8 +336,8 @@ const DashboardPage: React.FC = () => {
       <DashboardHeader
         systemState={{
           ...systemState,
-          current_game_result: games.length > 0 ? games[games.length - 1].result : null,
-          game_number: games.length,
+          current_game_result: games.length > 0 ? games[0].result : null,
+          game_number: games.length > 0 ? games[0].game_number : 0,
         }}
         bettingAdvice={bettingAdvice}
         diagnostics={diagnostics}
