@@ -9,6 +9,7 @@ export default defineConfig({
   // 开发服务器代理（避免跨域）
   server: {
     port: 5173,
+    host: '0.0.0.0', // 允许所有 IP 访问
     proxy: {
       '/api': {
         target: 'http://localhost:8000',

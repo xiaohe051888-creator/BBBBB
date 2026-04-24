@@ -27,11 +27,13 @@ export const SmartAlerts: React.FC<SmartAlertsProps> = ({
       {alerts.map((alert) => (
         <Alert
           key={alert.id}
-          message={alert.message}
-          type={alert.type === 'danger' ? 'error' : alert.type}
+          title={alert.title}
+          description={alert.message}
+          type={alert.type === 'error' ? 'error' : alert.type === 'warning' ? 'warning' : 'info'}
           showIcon
           closable
-          onClose={() => onDismiss(alert.id)}
+          onClose={() => onDismiss?.(alert.id)}
+          style={{ marginBottom: 12 }}
         />
       ))}
       {integrityIssues?.map((issue, index) => (

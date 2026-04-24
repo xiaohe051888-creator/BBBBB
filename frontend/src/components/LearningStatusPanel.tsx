@@ -111,7 +111,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
             
             {deepLearning.status === '完成' && (
               <Alert
-                message="深度学习完成！可以上传新靴数据了"
+                title="深度学习完成！可以上传新靴数据了"
                 type="success"
                 showIcon
               />
@@ -119,7 +119,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
             
             {deepLearning.status === '失败' && deepLearning.error && (
               <Alert
-                message={`学习失败: ${deepLearning.error}`}
+                title={`学习失败: ${deepLearning.error}`}
                 type="error"
                 showIcon
               />

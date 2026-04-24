@@ -84,12 +84,11 @@ app = FastAPI(
 
 # CORS配置
 def _parse_cors_origins() -> List[str]:
-    return ["*"]
     """解析CORS允许的来源列表"""
     origins_str = settings.CORS_ORIGINS.strip()
     if origins_str == "*":
         return ["*"]
-    return [o.strip() for o in origins_str.split(",") if o.strip()] or ["http://localhost:5173"]
+    return [o.strip() for o in origins_str.split(",") if o.strip()] or ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 _cors_origins = _parse_cors_origins()
 app.add_middleware(

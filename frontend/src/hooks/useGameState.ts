@@ -171,7 +171,6 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
       setSystemState(res.data);
     } catch (err) {
       console.error('[useGameState] 加载系统状态失败:', err);
-      message.error('加载系统状态失败');
     }
   }, []);
 
@@ -181,7 +180,6 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
       setStats(res.data);
     } catch (err) {
       console.error('[useGameState] 加载统计数据失败:', err);
-      message.error('加载统计数据失败');
     }
   }, []);
 
@@ -197,10 +195,9 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
         setLogs(res.data.data);
       } catch (err) {
         console.error('[useGameState] 加载日志失败:', err);
-        message.error('加载日志失败');
       }
     },
-    [ logCategory]
+    [logCategory]
   );
 
   const loadGames = useCallback(
@@ -214,7 +211,6 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
         if (typeof res.data.total === 'number') setGamesTotal(res.data.total);
       } catch (err) {
         console.error('[useGameState] 加载游戏记录失败:', err);
-        message.error('加载游戏记录失败');
       }
     },
     []
@@ -231,7 +227,6 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
         if (typeof res.data.total === 'number') setBetsTotal(res.data.total);
       } catch (err) {
         console.error('[useGameState] 加载下注记录失败:', err);
-        message.error('加载下注记录失败');
       }
     },
     []
@@ -247,7 +242,6 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
       }
     } catch (err) {
       console.error('[useGameState] 加载路图数据失败:', err);
-      message.error('加载路图数据失败');
       // 保留上次数据而非清空
     } finally {
       setRoadLoading(false);
@@ -271,7 +265,6 @@ export const useGameState = (options: UseGameStateOptions): UseGameStateReturn =
       }
     } catch (err) {
       console.error('[useGameState] 加载AI分析失败:', err);
-      message.error('加载AI分析失败');
     }
   }, []);
 

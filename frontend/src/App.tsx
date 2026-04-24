@@ -8,7 +8,7 @@
  */
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, theme, App as AntApp } from 'antd';
 import { QueryClientProvider } from '@tanstack/react-query';
 import zhCN from 'antd/locale/zh_CN';
 import UploadPage from './pages/UploadPage';
@@ -255,20 +255,22 @@ const App: React.FC = () => {
             },
           }}
         >
-          <BrowserRouter>
-            <AppLayout>
-              <Routes>
-                <Route path="/" element={<UploadPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/dashboard/roadmap" element={<RoadMapPage />} />
-                <Route path="/dashboard/bets" element={<BetRecordsPage />} />
-                <Route path="/dashboard/logs" element={<LogsPage />} />
-                <Route path="/dashboard/mistakes" element={<MistakeBookPage />} />
-                <Route path="/admin" element={getToken() ? <AdminPage /> : <Navigate to="/" replace />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </AppLayout>
-          </BrowserRouter>
+          <AntApp>
+            <BrowserRouter>
+              <AppLayout>
+                <Routes>
+                  <Route path="/" element={<UploadPage />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/dashboard/roadmap" element={<RoadMapPage />} />
+                  <Route path="/dashboard/bets" element={<BetRecordsPage />} />
+                  <Route path="/dashboard/logs" element={<LogsPage />} />
+                  <Route path="/dashboard/mistakes" element={<MistakeBookPage />} />
+                  <Route path="/admin" element={getToken() ? <AdminPage /> : <Navigate to="/" replace />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </AppLayout>
+            </BrowserRouter>
+          </AntApp>
         </ConfigProvider>
       </QueryClientProvider>
     </PageErrorBoundary>

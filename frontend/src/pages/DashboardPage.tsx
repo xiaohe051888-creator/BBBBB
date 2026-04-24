@@ -385,8 +385,8 @@ const DashboardPage: React.FC = () => {
             <Progress
               percent={(games.length / MAX_GAMES_PER_BOOT) * 100}
               showInfo={false}
-              strokeColor={{ from: '#ffd700', to: '#ff8c00' }}
-              trailColor="rgba(255,255,255,0.1)"
+              strokeColor={{ '0%': '#ffd700', '100%': '#ff8c00' }}
+              railColor="rgba(255,255,255,0.1)"
               size="small"
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11 }}>

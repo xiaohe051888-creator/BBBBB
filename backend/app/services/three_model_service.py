@@ -67,19 +67,26 @@ class AIClient:
         永不放弃，直到成功
         """
         last_error = None
-        
+
         for attempt in range(self.max_retries):
             try:
                 return await self._call_once(prompt)
+            except asyncio.TimeoutError as e:
+                last_error = e
+                delay = min(self.base_delay * (2 ** attempt), self.max_delay)
+                import logging
+                logging.getLogger("uvicorn.error").warning(f"[{self.client_type}] 第{attempt + 1}次调用超时: {delay}秒后重试")
+                await asyncio.sleep(delay)
             except Exception as e:
                 last_error = e
                 # 指数退避：1s, 2s, 4s, 8s, 16s...
                 delay = min(self.base_delay * (2 ** attempt), self.max_delay)
-                
+
                 # 记录重试日志
-                print(f"[{self.client_type}] 第{attempt + 1}次调用失败: {str(e)[:50]}... {delay}秒后重试")
+                import logging
+                logging.getLogger("uvicorn.error").warning(f"[{self.client_type}] 第{attempt + 1}次调用失败: {str(e)[:100]}... {delay}秒后重试")
                 await asyncio.sleep(delay)
-        
+
         # 所有重试都失败了，抛出最后一个错误
         raise Exception(f"[{self.client_type}] 经过{self.max_retries}次重试后仍然失败: {last_error}")
     
@@ -833,68 +840,83 @@ class ThreeModelService:
     def _build_road_visualization(self, road_data: Dict) -> str:
         """
         构建走势图的可视化描述，帮助AI理解2D走势图结构
-        
+
         将五路数据转换为文字描述，让AI能够"看到"走势图的整体形态
         """
         if not road_data:
             return "暂无走势图数据"
-        
+
         lines = []
         lines.append("【五路走势图2D结构描述】")
         lines.append("")
-        
+
+        def _get_points(road_obj):
+            if hasattr(road_obj, 'points'):
+                return road_obj.points
+            elif isinstance(road_obj, dict) and "points" in road_obj:
+                return road_obj["points"]
+            elif isinstance(road_obj, list):
+                return road_obj
+            return []
+
         # 大路描述
-        big_road = road_data.get("big_road", [])
+        big_road = _get_points(road_data.get("big_road"))
         if big_road:
             lines.append("1. 大路（主趋势）:")
             lines.append(f"   - 总点数: {len(big_road)}")
-            
+
             # 分析列结构
             columns = self._analyze_road_columns(big_road)
             lines.append(f"   - 列数: {len(columns)}")
             lines.append(f"   - 最近列高度: {[len(col) for col in columns[-3:]]}")
-            
+
             # 检测连胜/连败
             recent = big_road[-10:] if len(big_road) >= 10 else big_road
             banker_streak = self._count_streak(recent, "庄")
             player_streak = self._count_streak(recent, "闲")
             lines.append(f"   - 当前庄连胜: {banker_streak}局")
             lines.append(f"   - 当前闲连胜: {player_streak}局")
-            
+
             # 检测血迹标记
-            error_marks = [p for p in big_road if p.get("error_id")]
+            error_marks = [p for p in big_road if getattr(p, 'error_id', None) or (isinstance(p, dict) and p.get("error_id"))]
             if error_marks:
                 lines.append(f"   - ⚠️ 血迹标记: {len(error_marks)}处")
                 for em in error_marks[-3:]:
-                    lines.append(f"     局{em.get('game_number', '?')}: {em.get('error_id')}")
+                    game_num = getattr(em, 'game_number', '?') if not isinstance(em, dict) else em.get('game_number', '?')
+                    err_id = getattr(em, 'error_id', '?') if not isinstance(em, dict) else em.get('error_id', '?')
+                    lines.append(f"     局{game_num}: {err_id}")
             lines.append("")
-        
+        else:
+            banker_streak = 0
+            player_streak = 0
+            error_marks = []
+
         # 珠盘路描述
-        bead_road = road_data.get("bead_road", [])
+        bead_road = _get_points(road_data.get("bead_road"))
         if bead_road:
             lines.append("2. 珠盘路（原始记录）:")
             recent_bead = bead_road[-14:] if len(bead_road) >= 14 else bead_road
-            sequence = "→".join([p.get("value", "?") for p in recent_bead])
+            sequence = "→".join([getattr(p, 'value', getattr(p, 'result', '?')) if not isinstance(p, dict) else p.get("value", p.get("result", "?")) for p in recent_bead])
             lines.append(f"   - 最近序列: {sequence}")
             lines.append("")
-        
+
         # 下三路描述
         for road_name, road_key in [("大眼仔路", "big_eye_road"), ("小路", "small_road"), ("螳螂路", "crock_road")]:
-            road_points = road_data.get(road_key, [])
+            road_points = _get_points(road_data.get(road_key))
             if road_points:
                 lines.append(f"3. {road_name}（规律节奏）:")
                 lines.append(f"   - 总点数: {len(road_points)}")
-                
+
                 # 统计红/蓝（延/转）
-                red_count = sum(1 for p in road_points if p.get("value") == "红")
-                blue_count = sum(1 for p in road_points if p.get("value") == "蓝")
+                red_count = sum(1 for p in road_points if (getattr(p, 'value', None) == "红" or (isinstance(p, dict) and p.get("value") == "红")))
+                blue_count = sum(1 for p in road_points if (getattr(p, 'value', None) == "蓝" or (isinstance(p, dict) and p.get("value") == "蓝")))
                 lines.append(f"   - 红(延): {red_count}个, 蓝(转): {blue_count}个")
-                
+
                 # 最近趋势
                 recent_points = road_points[-5:] if len(road_points) >= 5 else road_points
-                recent_values = [p.get("value", "?") for p in recent_points]
+                recent_values = [(getattr(p, 'value', '?') if not isinstance(p, dict) else p.get("value", "?")) for p in recent_points]
                 # 将红/蓝转换为延/转便于理解
-                display_values = ["延" if v == "红" else "转" if v == "蓝" else v for v in recent_values]
+                display_values = ["延" if v == "红" else "转" if v == "蓝" else str(v) for v in recent_values]
                 lines.append(f"   - 最近: {'→'.join(display_values)}")
                 lines.append("")
         

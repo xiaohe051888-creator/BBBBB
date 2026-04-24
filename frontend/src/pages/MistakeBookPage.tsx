@@ -273,12 +273,11 @@ const MistakeBookPage: React.FC = () => {
 
       {/* 提示信息 */}
       <Alert
+        title="系统说明"
+        description="预测准确时不生成错题记录，仅在预测失误时保存完整现场供后续深度学习"
         type="info"
-        icon={<Icons.Bulb />}
-        message="错题本记录了每次预测错误的详细分析。通过复盘错因和修正策略，系统会在后续预测中自动规避类似错误。"
         showIcon
-        closable
-        style={{ marginBottom: 16, fontSize: 13 }}
+        style={{ marginBottom: 24, background: 'rgba(24,144,255,0.1)', border: '1px solid rgba(24,144,255,0.2)' }}
       />
 
       {/* 统计卡片 — 响应式网格 */}
@@ -400,14 +399,11 @@ const MistakeBookPage: React.FC = () => {
           size="small"
           pagination={{
             current: page,
-            pageSize,
+            pageSize: pageSize,
             total: filtered.length,
             onChange: (p, ps) => { setPage(p); if (ps !== pageSize) setPageSize(ps); },
-            showTotal: (t) => `共 ${t} 条`,
             showSizeChanger: true,
-            showQuickJumper: true,
-            pageSizeOptions: ['10', '20', '50'],
-            size: 'small',
+            showTotal: total => `共 ${total} 条`,
           }}
           scroll={{ y: 'calc(100vh - 520px)' }}
           locale={{ emptyText: <Empty description={
