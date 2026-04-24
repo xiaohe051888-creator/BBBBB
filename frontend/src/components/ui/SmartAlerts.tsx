@@ -29,7 +29,7 @@ export const SmartAlerts: React.FC<SmartAlertsProps> = ({
           key={alert.id}
           title={alert.title}
           description={alert.message}
-          type={alert.type === 'error' ? 'error' : alert.type === 'warning' ? 'warning' : 'info'}
+          type={alert.type === 'danger' ? 'error' : alert.type === 'warning' ? 'warning' : alert.type === 'success' ? 'success' : 'info'}
           showIcon
           closable
           onClose={() => onDismiss?.(alert.id)}
