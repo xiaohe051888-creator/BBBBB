@@ -75,10 +75,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const getDisplayStatus = (status?: string) => {
     if (!status || status === '空闲') {
       if (gameCount === 0) return '等待开局 (未上传数据)';
-      if ((systemState?.game_number || 0) >= 72) return '满靴待结算';
+      if ((systemState?.game_number || 0) >= 72) return '';
       return '请录入下一局开奖结果';
     }
-    if ((systemState?.game_number || 0) >= 72) return '满靴待结算';
+    if ((systemState?.game_number || 0) >= 72) return '';
     return status;
   };
 
@@ -106,12 +106,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.03)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div className="status-indicator-dot" style={{ backgroundColor: getStatusDot(systemState?.status), width: 8, height: 8, borderRadius: '50%', boxShadow: `0 0 8px ${getStatusDot(systemState?.status)}` }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: getStatusColor(systemState?.status) }}>
-              {getDisplayStatus(systemState?.status)}
-            </span>
-          </div>
+          {getDisplayStatus(systemState?.status) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.03)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="status-indicator-dot" style={{ backgroundColor: getStatusDot(systemState?.status), width: 8, height: 8, borderRadius: '50%', boxShadow: `0 0 8px ${getStatusDot(systemState?.status)}` }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: getStatusColor(systemState?.status) }}>
+                {getDisplayStatus(systemState?.status)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 中间：已删除当前局单独展示（合并到左侧）*/}
