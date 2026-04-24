@@ -75,10 +75,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const getDisplayStatus = (status?: string) => {
     if (!status || status === '空闲') {
       if (gameCount === 0) return '等待开局 (未上传数据)';
-      if ((systemState?.game_number || 0) >= 72) return '系统锁定';
+      if ((systemState?.game_number || 0) >= 72) return '满靴待结算';
       return '请录入下一局开奖结果';
     }
-    if ((systemState?.game_number || 0) >= 72) return '系统锁定';
+    if ((systemState?.game_number || 0) >= 72) return '满靴待结算';
     return status;
   };
 
