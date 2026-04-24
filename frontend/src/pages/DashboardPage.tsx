@@ -334,7 +334,11 @@ const DashboardPage: React.FC = () => {
     <div className="dashboard-container">
       {/* 顶部状态栏 */}
       <DashboardHeader
-        systemState={systemState ?? null}
+        systemState={{
+          ...systemState,
+          current_game_result: games.length > 0 ? games[games.length - 1].result : null,
+          game_number: games.length,
+        }}
         bettingAdvice={bettingAdvice}
         diagnostics={diagnostics}
         onDismissIssue={dismissIssue}
