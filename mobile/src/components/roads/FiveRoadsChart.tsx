@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Platform } from 'react-native';
 import { Canvas, Circle, Line, Group } from '@shopify/react-native-skia';
 import { useGameState } from '../../hooks/useGameState';
 
@@ -130,6 +130,17 @@ const BigRoad = ({ data, cols }: { data: string[]; cols: number }) => {
 
 export const FiveRoadsChart: React.FC = () => {
   const { games } = useGameState();
+  
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.container, styles.emptyContainer]}>
+        <Text style={styles.emptyTitle}>📱 原生走势图引擎</Text>
+        <Text style={styles.emptySubtitle}>五路走势图使用了原生的高性能 Skia 引擎。</Text>
+        <Text style={styles.emptySubtitle}>为了获得最佳的千局丝滑滑动体验，请在手机上使用 Expo Go 扫码预览原生 App。</Text>
+      </View>
+    );
+  }
+
   
   const rawData = useMemo(() => {
     return games ? games.map(g => g.result) : [];

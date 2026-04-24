@@ -1,25 +1,15 @@
-import React, { useRef, useState, Suspense, lazy } from 'react';
-import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Text, Platform } from 'react-native';
+import React, { useRef, useState, Suspense, lazy, useEffect } from 'react';
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Text, Platform, Modal } from 'react-native';
 import { SafeAreaView } from "react-native";
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 
 import { WorkflowStatusBar } from '../components/dashboard/WorkflowStatusBar';
 import { FiveRoadsChart } from '../components/roads/FiveRoadsChart';
-const LazyFiveRoadsChart = lazy(() => import('../components/roads/FiveRoadsChart').then(m => ({ default: m.FiveRoadsChart })));
 
-const RenderChart = () => {
-  if (Platform.OS === 'web') {
-    return (
-      <Suspense fallback={<View style={{height: 200, justifyContent: 'center', alignItems: 'center'}}><Text style={{color: '#8b949e'}}>Loading Skia Canvas...</Text></View>}>
-        <LazyFiveRoadsChart />
-      </Suspense>
-    );
-  }
-  return <RenderChart />;
-};
+
+// Lazy load Skia components
 import RevealBottomSheet from '../components/dashboard/RevealBottomSheet';
 import UploadBottomSheet from '../components/dashboard/UploadBottomSheet';
-
 import { useGameState } from '../hooks/useGameState';
 import { useRevealResultMutation, useUploadGamesMutation, useEndBootMutation } from '../hooks/useQueries';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -48,6 +38,7 @@ export default function DashboardScreen() {
       }
     }
   };
+
   const revealSheetRef = useRef<BottomSheetModal>(null);
   const uploadSheetRef = useRef<BottomSheetModal>(null);
 
@@ -57,7 +48,6 @@ export default function DashboardScreen() {
   const handleOpenReveal = () => {
     revealSheetRef.current?.present();
   };
-
   const handleOpenUpload = () => {
     console.log('Upload clicked', uploadSheetRef.current);
     uploadSheetRef.current?.present();
@@ -118,7 +108,7 @@ export default function DashboardScreen() {
       />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <RenderChart />
+        <FiveRoadsChart />
       </ScrollView>
 
       <RevealBottomSheet 
@@ -134,8 +124,8 @@ export default function DashboardScreen() {
         onUpload={handleUploadSubmit} 
       />
 
-      {alertConfig.visible && (
-        <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 999}]}>
+      <Modal transparent visible={alertConfig.visible} animationType="fade">
+        <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center'}]}>
           <View style={{backgroundColor: '#161b22', padding: 20, borderRadius: 12, width: '80%', maxWidth: 400, borderWidth: 1, borderColor: '#30363d'}}>
             <Text style={{color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 8}}>{alertConfig.title}</Text>
             <Text style={{color: '#c9d1d9', fontSize: 15, marginBottom: 20}}>{alertConfig.message}</Text>
@@ -154,7 +144,7 @@ export default function DashboardScreen() {
             </View>
           </View>
         </View>
-      )}
+      </Modal>
     </SafeAreaView>
 
   );

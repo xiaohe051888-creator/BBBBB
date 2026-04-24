@@ -6,14 +6,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import AppNavigator from './src/navigation/AppNavigator';
-// @ts-ignore
-import { LoadSkiaWeb } from "@shopify/react-native-skia/lib/module/web";
-
-// Initialize Skia on Web
-if (typeof window !== 'undefined') {
-  LoadSkiaWeb({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.39.1/bin/full/${file}` });
-}
-
 
 const queryClient = new QueryClient();
 
