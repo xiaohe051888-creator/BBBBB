@@ -130,7 +130,7 @@ async def run_ai_analysis(
             await write_game_log(
                 db, boot_number, sess.next_game_number,
                 "LOG-MDL-001", "AI分析", "完成",
-                f"AI三模型分析完成，预测{sess.predict_direction}，置信{sess.predict_confidence:.0%}，建议{sess.predict_bet_tier}档",
+                f"🧠 AI对第{sess.next_game_number}局推理完成：预测【{sess.predict_direction}】 (置信度: {sess.predict_confidence:.0%})",
                 category="AI事件",
                 priority="P2",
             )

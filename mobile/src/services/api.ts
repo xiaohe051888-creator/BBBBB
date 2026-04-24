@@ -409,4 +409,18 @@ export const getThreeModelStatus = async () => {
   return api.get<ThreeModelStatus>('/admin/three-model-status');
 };
 
+// ====== 系统设置 ======
+
+export const updateApiKeys = async (keys: { openai_key?: string; anthropic_key?: string; gemini_key?: string }) => {
+  return api.post('/system/api-keys', keys);
+};
+
+export const testApiKeys = async () => {
+  return api.post('/system/test-api-keys');
+};
+
+export const adjustBalance = async (amount: number, action: 'add' | 'subtract') => {
+  return api.post('/system/balance/adjust', { amount, action });
+};
+
 export default api;

@@ -85,10 +85,14 @@ async def reveal_game(
             state.balance = sess.balance
             state.consecutive_errors = sess.consecutive_errors
             
+            # UX增强：详细日志
+            pred_msg = f"，AI曾预测: {sess.predict_direction}" if sess.predict_direction else "，AI无预测"
+            correct_msg = " (正确)✅" if predict_correct is True else (" (错误)❌" if predict_correct is False else "")
+            
             await write_game_log(
                 db, sess.boot_number, game_number,
                 "LOG-MNL-002", "开奖", "成功",
-                f"第{game_number}局开奖：{result}",
+                f"第{game_number}局已开奖：【{result}】{pred_msg}{correct_msg}",
                 priority="P2",
             )
             

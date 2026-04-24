@@ -178,10 +178,10 @@ async def upload_games(
                 )
             
             await write_game_log(
-                db, boot_number, max_game,
-                "LOG-MNL-001", "批量上传", "成功",
-                f"上传第{games[0]['game_number']}~{max_game}局共{uploaded}条记录，执行[{action_type}]",
-                priority="P2",
+                db, boot_number, None,
+                "LOG-SYS-001", "数据上传", "成功",
+                f"📥 成功同步 {len(games)} 局历史开奖记录",
+                priority="P3",
             )
             
             await db.commit()

@@ -1,16 +1,16 @@
 """
 系统状态路由
 """
-from typing import List, Dict
+from typing import List, Dict, Any
 from fastapi import APIRouter, Query, HTTPException, Depends
 from sqlalchemy import select, func, desc
 from datetime import datetime, timedelta
+import os
 
 from app.core.database import async_session
 from app.models.schemas import GameRecord, BetRecord, SystemLog, SystemState
 from app.core.config import settings
-from app.services.manual_game_service import get_current_state
-from app.services.game.session import _session
+from app.services.manual_game_service import get_current_state, get_session
 from app.api.routes.utils import get_current_user
 
 router = APIRouter(prefix="/api/system", tags=["系统状态"])
@@ -278,6 +278,168 @@ async def get_system_diagnostics():
         "overall_status": "critical" if not db_ok or configured_count == 0 else "warning" if configured_count < 3 else "ok",
     }
 
+
+from pydantic import BaseModel
+
+class APIKeyUpdateRequest(BaseModel):
+    openai_key: str | None = None
+    anthropic_key: str | None = None
+    gemini_key: str | None = None
+
+@router.post("/api-keys")
+async def update_api_keys(
+    req: APIKeyUpdateRequest,
+    # _: dict = Depends(get_current_user), # Uncomment for auth in production
+):
+    """Update API Keys in .env and runtime settings"""
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
+    
+    # Update runtime settings
+    if req.openai_key is not None:
+        settings.OPENAI_API_KEY = req.openai_key
+        os.environ["OPENAI_API_KEY"] = req.openai_key
+    if req.anthropic_key is not None:
+        settings.ANTHROPIC_API_KEY = req.anthropic_key
+        os.environ["ANTHROPIC_API_KEY"] = req.anthropic_key
+    if req.gemini_key is not None:
+        settings.GEMINI_API_KEY = req.gemini_key
+        os.environ["GEMINI_API_KEY"] = req.gemini_key
+
+    # Save to .env
+    env_content = ""
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            env_content = f.read()
+    
+    # Very naive update/append logic for simplicity
+    def set_env_var(content, key, val):
+        if val is None:
+            return content
+        lines = content.split('\n')
+        updated = False
+        for i, line in enumerate(lines):
+            if line.startswith(f"{key}="):
+                lines[i] = f"{key}={val}"
+                updated = True
+                break
+        if not updated:
+            lines.append(f"{key}={val}")
+        return '\n'.join(lines)
+
+    env_content = set_env_var(env_content, "OPENAI_API_KEY", req.openai_key)
+    env_content = set_env_var(env_content, "ANTHROPIC_API_KEY", req.anthropic_key)
+    env_content = set_env_var(env_content, "GEMINI_API_KEY", req.gemini_key)
+
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write(env_content)
+
+    return {"status": "success", "message": "API keys updated successfully"}
+
+class BalanceUpdateRequest(BaseModel):
+    amount: float
+    action: str # "add" or "subtract"
+
+@router.post("/balance/adjust")
+async def adjust_balance(
+    req: BalanceUpdateRequest,
+    # _: dict = Depends(get_current_user),
+):
+    """Adjust system balance"""
+    async with async_session() as session:
+        stmt = select(SystemState)
+        result = await session.execute(stmt)
+        state = result.scalar_one_or_none()
+        
+        if not state:
+            raise HTTPException(status_code=404, detail="System state not initialized")
+            
+        mem_sess = get_session()
+        
+        if req.action == "add":
+            state.balance += req.amount
+            mem_sess.balance += req.amount
+        elif req.action == "subtract":
+            if state.balance < req.amount:
+                raise HTTPException(status_code=400, detail="Insufficient balance")
+            state.balance -= req.amount
+            mem_sess.balance -= req.amount
+        else:
+            raise HTTPException(status_code=400, detail="Invalid action")
+            
+        await session.commit()
+        
+        from app.services.game.logging import write_game_log
+        await write_game_log(
+            session=session,
+            boot_number=mem_sess.boot_number,
+            game_number=mem_sess.next_game_number,
+            event_code="FIN-001",
+            event_type="资金调整",
+            event_result="成功",
+            description=f"用户手动{'增加' if req.action == 'add' else '扣除'}本金: {req.amount}, 当前余额: {state.balance}",
+            category="资金事件",
+            priority="P2",
+            source_module="SystemSettings"
+        )
+        await session.commit()
+        
+        return {"status": "success", "new_balance": state.balance}
+
+@router.post("/test-api-keys")
+async def test_api_keys(
+    # _: dict = Depends(get_current_user)
+):
+    """Test connection to the 3 AI models"""
+    results = {}
+    
+    # 1. Test OpenAI
+    try:
+        from openai import AsyncOpenAI
+        import httpx
+        client = AsyncOpenAI(
+            api_key=settings.OPENAI_API_KEY,
+            base_url=settings.OPENAI_API_BASE,
+            http_client=httpx.AsyncClient(timeout=10.0)
+        )
+        # Minimal request
+        res = await client.chat.completions.create(
+            model=settings.OPENAI_MODEL,
+            messages=[{"role": "user", "content": "Hello"}],
+            max_tokens=5
+        )
+        results["openai"] = {"success": True, "message": "Connection successful"}
+    except Exception as e:
+        results["openai"] = {"success": False, "message": str(e)}
+
+    # 2. Test Anthropic
+    try:
+        from anthropic import AsyncAnthropic
+        import httpx
+        client = AsyncAnthropic(
+            api_key=settings.ANTHROPIC_API_KEY,
+            base_url=settings.ANTHROPIC_API_BASE,
+            http_client=httpx.AsyncClient(timeout=10.0)
+        )
+        res = await client.messages.create(
+            model=settings.ANTHROPIC_MODEL,
+            messages=[{"role": "user", "content": "Hello"}],
+            max_tokens=5
+        )
+        results["anthropic"] = {"success": True, "message": "Connection successful"}
+    except Exception as e:
+        results["anthropic"] = {"success": False, "message": str(e)}
+
+    # 3. Test Gemini
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel(settings.GEMINI_MODEL)
+        res = model.generate_content("Hello")
+        results["gemini"] = {"success": True, "message": "Connection successful"}
+    except Exception as e:
+        results["gemini"] = {"success": False, "message": str(e)}
+
+    return results
 
 @router.post("/select-model")
 async def select_best_model(

@@ -13,6 +13,7 @@ import UploadBottomSheet from '../components/dashboard/UploadBottomSheet';
 import { useGameState } from '../hooks/useGameState';
 import { useRevealResultMutation, useUploadGamesMutation, useEndBootMutation } from '../hooks/useQueries';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { getLatestAnalysis } from '../services/api';
 
 export default function DashboardScreen() {
   const { systemState, analysis, games } = useGameState();
@@ -21,6 +22,27 @@ export default function DashboardScreen() {
   const endBootMutation = useEndBootMutation();
 
   useWebSocket();
+
+  const [analysisData, setAnalysisData] = useState<any>(null);
+
+  // Auto-refresh analysis
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    const fetchAnalysis = async () => {
+      try {
+        const res = await getLatestAnalysis();
+        setAnalysisData(res.data);
+      } catch (e) {}
+    };
+    
+    if (systemState?.status === '等待下注' || systemState?.status === '分析中' || systemState?.has_pending_bet) {
+       fetchAnalysis();
+       timer = setInterval(fetchAnalysis, 3000);
+    } else {
+       fetchAnalysis();
+    }
+    return () => clearInterval(timer);
+  }, [systemState?.status, systemState?.next_game_number]);
 
   const [alertConfig, setAlertConfig] = useState<{visible: boolean, title: string, message: string, onConfirm?: () => void, showCancel?: boolean}>({visible: false, title: '', message: ''});
 
@@ -49,7 +71,6 @@ export default function DashboardScreen() {
     revealSheetRef.current?.present();
   };
   const handleOpenUpload = () => {
-    console.log('Upload clicked', uploadSheetRef.current);
     uploadSheetRef.current?.present();
   };
 
@@ -69,7 +90,7 @@ export default function DashboardScreen() {
       uploadSheetRef.current?.dismiss();
       showAlert('成功', '上传成功');
     } catch (e: any) {
-      Alert.alert('上传失败', e.message);
+      showAlert('上传失败', e.message);
     }
   };
 
@@ -88,7 +109,10 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.headerBar}>
-        <Text style={styles.headerTitle}>单靴分析终端</Text>
+        <View>
+          <Text style={styles.headerTitle}>单靴分析终端</Text>
+          <Text style={styles.headerSubtitle}>当前本金: ¥{systemState?.balance?.toFixed(2) || '0.00'}</Text>
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity accessibilityRole="button" onPress={handleOpenUpload} style={styles.uploadBtn}>
             <Text style={styles.uploadBtnText}>上传</Text>
@@ -108,6 +132,28 @@ export default function DashboardScreen() {
       />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* AI Analysis Dashboard Card */}
+        {analysisData?.has_data && (
+          <View style={styles.analysisCard}>
+            <Text style={styles.analysisTitle}>🧠 AI 深度推理结果</Text>
+            
+            <View style={styles.modelSection}>
+              <Text style={styles.modelLabel}>🎯 综合预测 (Gemini) - 建议: {analysisData.combined_model?.prediction || '无'}</Text>
+              <Text style={styles.modelText}>{analysisData.combined_model?.summary || '等待分析...'}</Text>
+            </View>
+            
+            <View style={styles.modelSection}>
+              <Text style={styles.modelLabel}>🏦 庄家模型 (OpenAI)</Text>
+              <Text style={styles.modelText}>{analysisData.banker_model?.summary || '等待分析...'}</Text>
+            </View>
+
+            <View style={styles.modelSection}>
+              <Text style={styles.modelLabel}>👤 闲家模型 (Anthropic)</Text>
+              <Text style={styles.modelText}>{analysisData.player_model?.summary || '等待分析...'}</Text>
+            </View>
+          </View>
+        )}
+
         <FiveRoadsChart />
       </ScrollView>
 
@@ -154,6 +200,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0d1117' },
   headerBar: { zIndex: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#161b22' },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  headerSubtitle: { color: '#ffd700', fontSize: 12, marginTop: 2, fontWeight: '600' },
   headerActions: { flexDirection: 'row', gap: 12 },
   uploadBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.1)' },
   uploadBtnText: { color: '#c9d1d9', fontSize: 14, fontWeight: 'bold' },
@@ -161,4 +208,9 @@ const styles = StyleSheet.create({
   endBootBtnText: { color: '#ff4d4f', fontSize: 14, fontWeight: 'bold' },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 40 },
+  analysisCard: { margin: 16, padding: 16, backgroundColor: '#161b22', borderRadius: 12, borderWidth: 1, borderColor: '#30363d' },
+  analysisTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 12 },
+  modelSection: { marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#21262d' },
+  modelLabel: { color: '#58a6ff', fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
+  modelText: { color: '#c9d1d9', fontSize: 13, lineHeight: 20 },
 });

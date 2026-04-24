@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DashboardScreen from '../screens/DashboardScreen';
 import RecordsScreen from '../screens/RecordsScreen';
 import MistakesScreen from '../screens/MistakesScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -26,6 +27,8 @@ export default function AppNavigator() {
               iconName = focused ? 'list' : 'list-outline';
             } else if (route.name === 'Mistakes') {
               iconName = focused ? 'book' : 'book-outline';
+            } else if (route.name === 'Settings') {
+              iconName = focused ? 'settings' : 'settings-outline';
             }
             return <Ionicons name={iconName} size={size} color={color} />;
           },
@@ -34,6 +37,7 @@ export default function AppNavigator() {
         <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: '预测' }} />
         <Tab.Screen name="Records" component={RecordsScreen} options={{ title: '记录' }} />
         <Tab.Screen name="Mistakes" component={MistakesScreen} options={{ title: '错题本' }} />
+        <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: '设置' }} />
       </Tab.Navigator>
     </NavigationContainer>
   );
