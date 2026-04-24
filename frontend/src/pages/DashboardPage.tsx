@@ -69,35 +69,6 @@ const DashboardPage: React.FC = () => {
   const gamesTotal = gamesData?.total || 0;
   const betsTotal = betsData?.total || 0;
 
-  // 健康分状态
-  const [healthScore, setHealthScore] = useState<HealthScoreResponse | null>(null);
-  const [healthScoreLoading, setHealthScoreLoading] = useState(false);
-
-  const fetchHealthScore = useCallback(async () => {
-    
-    setHealthScoreLoading(true);
-    try {
-      const response = await api.getHealthScore();
-      setHealthScore(response);
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : '获取健康分失败';
-      addIssue({
-        level: 'warning',
-        title: '健康分获取失败',
-        detail: `无法获取系统健康状态: ${errorMsg}`,
-        source: 'system',
-      });
-    } finally {
-      setHealthScoreLoading(false);
-    }
-  }, [ addIssue]);
-
-  useEffect(() => {
-    fetchHealthScore();
-    const timer = setInterval(fetchHealthScore, 30000);
-    return () => clearInterval(timer);
-  }, [fetchHealthScore]);
-
   // AI分析状态
   const hasGameData = games.length > 0;
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
@@ -363,11 +334,7 @@ const DashboardPage: React.FC = () => {
     <div className="dashboard-container">
       {/* 顶部状态栏 */}
       <DashboardHeader
-        
         systemState={systemState ?? null}
-        healthScore={healthScore}
-        healthScoreLoading={healthScoreLoading}
-        onFetchHealthScore={fetchHealthScore}
         bettingAdvice={bettingAdvice}
         diagnostics={diagnostics}
         onDismissIssue={dismissIssue}
@@ -427,6 +394,12 @@ const DashboardPage: React.FC = () => {
               </span>
               <span style={{ color: 'rgba(255,255,255,0.4)' }}>
                 胜率: <span style={{ color: '#ffd700' }}>{((stats?.accuracy || 0) * 100).toFixed(1)}%</span>
+              </span>
+            </div>
+            <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>当前AI模型版本</span>
+              <span style={{ fontSize: 12, color: '#b37feb', background: 'rgba(179,127,235,0.1)', padding: '2px 8px', borderRadius: 12 }}>
+                {systemState?.current_model_version || 'v1.0'}
               </span>
             </div>
           </div>
