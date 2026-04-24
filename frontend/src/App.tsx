@@ -109,7 +109,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   return (
-    <div className="page-transition" style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="page-transition" style={{ minHeight: '100vh' }}>
       {/* ====== 桌面端侧边栏 ====== */}
       <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}>
         {/* Logo区域 */}
@@ -169,13 +169,15 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </aside>
 
       {/* ====== 主内容区域 ====== */}
-      <div 
-        style={{ 
-          flex: 1, 
-          minWidth: 0, 
-          overflowX: 'auto',  /* 改为auto，允许水平滚动 */
+      <div
+        style={{
+          minWidth: 0,
+          overflowX: 'auto',  /* 允许水平滚动（如有过宽的表格） */
           marginLeft: isMobile ? 0 : (collapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)'),
           transition: 'margin-left var(--transition-slow)',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {children}

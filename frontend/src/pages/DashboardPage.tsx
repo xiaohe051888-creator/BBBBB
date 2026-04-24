@@ -360,7 +360,7 @@ const DashboardPage: React.FC = () => {
       {/* 主体内容 */}
       <div className="dashboard-main-grid" style={{ padding: 16, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         {/* 左侧：五路走势图 */}
-        <div style={{ flex: '1 1 400px', minWidth: 300 }}>
+        <div style={{ flex: '1 1 400px', minWidth: 'min(300px, 100%)' }}>
           <div className="road-card" style={{ background: '#1a1d24', borderRadius: 12, padding: 16, marginBottom: 16, overflow: 'hidden' }}>
             <div className="section-header" style={{ marginBottom: 12 }}>
               <span style={{ color: '#58a6ff' }}>
@@ -413,7 +413,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* 右侧：分析面板 + 数据表格 */}
-        <div style={{ flex: '2 1 600px', minWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ flex: '2 1 600px', minWidth: 'min(400px, 100%)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* 智能分析 */}
           <AnalysisPanel
             analysis={analysis ?? null}
@@ -431,7 +431,7 @@ const DashboardPage: React.FC = () => {
           />
 
           {/* 数据表格 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
             <GameTable
               data={games}
               page={gamePage}
