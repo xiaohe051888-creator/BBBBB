@@ -156,7 +156,7 @@ async def reveal_game_route(req: RevealRequest):
 
 @router.post("/end-boot")
 async def end_current_boot(
-    _: dict = Depends(get_current_user),
+
 ):
     """
     结束本靴 - 触发深度学习，完成后才能开始新靴
