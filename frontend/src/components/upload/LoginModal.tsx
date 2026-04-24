@@ -42,7 +42,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       onCancel={handleClose}
       footer={null}
       centered
-      maskStyle={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
       width={400}
       style={{
         background: 'linear-gradient(145deg, #1a2332, #141b26)',
@@ -53,6 +52,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }}
       styles={{
         header: { display: 'none' },
+        mask: { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }
       }}
     >
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
