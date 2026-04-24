@@ -297,8 +297,8 @@ export const getStatistics = async () => {
 
 // ====== 管理员 ======
 
-export const adminLogin = async (username: string, password: string) => {
-  return api.post('/admin/login', { username, password });
+export const adminLogin = async (password: string) => {
+  return api.post('/admin/login', { password });
 };
 
 export const changePassword = async (oldPassword: string, newPassword: string) => {

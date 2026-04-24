@@ -63,7 +63,7 @@ export const useAdminLogin = (
 
     setLoading(true);
     try {
-      const res = await api.adminLogin('admin', password);
+      const res = await api.adminLogin(password);
       const { must_change_password, token } = res.data;
       api.setToken(token);
 

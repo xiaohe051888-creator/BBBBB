@@ -21,12 +21,12 @@ router = APIRouter(prefix="/api/admin", tags=["认证"])
 async def admin_login(req: LoginRequest):
     """管理员登录"""
     async with async_session() as session:
-        stmt = select(AdminUser).where(AdminUser.username == req.username)
+        stmt = select(AdminUser).where(AdminUser.username == "admin")
         result = await session.execute(stmt)
         admin = result.scalar_one_or_none()
-        
+
         if not admin:
-            raise HTTPException(status_code=401, detail="用户名或密码错误")
+            raise HTTPException(status_code=401, detail="密码错误")
 
         if admin.locked_until and admin.locked_until > datetime.now():
             raise HTTPException(status_code=403, detail="账户已锁定，请10分钟后重试")

@@ -187,7 +187,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
   // 管理员登录
   const handleLogin = async (password: string) => {
     try {
-      const res = await api.adminLogin('admin', password);
+      const res = await api.adminLogin(password);
       const { must_change_password, token } = res.data;
       api.setToken(token);
       if (must_change_password) {
