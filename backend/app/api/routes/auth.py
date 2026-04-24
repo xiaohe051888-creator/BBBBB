@@ -26,28 +26,28 @@ async def admin_login(req: LoginRequest):
         admin = result.scalar_one_or_none()
         
         if not admin:
-            raise HTTPException(401, "用户名或密码错误")
-        
+            raise HTTPException(status_code=401, detail="用户名或密码错误")
+
         if admin.locked_until and admin.locked_until > datetime.now():
-            raise HTTPException(403, "账户已锁定，请10分钟后重试")
-        
+            raise HTTPException(status_code=403, detail="账户已锁定，请10分钟后重试")
+
         password_bytes = req.password.encode('utf-8')
         try:
             valid = _bcrypt.checkpw(password_bytes, admin.password_hash.encode('utf-8'))
         except Exception:
             valid = False
-        
+
         if not valid:
             admin.login_attempts += 1
-            
+
             if admin.login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
                 admin.locked_until = datetime.now() + timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
                 await session.commit()
-                raise HTTPException(403, "连续输错密码5次，账户已锁定10分钟")
-            
+                raise HTTPException(status_code=403, detail="连续输错密码5次，账户已锁定10分钟")
+
             await session.commit()
             remaining = settings.MAX_LOGIN_ATTEMPTS - admin.login_attempts
-            raise HTTPException(401, f"密码错误，还剩{remaining}次机会")
+            raise HTTPException(status_code=401, detail=f"密码错误，还剩{remaining}次机会")
         
         admin.login_attempts = 0
         admin.locked_until = None
@@ -81,7 +81,7 @@ async def change_password(req: ChangePasswordRequest, _: dict = Depends(get_curr
             valid = False
         
         if not admin or not valid:
-            raise HTTPException(401, "原密码错误")
+            raise HTTPException(status_code=401, detail="原密码错误")
         
         new_bytes = req.new_password.encode('utf-8')
         admin.password_hash = _bcrypt.hashpw(new_bytes, _bcrypt.gensalt()).decode('utf-8')

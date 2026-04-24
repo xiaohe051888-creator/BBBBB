@@ -78,7 +78,24 @@ api.interceptors.response.use(
     if (error.code === 'ECONNABORTED') {
       error.message = '请求超时，请重试';
     }
-    
+
+    // 提取后端返回的具体错误信息并替换掉默认的英文提示
+    if (error.response?.data?.detail) {
+      error.message = error.response.data.detail;
+    } else if (error.response?.status) {
+      const statusMap: Record<number, string> = {
+        400: '请求参数错误',
+        401: '密码错误或登录已过期',
+        403: '拒绝访问，权限不足或账户被锁定',
+        404: '请求的资源不存在',
+        500: '服务器内部错误',
+        502: '网关错误',
+        503: '服务不可用',
+        504: '网关超时',
+      };
+      error.message = statusMap[error.response.status] || `请求失败 (${error.response.status})`;
+    }
+
     return Promise.reject(error);
   },
 );

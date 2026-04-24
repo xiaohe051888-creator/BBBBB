@@ -197,7 +197,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
         navigate('/admin', { state: { token } });
       }
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : '登录失败';
+      const errorMsg = err instanceof Error ? err.message : '密码错误，请重新输入';
       message.error(errorMsg);
       addIssue({
         level: 'warning',

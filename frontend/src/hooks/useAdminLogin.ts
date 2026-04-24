@@ -78,7 +78,7 @@ export const useAdminLogin = (
       setPassword('');
       options.onSuccess?.();
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : '登录失败';
+      const errorMsg = err instanceof Error ? err.message : '密码错误，请重新输入';
       message.error(errorMsg);
       // 记录错误到系统状态面板
       addIssue({
