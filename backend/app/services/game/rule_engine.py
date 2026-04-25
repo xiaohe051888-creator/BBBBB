@@ -1,48 +1,99 @@
 from typing import Dict, List, Any
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BaccaratRuleEngine:
     """
-    超强百家乐规则引擎 - 基于“多路共振”、“长龙跟随”、“单跳震荡收敛”等核心量化策略
+    超强百家乐自适应规则引擎 - 具备动态权重“进化”能力
+    基于本靴近期的“长龙” vs “单跳” 胜率反馈，动态调整策略权重
     """
-    
+
     def __init__(self):
-        pass
+        # 默认基础权重
+        self.weights = {
+            "dragon_streak": 40,   # 长龙跟随的得分权重
+            "chop_oscillation": 30,# 单跳震荡的得分权重
+            "road_red_sync": 20,   # 下三路齐红共振的得分权重
+            "road_blue_turn": 15   # 下三路蓝反转的得分权重
+        }
+
+    def _evolve_weights_from_history(self, game_history: List[Dict]):
+        """
+        核心进化算法：通过历史回测调整权重
+        如果本靴最近经常出现长龙，调高长龙权重；如果经常断成单跳，调高震荡权重。
+        """
+        if not game_history or len(game_history) < 5:
+            return
+
+        streak_count = 0
+        chop_count = 0
+        
+        # 简单统计最近20局里的长龙（连出3次及以上）和单跳形态出现次数
+        history = [g.get("result") for g in game_history[-20:] if g.get("result") in ("庄", "闲")]
+        
+        current_streak = 1
+        for i in range(1, len(history)):
+            if history[i] == history[i-1]:
+                current_streak += 1
+            else:
+                if current_streak >= 3:
+                    streak_count += 1
+                elif current_streak == 1:
+                    chop_count += 1
+                current_streak = 1
+                
+        if current_streak >= 3:
+            streak_count += 1
+
+        # 动态调整逻辑（自适应微调，上限100，下限10）
+        if streak_count > chop_count:
+            self.weights["dragon_streak"] = min(80, self.weights["dragon_streak"] + 5)
+            self.weights["chop_oscillation"] = max(10, self.weights["chop_oscillation"] - 5)
+        elif chop_count > streak_count:
+            self.weights["chop_oscillation"] = min(80, self.weights["chop_oscillation"] + 5)
+            self.weights["dragon_streak"] = max(10, self.weights["dragon_streak"] - 5)
+            
+        logger.info(f"规则引擎已自我进化！当前权重 -> 长龙:{self.weights['dragon_streak']}, 单跳:{self.weights['chop_oscillation']}")
 
     def analyze(self, game_history: List[Dict], road_data: Dict) -> Dict:
         """
         根据五路数据进行强规则分析预测
         返回结构与 AI 模型类似，保证前端兼容
         """
+        # 1. 每次分析前，先通过历史复盘进行“自我进化”
+        self._evolve_weights_from_history(game_history)
+
         banker_score = 0
         player_score = 0
         reasons = []
 
-        # 1. 大路连胜分析 (长龙跟随)
+        # 2. 大路连胜分析 (长龙跟随)
         big_road = self._extract_points(road_data.get("big_road", []))
         if big_road:
             last_result = big_road[-1].get("value") if isinstance(big_road[-1], dict) else getattr(big_road[-1], "value", None)
             streak = self._count_streak(big_road, last_result)
-            
+
             if streak >= 3:
-                reasons.append(f"大路出现{streak}连{last_result}（长龙），顺势跟随。")
+                reasons.append(f"大路出现{streak}连{last_result}（长龙），动态权重加成：+{self.weights['dragon_streak']}")
                 if last_result == "庄":
-                    banker_score += 40
+                    banker_score += self.weights['dragon_streak']
                 else:
-                    player_score += 40
+                    player_score += self.weights['dragon_streak']
             elif streak == 1 and len(big_road) >= 3:
                 # 检查单跳
                 prev1 = self._get_value(big_road[-1])
                 prev2 = self._get_value(big_road[-2])
                 prev3 = self._get_value(big_road[-3])
                 if prev1 != prev2 and prev2 != prev3:
-                    reasons.append("大路呈现单跳震荡形态，预测反转。")
+                    reasons.append(f"大路呈现单跳震荡形态，动态权重加成：+{self.weights['chop_oscillation']}")
                     if prev1 == "庄":
-                        player_score += 30
+                        player_score += self.weights['chop_oscillation']
                     else:
-                        banker_score += 30
+                        banker_score += self.weights['chop_oscillation']
 
-        # 2. 下三路共振分析 (大眼仔、小路、曱甴路)
+        # 3. 下三路共振分析 (大眼仔、小路、曱甴路)
         # 红色代表规律（顺），蓝色代表无序（反）
         # 实际编程中我们需要“问路”，这里我们通过下三路当前的收尾颜色来判断整体趋势
         big_eye = self._extract_points(road_data.get("big_eye_boy", []))
