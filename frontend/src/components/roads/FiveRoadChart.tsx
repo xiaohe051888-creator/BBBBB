@@ -168,6 +168,13 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
     return roadHeight + 6;
   }, [roadHeight]);
 
+  // 使用内置配置计算珠盘路的精确尺寸（包含14列）
+  const beadRoadWidth = useMemo(() => {
+    // 假设 baseConfig 的 cellSize 和 padding 都是通用的，但这里我们用它计算
+    // 实际 BeadRoadCanvas 内部可能有自己的配置，但为了外部排版，我们基于 baseConfig 推算
+    return PADDING * 2 + 14 * (BASE_CELL_SIZE + CELL_GAP);
+  }, []);
+
   // 计算各路总高度（含标题栏）- 使用minHeight
   const totalRowHeight = useMemo(() => {
     return scrollContainerHeight + HEADER_HEIGHT;
@@ -247,7 +254,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
           {/* 珠盘路 - 精确控制宽度 */}
           <div style={{
             flex: 'none', // 不允许伸缩，严格按照内部计算宽度
-            width: 'max-content',
+            width: `${beadRoadWidth}px`,
             display: 'flex',
             flexDirection: 'column',
             background: '#161b22',
@@ -271,8 +278,9 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
             <div style={{
               overflow: 'hidden',
               height: `${roadHeight}px`,
+              width: `${beadRoadWidth}px`,
             }}>
-              <div style={{ height: `${roadHeight}px`, width: 'max-content' }}>
+              <div style={{ height: `${roadHeight}px`, width: `${beadRoadWidth}px` }}>
                 {hasData.bead ? (
                   <BeadRoadCanvas data={roads.bead} config={baseConfig} />
                 ) : (
