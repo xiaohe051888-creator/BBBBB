@@ -316,30 +316,30 @@ const AdminPage: React.FC = () => {
                   <Space direction="vertical" style={{ width: '100%' }} size="middle">
                     <Row gutter={[12, 12]}>
                       <Col xs={24} sm={8}>
-                        <Statistic title="学习条件" value="200局" suffix="历史数据" />
+                        <Statistic title="学习条件" value="200~1000局" suffix="总历史数据" />
                       </Col>
                       <Col xs={24} sm={8}>
-                        <Statistic title="学习范围" value="按靴" suffix="不跨靴" />
+                        <Statistic title="学习范围" value="分靴学习" suffix="逐靴完成数据库" />
                       </Col>
                       <Col xs={24} sm={8}>
-                        <Statistic title="版本限制" value="5个" suffix="最多保留" />
+                        <Statistic 
+                          title="当前状态" 
+                          value={aiLearningStatus?.is_learning ? '学习中' : '空闲'} 
+                          valueStyle={{ color: aiLearningStatus?.is_learning ? '#faad14' : '#52c41a' }} 
+                        />
                       </Col>
                     </Row>
-                    <Divider style={{ margin: '12px 0', borderColor: 'rgba(255,255,255,0.06)' }} />
-                    <Button
-                      type="primary"
-                      icon={<Icons.Experiment />}
-                      size="large"
-                      disabled={aiLearningStatus?.is_learning}
-                      onClick={() => setStartLearningVisible(true)}
-                    >
-                      {aiLearningStatus?.is_learning ? '学习中...' : '开始AI学习'}
-                    </Button>
-                    {aiLearningStatus?.is_learning && (
-                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                        当前任务：{aiLearningStatus.current_task}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+                      <Button 
+                        type="primary" 
+                        icon={<Icons.AI />} 
+                        onClick={() => setStartLearningVisible(true)}
+                        loading={aiLearningStatus?.is_learning}
+                        style={{ background: 'linear-gradient(135deg, #722ed1, #531dab)', border: 'none', width: '100%', maxWidth: 300, height: 40 }}
+                      >
+                        {aiLearningStatus?.is_learning ? `正在学习: ${aiLearningStatus.current_task}` : '启动深度学习'}
+                      </Button>
+                    </div>
                   </Space>
                 </Card>
 

@@ -88,16 +88,26 @@ async def start_ai_learning(
 ):
     """启动AI学习任务（需认证）"""
     from app.services.ai_learning_service import AILearningService
-    
+
     async with async_session() as session:
         service = AILearningService(session)
-        
+
         status = await service.get_learning_status()
         if status["is_learning"]:
             raise HTTPException(400, f"学习任务正在执行中: {status['current_task']}")
-        
-        asyncio.create_task(service.start_learning(boot_number))
-        
+            
+        ok, reason = await service.check_preconditions(boot_number)
+        if not ok:
+            raise HTTPException(400, reason)
+
+        # 使用单独的生命周期创建后台任务，避免 async with session 关闭后抛出 500
+        async def run_learning_task():
+            async with async_session() as bg_session:
+                bg_service = AILearningService(bg_session)
+                await bg_service.start_learning(boot_number)
+
+        asyncio.create_task(run_learning_task())
+
         return {
             "status": "started",
             "message": f"AI学习已启动，正在分析第{boot_number}靴数据...",

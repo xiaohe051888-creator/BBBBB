@@ -85,10 +85,10 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
           <span>训练前置提示</span>
         </div>
         <ul style={{ margin: 0, paddingLeft: 24, color: 'rgba(255,255,255,0.65)', fontSize: 13, lineHeight: 1.8 }}>
+          <li>数据库总历史记录必须在 <span style={{ color: '#fff', fontWeight: 'bold' }}>200 ~ 1000 局</span> 之间才能启动学习</li>
+          <li>学习模式为 <span style={{ color: '#fff', fontWeight: 'bold' }}>分靴学习</span>，系统会逐靴完成数据库内所有数据的学习</li>
           <li>此过程可能需要消耗 <span style={{ color: '#fff' }}>1~3 分钟</span>，请勿关闭服务</li>
-          <li>学习期间，新录入的局数将被挂起直到学习完成</li>
-          <li>模型会在学习完成后自动保存并生成新版本</li>
-          <li>当前历史数据不足 200 局时，学习效果可能不佳</li>
+          <li>模型会在所有靴学习完成后，自动保存并生成新版本</li>
         </ul>
       </div>
 

@@ -117,8 +117,10 @@ class AILearningService:
         result = await self.session.execute(stmt)
         total_games = result.scalar() or 0
         
-        if total_games < settings.MIN_SAMPLE_FOR_LEARNING:
-            return False, f"有效结算局不足：当前{total_games}局，需要至少{settings.MIN_SAMPLE_FOR_LEARNING}局"
+        if total_games < 200:
+            return False, f"总历史数据不足：当前仅有 {total_games} 局记录，AI 学习需要至少 200 局数据。"
+        if total_games > 1000:
+            return False, f"总历史数据超出上限：当前有 {total_games} 局记录，AI 学习支持最多 1000 局，请先清理或归档历史数据。"
         
         # 3. 检查版本数量限制
         version_stmt = select(func.count()).select_from(
