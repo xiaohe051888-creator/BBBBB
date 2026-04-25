@@ -104,10 +104,10 @@ async def run_ai_analysis(
                         "final_prediction": rule_res["predict"],
                         "confidence": rule_res["confidence"],
                         "bet_tier": rule_res["tier"],
-                        "summary": ("⚠️ 【系统提示】：未检测到有效的 AI 大模型 API Key 配置，系统已自动为您降级并启用【强规则引擎模式】。\n\n" if not getattr(sess, '_api_configured_checked', True) else "") + "【强规则引擎模式】\n" + rule_res["summary"],
+                        "summary": ("⚠️ 【系统提示】：未检测到有效的 AI 大模型 API Key 配置，系统已自动为您降级并启用【强规则引擎模式】。\n\n" if not getattr(sess, '_api_configured_checked', True) else "") + "【强规则引擎模式】\n" + rule_res["combined_summary"],
                     },
-                    "banker_model": {"summary": "规则引擎未提供独立的庄模型摘要。"},
-                    "player_model": {"summary": "规则引擎未提供独立的闲模型摘要。"},
+                    "banker_model": {"summary": rule_res["banker_summary"]},
+                    "player_model": {"summary": rule_res["player_summary"]},
                     "bet_amount": rule_res["bet_amount"]
                 }
             else:

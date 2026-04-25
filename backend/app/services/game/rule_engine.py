@@ -80,10 +80,12 @@ class BaccaratRuleEngine:
 
         banker_score = 0
         player_score = 0
-        reasons = []
+        banker_reasons = []
+        player_reasons = []
+        combined_reasons = []
         
         if is_chaos:
-            reasons.append("⚠️ 【混沌防守触发】：上一局发生了强规律的随机断裂，系统进入混沌期防守状态，已强制大幅扣除长龙权重。")
+            combined_reasons.append("上一局发生了强规律的随机断裂，系统进入混沌防守状态")
 
         # 2. 大路连胜分析 (长龙跟随)
         big_road = self._extract_points(road_data.get("big_road", []))
@@ -92,22 +94,27 @@ class BaccaratRuleEngine:
             streak = self._count_streak(big_road, last_result)
 
             if streak >= 3:
-                reasons.append(f"大路出现{streak}连{last_result}（长龙），动态权重加成：+{self.weights['dragon_streak']}")
+                reason = f"大路出现{streak}连{last_result}的长龙趋势"
                 if last_result == "庄":
                     banker_score += self.weights['dragon_streak']
+                    banker_reasons.append(reason)
                 else:
                     player_score += self.weights['dragon_streak']
+                    player_reasons.append(reason)
             elif streak == 1 and len(big_road) >= 3:
                 # 检查单跳
                 prev1 = self._get_value(big_road[-1])
                 prev2 = self._get_value(big_road[-2])
                 prev3 = self._get_value(big_road[-3])
                 if prev1 != prev2 and prev2 != prev3:
-                    reasons.append(f"大路呈现单跳震荡形态，动态权重加成：+{self.weights['chop_oscillation']}")
+                    reason = "大路呈现明显的单跳震荡格局"
                     if prev1 == "庄":
+                        # 下一个预测为闲
                         player_score += self.weights['chop_oscillation']
+                        player_reasons.append(reason)
                     else:
                         banker_score += self.weights['chop_oscillation']
+                        banker_reasons.append(reason)
 
         # 3. 下三路共振分析 (大眼仔、小路、曱甴路)
         # 红色代表规律（顺），蓝色代表无序（反）
@@ -119,24 +126,25 @@ class BaccaratRuleEngine:
         def check_road_trend(road, name):
             nonlocal banker_score, player_score
             if not road: return
-            last_val = self._get_value(road[-1])
-            streak = self._count_streak(road, last_val)
-            if last_val == "红":
-                reasons.append(f"{name}出现{streak}连红，趋势高度规律。")
-                # 假设当前大路是庄，红意味着继续顺延
-                # 这里简化：若大路最后是庄，红加庄；蓝加闲
+            last_color = self._get_value(road[-1])
+            if last_color == "红":
                 last_big = self._get_value(big_road[-1]) if big_road else None
+                reason = f"{name}显示红，当前趋势继续顺延"
                 if last_big == "庄":
                     banker_score += 20
+                    banker_reasons.append(reason)
                 elif last_big == "闲":
                     player_score += 20
+                    player_reasons.append(reason)
             else:
-                reasons.append(f"{name}出现蓝，趋势转折或无序。")
                 last_big = self._get_value(big_road[-1]) if big_road else None
+                reason = f"{name}显示蓝，当前趋势面临转折"
                 if last_big == "庄":
                     player_score += 15
+                    player_reasons.append(reason)
                 elif last_big == "闲":
                     banker_score += 15
+                    banker_reasons.append(reason)
 
         check_road_trend(big_eye, "大眼仔路")
         check_road_trend(small, "小路")
@@ -157,14 +165,21 @@ class BaccaratRuleEngine:
         else:
             tier = "高" if confidence > 75 else "标准"
         
-        summary = "基于强化规则引擎分析：\n" + "\n".join(f"- {r}" for r in reasons)
+        # 拼装“因为...所以...”的分析逻辑
+        banker_summary = f"因为 {', '.join(banker_reasons)}，所以本局看好【庄】。" if banker_reasons else "因为当前路单未能捕捉到明显的庄向趋势特征，所以暂无庄向推荐。"
+        player_summary = f"因为 {', '.join(player_reasons)}，所以本局看好【闲】。" if player_reasons else "因为当前路单未能捕捉到明显的闲向趋势特征，所以暂无闲向推荐。"
         
+        combined_reason = banker_reasons if prediction == "庄" else player_reasons
+        combined_summary = f"因为 {', '.join(combined_reason)}，并且{', '.join(combined_reasons) if combined_reasons else '当前处于规律期'}，所以最终预测为【{prediction}】。" if combined_reason else f"因为当前盘面处于无序状态，缺乏明显规律，所以系统根据经验补偿机制给出了偏向【{prediction}】的预测。"
+
         return {
             "predict": prediction,
             "confidence": round(confidence / 100.0, 2),
             "bet_amount": 100,  # 默认值，可以在外层覆盖
             "tier": tier,
-            "summary": summary
+            "banker_summary": banker_summary,
+            "player_summary": player_summary,
+            "combined_summary": combined_summary
         }
 
     def _extract_points(self, road_obj):
