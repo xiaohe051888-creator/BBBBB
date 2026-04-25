@@ -23,6 +23,9 @@ async def place_bet(
     """
     下注 - 在指定局上下注
     """
+    if game_number > 72:
+        return {"success": False, "error": "单靴最多支持 72 局，本靴已满，请新开一靴"}
+
     lock = get_session_lock()
     async with lock:
         sess = get_session()

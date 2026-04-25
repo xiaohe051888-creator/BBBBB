@@ -86,7 +86,11 @@ async def upload_games(
     上传批量开奖记录
     """
     if len(games) > 72:
-        return {"success": False, "error": "单靴最多支持录入 72 局"}
+        return {"success": False, "error": "单次最多支持录入 72 局"}
+
+    # 防满局校验：如果有任何一局的局号超过 72 局，直接拦截
+    if any(g.get("game_number", 0) > 72 for g in games):
+        return {"success": False, "error": "单靴最多支持 72 局，本靴已满，请新开一靴"}
 
     lock = get_session_lock()
     async with lock:
