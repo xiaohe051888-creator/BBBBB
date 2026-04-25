@@ -121,7 +121,11 @@ const LogTable: React.FC<LogTableProps> = ({
       rowKey={(record) => record.id || Math.random().toString(36).substr(2, 9)}
       size="small"
       loading={loading}
-      pagination={false}
+      pagination={{
+        pageSize: 100, // 启用分页，限制单页最大 DOM 渲染数量，防止浏览器假死
+        showSizeChanger: true,
+        pageSizeOptions: ['50', '100', '500'],
+      }}
       scroll={{ x: 'max-content', y: scrollY }}
       locale={{ emptyText: '暂无日志记录' }}
       rowClassName={(record) => (record.is_pinned ? 'log-pinned-row' : '')}

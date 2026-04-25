@@ -56,9 +56,11 @@ async def run_ai_analysis(
             engine = UnifiedRoadEngine()
             
             # 获取错题本（需要在设置错误标记之前）
+            # 修复重大业务 Bug: 移除 `.limit(5)` 硬编码限制
+            # 必须将本靴内发生的所有错误血迹完整传递给 AI 引擎，否则会导致 AI 看到的五路图错题标记残缺，胜率大幅下降
             stmt2 = select(MistakeBook).where(
                 MistakeBook.boot_number == boot_number,
-            ).order_by(MistakeBook.game_number.desc()).limit(5)
+            ).order_by(MistakeBook.game_number.desc())
             mb_result = await db.execute(stmt2)
             mistakes = mb_result.scalars().all()
             
