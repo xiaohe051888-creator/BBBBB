@@ -294,7 +294,7 @@ async def adjust_balance(
     _: dict = Depends(get_current_user),
 ):
     """管理员手动调整余额"""
-    from app.services.game.session import get_session, get_session_lock
+    from app.services.game.session import get_session, get_session_lock, broadcast_event
     from app.services.game.logging import write_game_log
 
     lock = get_session_lock()
@@ -324,6 +324,8 @@ async def adjust_balance(
                 category="资金事件", priority="P1"
             )
             await db.commit()
+
+        await broadcast_event("state_update", {"balance": sess.balance})
 
     return {"status": "success", "new_balance": sess.balance}
 

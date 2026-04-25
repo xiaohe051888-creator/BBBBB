@@ -15,6 +15,9 @@ async def clear_all():
         await db.execute(text("DELETE FROM system_logs"))
         await db.execute(text("DELETE FROM mistake_book"))
         await db.execute(text("DELETE FROM system_state"))
+        # 补齐遗漏的两张表，防止产生无头关联脏数据
+        await db.execute(text("DELETE FROM ai_memories"))
+        await db.execute(text("DELETE FROM road_maps"))
         
         new_state = SystemState(
             id=1,

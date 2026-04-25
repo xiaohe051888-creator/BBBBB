@@ -37,12 +37,14 @@ async def websocket_endpoint(websocket: WebSocket):
             if data == "ping":
                 await websocket.send_json({"type": "pong"})
     except WebSocketDisconnect:
-        async with ws_clients_lock:
-            if websocket in ws_clients:
-                ws_clients.remove(websocket)
+        # 客户端正常断开连接
+        pass
     except Exception as e:
         import logging
         logging.getLogger("uvicorn.error").error(f"WebSocket error: {e}")
+    finally:
+        # 终极兜底：无论由于网络断开、系统错误还是协程取消 (CancelledError)，
+        # 必定执行清理逻辑，绝不留下占用广播资源的“幽灵僵尸连接”
         async with ws_clients_lock:
             if websocket in ws_clients:
                 ws_clients.remove(websocket)
