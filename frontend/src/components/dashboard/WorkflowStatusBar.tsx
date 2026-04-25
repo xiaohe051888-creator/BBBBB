@@ -118,7 +118,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       icon: <ChartIcon />,
       iconColor: '#8b949e',
       title: `请录入第 ${systemState?.next_game_number || (systemState?.game_number || 0) + 1} 局开奖结果`,
-      subtitle: '分析完成，系统已自动下注。请在下方点击【庄】或【闲】录入开奖结果',
+      subtitle: '分析完成，系统已自动下注。请点击右上角【上传数据】录入最新路单',
       bgGradient: 'linear-gradient(135deg, rgba(150,150,150,0.1), rgba(150,150,150,0.05))',
       borderColor: 'rgba(255,255,255,0.1)',
     };
