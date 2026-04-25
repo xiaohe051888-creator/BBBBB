@@ -223,7 +223,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                paddingBottom: '6px',
+                // 移除 padding-bottom，使用原生滚动条控制
               }}
             >
             <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
@@ -244,10 +244,10 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
           gap: '8px',
           width: '100%',
         }}>
-          {/* 珠盘路 - 固定宽度（约14列） */}
+          {/* 珠盘路 - 精确控制宽度 */}
           <div style={{
-            flex: '1 1 300px',
-            maxWidth: '100%',
+            flex: 'none', // 不允许伸缩，严格按照内部计算宽度
+            width: 'max-content',
             display: 'flex',
             flexDirection: 'column',
             background: '#161b22',
@@ -269,11 +269,10 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
               <span style={{ fontSize: '10px', color: '#8b949e' }}>Bead</span>
             </div>
             <div style={{
-              width: '100%',
               overflow: 'hidden',
               height: `${roadHeight}px`,
             }}>
-              <div style={{ height: `${roadHeight}px`, width: '100%' }}>
+              <div style={{ height: `${roadHeight}px`, width: 'max-content' }}>
                 {hasData.bead ? (
                   <BeadRoadCanvas data={roads.bead} config={baseConfig} />
                 ) : (
@@ -314,7 +313,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                paddingBottom: '6px',
+                // 移除 padding-bottom，使用原生滚动条控制
               }}
             >
               <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
@@ -367,7 +366,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                paddingBottom: '6px',
+                // 移除 padding-bottom，使用原生滚动条控制
               }}
             >
               <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
@@ -411,7 +410,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                paddingBottom: '6px',
+                // 移除 padding-bottom，使用原生滚动条控制
               }}
             >
               <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
