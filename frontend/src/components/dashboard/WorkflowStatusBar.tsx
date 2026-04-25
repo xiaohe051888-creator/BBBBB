@@ -136,28 +136,23 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       justifyContent: 'space-between',
       gap: 16,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span className="status-icon-wrapper" style={{ fontSize: 20, color: config.iconColor }}>
-          {config.icon}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: hasPendingBet
+            ? '#faad14'
+            : analysis?.prediction && !hasPendingBet
+              ? '#52c41a'
+              : !hasGameData
+                ? '#1890ff'
+                : '#e6edf3'
+        }}>
+          {config.title}
         </span>
-        <div className="status-content">
-          <span style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: hasPendingBet
-              ? '#faad14'
-              : analysis?.prediction && !hasPendingBet
-                ? '#52c41a'
-                : !hasGameData
-                  ? '#1890ff'
-                  : '#e6edf3'
-          }}>
-            {config.title}
-          </span>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginLeft: 12 }}>
-            {config.subtitle}
-          </span>
-        </div>
+        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+          {config.subtitle}
+        </span>
       </div>
 
       {/* 等待开奖时显示开奖按钮 */}
