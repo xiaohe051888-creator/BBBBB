@@ -21,4 +21,17 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'antd-vendor': ['antd', '@ant-design/icons'],
+          'query-vendor': ['@tanstack/react-query', 'axios'],
+          'utils-vendor': ['dayjs']
+        }
+      }
+    }
+  }
 })

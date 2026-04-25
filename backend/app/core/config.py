@@ -13,8 +13,8 @@ class Settings:
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
     
     # 服务器配置
-    HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    HOST: str = os.getenv("HOST", "0.0.0.0")
+    PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
     
     # 安全配置
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "change-me-in-production")

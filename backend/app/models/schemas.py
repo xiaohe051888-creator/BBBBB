@@ -112,7 +112,7 @@ class RoadMap(Base):
     created_at = Column(DateTime, server_default=func.now())
     
     __table_args__ = (
-        Index("idx_road_boot", "boot_number", "road_type"),
+        Index("idx_road_boot_game", "boot_number", "game_number", "road_type"),
     )
 
 
@@ -172,6 +172,7 @@ class SystemLog(Base):
         Index("idx_log_time_priority", "log_time", "priority"),
         Index("idx_log_event_code", "event_code"),
         Index("idx_log_category", "category"),
+        Index("idx_log_boot_game", "boot_number", "game_number"),
     )
 
 
@@ -260,6 +261,10 @@ class AIMemory(Base):
     """AI记忆 - 局级微学习记录"""
     __tablename__ = "ai_memories"
     
+    __table_args__ = (
+        Index("idx_ai_memory_boot_game", "boot_number", "game_number"),
+    )
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     created_at = Column(DateTime, server_default=func.now(), comment="记忆创建时间")
     
