@@ -707,12 +707,10 @@ a:hover { color: var(--gold-light); }
     width: 100% !important;
   }
   .status-bar {
-    flex-direction: column;
-    align-items: flex-start !important;
+    flex-wrap: wrap !important;
   }
   .status-content {
     margin-left: 0 !important;
-    margin-top: 12px;
   }
   .ant-space {
     flex-wrap: wrap !important;

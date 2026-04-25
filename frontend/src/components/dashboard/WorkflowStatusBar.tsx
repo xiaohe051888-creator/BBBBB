@@ -135,9 +135,8 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 16,
-      flexWrap: 'wrap',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span className="status-icon-wrapper" style={{ fontSize: 20, color: config.iconColor }}>
           {config.icon}
         </span>
