@@ -83,54 +83,12 @@ const DashboardPage: React.FC = () => {
     }
   }, [hasGameData, analysisFetching, analysis]);
 
-  // 自动下注
-  const hasAutoBetRef = React.useRef(false);
-  const placeBetMutation = usePlaceBetMutation();
-
-  useEffect(() => {
-    if (analysis?.prediction && !systemState?.pending_bet && !hasAutoBetRef.current ) {
-      const gameNumber = systemState?.next_game_number;
-      if (!gameNumber) return;
-
-      hasAutoBetRef.current = true;
-
-      const timer = setTimeout(async () => {
-        try {
-          await placeBetMutation.mutateAsync({
-            
-            direction: analysis.prediction as '庄' | '闲',
-            amount: DEFAULT_BET_AMOUNT,
-          });
-        } catch (err: unknown) {
-          const errorMsg = err instanceof Error ? err.message : '自动下注失败';
-          addIssue({
-            level: 'critical',
-            title: '自动下注失败',
-            detail: `第${gameNumber}局自动下注失败: ${errorMsg}`,
-            source: 'system',
-          });
-          hasAutoBetRef.current = false;
-        }
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [analysis, systemState?.pending_bet, systemState?.next_game_number, placeBetMutation, addIssue]);
-
-  useEffect(() => {
-    if (hasGameData && !analysis) {
-      hasAutoBetRef.current = false;
-    }
-  }, [hasGameData, analysis]);
-
   // 智能检测
   const { integrityIssues, abnormalPatterns, bettingAdvice, alerts, removeAlert, markSynced } = useSmartDetection({
     games,
     bets,
     systemState: systemState || null,
-    
   });
-
 
   useEffect(() => {
     if (games.length > 0 || bets.length > 0) {
