@@ -50,19 +50,6 @@ class RevealRequest(BaseModel):
         return v
 
 
-class BetRequest(BaseModel):
-    """下注请求"""
-    game_number: int
-    direction: str
-    amount: float
-    
-    @validator("direction")
-    def validate_direction(cls, v):
-        if v not in ("庄", "闲"):
-            raise ValueError("下注方向只能是：庄、闲")
-        return v
-
-
 class LoginRequest(BaseModel):
     """登录请求"""
     password: str

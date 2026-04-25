@@ -115,25 +115,6 @@ async def upload_game_results(req: UploadRequest):
     }
 
 
-@router.post("/bet")
-async def place_bet_route(req: BetRequest):
-    """下注"""
-    from app.services.manual_game_service import place_bet as _place_bet
-    
-    async with async_session() as session:
-        result = await _place_bet(
-            db=session,
-            game_number=req.game_number,
-            direction=req.direction,
-            amount=req.amount,
-        )
-    
-    if not result["success"]:
-        raise HTTPException(400, result.get("error", "下注失败"))
-    
-    return result
-
-
 @router.post("/reveal")
 async def reveal_game_route(req: RevealRequest):
     """

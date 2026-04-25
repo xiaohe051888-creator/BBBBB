@@ -279,14 +279,15 @@ async def get_system_diagnostics():
     }
 
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Literal
 
 class PredictionModeRequest(BaseModel):
-    mode: str
+    mode: Literal["ai", "rule"] = Field(..., description="预测模式：ai 或 rule")
 
 class BalanceAdjustmentRequest(BaseModel):
-    action: str  # "add" or "sub"
-    amount: float
+    action: Literal["add", "sub"] = Field(..., description="操作类型：add(充值) 或 sub(扣除)")
+    amount: float = Field(..., gt=0, description="调整金额必须大于0")
 
 @router.post("/balance")
 async def adjust_balance(
@@ -294,11 +295,6 @@ async def adjust_balance(
     _: dict = Depends(get_current_user),
 ):
     """管理员手动调整余额"""
-    if req.action not in ("add", "sub"):
-        raise HTTPException(400, "无效的操作类型，只能是 'add' 或 'sub'")
-    if req.amount <= 0:
-        raise HTTPException(400, "调整金额必须大于 0")
-
     from app.services.game.session import get_session, get_session_lock
     from app.services.game.logging import write_game_log
 
@@ -408,56 +404,6 @@ async def update_api_keys(
         f.write(env_content)
 
     return {"status": "success", "message": "API keys updated successfully"}
-
-class BalanceUpdateRequest(BaseModel):
-    amount: float
-    action: str # "add" or "subtract"
-
-@router.post("/balance/adjust")
-async def adjust_balance(
-    req: BalanceUpdateRequest,
-    # _: dict = Depends(get_current_user),
-):
-    """Adjust system balance"""
-    async with async_session() as session:
-        stmt = select(SystemState)
-        result = await session.execute(stmt)
-        state = result.scalar_one_or_none()
-        
-        if not state:
-            raise HTTPException(status_code=404, detail="System state not initialized")
-            
-        mem_sess = get_session()
-        
-        if req.action == "add":
-            state.balance += req.amount
-            mem_sess.balance += req.amount
-        elif req.action == "subtract":
-            if state.balance < req.amount:
-                raise HTTPException(status_code=400, detail="Insufficient balance")
-            state.balance -= req.amount
-            mem_sess.balance -= req.amount
-        else:
-            raise HTTPException(status_code=400, detail="Invalid action")
-            
-        await session.commit()
-        
-        from app.services.game.logging import write_game_log
-        await write_game_log(
-            session=session,
-            boot_number=mem_sess.boot_number,
-            game_number=mem_sess.next_game_number,
-            event_code="FIN-001",
-            event_type="资金调整",
-            event_result="成功",
-            description=f"用户手动{'增加' if req.action == 'add' else '扣除'}本金: {req.amount}, 当前余额: {state.balance}",
-            category="资金事件",
-            priority="P2",
-            source_module="SystemSettings"
-        )
-        await session.commit()
-        
-        return {"status": "success", "new_balance": state.balance}
 
 @router.post("/test-api-keys")
 async def test_api_keys(

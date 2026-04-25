@@ -45,6 +45,7 @@ class SystemStatus(str, PyEnum):
     ERROR = "异常处理中"
     STOPPED = "已停止"
     SHUFFLE_WAIT = "洗牌等待"
+    INSUFFICIENT_BALANCE = "余额不足"
 
 
 class LogPriority(str, PyEnum):

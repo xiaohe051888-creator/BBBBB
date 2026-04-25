@@ -253,7 +253,7 @@ const DashboardPage: React.FC = () => {
       isUnmounted = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
-  }, [ addLogOptimistically, addBetOptimistically, updateBetOptimistically, addGameOptimistically, updateRoadsOptimistically, updateStateOptimistically, updateAnalysisOptimistically, queryClient]);
+  }, [ addLogOptimistically, addBetOptimistically, addGameOptimistically, updateStateOptimistically, queryClient]);
 
   // 等待开奖计时器
   const hasPendingBet = !!systemState?.pending_bet;
