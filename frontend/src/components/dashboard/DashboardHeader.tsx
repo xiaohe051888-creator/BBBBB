@@ -105,75 +105,66 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           )}
         </div>
 
-        {/* 中间：已开局信息 & 预测下一局（玻璃拟物化设计） */}
-        <div className="hide-on-mobile" style={{ 
+        {/* 中间：已开局信息 & 预测下一局 */}
+        <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
-          background: 'rgba(20, 27, 38, 0.6)', 
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderRadius: 16, 
-          border: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)',
-          padding: '6px 8px',
-          gap: 12
+          background: 'rgba(255,255,255,0.03)', 
+          borderRadius: 12, 
+          border: '1px solid rgba(255,255,255,0.08)',
+          padding: '4px',
+          gap: 4,
+          flexWrap: 'wrap',
+          justifyContent: 'center'
         }}>
           {/* 左半部分：当前进度 */}
-          <div style={{ padding: '4px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>当前进度</span>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
-                {systemState?.game_number || 0} <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.45)' }}>局</span>
+          <div style={{ padding: '4px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>当前进度</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
+                {systemState?.game_number || 0} <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.45)' }}>局</span>
               </span>
               {systemState?.current_game_result ? (
                 <div style={{ 
-                  background: systemState.current_game_result === '庄' ? 'linear-gradient(135deg, #ff4d4f, #cf1322)' : 'linear-gradient(135deg, #1890ff, #0050b3)',
-                  color: '#fff', fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 6,
-                  boxShadow: systemState.current_game_result === '庄' ? '0 2px 8px rgba(255,77,79,0.3)' : '0 2px 8px rgba(24,144,255,0.3)'
+                  background: systemState.current_game_result === '庄' ? 'rgba(255,77,79,0.2)' : 'rgba(24,144,255,0.2)',
+                  border: `1px solid ${systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff'}`,
+                  color: systemState.current_game_result === '庄' ? '#ff4d4f' : '#1890ff', 
+                  fontSize: 12, fontWeight: 700, padding: '0px 6px', borderRadius: 4,
                 }}>
                   {systemState.current_game_result}
                 </div>
               ) : (
-                <div style={{ width: 28, height: 20, borderRadius: 6, background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: 600 }}>?</span>
+                <div style={{ width: 24, height: 18, borderRadius: 4, background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>?</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* 拟物化连线/箭头指示器 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px' }}>
-            <div style={{ width: 24, height: 1, background: 'linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,215,0,0.3))' }}></div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,215,0,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 -4px', filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.4))' }}>
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-            <div style={{ width: 24, height: 1, background: 'linear-gradient(90deg, rgba(255,215,0,0.3), rgba(255,255,255,0.05))' }}></div>
-          </div>
+          {/* 分隔符 */}
+          <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)' }}></div>
 
           {/* 右半部分：预测下一局 */}
           <div style={{ 
-            padding: '4px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center',
-            background: 'linear-gradient(180deg, rgba(255,215,0,0.08) 0%, transparent 100%)',
-            borderRadius: 12, border: '1px solid rgba(255,215,0,0.15)',
-            boxShadow: 'inset 0 1px 0 rgba(255,215,0,0.1)'
+            padding: '4px 16px', display: 'flex', alignItems: 'center', gap: 12,
+            background: 'rgba(255,215,0,0.05)',
+            borderRadius: 8,
           }}>
-            <span style={{ fontSize: 11, color: '#ffd666', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>预测下一局</span>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontSize: 20, fontWeight: 800, color: '#ffd666', fontVariantNumeric: 'tabular-nums' }}>
-                第 {systemState?.next_game_number || (systemState?.game_number || 0) + 1} <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,215,0,0.5)' }}>局</span>
+            <span style={{ fontSize: 12, color: '#ffd666', letterSpacing: 1 }}>预测下一局</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#ffd666', fontVariantNumeric: 'tabular-nums' }}>
+                第 {systemState?.next_game_number || (systemState?.game_number || 0) + 1} <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,215,0,0.5)' }}>局</span>
               </span>
               {systemState?.predict_direction ? (
                 <div style={{ 
-                  background: systemState.predict_direction === '庄' ? 'linear-gradient(135deg, #ff4d4f, #cf1322)' : systemState.predict_direction === '闲' ? 'linear-gradient(135deg, #1890ff, #0050b3)' : 'linear-gradient(135deg, #faad14, #d48806)',
-                  color: '#fff', fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 6,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                  background: systemState.predict_direction === '庄' ? '#ff4d4f' : systemState.predict_direction === '闲' ? '#1890ff' : '#faad14',
+                  color: '#fff', fontSize: 12, fontWeight: 700, padding: '0px 6px', borderRadius: 4,
                 }}>
                   {systemState.predict_direction}
                 </div>
               ) : (
-                <div style={{ width: 28, height: 20, borderRadius: 6, background: 'rgba(255,215,0,0.05)', border: '1px dashed rgba(255,215,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: 'rgba(255,215,0,0.3)', fontSize: 12, fontWeight: 600 }}>?</span>
+                <div style={{ width: 24, height: 18, borderRadius: 4, background: 'rgba(255,215,0,0.05)', border: '1px dashed rgba(255,215,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: 'rgba(255,215,0,0.3)', fontSize: 12 }}>?</span>
                 </div>
               )}
             </div>

@@ -229,14 +229,14 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
       {/* 第2排：珠盘路 + 大眼仔路 */}
       <div style={{
         display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
+        flexDirection: 'column',
         gap: '8px',
         width: '100%',
       }}>
-        {/* 珠盘路 - 固定宽度（14列） */}
+        {/* 珠盘路 - 固定高度 */}
         <div style={{
-          flex: isMobile ? 'none' : '0 0 auto',
-          width: isMobile ? '100%' : `${PADDING * 2 + 14 * (BASE_CELL_SIZE + CELL_GAP)}px`,
+          flex: 'none',
+          width: '100%',
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',
@@ -310,17 +310,17 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
         </div>
       </div>
 
-      {/* 第3排：小路 + 螳螂路 - 各50% */}
+      {/* 第3排：小路 + 螳螂路 - 垂直堆叠 */}
       <div style={{
         display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
+        flexDirection: 'column',
         gap: '8px',
         width: '100%',
       }}>
-        {/* 小路 - 50%宽度 */}
+        {/* 小路 */}
         <div style={{
-          flex: 1,
-          minWidth: 0,
+          flex: 'none',
+          width: '100%',
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',
@@ -359,10 +359,10 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
           </div>
         </div>
 
-        {/* 螳螂路 - 50%宽度 */}
+        {/* 螳螂路 */}
         <div style={{
-          flex: 1,
-          minWidth: 0,
+          flex: 'none',
+          width: '100%',
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',
