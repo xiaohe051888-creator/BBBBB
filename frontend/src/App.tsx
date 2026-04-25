@@ -109,7 +109,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   return (
-    <div className="page-transition" style={{ minHeight: '100vh' }}>
+    <div className="page-transition" style={{ display: 'flex', width: '100vw', minHeight: '100vh', overflowX: 'hidden' }}>
       {/* ====== 桌面端侧边栏 ====== */}
       <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}>
         {/* Logo区域 */}
@@ -171,10 +171,12 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* ====== 主内容区域 ====== */}
       <div
         style={{
+          flex: 1,
           minWidth: 0,
-          overflowX: 'auto',  /* 允许水平滚动（如有过宽的表格） */
+          width: isMobile ? '100vw' : `calc(100vw - ${collapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)'})`,
+          overflowX: 'hidden',  /* 主容器不再横向滚动，交给内部组件自己滚动 */
           marginLeft: isMobile ? 0 : (collapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)'),
-          transition: 'margin-left var(--transition-slow)',
+          transition: 'all var(--transition-slow)',
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
