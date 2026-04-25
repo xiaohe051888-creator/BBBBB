@@ -83,9 +83,31 @@ const DashboardPage: React.FC = () => {
     }
   }, [hasGameData, analysisFetching, analysis]);
 
-  // 由于我们已将自动下注逻辑移至后端 _trigger_analysis 和 reveal 闭环中强制执行，
-  // 这里的纯前端自动下注逻辑已被废弃，防止出现重复下注或冲突。
-  // 系统现在是100%后端强制托管模式。
+  // 余额低位预警 (只在 <= 2000 且 > 0 时提醒一次)
+  const [lowBalanceWarned, setLowBalanceWarned] = useState(false);
+  useEffect(() => {
+    if (systemState?.balance !== undefined) {
+      const bal = systemState.balance;
+      // 当余额大于 2000 时重置警告状态（可能用户刚充了钱）
+      if (bal > 2000) {
+        if (lowBalanceWarned) {
+          setLowBalanceWarned(false);
+          removeIssueBySource('system', 'low_balance');
+        }
+      } 
+      // 当余额 <= 2000 且 > 0 时触发一次性警告
+      else if (bal <= 2000 && bal > 0 && !lowBalanceWarned) {
+        setLowBalanceWarned(true);
+        addIssue({
+          id: 'low_balance',
+          level: 'warning',
+          title: '资金低位预警',
+          detail: `当前系统测试余额仅剩 ${bal}，即将触及强平线（0元），建议及时前往右上角【管理员页面】补充资金。`,
+          source: 'system',
+        });
+      }
+    }
+  }, [systemState?.balance, lowBalanceWarned, addIssue, removeIssueBySource]);
 
   // 智能检测
   const { integrityIssues, abnormalPatterns, bettingAdvice, alerts, removeAlert, markSynced } = useSmartDetection({
