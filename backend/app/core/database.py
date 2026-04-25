@@ -45,11 +45,46 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from sqlalchemy import event, inspect, text
+
 async def init_db():
-    """初始化数据库表"""
+    """初始化数据库表并自动执行增量迁移"""
     async with engine.begin() as conn:
+        # 创建所有不存在的表
         await conn.run_sync(Base.metadata.create_all)
-    logger.info("数据库初始化完成")
+        
+        # SQLite 增量字段同步 (Auto Migration for missing columns)
+        if settings.DATABASE_URL.startswith("sqlite"):
+            def sync_columns(sync_conn):
+                inspector = inspect(sync_conn)
+                for table_name, table in Base.metadata.tables.items():
+                    if inspector.has_table(table_name):
+                        existing_columns = {c["name"] for c in inspector.get_columns(table_name)}
+                        for column in table.columns:
+                            if column.name not in existing_columns:
+                                # 构建 ALTER TABLE 语句（简化版，仅支持添加基本列）
+                                col_type = column.type.compile(dialect=sync_conn.dialect)
+                                default_val = "NULL"
+                                if column.server_default is not None:
+                                    default_val = column.server_default.arg.text if hasattr(column.server_default.arg, "text") else column.server_default.arg
+                                elif not column.nullable:
+                                    if "VARCHAR" in str(col_type) or "TEXT" in str(col_type) or "String" in str(col_type):
+                                        default_val = "''"
+                                    elif "INTEGER" in str(col_type) or "FLOAT" in str(col_type) or "NUMERIC" in str(col_type):
+                                        default_val = "0"
+                                    elif "BOOLEAN" in str(col_type):
+                                        default_val = "0"
+                                
+                                alter_stmt = f"ALTER TABLE {table_name} ADD COLUMN {column.name} {col_type} DEFAULT {default_val}"
+                                try:
+                                    sync_conn.execute(text(alter_stmt))
+                                    logger.info(f"Auto-Migrate: Added column '{column.name}' to table '{table_name}'")
+                                except Exception as e:
+                                    logger.warning(f"Auto-Migrate failed for {table_name}.{column.name}: {e}")
+
+            await conn.run_sync(sync_columns)
+
+    logger.info("数据库初始化及字段同步完成")
 
 
 async def get_session() -> AsyncSession:

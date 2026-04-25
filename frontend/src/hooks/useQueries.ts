@@ -5,7 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryClient';
 import * as api from '../services/api';
-import type { SystemState, Stats, LogEntry, GameRecord, BetRecord, AnalysisData } from './useGameState';
+import type { SystemState, Stats, LogEntry, GameRecord, BetRecord, AnalysisData } from '../types/models';
 
 // ====== System State Query ======
 
@@ -292,6 +292,10 @@ export const useAddLogOptimistically = () => {
       queryKeys.logs(),
       (oldData: { logs: LogEntry[]; total: number } | undefined) => {
         if (!oldData) return { logs: [newLog], total: 1 };
+        // 去重检查，利用 log 的 id
+        if (newLog.id && oldData.logs.some(l => l.id === newLog.id)) {
+          return oldData;
+        }
         return {
           logs: [newLog, ...oldData.logs].slice(0, 50),
           total: oldData.total + 1,
@@ -310,6 +314,10 @@ export const useAddBetOptimistically = () => {
       queryKeys.bets(1),
       (oldData: { bets: BetRecord[]; total: number } | undefined) => {
         if (!oldData) return { bets: [newBet], total: 1 };
+        // 去重检查，防止并发推送导致数据重复
+        if (oldData.bets.some(b => b.game_number === newBet.game_number)) {
+          return oldData;
+        }
         return {
           bets: [newBet, ...oldData.bets].slice(0, 20),
           total: oldData.total + 1,
@@ -350,6 +358,11 @@ export const useAddGameOptimistically = () => {
       (oldData: { games: GameRecord[]; total: number } | undefined) => {
         if (!oldData) return { games: [newGame], total: 1 };
         
+        // 去重检查，防止相同局号游戏重复添加
+        if (oldData.games.some(g => g.game_number === newGame.game_number)) {
+          return oldData;
+        }
+
         // 动态继承当前的缓存长度，防止像之前那样硬编码 .slice(0, 20) 导致瞬间截断 80 条数据并引发走势图崩塌闪烁
         const currentLength = oldData.games.length;
         const maxLimit = currentLength > 0 ? currentLength : 20;

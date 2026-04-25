@@ -2,7 +2,6 @@
  * 自定义 Hooks 统一导出
  */
 export { useAdminLogin } from './useAdminLogin';
-export { useGameState } from './useGameState';
 export { useWebSocket } from './useWebSocket';
 export { useWaitTimer } from './useWaitTimer';
 export { useLoading } from './useLoading';
@@ -46,9 +45,7 @@ export type {
   SystemState,
   Stats,
   AnalysisData,
-} from './useGameState';
-
-// 智能检测类型导出
+} from '../types/models';
 export type {
   DataIntegrityIssue,
   AbnormalPattern,

@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { message } from 'antd';
-import type { GameRecord, BetRecord, SystemState } from './useGameState';
+import type { GameRecord, BetRecord, SystemState } from '../types/models';
 
 // ====== 类型定义 ======
 

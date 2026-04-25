@@ -10,8 +10,9 @@ from app.core.database import async_session
 from app.models.schemas import AdminUser, ModelVersion
 from app.core.config import settings
 from jose import jwt
+import os
 
-from app.api.routes.schemas import LoginRequest, ChangePasswordRequest
+from app.api.routes.schemas import LoginRequest, ChangePasswordRequest, ApiConfigPayload
 from app.api.routes.utils import get_current_user
 
 router = APIRouter(prefix="/api/admin", tags=["认证"])
@@ -157,7 +158,7 @@ async def get_three_model_status(_: dict = Depends(get_current_user)):
     }
     
     all_keys_set = all(m["api_key_set"] for m in models_config.values())
-    
+
     return {
         "status": "ready" if all_keys_set else "incomplete",
         "all_api_keys_configured": all_keys_set,
@@ -165,3 +166,126 @@ async def get_three_model_status(_: dict = Depends(get_current_user)):
         "smart_router_enabled": True,
         "fallback_policy": "永不降级（铁律：必须满血3模型）",
     }
+
+@router.post("/api-config")
+async def update_api_config(
+    req: ApiConfigPayload,
+    _: dict = Depends(get_current_user),
+):
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
+    
+    # Map role to settings keys
+    role_map = {
+        "banker": ("OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_API_BASE"),
+        "player": ("ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "ANTHROPIC_API_BASE"),
+        "combined": ("GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_API_BASE"),
+    }
+    
+    if req.role not in role_map:
+        raise HTTPException(status_code=400, detail="Invalid role")
+        
+    k_key, m_key, b_key = role_map[req.role]
+    
+    # Update runtime settings
+    setattr(settings, k_key, req.api_key)
+    os.environ[k_key] = req.api_key
+    setattr(settings, m_key, req.model)
+    os.environ[m_key] = req.model
+    if req.base_url:
+        setattr(settings, b_key, req.base_url)
+        os.environ[b_key] = req.base_url
+        
+    # Save to .env
+    env_content = ""
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            env_content = f.read()
+    
+    def set_env_var(content, key, val):
+        if not val:
+            return content
+        lines = content.split('\n')
+        updated = False
+        for i, line in enumerate(lines):
+            if line.startswith(f"{key}="):
+                lines[i] = f"{key}={val}"
+                updated = True
+                break
+        if not updated:
+            lines.append(f"{key}={val}")
+        return '\n'.join(lines)
+
+    env_content = set_env_var(env_content, k_key, req.api_key)
+    env_content = set_env_var(env_content, m_key, req.model)
+    if req.base_url:
+        env_content = set_env_var(env_content, b_key, req.base_url)
+
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write(env_content)
+
+    return {"status": "success", "message": f"{req.role} model updated"}
+
+@router.post("/api-config/test")
+async def test_api_config(
+    req: ApiConfigPayload,
+    _: dict = Depends(get_current_user),
+):
+    try:
+        # Default models for testing based on provider
+        if req.provider == "openai":
+            from openai import AsyncOpenAI
+            import httpx
+            client = AsyncOpenAI(
+                api_key=req.api_key,
+                base_url=req.base_url if req.base_url else None,
+                http_client=httpx.AsyncClient(timeout=10.0)
+            )
+            res = await client.chat.completions.create(
+                model=req.model,
+                messages=[{"role": "user", "content": "Hello"}],
+                max_tokens=5
+            )
+            return {"success": True, "message": "OpenAI connection successful"}
+            
+        elif req.provider == "anthropic":
+            from anthropic import AsyncAnthropic
+            import httpx
+            client = AsyncAnthropic(
+                api_key=req.api_key,
+                base_url=req.base_url if req.base_url else None,
+                http_client=httpx.AsyncClient(timeout=10.0)
+            )
+            res = await client.messages.create(
+                model=req.model,
+                messages=[{"role": "user", "content": "Hello"}],
+                max_tokens=5
+            )
+            return {"success": True, "message": "Anthropic connection successful"}
+            
+        elif req.provider == "google":
+            import google.generativeai as genai
+            genai.configure(api_key=req.api_key)
+            model = genai.GenerativeModel(req.model)
+            model.generate_content("Hello")
+            return {"success": True, "message": "Gemini connection successful"}
+            
+        elif req.provider == "deepseek":
+            from openai import AsyncOpenAI
+            import httpx
+            client = AsyncOpenAI(
+                api_key=req.api_key,
+                base_url=req.base_url or "https://api.deepseek.com/v1",
+                http_client=httpx.AsyncClient(timeout=10.0)
+            )
+            res = await client.chat.completions.create(
+                model=req.model,
+                messages=[{"role": "user", "content": "Hello"}],
+                max_tokens=5
+            )
+            return {"success": True, "message": "Deepseek connection successful"}
+            
+        else:
+            return {"success": False, "message": f"Unknown provider: {req.provider}"}
+            
+    except Exception as e:
+        return {"success": False, "message": str(e)}

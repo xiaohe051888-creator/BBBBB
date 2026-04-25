@@ -56,3 +56,10 @@ class ChangePasswordRequest(BaseModel):
     """修改密码请求"""
     old_password: str = Field(..., min_length=1, max_length=128)
     new_password: str = Field(..., min_length=4, max_length=128, description="新密码至少需要4个字符")
+
+class ApiConfigPayload(BaseModel):
+    role: str = Field(..., description="banker | player | combined")
+    provider: str = Field(..., description="Model provider")
+    model: str = Field(..., description="Model name")
+    api_key: str = Field(..., description="API Key")
+    base_url: str | None = Field(None, description="Custom base URL")
