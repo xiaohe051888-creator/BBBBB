@@ -122,15 +122,15 @@ class BettingService:
             结算结果字典
         """
         if game_result == "和":
-            # 和局不输钱，退回本金
-            self.balance += bet_amount
+            # 和局不输钱，退回本金（使用 round 避免精度丢失）
+            self.balance = round(self.balance + bet_amount, 2)
             return {
                 "status": "已结算",
                 "profit_loss": 0.0,
-                "settlement_amount": bet_amount,
+                "settlement_amount": round(bet_amount, 2),
                 "reason": "和局不输钱",
             }
-        
+
         if bet_direction == game_result:
             # 命中
             if bet_direction == "庄":
@@ -138,21 +138,24 @@ class BettingService:
             else:
                 payout = bet_amount * settings.PLAYER_ODDS
             
-            profit = payout - bet_amount
-            self.balance += payout
+            # 使用 round 解决由于 float 乘法导致的 IEEE 754 精度丢失问题（如 300 * 1.95 = 585.0000000000001）
+            payout = round(payout, 2)
+            profit = round(payout - bet_amount, 2)
+            self.balance = round(self.balance + payout, 2)
+            
             return {
                 "status": "已结算",
                 "profit_loss": profit,
                 "settlement_amount": payout,
-                "reason": f"命中{bet_direction}",
+                "reason": f"命中{game_result}",
             }
         else:
             # 未命中
             return {
                 "status": "已结算",
-                "profit_loss": -bet_amount,
+                "profit_loss": round(-bet_amount, 2),
                 "settlement_amount": 0.0,
-                "reason": f"未命中，开{game_result}",
+                "reason": f"未命中（开{game_result}）",
             }
     
     def refund_bet(self, amount: float) -> float:

@@ -278,7 +278,7 @@ class ThreeModelService:
         调用综合模型（Gemini）或者备用模型进行前瞻复盘
         返回一段 100-200 字的高浓缩策略总结
         """
-        history_str = self._format_history(game_history[-20:])
+        history_str = self._format_history(game_history)
         road_visual = self._build_road_visualization(road_data) if road_data else "暂无走势图数据"
 
         prompt = f"""你是百家乐分析系统的【策略提炼专家】。当前玩家已经下注，正在等待开奖。
@@ -595,7 +595,7 @@ class ThreeModelService:
         road_data: Dict = None, mistake_context: List[Dict] = None
     ) -> str:
         """构建综合模型提示词"""
-        history_str = self._format_history(game_history[-20:])  # 最近20局
+        history_str = self._format_history(game_history)  # 全量传入格式化方法
         road_visual = self._build_road_visualization(road_data) if road_data else "走势图数据未提供"
         mistake_str = self._format_mistakes(mistake_context) if mistake_context else "本靴无历史错误记录"
 
@@ -742,7 +742,7 @@ class ThreeModelService:
         
         模板中包含占位符，会被动态替换为当前数据
         """
-        history_str = self._format_history(game_history[-20:])  # 最近20局
+        history_str = self._format_history(game_history)  # 全量传入
         road_visual = self._build_road_visualization(road_data) if road_data else "走势图数据未提供"
         mistake_str = self._format_mistakes(mistake_context) if mistake_context else "本靴无历史错误记录"
         
@@ -839,7 +839,7 @@ class ThreeModelService:
             return "暂无历史记录"
         
         lines = []
-        recent = game_history[-30:]  # 最近30局
+        recent = game_history[-60:]  # 最近60局，保留充足上下文
         for g in recent:
             gn = g.get("game_number", "?")
             result = g.get("result", "?")
@@ -867,7 +867,7 @@ class ThreeModelService:
             if points:
                 # 转换为列表后再切片
                 points_list = list(points)
-                values = [p.get("value", "?") for p in points_list[-15:]]  # 最近15个点
+                values = [p.get("value", "?") for p in points_list[-40:]]  # 最近40个点
                 lines.append(f"{road_name}: {'→'.join(values)}")
         
         return "\n".join(lines) if lines else "暂无走势图数据"
@@ -878,11 +878,13 @@ class ThreeModelService:
             return "本靴无错题记录"
         
         lines = []
-        for m in mistakes[-5:]:  # 最近5条
+        for m in mistakes[-15:]:  # 最近15条
             gn = m.get("game_number", "?")
             etype = m.get("error_type", "?")
+            predict = m.get("predict_direction", "?")
+            actual = m.get("actual_result", "?")
             analysis = m.get("analysis", "未分析")
-            lines.append(f"第{gn}局({etype}): {analysis}")
+            lines.append(f"第{gn}局(预测{predict}开{actual}, {etype}): {analysis}")
         
         return "\n".join(lines)
     
@@ -917,10 +919,10 @@ class ThreeModelService:
             # 分析列结构
             columns = self._analyze_road_columns(big_road)
             lines.append(f"   - 列数: {len(columns)}")
-            lines.append(f"   - 最近列高度: {[len(col) for col in columns[-3:]]}")
+            lines.append(f"   - 最近列高度: {[len(col) for col in columns[-10:]]}")
 
             # 检测连胜/连败
-            recent = big_road[-10:] if len(big_road) >= 10 else big_road
+            recent = big_road[-20:] if len(big_road) >= 20 else big_road
             banker_streak = self._count_streak(recent, "庄")
             player_streak = self._count_streak(recent, "闲")
             lines.append(f"   - 当前庄连胜: {banker_streak}局")
@@ -930,7 +932,7 @@ class ThreeModelService:
             error_marks = [p for p in big_road if getattr(p, 'error_id', None) or (isinstance(p, dict) and p.get("error_id"))]
             if error_marks:
                 lines.append(f"   - ⚠️ 血迹标记: {len(error_marks)}处")
-                for em in error_marks[-3:]:
+                for em in error_marks:  # 展现所有血迹，让 AI 知道陷阱全貌
                     game_num = getattr(em, 'game_number', '?') if not isinstance(em, dict) else em.get('game_number', '?')
                     err_id = getattr(em, 'error_id', '?') if not isinstance(em, dict) else em.get('error_id', '?')
                     lines.append(f"     局{game_num}: {err_id}")
@@ -944,7 +946,7 @@ class ThreeModelService:
         bead_road = _get_points(road_data.get("bead_road"))
         if bead_road:
             lines.append("2. 珠盘路（原始记录）:")
-            recent_bead = bead_road[-14:] if len(bead_road) >= 14 else bead_road
+            recent_bead = bead_road[-30:] if len(bead_road) >= 30 else bead_road
             sequence = "→".join([getattr(p, 'value', getattr(p, 'result', '?')) if not isinstance(p, dict) else p.get("value", p.get("result", "?")) for p in recent_bead])
             lines.append(f"   - 最近序列: {sequence}")
             lines.append("")
@@ -962,7 +964,7 @@ class ThreeModelService:
                 lines.append(f"   - 红(延): {red_count}个, 蓝(转): {blue_count}个")
 
                 # 最近趋势
-                recent_points = road_points[-5:] if len(road_points) >= 5 else road_points
+                recent_points = road_points[-20:] if len(road_points) >= 20 else road_points
                 recent_values = [(getattr(p, 'value', '?') if not isinstance(p, dict) else p.get("value", "?")) for p in recent_points]
                 # 将红/蓝转换为延/转便于理解
                 display_values = ["延" if v == "红" else "转" if v == "蓝" else str(v) for v in recent_values]

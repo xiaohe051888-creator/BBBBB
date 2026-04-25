@@ -305,11 +305,11 @@ class AILearningService:
 - 庄出现：{stats['banker_wins']} 次 | 闲出现：{stats['player_wins']} 次 | 和局：{stats['tie_count']} 次
 - 当前综合准确率：{current_accuracy:.1f}%
 
-## 最近20条开奖记录
-{json.dumps(training_data['records'][-20:], ensure_ascii=False, indent=2)}
+## 最近开奖记录（全靴完整数据）
+{json.dumps(training_data['records'][-80:], ensure_ascii=False, indent=2)}
 
-## 错误案例（共{len(mistakes)}条）
-{json.dumps(mistakes[:15], ensure_ascii=False, indent=2)}
+## 错误案例（错题本）
+{json.dumps(mistakes[-40:], ensure_ascii=False, indent=2)}
 
 ## 请输出以下JSON格式分析结果：
 {{
@@ -457,9 +457,9 @@ class AILearningService:
         short_term_insight = ai_analysis.get("key_insight", "")
         
         short_term = f"""【当前靴(#{current_boot})核心记忆】
-模式发现：{short_term_patterns[:100]}
-错误热点：{short_term_errors[:100]}
-关键洞察：{short_term_insight[:100]}
+模式发现：{short_term_patterns[:300]}
+错误热点：{short_term_errors[:300]}
+关键洞察：{short_term_insight[:300]}
 样本数：{len(training_data['records'])}局
 准确率：{training_data['stats'].get('correct', 0)}/{training_data['stats'].get('total', 0)}"""
         
@@ -496,7 +496,7 @@ class AILearningService:
 总体表现：{recent_correct}/{recent_total} ({recent_accuracy:.1f}%)
 各靴表现：{boot_summary}
 趋势判断：{'上升' if recent_accuracy > 50 else '下降' if recent_accuracy < 40 else '震荡'}
-共性规律：{ai_analysis.get('pattern_summary', '分析中')[:80]}"""
+共性规律：{ai_analysis.get('pattern_summary', '分析中')[:300]}"""
         else:
             medium_term = "【最近5靴中期记忆】数据不足，待积累"
         

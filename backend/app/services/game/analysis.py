@@ -60,7 +60,7 @@ async def run_ai_analysis(
             # 必须将本靴内发生的所有错误血迹完整传递给 AI 引擎，否则会导致 AI 看到的五路图错题标记残缺，胜率大幅下降
             stmt2 = select(MistakeBook).where(
                 MistakeBook.boot_number == boot_number,
-            ).order_by(MistakeBook.game_number.desc())
+            ).order_by(MistakeBook.game_number)  # 改为升序，保证时间线正确
             mb_result = await db.execute(stmt2)
             mistakes = mb_result.scalars().all()
             
@@ -125,7 +125,7 @@ async def run_ai_analysis(
                 from app.models.schemas import AIMemory
                 stmt_memory = select(AIMemory).where(
                     AIMemory.boot_number == boot_number,
-                    AIMemory.mistake_type == "实时推演策略"
+                    AIMemory.error_type == "实时推演策略"
                 ).order_by(AIMemory.created_at.desc()).limit(1)
                 memory_result = await db.execute(stmt_memory)
                 latest_memory = memory_result.scalar_one_or_none()

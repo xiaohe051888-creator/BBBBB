@@ -61,12 +61,12 @@ async def micro_learning_current_trend(
             boot_number=boot_number,
             game_number=current_game_number,
             version_id=current_version.version_id if current_version else "realtime_v1",
-            mistake_type="实时推演策略",
+            error_type="实时推演策略",
             prediction="N/A",
             actual_result="N/A",
             is_correct=True,
             confidence=1.0,
-            road_context=json.dumps(road_data.get("big_road", [])[-5:]), # 只存最近特征
+            road_snapshot=json.dumps(road_data.get("big_road", [])[-5:]), # 只存最近特征
             error_analysis="实时演练：综合模型提取最新五路形态",
             self_reflection=realtime_strategy_text,  # 存入真实的 AI 大模型回复
             created_at=datetime.now()
