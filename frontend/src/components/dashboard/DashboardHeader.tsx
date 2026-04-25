@@ -6,18 +6,7 @@
 import React, { useState } from 'react';
 import { Button, Tag, Space, Tooltip, Modal, Spin } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import {
-  UploadIcon,
-  LockIcon,
-  UnlockIcon,
-  GlobeIcon,
-  RobotIcon,
-  CoinIcon,
-  ShieldIcon,
-  ArrowRightIcon,
-  CloseIcon,
-  AlertTriangleIcon
-} from '../icons';
+import { StopOutlined, ExclamationCircleOutlined, DollarOutlined, RobotOutlined, AppstoreOutlined, CloudUploadOutlined, UnlockOutlined, LockOutlined } from '@ant-design/icons';
 import { SystemStatusPanel } from '../ui/SystemStatusPanel';
 import type { HealthScoreResponse } from '../../services/api';
 import { endBoot } from '../../services/api';
@@ -111,11 +100,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           {/* 1. 系统状态信息 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.15)', padding: '6px 14px', borderRadius: 20 }}>
-              <span style={{ color: '#ffd700', fontSize: 16 }}><GlobeIcon /></span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: 0.5 }}>
-                第 <span style={{ color: '#ffd700', fontSize: 16 }}>{systemState?.boot_number || 1}</span> 靴
-              </span>
-            </div>
+                <span style={{ color: '#ffd700', fontSize: 16 }}><AppstoreOutlined /></span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: 0.5 }}>
+                  第 <span style={{ color: '#ffd700', fontSize: 16 }}>{systemState?.boot_number || 1}</span> 靴
+                </span>
+              </div>
           </div>
 
           {/* 2. 已开局信息 & 下局预测 */}
@@ -206,10 +195,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
         {/* 右侧组：余额 & 操作 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(115,209,61,0.05)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(115,209,61,0.15)' }}>
-            <span style={{ fontSize: 16, color: '#73d13d' }}><CoinIcon /></span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#73d13d' }}>
-              ¥{(systemState?.balance || 20000).toLocaleString()}
+          <div className="balance-badge" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(82,196,26,0.1)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(82,196,26,0.2)' }}>
+            <DollarOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#52c41a', fontFamily: 'monospace' }}>
+              {systemState?.balance?.toLocaleString() || '0'}
             </span>
           </div>
 
@@ -220,13 +209,24 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               type="primary"
               danger
               onClick={handleEndBoot}
-              style={{ borderRadius: 8, fontWeight: 600, height: 36, padding: '0 16px' }}
+              disabled={isEndingBoot}
+              icon={<StopOutlined />}
+              style={{
+                height: 38,
+                padding: '0 20px',
+                borderRadius: 8,
+                fontWeight: 600,
+                letterSpacing: 1,
+                boxShadow: '0 4px 12px rgba(245,34,45,0.3)',
+                border: 'none',
+                background: 'linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%)'
+              }}
             >
               结束本靴
             </Button>
 
             <Button
-              icon={<UploadIcon />}
+              icon={<CloudUploadOutlined />}
               onClick={() => navigate('/', { state: { isNewBoot: false } })}
               style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: 8, height: 36 }}
             >
@@ -235,7 +235,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
             {isLoggedIn ? (
               <Button
-                icon={<UnlockIcon />}
+                icon={<UnlockOutlined />}
                 onClick={() => navigate('/admin')}
                 style={{ background: 'rgba(255,215,0,0.08)', borderColor: 'rgba(255,215,0,0.3)', color: '#ffd700', borderRadius: 8, height: 36 }}
               >
@@ -243,7 +243,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               </Button>
             ) : (
               <Button
-                icon={<LockIcon />}
+                icon={<LockOutlined />}
                 onClick={onOpenLogin}
                 style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: 8, height: 36 }}
               >
@@ -292,7 +292,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 flexShrink: 0,
                 border: '1px solid rgba(255, 77, 79, 0.2)'
               }}>
-                <AlertTriangleIcon width={24} height={24} color="#ff4d4f" />
+                <ExclamationCircleOutlined style={{ fontSize: 24, color: '#ff4d4f' }} />
               </div>
               <div>
                 <h3 style={{ margin: '0 0 8px', color: '#fff', fontSize: 20, fontWeight: 600, letterSpacing: '0.5px' }}>
@@ -402,7 +402,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 flexShrink: 0,
                 border: `1px solid ${alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.2)' : 'rgba(250, 173, 20, 0.2)'}`
               }}>
-                <AlertTriangleIcon width={24} height={24} color={alertModal.type === 'error' ? '#ff4d4f' : '#faad14'} />
+                <ExclamationCircleOutlined style={{ fontSize: 24, color: alertModal.type === 'error' ? '#ff4d4f' : '#faad14' }} />
               </div>
               <div>
                 <h3 style={{ margin: '0 0 8px', color: '#fff', fontSize: 20, fontWeight: 600, letterSpacing: '0.5px' }}>

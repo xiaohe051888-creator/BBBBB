@@ -127,22 +127,22 @@ const DashboardPage: React.FC = () => {
 
   // 节流与防抖的缓存失效函数 (避免高频 WebSocket 导致打挂服务器)
   const debouncedInvalidateLogs = useMemo(
-    () => debounce(() => queryClient.invalidateQueries({ queryKey: ['logs'] }), 300),
+    () => debounce(() => queryClient.invalidateQueries({ queryKey: ['logs'] }).catch(console.error), 300),
     [queryClient]
   );
 
   const debouncedInvalidateBets = useMemo(
-    () => debounce(() => queryClient.invalidateQueries({ queryKey: ['bets'] }), 300),
+    () => debounce(() => queryClient.invalidateQueries({ queryKey: ['bets'] }).catch(console.error), 300),
     [queryClient]
   );
 
   const debouncedInvalidateGames = useMemo(
-    () => debounce(() => queryClient.invalidateQueries({ queryKey: ['games'] }), 300),
+    () => debounce(() => queryClient.invalidateQueries({ queryKey: ['games'] }).catch(console.error), 300),
     [queryClient]
   );
 
   const debouncedInvalidateState = useMemo(
-    () => debounce(() => queryClient.invalidateQueries({ queryKey: queryKeys.systemState() }), 300),
+    () => debounce(() => queryClient.invalidateQueries({ queryKey: queryKeys.systemState() }).catch(console.error), 300),
     [queryClient]
   );
 
@@ -197,12 +197,12 @@ const DashboardPage: React.FC = () => {
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // 页面重新可见时刷新所有数据
-        queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
-        queryClient.invalidateQueries({ queryKey: queryKeys.roads() });
-        queryClient.invalidateQueries({ queryKey: ['games'] });
-        queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
-        queryClient.invalidateQueries({ queryKey: queryKeys.stats() });
+        // 页面重新可见时刷新所有数据，添加 .catch() 兜底断网异常
+        queryClient.invalidateQueries({ queryKey: queryKeys.systemState() }).catch(console.error);
+        queryClient.invalidateQueries({ queryKey: queryKeys.roads() }).catch(console.error);
+        queryClient.invalidateQueries({ queryKey: ['games'] }).catch(console.error);
+        queryClient.invalidateQueries({ queryKey: queryKeys.analysis() }).catch(console.error);
+        queryClient.invalidateQueries({ queryKey: queryKeys.stats() }).catch(console.error);
       }
     };
     
@@ -407,7 +407,7 @@ const DashboardPage: React.FC = () => {
 
       {/* 弹窗 */}
       <RevealModal visible={revealVisible} onCancel={() => setRevealVisible(false)} result={revealResult} setResult={setRevealResult} onConfirm={handleConfirmReveal} loading={revealLoading} gameNumber={systemState?.pending_bet?.game_number ?? systemState?.next_game_number} />
-      <LoginModal visible={loginVisible} onCancel={closeLogin} password={loginPassword} setPassword={setLoginPassword} onLogin={handleAdminLogin} loading={loginLoading} />
+      <LoginModal visible={loginVisible} onCancel={closeLogin} onSuccess={closeLogin} />
     </div>
   );
 };

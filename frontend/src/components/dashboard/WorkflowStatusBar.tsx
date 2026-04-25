@@ -5,14 +5,15 @@
  */
 import React from 'react';
 import { Button } from 'antd';
+
 import { useWaitTimer } from '../../hooks/useWaitTimer';
 import {
-  ClockIcon,
-  BulbIcon,
-  UploadIcon,
-  ChartIcon,
-  TargetIcon,
-} from '../icons';
+  ClockCircleOutlined as ClockIcon,
+  BulbOutlined as BulbIcon,
+  CloudUploadOutlined as UploadIcon,
+  LineChartOutlined as ChartIcon,
+  AimOutlined as TargetIcon,
+} from '@ant-design/icons';
 
 interface WorkflowStatusBarProps {
   hasPendingBet: boolean;

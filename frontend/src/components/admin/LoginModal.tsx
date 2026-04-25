@@ -1,16 +1,14 @@
 /**
  * 管理员登录弹窗组件 - 精致图标、中文全站
  */
-import React from 'react';
-import { Modal, Input } from 'antd';
+import React, { useState } from 'react';
+import { Modal, Input, message } from 'antd';
+import * as api from '../../services/api';
 
 interface LoginModalProps {
   visible: boolean;
   onCancel: () => void;
-  password: string;
-  setPassword: (pwd: string) => void;
-  onLogin: () => void;
-  loading: boolean;
+  onSuccess: () => void;
 }
 
 // 精致图标
@@ -35,11 +33,28 @@ const Icons = {
 const LoginModal: React.FC<LoginModalProps> = ({
   visible,
   onCancel,
-  password,
-  setPassword,
-  onLogin,
-  loading,
+  onSuccess,
 }) => {
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!password) {
+      message.warning('请输入管理密码');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await api.adminLogin(password);
+      message.success('登录成功');
+      onSuccess();
+    } catch (err: any) {
+      message.error(err.response?.data?.error || '登录失败，密码错误');
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <Modal
       title={null}
@@ -73,7 +88,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
       <Input.Password
         value={password}
         onChange={e => setPassword(e.target.value)}
-        onPressEnter={onLogin}
+        onPressEnter={handleLogin}
         placeholder="请输入管理员密码"
         size="large"
         autoFocus
@@ -81,7 +96,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
         styles={{ input: { color: '#fff' } }}
       />
       <button
-        onClick={onLogin}
+        onClick={handleLogin}
         disabled={loading || !password}
         style={{
           width: '100%',

@@ -339,11 +339,14 @@ const UploadPage: React.FC<UploadPageProps> = () => {
         <ValidationPanel />
       </div>
 
-      {/* 登录弹窗 */}
+      {/* 管理员登录弹窗 */}
       <LoginModal
         visible={loginVisible}
-        onClose={() => setLoginVisible(false)}
-        onLogin={handleLogin}
+        onCancel={() => setLoginVisible(false)}
+        onSuccess={async () => {
+          setLoginVisible(false);
+          window.location.reload();
+        }}
       />
 
       {/* 数字填充弹窗 */}

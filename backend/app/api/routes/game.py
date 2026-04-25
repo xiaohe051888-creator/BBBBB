@@ -81,8 +81,9 @@ async def upload_game_results(req: UploadRequest):
                         f"上传触发分析时发生系统错误: {str(e)}", priority="P1"
                     )
                 await broadcast_event("state_update", {"status": "错误"})
-            except:
-                pass
+            except Exception as inner_e:
+                import logging
+                logging.getLogger(__name__).error(f"处理分析错误时发生次生异常: {inner_e}", exc_info=True)
         finally:
             # 无论如何，确保状态机不会死锁在“分析中”
             from app.services.game.session import get_session, broadcast_event
@@ -96,8 +97,9 @@ async def upload_game_results(req: UploadRequest):
                         state.status = "等待开奖"
                         await final_session.commit()
                     await broadcast_event("state_update", {"status": "等待开奖"})
-                except:
-                    pass
+                except Exception as final_e:
+                    import logging
+                    logging.getLogger(__name__).error(f"清理状态机遇错: {final_e}", exc_info=True)
 
     # 保存对后台任务的强引用以防止GC回收
     from app.services.game.session import add_background_task
