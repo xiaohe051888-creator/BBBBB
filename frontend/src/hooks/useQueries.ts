@@ -344,12 +344,18 @@ export const useAddGameOptimistically = () => {
   const queryClient = useQueryClient();
 
   return (newGame: GameRecord) => {
-    queryClient.setQueryData(
-      queryKeys.games(1),
+    // 模糊匹配所有包含 'games' 的 queryKey，以适配不同的 pageSize (比如 DashboardPage 里的 pageSize=100)
+    queryClient.setQueriesData(
+      { queryKey: ['games'] },
       (oldData: { games: GameRecord[]; total: number } | undefined) => {
         if (!oldData) return { games: [newGame], total: 1 };
+        
+        // 动态继承当前的缓存长度，防止像之前那样硬编码 .slice(0, 20) 导致瞬间截断 80 条数据并引发走势图崩塌闪烁
+        const currentLength = oldData.games.length;
+        const maxLimit = currentLength > 0 ? currentLength : 20;
+        
         return {
-          games: [newGame, ...oldData.games].slice(0, 20),
+          games: [newGame, ...oldData.games].slice(0, maxLimit),
           total: oldData.total + 1,
         };
       }

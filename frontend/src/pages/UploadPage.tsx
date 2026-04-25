@@ -11,7 +11,6 @@ import {
   ParticleBackground,
   BeadRoadGrid,
   NumberFillModal,
-  LoginModal,
   StatsBar,
   ControlBar,
   UploadArea,
@@ -20,6 +19,7 @@ import {
   NUM_TO_RESULT,
   UploadIcons,
 } from '../components/upload';
+import LoginModal from '../components/admin/LoginModal';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { ConfirmUploadModal } from '../components/upload/ConfirmUploadModal';
 import { ClearDataModal } from '../components/upload/ClearDataModal';

@@ -9,7 +9,7 @@ import os
 from app.core.database import async_session
 from app.models.schemas import GameRecord, BetRecord, SystemLog, SystemState
 from app.core.config import settings
-from app.services.manual_game_service import get_current_state, get_session
+from app.services.game import get_current_state, get_session
 from app.api.routes.utils import get_current_user
 
 router = APIRouter(prefix="/api/system", tags=["系统状态"])
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/system", tags=["系统状态"])
 @router.get("/state")
 async def get_system_state():
     """获取系统状态"""
-    from app.services.manual_game_service import get_current_state
+    from app.services.game import get_current_state
     
     async with async_session() as session:
         stmt = select(SystemState)
@@ -278,7 +278,7 @@ async def get_system_diagnostics():
     }
 
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Literal
 
 class PredictionModeRequest(BaseModel):
@@ -355,7 +355,8 @@ class APIKeyUpdateRequest(BaseModel):
     anthropic_key: str | None = Field(None, max_length=200, description="Anthropic API Key")
     gemini_key: str | None = Field(None, max_length=200, description="Gemini API Key")
 
-    @validator("openai_key", "anthropic_key", "gemini_key")
+    @field_validator("openai_key", "anthropic_key", "gemini_key", mode="before")
+    @classmethod
     def validate_keys(cls, v):
         if v is not None and ("\n" in v or "\r" in v):
             raise ValueError("API Key 不能包含换行符")

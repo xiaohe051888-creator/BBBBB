@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api", tags=["AI分析"])
 @router.get("/analysis/latest")
 async def get_latest_analysis():
     """获取最新一局的AI三模型分析结果"""
-    from app.services.manual_game_service import get_current_state
+    from app.services.game import get_current_state
     
     # 优先从内存获取（最新）
     mem = await get_current_state()

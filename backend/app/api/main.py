@@ -95,11 +95,11 @@ async def lifespan(app: FastAPI):
             mem_sess.next_game_number = db_state.game_number + 1
 
     # 注入广播函数到手动游戏服务
-    from app.services.manual_game_service import set_broadcast_func
+    from app.services.game import set_broadcast_func
     set_broadcast_func(broadcast_update)
     
     # 恢复内存状态（从数据库）
-    from app.services.manual_game_service import sync_balance_from_db
+    from app.services.game import sync_balance_from_db
     async with async_session() as session:
         await sync_balance_from_db(session)
     

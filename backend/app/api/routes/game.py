@@ -20,7 +20,7 @@ async def upload_game_results(req: UploadRequest):
     手动上传批量开奖记录（最多72局）
     上传后自动计算五路走势图，触发AI分析预测下一局
     """
-    from app.services.manual_game_service import upload_games, run_ai_analysis, get_session
+    from app.services.game import upload_games, run_ai_analysis, get_session
     
     # 检查是否正在深度学习中
     sess = get_session()
@@ -119,7 +119,7 @@ async def reveal_game_route(req: RevealRequest):
     """
     开奖 - 输入开奖结果，结算注单，走势图更新，触发下一局AI分析
     """
-    from app.services.manual_game_service import reveal_game as _reveal, run_ai_analysis, get_session
+    from app.services.game import reveal_game as _reveal, run_ai_analysis, get_session
     
     async with async_session() as session:
         result = await _reveal(
@@ -192,7 +192,7 @@ async def end_current_boot(
     """
     结束本靴 - 触发深度学习，完成后才能开始新靴
     """
-    from app.services.manual_game_service import end_boot
+    from app.services.game import end_boot
     
     async with async_session() as session:
         result = await end_boot(
@@ -208,7 +208,7 @@ async def end_current_boot(
 @router.get("/deep-learning-status")
 async def get_deep_learning_status():
     """获取深度学习状态"""
-    from app.services.manual_game_service import get_session
+    from app.services.game import get_session
     
     sess = get_session()
     
@@ -222,7 +222,7 @@ async def get_deep_learning_status():
 @router.get("/current-state")
 async def get_game_current_state():
     """获取当前手动游戏内存状态（等待开奖、预测结果等）"""
-    from app.services.manual_game_service import get_current_state
+    from app.services.game import get_current_state
     return await get_current_state()
 
 

@@ -46,7 +46,7 @@ async def get_statistics():
 
 async def _get_balance(session) -> float:
     """获取当前余额（优先从内存获取）"""
-    from app.services.manual_game_service import get_session
+    from app.services.game import get_session
     sess = get_session()
     if sess.balance != settings.DEFAULT_BALANCE or sess.next_game_number > 1:
         return sess.balance

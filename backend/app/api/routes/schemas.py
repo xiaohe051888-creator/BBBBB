@@ -2,7 +2,7 @@
 路由共享的Pydantic模型定义
 """
 from typing import List
-from pydantic import BaseModel, validator, Field
+from pydantic import BaseModel, field_validator, Field
 from app.core.config import settings
 
 
@@ -11,7 +11,8 @@ class GameUploadItem(BaseModel):
     game_number: int = Field(..., ge=1, le=80, description="局号必须在 1 到 80 之间")
     result: str = Field(..., max_length=10)
 
-    @validator("result")
+    @field_validator("result")
+    @classmethod
     def validate_result(cls, v):
         if v not in ("庄", "闲", "和"):
             raise ValueError("开奖结果必须是：庄、闲、和")
@@ -22,8 +23,9 @@ class UploadRequest(BaseModel):
     """批量上传请求"""
     games: List[GameUploadItem]
     is_new_boot: bool = False
-    
-    @validator("games")
+
+    @field_validator("games")
+    @classmethod
     def validate_games(cls, v):
         if not v:
             raise ValueError("上传数据不能为空")
@@ -37,7 +39,8 @@ class RevealRequest(BaseModel):
     game_number: int = Field(..., ge=1, le=80, description="局号必须在 1 到 80 之间")
     result: str = Field(..., max_length=10)
 
-    @validator("result")
+    @field_validator("result")
+    @classmethod
     def validate_result(cls, v):
         if v not in ("庄", "闲", "和"):
             raise ValueError("开奖结果必须是：庄、闲、和")
