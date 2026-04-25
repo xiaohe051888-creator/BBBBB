@@ -17,6 +17,11 @@ export const BeadRoadGrid: React.FC<BeadRoadGridProps> = ({
   rowCount,
   onCellClick,
 }) => {
+  // 找到第一个未填写的数据格子的索引
+  const firstEmptyIndex = games.findIndex(g => g === '');
+  // 如果全都填满了，则返回最大允许点击的索引
+  const allowedMaxIndex = firstEmptyIndex === -1 ? games.length : firstEmptyIndex;
+
   return (
     <div style={{
       padding: '20px 16px',
@@ -40,11 +45,15 @@ export const BeadRoadGrid: React.FC<BeadRoadGridProps> = ({
           const gameIndex = col * BEAD_ROWS + row;
           const result = games[gameIndex] || '';
           const gameNumber = gameIndex + 1;
-          const isDisabled = gameIndex >= rowCount;
+
+          // 强制顺序填写：当前格子如果大于了“第一个空位”的索引，就强制禁用，
+          // 防止用户跳跃式乱点。只允许点已经填写的，和紧挨着的下一个空位。
+          const isForbiddenBySequence = gameIndex > allowedMaxIndex;
+          const isDisabled = gameIndex >= rowCount || isForbiddenBySequence;
 
           return (
             <button
-              key={idx}
+              key={gameIndex}
               onClick={() => !isDisabled && onCellClick(gameIndex)}
               disabled={isDisabled}
               style={{
