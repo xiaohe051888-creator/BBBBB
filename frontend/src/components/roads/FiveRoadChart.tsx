@@ -158,9 +158,9 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
     return PADDING * 2 + 6 * (BASE_CELL_SIZE + CELL_GAP);
   }, []);
 
-  // 滚动容器高度，增加 12px 的 padding 以容纳自定义滚动条
+  // 滚动容器高度，减少预留空间，让滚动条显得更紧凑
   const scrollContainerHeight = useMemo(() => {
-    return roadHeight + 12;
+    return roadHeight + 6;
   }, [roadHeight]);
 
   // 计算各路总高度（含标题栏）- 使用minHeight
@@ -213,14 +213,14 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
             )}
           </div>
           <div
-            ref={bigRoadScrollRef}
-            style={{
-              width: '100%',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              paddingBottom: '12px',
-            }}
-          >
+              ref={bigRoadScrollRef}
+              style={{
+                width: '100%',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                paddingBottom: '6px',
+              }}
+            >
             <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
               {hasData.big ? (
                 <BigRoadCanvas data={roads.big} config={baseConfig} />
@@ -265,11 +265,10 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
             </div>
             <div style={{
               width: '100%',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              paddingBottom: '12px',
+              overflow: 'hidden',
+              height: `${roadHeight}px`,
             }}>
-              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
+              <div style={{ height: `${roadHeight}px`, width: '100%' }}>
                 {hasData.bead ? (
                   <BeadRoadCanvas data={roads.bead} config={baseConfig} />
                 ) : (
@@ -310,7 +309,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                paddingBottom: '12px',
+                paddingBottom: '6px',
               }}
             >
               <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
@@ -363,7 +362,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                paddingBottom: '12px',
+                paddingBottom: '6px',
               }}
             >
               <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
@@ -407,7 +406,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                paddingBottom: '12px',
+                paddingBottom: '6px',
               }}
             >
               <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
