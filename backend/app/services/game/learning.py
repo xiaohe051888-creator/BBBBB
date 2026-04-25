@@ -33,6 +33,8 @@ async def micro_learning_current_trend(
         from app.services.ai_learning_service import AILearningService
         from app.services.smart_model_selector import SmartModelSelector
         from app.services.road_engine import UnifiedRoadEngine
+        from app.services.three_model_service import ThreeModelService
+        from app.models.schemas import GameRecord
         import json
 
         selector = SmartModelSelector(db)
@@ -40,14 +42,24 @@ async def micro_learning_current_trend(
         road_engine = UnifiedRoadEngine()
         road_data = await road_engine.get_all_roads(boot_number)
 
-        # 触发综合模型的等待期自我演练 (基于最新的 road_data，不依赖结果)
-        # 这里我们将策略记忆写入当前局号的预演记忆中，以便等会儿开奖后的预测可以直接提取
-        
-        # 简单模拟演练耗时（如果是调用真实API，可调用 AI 接口进行前瞻推演）
-        import asyncio
-        await asyncio.sleep(1.5)
-        
-        # 将推演经验写入 AIMemory，作为实时提升的知识库
+        # 提取历史记录供大模型参考
+        stmt = select(GameRecord).where(
+            GameRecord.boot_number == boot_number,
+            GameRecord.result.isnot(None),
+        ).order_by(GameRecord.game_number)
+        result = await db.execute(stmt)
+        records = result.scalars().all()
+        game_history = [{"game_number": r.game_number, "result": r.result} for r in records]
+
+        # 触发综合模型的等待期自我演练
+        # 我们调用真实的 ThreeModelService API 来生成策略
+        ai_service = ThreeModelService()
+        realtime_strategy_text = await ai_service.realtime_strategy_learning(
+            game_history=game_history,
+            road_data=road_data,
+        )
+
+        # 将真实推演经验写入 AIMemory，作为实时提升的知识库
         memory = AIMemory(
             boot_number=boot_number,
             game_number=current_game_number,
@@ -58,8 +70,8 @@ async def micro_learning_current_trend(
             is_correct=True,
             confidence=1.0,
             road_context=json.dumps(road_data.get("big_road", [])[-5:]), # 只存最近特征
-            error_analysis="实时演练：提取本靴最新五路形态高维特征",
-            self_reflection="已将最新形态同步至实时神经元",
+            error_analysis="实时演练：综合模型提取最新五路形态",
+            self_reflection=realtime_strategy_text,  # 存入真实的 AI 大模型回复
             created_at=datetime.now()
         )
         db.add(memory)

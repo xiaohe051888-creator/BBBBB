@@ -267,6 +267,48 @@ class ThreeModelService:
         # 全局最大等待时间（防止无限阻塞）
         self.global_timeout = 120  # 2分钟总超时
     
+    async def realtime_strategy_learning(
+        self,
+        game_history: List[Dict],
+        road_data: Dict,
+        consecutive_errors: int = 0
+    ) -> str:
+        """
+        等待开奖期间的专属微学习：提取当前盘面的高维策略
+        调用综合模型（Gemini）或者备用模型进行前瞻复盘
+        返回一段 100-200 字的高浓缩策略总结
+        """
+        history_str = self._format_history(game_history[-20:])
+        road_visual = self._build_road_visualization(road_data) if road_data else "暂无走势图数据"
+
+        prompt = f"""你是百家乐分析系统的【策略提炼专家】。当前玩家已经下注，正在等待开奖。
+请你利用这段等待时间，深度审视当前的五路走势图结构，提炼出当前的【核心盘面特征】和【下一局的极高优策略】。
+
+【历史记录】
+{history_str}
+
+【当前五路结构】
+{road_visual}
+
+【你的任务】
+请直接输出一段 100-200 字的高度浓缩策略总结。
+必须包含：当前主要处于什么形态（如长龙、单跳、齐脚等）、哪几路正在发生共振、以及下一局决策时最应该警惕的陷阱是什么。
+不要寒暄，直接输出这段策略文本。"""
+
+        try:
+            # 使用综合模型进行策略提炼
+            result = await self.combined_client.call(prompt)
+            # 简单清洗输出，防止返回 markdown 代码块包裹
+            clean_result = result.replace("```json", "").replace("```markdown", "").replace("```", "").strip()
+            return clean_result
+        except Exception as e:
+            # 如果综合模型失败，降级给庄模型/闲模型进行提炼
+            try:
+                result = await self.banker_client.call(prompt)
+                return result.replace("```", "").strip()
+            except Exception as e2:
+                return "未能成功提取实时策略，网络或 API 超时。"
+
     async def analyze(
         self,
         game_number: int,
