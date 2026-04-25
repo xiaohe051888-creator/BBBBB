@@ -216,18 +216,6 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
           }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#e6edf3' }}>大路</span>
             <span style={{ fontSize: '11px', color: '#8b949e' }}>Big Road</span>
-            {hasData.big && (
-              <span style={{
-                marginLeft: 'auto',
-                fontSize: '10px',
-                color: '#58a6ff',
-                background: 'rgba(88, 166, 255, 0.1)',
-                padding: '1px 6px',
-                borderRadius: '3px',
-              }}>
-                {roads.big?.points.length} 局
-              </span>
-            )}
           </div>
           <div
               ref={bigRoadScrollRef}
