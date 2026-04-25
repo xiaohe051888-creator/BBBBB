@@ -263,6 +263,15 @@ const DashboardPage: React.FC = () => {
   const [deepLearning, setDeepLearning] = useState<any>(null);
 
   const handleOpenReveal = () => {
+    if (systemState?.status === '余额不足') {
+      addIssue({
+        level: 'critical',
+        title: '无法开奖',
+        detail: '当前系统余额不足，流程已挂起。请前往右上角管理员页面充值测试资金。',
+        source: 'system',
+      });
+      return;
+    }
     setRevealResult('');
     setRevealVisible(true);
   };

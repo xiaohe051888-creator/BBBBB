@@ -42,6 +42,22 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
   const { seconds: waitSeconds, formattedTime: waitFormattedTime } = useWaitTimer({ enabled: hasPendingBet });
   const pendingGameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
 
+  if (systemState?.status === '余额不足') {
+    return (
+      <div className="status-bar warning" style={{ background: 'rgba(250, 173, 20, 0.1)', border: '1px solid #faad14' }}>
+        <div className="status-icon-wrapper" style={{ background: '#faad14', color: '#141414' }}>
+          <ClockIcon />
+        </div>
+        <div className="status-content">
+          <div className="status-title" style={{ color: '#faad14' }}>余额不足，系统已挂起</div>
+          <div className="status-subtitle" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            当前系统余额不足以下一局预测，预测与开奖流程已暂停。请前往【管理员控制台】充值。
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const getStatusConfig = () => {
     if (hasPendingBet) {
       return {
