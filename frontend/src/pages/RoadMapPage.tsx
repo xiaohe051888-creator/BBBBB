@@ -132,14 +132,20 @@ const RoadMapPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['games'] });
   };
 
-  // 统计（过滤掉空数据）
+  // 统计（彻底屏蔽一切非庄闲和的脏数据和占位符）
   const stats = useMemo(() => {
-    const validGames = games.filter(r => r.result && r.result !== '');
+    const validGames = games.filter(r => ['庄', '闲', '和'].includes(r.result));
+    const bankerCount = validGames.filter(r => r.result === '庄').length;
+    const playerCount = validGames.filter(r => r.result === '闲').length;
+    const tieCount = validGames.filter(r => r.result === '和').length;
+    // 强制使用三者之和作为总有效局数
+    const trueTotalGames = bankerCount + playerCount + tieCount;
+
     return {
-      totalGames: validGames.length,
-      bankerCount: validGames.filter(r => r.result === '庄').length,
-      playerCount: validGames.filter(r => r.result === '闲').length,
-      tieCount: validGames.filter(r => r.result === '和').length,
+      totalGames: trueTotalGames,
+      bankerCount,
+      playerCount,
+      tieCount,
       accuracy: validGames.filter(r => r.predict_correct === true).length /
         (validGames.filter(r => r.predict_correct !== null).length || 1) * 100,
     };

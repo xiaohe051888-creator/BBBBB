@@ -208,12 +208,13 @@ const DashboardPage: React.FC = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [ queryClient]);
 
-  // 计算庄、闲、和的统计数据 (过滤掉没开奖的记录)
-  const validGames = games.filter(g => g.result && g.result !== '');
+  // 计算庄、闲、和的统计数据 (彻底摒弃空数据、占位符、预测数据)
+  const validGames = games.filter(g => ['庄', '闲', '和'].includes(g.result));
   const bankerCount = validGames.filter(g => g.result === '庄').length;
   const playerCount = validGames.filter(g => g.result === '闲').length;
   const tieCount = validGames.filter(g => g.result === '和').length;
-  const validGamesLength = validGames.length;
+  // 严格使用三者之和作为总有效局数，不再相信数据库里可能存在的其他脏记录长度
+  const validGamesLength = bankerCount + playerCount + tieCount;
 
   // 等待开奖计时器
   const hasPendingBet = !!systemState?.pending_bet;
@@ -317,7 +318,7 @@ const DashboardPage: React.FC = () => {
               </Space>
 
               <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                第{systemState?.boot_number || 1}靴 · 已{systemState?.game_number || 0}局
+                第{systemState?.boot_number || 1}靴 · 已开{validGamesLength}局
               </span>
             </div>
             <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
