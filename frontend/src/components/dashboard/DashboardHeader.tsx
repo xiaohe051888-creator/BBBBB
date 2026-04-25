@@ -248,7 +248,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
           <SystemStatusPanel diagnostics={diagnostics} onDismissIssue={onDismissIssue} onRetryConnection={onRetryConnection} compact />
 
-          <Space size={8}>
+          <Space size={8} wrap>
             <Button
               type="primary"
               danger

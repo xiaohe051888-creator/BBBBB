@@ -267,6 +267,8 @@ const RoadMapPage: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icons.Target />
@@ -325,7 +327,7 @@ const RoadMapPage: React.FC = () => {
               showSizeChanger: true,
               showQuickJumper: true,
             }}
-            scroll={{ y: 'calc(100vh - 280px)' }}
+            scroll={{ x: 600, y: 'calc(100vh - 280px)' }}
             locale={{ emptyText: <Empty description="暂无开奖数据" /> }}
             summary={() => (
               <Table.Summary fixed>

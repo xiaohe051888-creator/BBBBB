@@ -127,7 +127,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
   const config = getStatusConfig();
 
   return (
-    <div style={{
+    <div className="status-bar" style={{
       padding: '10px 20px',
       background: config.bgGradient,
       borderBottom: `1px solid ${config.borderColor}`,
@@ -138,10 +138,10 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       flexWrap: 'wrap',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 20, color: config.iconColor }}>
+        <span className="status-icon-wrapper" style={{ fontSize: 20, color: config.iconColor }}>
           {config.icon}
         </span>
-        <div>
+        <div className="status-content">
           <span style={{
             fontSize: 14,
             fontWeight: 700,
