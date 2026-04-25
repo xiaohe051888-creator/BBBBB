@@ -229,14 +229,15 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
       {/* 第2排：珠盘路 + 大眼仔路 */}
       <div style={{
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: '8px',
         width: '100%',
       }}>
-        {/* 珠盘路 - 固定高度 */}
+        {/* 珠盘路 - 固定宽度（约14列）但在小屏幕下占满 */}
         <div style={{
-          flex: 'none',
-          width: '100%',
+          flex: '1 1 300px',
+          maxWidth: '100%',
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',
@@ -271,8 +272,9 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
 
         {/* 大眼仔路 - 自适应剩余宽度 */}
         <div style={{
-          flex: 1,
-          minWidth: 0,
+          flex: '2 1 400px',
+          minWidth: 'min(300px, 100%)',
+          maxWidth: '100%',
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',
