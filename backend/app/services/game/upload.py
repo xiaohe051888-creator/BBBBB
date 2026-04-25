@@ -153,7 +153,11 @@ async def upload_games(
             uploaded = 0
             for g in games:
                 game_number = g["game_number"]
-                result_val = g["result"]
+                result_val = g.get("result", "")
+                
+                # 防御脏数据：拦截非法开奖结果
+                if result_val not in ("庄", "闲", "和"):
+                    return {"success": False, "error": f"第 {game_number} 局存在非法开奖结果 '{result_val}'，只能是庄、闲、和"}
                 
                 # 检查是否已存在（避免重复）
                 stmt = select(GameRecord).where(

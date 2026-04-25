@@ -122,13 +122,13 @@ class BettingService:
             结算结果字典
         """
         if game_result == "和":
-            # 和局不输钱，退回本金（使用 round 避免精度丢失）
+            # 和局退回本金（使用 round 避免精度丢失）
             self.balance = round(self.balance + bet_amount, 2)
             return {
-                "status": "已结算",
+                "status": "和局退回",
                 "profit_loss": 0.0,
                 "settlement_amount": round(bet_amount, 2),
-                "reason": "和局不输钱",
+                "reason": "和局退回本金",
             }
 
         if bet_direction == game_result:
