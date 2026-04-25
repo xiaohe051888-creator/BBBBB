@@ -208,10 +208,12 @@ const DashboardPage: React.FC = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [ queryClient]);
 
-  // 计算庄、闲、和的统计数据
-  const bankerCount = games.filter(g => g.result === '庄').length;
-  const playerCount = games.filter(g => g.result === '闲').length;
-  const tieCount = games.filter(g => g.result === '和').length;
+  // 计算庄、闲、和的统计数据 (过滤掉没开奖的记录)
+  const validGames = games.filter(g => g.result && g.result !== '');
+  const bankerCount = validGames.filter(g => g.result === '庄').length;
+  const playerCount = validGames.filter(g => g.result === '闲').length;
+  const tieCount = validGames.filter(g => g.result === '和').length;
+  const validGamesLength = validGames.length;
 
   // 等待开奖计时器
   const hasPendingBet = !!systemState?.pending_bet;
@@ -327,10 +329,10 @@ const DashboardPage: React.FC = () => {
           <div className="progress-card" style={{ background: '#1a1d24', borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>本靴进度</span>
-              <span style={{ fontSize: 12, color: '#ffd700' }}>{games.length} / {MAX_GAMES_PER_BOOT} 局</span>
+              <span style={{ fontSize: 12, color: '#ffd700' }}>{validGamesLength} / {MAX_GAMES_PER_BOOT} 局</span>
             </div>
             <Progress
-              percent={(games.length / MAX_GAMES_PER_BOOT) * 100}
+              percent={(validGamesLength / MAX_GAMES_PER_BOOT) * 100}
               showInfo={false}
               strokeColor={{ '0%': '#ffd700', '100%': '#ff8c00' }}
               railColor="rgba(255,255,255,0.1)"

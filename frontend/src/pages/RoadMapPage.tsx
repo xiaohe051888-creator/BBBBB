@@ -132,15 +132,18 @@ const RoadMapPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['games'] });
   };
 
-  // 统计
-  const stats = useMemo(() => ({
-    totalGames: games.length,
-    bankerCount: games.filter(r => r.result === '庄').length,
-    playerCount: games.filter(r => r.result === '闲').length,
-    tieCount: games.filter(r => r.result === '和').length,
-    accuracy: games.filter(r => r.predict_correct === true).length /
-      (games.filter(r => r.predict_correct !== null).length || 1) * 100,
-  }), [games]);
+  // 统计（过滤掉空数据）
+  const stats = useMemo(() => {
+    const validGames = games.filter(r => r.result && r.result !== '');
+    return {
+      totalGames: validGames.length,
+      bankerCount: validGames.filter(r => r.result === '庄').length,
+      playerCount: validGames.filter(r => r.result === '闲').length,
+      tieCount: validGames.filter(r => r.result === '和').length,
+      accuracy: validGames.filter(r => r.predict_correct === true).length /
+        (validGames.filter(r => r.predict_correct !== null).length || 1) * 100,
+    };
+  }, [games]);
 
   // 原始数据表格列
   const rawColumns: ColumnsType<RawGameRecord> = [
@@ -213,14 +216,7 @@ const RoadMapPage: React.FC = () => {
           </Button>
           <span className="page-nav-title" style={{ display: 'flex', alignItems: 'center' }}>
             <Icons.Chart />
-            <span style={{ marginLeft: 8, marginRight: 16 }}>五路走势图 </span>
-            
-            {/* 庄闲和统计徽标 */}
-            <Space size={8}>
-              <Tag color="#ff4d4f" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>庄 {stats.bankerCount}</Tag>
-              <Tag color="#1890ff" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>闲 {stats.playerCount}</Tag>
-              <Tag color="#52c41a" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>和 {stats.tieCount}</Tag>
-            </Space>
+            <span style={{ marginLeft: 8 }}>五路走势图</span>
           </span>
         </div>
 
@@ -266,22 +262,12 @@ const RoadMapPage: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Icons.Target />
-                <span style={{ fontSize: '15px', fontWeight: 600, color: '#e6edf3' }}>
-                  五路走势图
-                </span>
-                <span style={{ fontSize: '12px', color: '#8b949e' }}>
-                  澳门标准布局
-                </span>
-              </div>
-              {/* 内部小统计 */}
-              <Space size={8}>
-                <Tag color="rgba(255, 77, 79, 0.15)" style={{ color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.3)', borderRadius: 12 }}>庄 {stats.bankerCount}</Tag>
-                <Tag color="rgba(24, 144, 255, 0.15)" style={{ color: '#1890ff', border: '1px solid rgba(24, 144, 255, 0.3)', borderRadius: 12 }}>闲 {stats.playerCount}</Tag>
-                <Tag color="rgba(82, 196, 26, 0.15)" style={{ color: '#52c41a', border: '1px solid rgba(82, 196, 26, 0.3)', borderRadius: 12 }}>和 {stats.tieCount}</Tag>
-              </Space>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icons.Target />
+              <span style={{ fontSize: '15px', fontWeight: 600, color: '#e6edf3' }}>
+                五路走势图
+              </span>
+              <span style={{ fontSize: '12px', color: '#8b949e' }}>澳门标准布局</span>
             </div>
             
             {/* 图例说明 */}
@@ -290,19 +276,20 @@ const RoadMapPage: React.FC = () => {
               gap: '16px',
               fontSize: '12px',
               color: '#8b949e',
+              alignItems: 'center',
             }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff4d4f' }} />
-                庄
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#1890ff' }} />
-                闲
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#52c41a' }} />
-                和
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff4d4f', boxShadow: '0 0 8px #ff4d4f' }} />
+                <span style={{ fontSize: 13, color: '#ff4d4f', fontWeight: 600 }}>庄 {stats.bankerCount}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#1890ff', boxShadow: '0 0 8px #1890ff' }} />
+                <span style={{ fontSize: 13, color: '#1890ff', fontWeight: 600 }}>闲 {stats.playerCount}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#52c41a', boxShadow: '0 0 8px #52c41a' }} />
+                <span style={{ fontSize: 13, color: '#52c41a', fontWeight: 600 }}>和 {stats.tieCount}</span>
+              </div>
               <Tooltip title="大路：相同颜色一组最多6个；珠盘路：14列×6行；下三路：红=与前一同，蓝=不同">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'help' }}>
                   <Icons.Info />
