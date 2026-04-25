@@ -58,7 +58,21 @@ async def lifespan(app: FastAPI):
             )
             session.add(admin)
             await session.commit()
-    
+            
+        # 同步持久化状态到内存 Session
+        from app.services.game.session import get_session
+        from app.models.schemas import SystemState
+        stmt_state = select(SystemState).order_by(SystemState.id.desc()).limit(1)
+        res_state = await session.execute(stmt_state)
+        db_state = res_state.scalar_one_or_none()
+        
+        mem_sess = get_session()
+        if db_state:
+            mem_sess.prediction_mode = db_state.prediction_mode or "ai"
+            mem_sess.balance = db_state.balance
+            mem_sess.boot_number = db_state.boot_number
+            mem_sess.next_game_number = db_state.game_number + 1
+
     # 注入广播函数到手动游戏服务
     from app.services.manual_game_service import set_broadcast_func
     set_broadcast_func(broadcast_update)

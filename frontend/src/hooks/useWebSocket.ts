@@ -46,6 +46,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isUnmountedRef = useRef(false);
   // 使用 state 触发重连
   const [reconnectTrigger, setReconnectTrigger] = useState(0);
@@ -93,6 +94,14 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
 
         ws.onopen = () => {
           setConnectionState('open');
+          
+          // 发送心跳包保活
+          if (pingTimerRef.current) clearInterval(pingTimerRef.current);
+          pingTimerRef.current = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'ping' }));
+            }
+          }, 30000); // 30秒心跳
         };
 
         ws.onmessage = (event) => {
@@ -145,18 +154,34 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
 
     connect();
 
-    return () => {
-      clearTimeout(stateTimer);
-      isUnmountedRef.current = true;
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
+    ws.onclose = () => {
+          if (!isUnmountedRef.current) {
+            setConnectionState('closed');
+            // 断线重连
+            reconnectTimerRef.current = setTimeout(() => {
+              setReconnectTrigger(prev => prev + 1);
+            }, reconnectInterval);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error('[WebSocket] 连接错误:', error);
+          // 错误时会自动触发 close 事件，由 close 处理重连
+        };
+
+        return () => {
+          clearTimeout(stateTimer);
+          if (pingTimerRef.current) clearInterval(pingTimerRef.current);
+          isUnmountedRef.current = true;
+          if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+          }
+          if (wsRef.current) {
+            wsRef.current.onclose = null;
+            wsRef.current.close();
+            wsRef.current = null;
+          }
+        };
   }, [reconnectInterval, reconnectTrigger]);
 
   const reconnect = useCallback(() => {
