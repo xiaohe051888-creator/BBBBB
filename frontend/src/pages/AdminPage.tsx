@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Card, Button, Table, Tag, Space, Input, Modal, message,
+  Card, Button, Table, Tag, Space, Input, Modal, App,
   Select, Tabs, Empty, Statistic, Row, Col, Divider, Radio
 } from 'antd';
 import * as api from '../services/api';
@@ -86,6 +86,7 @@ const Icons = {
 };
 
 const AdminPage: React.FC = () => {
+  const { message } = App.useApp();
   const location = useLocation();
   const navigate = useNavigate();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

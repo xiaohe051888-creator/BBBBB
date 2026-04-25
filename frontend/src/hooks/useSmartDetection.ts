@@ -2,7 +2,7 @@
  * 智能检测系统 Hook
  * 提供数据完整性检测、异常模式检测、智能风险提示等功能
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { App } from 'antd';
 import type { GameRecord, BetRecord, SystemState } from '../types/models';
 

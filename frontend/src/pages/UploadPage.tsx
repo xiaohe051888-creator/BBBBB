@@ -34,7 +34,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isNewBoot = location.state?.isNewBoot || false;
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
 
   // 72局数据
   const [games, setGames] = useState<GameResult[]>(Array(DEFAULT_ROWS).fill(''));
@@ -148,7 +148,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
     }
 
     if (currentStatus === '深度学习中') {
-      Modal.warning({
+      modal.warning({
         title: '正在深度学习',
         content: '上一靴的数据正在进行AI深度学习总结，请耐心等待其完成（约30秒~1分钟）后再提交新靴数据。',
       });
