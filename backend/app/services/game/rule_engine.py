@@ -116,12 +116,32 @@ class BaccaratRuleEngine:
                         banker_score += self.weights['chop_oscillation']
                         banker_reasons.append(reason)
 
-        # 3. 下三路共振分析 (大眼仔、小路、曱甴路)
+        # 3. 珠盘路 (Bead Road) 宏观密度与周期性分析
+        # 统计最近 12 局（相当于两列）的庄闲密度，寻找宏观失衡点
+        bead_road = self._extract_points(road_data.get("bead_road", []))
+        if bead_road and len(bead_road) >= 12:
+            recent_12 = [self._get_value(p) for p in bead_road[-12:]]
+            recent_banker = recent_12.count("庄")
+            recent_player = recent_12.count("闲")
+            
+            # 珠盘路呈现极度庄强
+            if recent_banker >= 9:
+                reason = f"珠盘路近12局呈现极度庄强({recent_banker}胜)"
+                banker_score += 25
+                banker_reasons.append(reason)
+            # 珠盘路呈现极度闲强
+            elif recent_player >= 9:
+                reason = f"珠盘路近12局呈现极度闲强({recent_player}胜)"
+                player_score += 25
+                player_reasons.append(reason)
+
+        # 4. 下三路共振分析 (大眼仔、小路、曱甴路)
         # 红色代表规律（顺），蓝色代表无序（反）
         # 实际编程中我们需要“问路”，这里我们通过下三路当前的收尾颜色来判断整体趋势
-        big_eye = self._extract_points(road_data.get("big_eye_boy", []))
+        # 修复 Bug：正确的键名是 big_eye 和 cockroach_road
+        big_eye = self._extract_points(road_data.get("big_eye", []))
         small = self._extract_points(road_data.get("small_road", []))
-        cockroach = self._extract_points(road_data.get("cockroach_pig", []))
+        cockroach = self._extract_points(road_data.get("cockroach_road", []))
         
         def check_road_trend(road, name):
             nonlocal banker_score, player_score
