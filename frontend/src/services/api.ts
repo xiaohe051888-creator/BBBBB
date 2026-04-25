@@ -428,17 +428,35 @@ export interface ThreeModelStatus {
   status: 'ready' | 'incomplete';
   all_api_keys_configured: boolean;
   models: {
-    banker: { name: string; provider: string; model: string; api_key_set: boolean; role: string };
-    player: { name: string; provider: string; model: string; api_key_set: boolean; role: string };
-    combined: { name: string; provider: string; model: string; api_key_set: boolean; role: string };
+    banker: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
+    player: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
+    combined: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
   };
   smart_router_enabled: boolean;
   fallback_policy: string;
 }
 
+export interface ApiConfigPayload {
+  role: 'banker' | 'player' | 'combined';
+  provider: string;
+  model: string;
+  api_key: string;
+  base_url?: string;
+}
+
 /** 获取三模型配置和状态（需管理员认证） */
 export const getThreeModelStatus = async () => {
   return api.get<ThreeModelStatus>('/admin/three-model-status');
+};
+
+/** 更新模型API配置 */
+export const updateApiConfig = async (payload: ApiConfigPayload) => {
+  return api.post('/admin/api-config', payload);
+};
+
+/** 测试模型连通性 */
+export const testApiConnection = async (payload: ApiConfigPayload) => {
+  return api.post('/admin/api-config/test', payload);
 };
 
 export default api;

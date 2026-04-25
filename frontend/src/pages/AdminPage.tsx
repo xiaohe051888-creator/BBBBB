@@ -13,6 +13,7 @@ import * as api from '../services/api';
 import { clearToken } from '../services/api';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { StartLearningModal } from '../components/dashboard/StartLearningModal';
+import { ApiConfigModal } from '../components/admin/ApiConfigModal';
 
 // 精致图标组件
 const Icons = {
@@ -105,7 +106,11 @@ const AdminPage: React.FC = () => {
   const [aiLearningStatus, setAiLearningStatus] = useState<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [threeModelStatus, setThreeModelStatus] = useState<any>(null);
-  
+
+  // API配置弹窗
+  const [apiConfigVisible, setApiConfigVisible] = useState(false);
+  const [apiConfigRole, setApiConfigRole] = useState<'banker' | 'player' | 'combined'>('banker');
+
   // 修改密码弹窗
   const [changePwdVisible, setChangePwdVisible] = useState(false);
   const [oldPwd, setOldPwd] = useState('');
@@ -178,6 +183,11 @@ const AdminPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, dbTable, dbPage]);
 
+  const handleOpenApiConfig = (role: 'banker' | 'player' | 'combined') => {
+    setApiConfigRole(role);
+    setApiConfigVisible(true);
+  };
+
   const handleChangePassword = async () => {
     if (!oldPwd || !newPwd) {
       message.warning('请输入完整密码');
@@ -243,8 +253,9 @@ const AdminPage: React.FC = () => {
                     <Row gutter={[12, 12]}>
                       <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #ff4d4f', background: 'rgba(255,77,79,0.04)' }}>
-                          <div style={{ fontWeight: 700, color: '#ff4d4f', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Icons.Banker /> 庄模型
+                          <div style={{ fontWeight: 700, color: '#ff4d4f', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Banker /> 庄模型</span>
+                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('banker')}>配置 API</Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {threeModelStatus.models?.banker?.provider} · {threeModelStatus.models?.banker?.model}
@@ -260,8 +271,9 @@ const AdminPage: React.FC = () => {
                       </Col>
                       <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #1890ff', background: 'rgba(24,144,255,0.04)' }}>
-                          <div style={{ fontWeight: 700, color: '#1890ff', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Icons.Player /> 闲模型
+                          <div style={{ fontWeight: 700, color: '#1890ff', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Player /> 闲模型</span>
+                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('player')}>配置 API</Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {threeModelStatus.models?.player?.provider} · {threeModelStatus.models?.player?.model}
@@ -277,8 +289,9 @@ const AdminPage: React.FC = () => {
                       </Col>
                       <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #52c41a', background: 'rgba(82,196,26,0.04)' }}>
-                          <div style={{ fontWeight: 700, color: '#52c41a', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Icons.Brain /> 综合模型
+                          <div style={{ fontWeight: 700, color: '#52c41a', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Brain /> 综合模型</span>
+                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('combined')}>配置 API</Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {threeModelStatus.models?.combined?.provider} · {threeModelStatus.models?.combined?.model}
@@ -389,25 +402,21 @@ const AdminPage: React.FC = () => {
 
       {/* 修改密码弹窗 */}
       <Modal
-        title="修改密码"
+        title="修改默认密码"
         open={changePwdVisible}
-        onOk={handleChangePassword}
-        onCancel={() => { if (!mustChange) setChangePwdVisible(false); }}
-        okText="确认修改"
-        cancelText="取消"
         closable={!mustChange}
         maskClosable={!mustChange}
+        onCancel={() => !mustChange && setChangePwdVisible(false)}
+        onOk={handleChangePassword}
+        okText="保存新密码"
+        cancelText={mustChange ? null : '取消'}
+        cancelButtonProps={mustChange ? { style: { display: 'none' } } : {}}
       >
-        <div style={{ padding: '16px 0' }}>
-          <div style={{ marginBottom: 12 }}>
-            <span style={{ display: 'block', marginBottom: 4 }}>原密码</span>
-            <Input.Password value={oldPwd} onChange={(e) => setOldPwd(e.target.value)} />
-          </div>
-          <div>
-            <span style={{ display: 'block', marginBottom: 4 }}>新密码</span>
-            <Input.Password value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
-          </div>
-        </div>
+        {mustChange && <div style={{ color: '#faad14', marginBottom: 16 }}>安全提示：您正在使用默认密码登录，请修改为新密码。</div>}
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Input.Password placeholder="当前密码" value={oldPwd} onChange={e => setOldPwd(e.target.value)} />
+          <Input.Password placeholder="新密码" value={newPwd} onChange={e => setNewPwd(e.target.value)} />
+        </Space>
       </Modal>
 
       {/* 开始深度学习确认弹窗 */}
@@ -415,6 +424,18 @@ const AdminPage: React.FC = () => {
         visible={startLearningVisible}
         onClose={() => setStartLearningVisible(false)}
         onConfirm={handleStartLearning}
+      />
+
+      {/* API 配置弹窗 */}
+      <ApiConfigModal 
+        visible={apiConfigVisible}
+        onCancel={() => setApiConfigVisible(false)}
+        onSuccess={() => {
+          setApiConfigVisible(false);
+          loadThreeModelStatus(); // 重新加载状态以刷新图标
+        }}
+        role={apiConfigRole}
+        currentStatus={threeModelStatus}
       />
     </div>
   );
