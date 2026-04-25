@@ -398,7 +398,9 @@ const DashboardPage: React.FC = () => {
           </div>
 
           {/* 系统日志 */}
-          <LogTable data={logs} />
+          <div style={{ paddingBottom: 40 }}>
+            <LogTable data={logs} />
+          </div>
         </div>
       </div>
 
