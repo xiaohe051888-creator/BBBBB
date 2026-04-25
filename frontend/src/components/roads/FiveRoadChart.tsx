@@ -116,7 +116,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
 
   // 自动滚动到最新数据
   useEffect(() => {
-    const timeoutIds: NodeJS.Timeout[] = [];
+    const timeoutIds: ReturnType<typeof setTimeout>[] = [];
 
     const scrollToLatest = (
       ref: React.RefObject<HTMLDivElement | null>,

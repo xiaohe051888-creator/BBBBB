@@ -25,11 +25,13 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'antd-vendor': ['antd', '@ant-design/icons'],
-          'query-vendor': ['@tanstack/react-query', 'axios'],
-          'utils-vendor': ['dayjs']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react')) return 'react-vendor';
+            if (id.includes('antd') || id.includes('@ant-design')) return 'antd-vendor';
+            if (id.includes('@tanstack') || id.includes('axios')) return 'query-vendor';
+            return 'vendor';
+          }
         }
       }
     }

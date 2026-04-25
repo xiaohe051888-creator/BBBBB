@@ -13,11 +13,11 @@ interface WebSocketMessage {
 }
 
 interface UseWebSocketOptions {
-  onStateUpdate?: (data: Record<string, unknown>) => void;
-  onLog?: () => void;
-  onAnalysis?: (data: Record<string, unknown>) => void;
-  onGameRevealed?: () => void;
-  onBetPlaced?: () => void;
+  onStateUpdate?: (data: any) => void;
+  onLog?: (data: any) => void;
+  onAnalysis?: (data: any) => void;
+  onGameRevealed?: (data: any) => void;
+  onBetPlaced?: (data: any) => void;
   reconnectInterval?: number;
 }
 
@@ -122,16 +122,16 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
                 callbacks.onStateUpdate?.(message.data);
                 break;
               case 'log':
-                callbacks.onLog?.();
+                callbacks.onLog?.(message.data);
                 break;
               case 'ai_analysis':
                 callbacks.onAnalysis?.(message.data);
                 break;
               case 'game_revealed':
-                callbacks.onGameRevealed?.();
+                callbacks.onGameRevealed?.(message.data);
                 break;
               case 'bet_placed':
-                callbacks.onBetPlaced?.();
+                callbacks.onBetPlaced?.(message.data);
                 break;
               default:
                 // 未知消息类型，静默处理

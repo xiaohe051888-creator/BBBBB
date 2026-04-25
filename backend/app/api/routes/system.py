@@ -276,7 +276,7 @@ async def get_system_diagnostics():
     }
 
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import Literal
 
 class PredictionModeRequest(BaseModel):

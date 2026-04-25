@@ -279,7 +279,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
   useEffect(() => {
     if (!enabled) return;
 
-    let activeTimeout: NodeJS.Timeout | null = null;
+    let activeTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const checkAI = async () => {
       if (isUnmountedRef.current) return;

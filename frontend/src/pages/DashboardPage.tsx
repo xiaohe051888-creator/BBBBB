@@ -92,7 +92,6 @@ const DashboardPage: React.FC = () => {
       else if (bal <= 2000 && bal > 0 && !lowBalanceWarned) {
         setLowBalanceWarned(true);
         addIssue({
-          id: 'low_balance',
           level: 'warning',
           title: '资金低位预警',
           detail: `当前系统测试余额仅剩 ${bal}，即将触及强平线（0元），建议及时前往右上角【管理员页面】补充资金。`,
@@ -158,7 +157,14 @@ const DashboardPage: React.FC = () => {
         bet_amount: data.amount,
         bet_tier: data.tier,
         status: '待开奖',
-        created_at: new Date().toISOString(),
+        balance_before: data.balance_after + data.amount,
+        balance_after: data.balance_after,
+        bet_time: new Date().toISOString(),
+        game_result: null,
+        error_id: null,
+        settlement_amount: null,
+        profit_loss: null,
+        adapt_summary: null,
       });
       debouncedInvalidateBets();
       debouncedInvalidateState();
@@ -168,11 +174,7 @@ const DashboardPage: React.FC = () => {
         addGameOptimistically({
           game_number: data.settlement_info.game_number,
           result: data.settlement_info.result,
-          banker_score: 0,
-          player_score: 0,
-          is_banker_pair: false,
-          is_player_pair: false,
-        });
+        } as any);
       }
       debouncedInvalidateGames();
       debouncedInvalidateState();
