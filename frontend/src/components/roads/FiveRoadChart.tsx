@@ -157,11 +157,16 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
   const roadHeight = useMemo(() => {
     return PADDING * 2 + 6 * (BASE_CELL_SIZE + CELL_GAP);
   }, []);
-  
+
+  // 滚动容器高度，增加 12px 的 padding 以容纳自定义滚动条
+  const scrollContainerHeight = useMemo(() => {
+    return roadHeight + 12;
+  }, [roadHeight]);
+
   // 计算各路总高度（含标题栏）- 使用minHeight
   const totalRowHeight = useMemo(() => {
-    return roadHeight + HEADER_HEIGHT;
-  }, [roadHeight]);
+    return scrollContainerHeight + HEADER_HEIGHT;
+  }, [scrollContainerHeight]);
 
   return (
     <div style={{
@@ -172,61 +177,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
       padding: '8px',
       background: '#0d1117',
     }}>
-      {/* 第1排：大路 - 100%宽度 */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#161b22',
-        borderRadius: '8px',
-        border: '1px solid #30363d',
-        overflow: 'hidden',
-        width: '100%',
-      }}>
-        {/* 标题栏 */}
-        <div style={{
-          padding: '6px 12px',
-          background: '#21262d',
-          borderBottom: '1px solid #30363d',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          height: `${HEADER_HEIGHT}px`,
-          flexShrink: 0,
-        }}>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#e6edf3' }}>大路</span>
-          <span style={{ fontSize: '11px', color: '#8b949e' }}>Big Road</span>
-          {hasData.big && (
-            <span style={{
-              marginLeft: 'auto',
-              fontSize: '10px',
-              color: '#58a6ff',
-              background: 'rgba(88, 166, 255, 0.1)',
-              padding: '1px 6px',
-              borderRadius: '3px',
-            }}>
-              {roads.big?.points.length} 局
-            </span>
-          )}
-        </div>
-        
-        {/* Canvas 区域 */}
-        <div 
-          ref={bigRoadScrollRef}
-          style={{
-            height: `${roadHeight}px`,
-            overflowX: 'auto',
-            overflowY: 'hidden',
-          }}
-        >
-          {hasData.big ? (
-            <BigRoadCanvas data={roads.big} config={baseConfig} />
-          ) : (
-            <EmptyState height={roadHeight} />
-          )}
-        </div>
-      </div>
-
-      {/* 第2排：珠盘路 + 大眼仔路 */}
+      {/* 第1排：大路 + 珠盘路（珠盘路为主大路为辅的标准布局） */}
       <div style={{
         display: 'flex',
         flexDirection: 'row',
@@ -259,7 +210,8 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
             <span style={{ fontSize: '10px', color: '#8b949e' }}>Bead</span>
           </div>
           <div style={{
-            height: `${roadHeight}px`,
+            height: `${scrollContainerHeight}px`,
+            paddingBottom: '12px',
             overflow: 'hidden',
           }}>
             {hasData.bead ? (
@@ -270,10 +222,73 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
           </div>
         </div>
 
-        {/* 大眼仔路 - 自适应剩余宽度 */}
+        {/* 大路 - 占据剩余宽度 */}
         <div style={{
           flex: '2 1 400px',
           minWidth: 'min(300px, 100%)',
+          maxWidth: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#161b22',
+          borderRadius: '8px',
+          border: '1px solid #30363d',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            padding: '6px 12px',
+            background: '#21262d',
+            borderBottom: '1px solid #30363d',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            height: `${HEADER_HEIGHT}px`,
+            flexShrink: 0,
+          }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#e6edf3' }}>大路</span>
+            <span style={{ fontSize: '11px', color: '#8b949e' }}>Big Road</span>
+            {hasData.big && (
+              <span style={{
+                marginLeft: 'auto',
+                fontSize: '10px',
+                color: '#58a6ff',
+                background: 'rgba(88, 166, 255, 0.1)',
+                padding: '1px 6px',
+                borderRadius: '3px',
+              }}>
+                {roads.big?.points.length} 局
+              </span>
+            )}
+          </div>
+          <div
+            ref={bigRoadScrollRef}
+            style={{
+              height: `${scrollContainerHeight}px`,
+              paddingBottom: '12px',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+            }}
+          >
+            {hasData.big ? (
+              <BigRoadCanvas data={roads.big} config={baseConfig} />
+            ) : (
+              <EmptyState height={roadHeight} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 第2排：大眼仔路 + 小路 + 螳螂路 */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: '8px',
+        width: '100%',
+      }}>
+        {/* 大眼仔路 */}
+        <div style={{
+          flex: '1 1 250px',
+          minWidth: 'min(250px, 100%)',
           maxWidth: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -295,10 +310,11 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>大眼仔路</span>
             <span style={{ fontSize: '10px', color: '#8b949e' }}>Big Eye</span>
           </div>
-          <div 
+          <div
             ref={bigEyeScrollRef}
             style={{
-              height: `${roadHeight}px`,
+              height: `${scrollContainerHeight}px`,
+              paddingBottom: '12px',
               overflowX: 'auto',
               overflowY: 'hidden',
             }}
@@ -310,26 +326,18 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
             )}
           </div>
         </div>
-      </div>
 
-      {/* 第3排：小路 + 螳螂路 - 垂直堆叠 */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        width: '100%',
-      }}>
         {/* 小路 */}
         <div style={{
-          flex: 'none',
-          width: '100%',
+          flex: '1 1 250px',
+          minWidth: 'min(250px, 100%)',
+          maxWidth: '100%',
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',
           borderRadius: '8px',
           border: '1px solid #30363d',
           overflow: 'hidden',
-          minHeight: `${totalRowHeight}px`,
         }}>
           <div style={{
             padding: '6px 12px',
@@ -344,13 +352,13 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>小路</span>
             <span style={{ fontSize: '10px', color: '#8b949e' }}>Small</span>
           </div>
-          <div 
+          <div
             ref={smallScrollRef}
             style={{
-              minHeight: `${roadHeight}px`,
+              height: `${scrollContainerHeight}px`,
+              paddingBottom: '12px',
               overflowX: 'auto',
               overflowY: 'hidden',
-              flex: 1,
             }}
           >
             {hasData.small ? (
@@ -363,15 +371,15 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
 
         {/* 螳螂路 */}
         <div style={{
-          flex: 'none',
-          width: '100%',
+          flex: '1 1 250px',
+          minWidth: 'min(250px, 100%)',
+          maxWidth: '100%',
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',
           borderRadius: '8px',
           border: '1px solid #30363d',
           overflow: 'hidden',
-          minHeight: `${totalRowHeight}px`,
         }}>
           <div style={{
             padding: '6px 12px',
@@ -386,13 +394,13 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>螳螂路</span>
             <span style={{ fontSize: '10px', color: '#8b949e' }}>Cockroach</span>
           </div>
-          <div 
+          <div
             ref={cockroachScrollRef}
             style={{
-              minHeight: `${roadHeight}px`,
+              height: `${scrollContainerHeight}px`,
+              paddingBottom: '12px',
               overflowX: 'auto',
               overflowY: 'hidden',
-              flex: 1,
             }}
           >
             {hasData.cockroach ? (
