@@ -84,6 +84,17 @@ async def run_ai_analysis(
             current_version = await selector.get_current_version()
             version_id = current_version.version_id if current_version else "default"
             
+            # 获取AI记忆库 (提取最新生成的实时微学习策略经验)
+            from app.models.schemas import AIMemory
+            stmt_memory = select(AIMemory).where(
+                AIMemory.boot_number == boot_number,
+                AIMemory.mistake_type == "实时推演策略"
+            ).order_by(AIMemory.created_at.desc()).limit(1)
+            memory_result = await db.execute(stmt_memory)
+            latest_memory = memory_result.scalar_one_or_none()
+
+            realtime_strategy = latest_memory.self_reflection if latest_memory else ""
+
             # 构建错题上下文
             mistake_context = [
                 {
@@ -96,6 +107,16 @@ async def run_ai_analysis(
                 }
                 for m in mistakes
             ]
+            
+            if realtime_strategy:
+                mistake_context.append({
+                    "game_number": "实时前瞻",
+                    "error_id": "REALTIME-001",
+                    "error_type": "实时高维特征提取",
+                    "predict_direction": "N/A",
+                    "actual_result": "N/A",
+                    "analysis": realtime_strategy,
+                })
             
             # 执行三模型分析
             analysis_result = await ai_service.analyze(

@@ -556,18 +556,25 @@ class ThreeModelService:
         history_str = self._format_history(game_history[-20:])  # 最近20局
         road_visual = self._build_road_visualization(road_data) if road_data else "走势图数据未提供"
         mistake_str = self._format_mistakes(mistake_context) if mistake_context else "本靴无历史错误记录"
-        
+
+        # 提取刚刚在等待期演练生成的实时策略
+        realtime_memory_note = ""
+        if mistake_context:
+            for m in mistake_context:
+                if m.get("error_id") == "REALTIME-001":
+                    realtime_memory_note = f"\n【实时微学习高维记忆】(极其重要)：\n{m.get('analysis')}\n请将此作为本局决策的最高优先级策略参考！"
+
         tier_note = ""
         if consecutive_errors >= 3:
             tier_note = "【紧急】当前已连续3局预测错误，必须切换为保守策略，降低仓位！"
         elif consecutive_errors >= 2:
             tier_note = "【警告】已连续2局预测错误，建议转为保守策略。"
-        
+
         return f"""你是百家乐分析系统的【综合决策模型】。你是最终的决策者，负责融合庄模型和闲模型的证据，结合历史错误分析，输出最终预测。
 
 【你的独特职责 - 只有你需要做这些】
 
-1. **你是唯一需要理解血迹的模型**
+1. **你是唯一需要理解血迹的模型**{realtime_memory_note}
    - 庄模型和闲模型只负责找证据，它们不知道历史哪里错了
    - 只有你能看到完整的"陷阱地图"（血迹标记分布）
    - 你必须分析：错误集中在哪些区域？当前位置是否在危险区？
