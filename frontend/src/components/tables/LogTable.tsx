@@ -122,7 +122,7 @@ const LogTable: React.FC<LogTableProps> = ({
       size="small"
       loading={loading}
       pagination={false}
-      scroll={{ y: scrollY }}
+      scroll={{ x: 'max-content', y: scrollY }}
       locale={{ emptyText: '暂无日志记录' }}
       rowClassName={(record) => (record.is_pinned ? 'log-pinned-row' : '')}
       style={{ width: '100%' }}

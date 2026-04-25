@@ -32,6 +32,7 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
       footer={null}
       centered
       width={440}
+      style={{ maxWidth: 'calc(100vw - 32px)' }}
       styles={{
         mask: { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.65)' },
         wrapper: {},

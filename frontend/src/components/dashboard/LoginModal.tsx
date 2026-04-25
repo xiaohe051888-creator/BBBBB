@@ -42,12 +42,15 @@ const LoginModal: React.FC<LoginModalProps> = ({
 }) => {
   return (
     <Modal
+      title={null}
       open={visible}
       onCancel={onCancel}
       footer={null}
       centered
       maskStyle={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
       width={400}
+      style={{ maxWidth: 'calc(100vw - 32px)' }}
+      closable={false}
     >
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <div style={{ 

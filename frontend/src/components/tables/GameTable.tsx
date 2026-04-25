@@ -126,7 +126,7 @@ const GameTable: React.FC<GameTableProps> = ({
         size: 'small',
         showTotal: (t) => `共 ${t} 条`,
       }}
-      scroll={{ y: 200 }}
+      scroll={{ x: 'max-content', y: 200 }}
       locale={{ emptyText: '暂无开奖记录' }}
       style={{ width: '100%' }}
     />

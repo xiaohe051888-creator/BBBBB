@@ -7,7 +7,26 @@ from contextlib import asynccontextmanager
 from typing import List
 
 import logging
+from logging.handlers import RotatingFileHandler
 
+# ========== 配置全局滚动日志 ==========
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# 创建一个 RotatingFileHandler: 最大 10MB, 最多保留 5 个备份
+file_handler = RotatingFileHandler(
+    filename=os.path.join(LOG_DIR, "backend_app.log"),
+    maxBytes=10 * 1024 * 1024,
+    backupCount=5,
+    encoding="utf-8"
+)
+console_handler = logging.StreamHandler()
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# 清除默认的 handlers 并设置新的
+logging.basicConfig(level=logging.INFO, handlers=[file_handler, console_handler], force=True)
 logger = logging.getLogger(__name__)
 
 # ========== 加载环境变量（支持直接启动uvicorn时也能读取.env） ==========

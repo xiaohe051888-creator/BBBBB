@@ -261,6 +261,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         footer={null}
         closable={false}
         width={440}
+        style={{ maxWidth: 'calc(100vw - 32px)' }}
         maskClosable={!isEndingBoot}
         styles={{
           mask: { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
@@ -366,6 +367,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         footer={null}
         closable={false}
         width={400}
+        style={{ maxWidth: 'calc(100vw - 32px)' }}
         styles={{
           mask: { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
           body: {
