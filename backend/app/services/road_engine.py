@@ -228,10 +228,10 @@ class RoadEngine:
         
         # 记录当前长龙的起始列
         current_dragon_start_col = 0
-        
+
         for game_number, result in all_entries:
             is_tie = (result == "和")
-            
+
             if is_tie:
                 # 和局处理：在上一局位置标记
                 if road.points:
@@ -239,18 +239,22 @@ class RoadEngine:
                         if not road.points[i].is_tie:
                             road.points[i].has_tie = True
                             break
-                prev_was_tie = True
+                else:
+                    # 如果开局第一把就是和局，由于没有前置点可以标记，
+                    # 按照百家乐标准画法，通常会在随后出现的第一个庄/闲点上画一条绿线
+                    # 这里我们将它临时存入一个状态变量中
+                    prev_was_tie = True
                 continue
-            
+
             # 庄/闲处理
             is_new_col = False
-            
+
             if prev_value is None:
-                # 第一个点
+                # 第一个庄/闲点
                 is_new_col = True
                 current_dragon_start_col = 0
-            elif result == prev_value and not prev_was_tie:
-                # 相同结果：尝试向下延伸
+            elif result == prev_value:
+                # 相同结果：向下延伸（和局绝对不会打断长龙）
                 next_row = current_row + 1
                 
                 if next_row >= self.MAX_ROWS_PER_COLUMN:
@@ -310,6 +314,10 @@ class RoadEngine:
                 is_tie=False,
             )
             road.points.append(point)
+            
+            # 如果开局出现了和局，而当时路牌上还没点，我们将这个和局附加到第一个开出的庄/闲上
+            if prev_was_tie and prev_value is None:
+                point.has_tie = True
             
             prev_value = result
             prev_was_tie = False

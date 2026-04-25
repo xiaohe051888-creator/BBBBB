@@ -232,12 +232,12 @@ class AILearningService:
     
     async def _collect_training_data(self, boot_number: int) -> Dict[str, Any]:
         """收集指定靴号的训练数据"""
-        # 获取所有开奖记录（含预测结果）
+        # 获取所有开奖记录（包括和局，和局的 predict_correct 可能为 None）
         stmt = select(GameRecord).where(
             GameRecord.boot_number == boot_number,
-            GameRecord.predict_correct.isnot(None),
+            GameRecord.result.isnot(None),
         ).order_by(GameRecord.game_number)
-        
+
         result = await self.session.execute(stmt)
         records = result.scalars().all()
         

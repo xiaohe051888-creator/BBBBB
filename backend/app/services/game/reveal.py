@@ -217,12 +217,29 @@ async def _settle_bet(
             game_record.settlement_status = settle["status"]
             game_record.profit_loss = settle["profit_loss"]
             game_record.balance_after = sess.balance
-        
+
         settlement_info = settle
         
-        # 更新连续错误计数和错题本
-        if result != "和":
-            if sess.predict_direction and sess.predict_direction == result:
+        await write_game_log(
+            db, sess.boot_number, game_number,
+            "LOG-STL-001", "结算", settle["status"],
+            f"第{game_number}局开{result}，注单结算：{settle['reason']}，盈亏{settle['profit_loss']:+.0f}，余额{sess.balance:.0f}",
+            category="资金事件",
+            priority="P2" if (sess.predict_direction and sess.predict_direction == result) else "P1",
+        )
+
+        # 清除待开奖信息
+        sess.pending_bet_direction = None
+        sess.pending_bet_amount = None
+        sess.pending_bet_tier = None
+        sess.pending_bet_time = None
+        sess.pending_game_number = None
+        
+        # 补丁：更新连续错误计数和错题本
+        # 我们把这段逻辑从 _settle_bet 中移到外面，确保即使用户手动跳过没有下注，
+        # 系统仍然能根据“AI预测方向”和“真实开奖结果”进行连续错误的累加，触发风控或退避
+        if result != "和" and sess.predict_direction:
+            if sess.predict_direction == result:
                 sess.consecutive_errors = 0
             else:
                 sess.consecutive_errors += 1
@@ -242,20 +259,5 @@ async def _settle_bet(
                         analysis=f"预测{sess.predict_direction}，实际开{result}，连续失准{sess.consecutive_errors}次",
                     )
                     db.add(mistake)
-        
-        await write_game_log(
-            db, sess.boot_number, game_number,
-            "LOG-STL-001", "结算", settle["status"],
-            f"第{game_number}局开{result}，注单结算：{settle['reason']}，盈亏{settle['profit_loss']:+.0f}，余额{sess.balance:.0f}",
-            category="资金事件",
-            priority="P2" if (sess.predict_direction and sess.predict_direction == result) else "P1",
-        )
-        
-        # 清除待开奖信息
-        sess.pending_bet_direction = None
-        sess.pending_bet_amount = None
-        sess.pending_bet_tier = None
-        sess.pending_bet_time = None
-        sess.pending_game_number = None
-    
+
     return settlement_info
