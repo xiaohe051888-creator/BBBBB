@@ -7,14 +7,18 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import List
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # ========== 加载环境变量（支持直接启动uvicorn时也能读取.env） ==========
 from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
 if os.path.exists(env_path):
     load_dotenv(env_path, override=True)
-    print(f"✅ [api/main.py] 已加载环境变量: {env_path}")
+    logger.info(f"✅ [api/main.py] 已加载环境变量: {env_path}")
 else:
-    print(f"⚠️  [api/main.py] 环境变量文件不存在: {env_path}")
+    logger.warning(f"⚠️  [api/main.py] 环境变量文件不存在: {env_path}")
 
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -82,12 +86,12 @@ async def lifespan(app: FastAPI):
     async with async_session() as session:
         await sync_balance_from_db(session)
     
-    print(f"✅ {settings.APP_NAME} v{settings.APP_VERSION} 启动成功（手动模式）")
-    print(f"   访问地址: http://localhost:{settings.PORT}")
-    
+    logger.info(f"✅ {settings.APP_NAME} v{settings.APP_VERSION} 启动成功（全托管模式）")
+    logger.info(f"   访问地址: http://localhost:{settings.PORT}")
+
     yield
-    
-    print("系统已关闭")
+
+    logger.info("系统已关闭")
 
 
 app = FastAPI(
@@ -127,7 +131,7 @@ if os.path.isdir(_static_dir) and os.listdir(_static_dir):
             return FileResponse(index_path)
         raise HTTPException(404, "前端未构建，请先运行 npm run build")
 
-    print(f"   📦 前端静态文件已挂载: {_static_dir}")
+    logger.info(f"   📦 前端静态文件已挂载: {_static_dir}")
 
 
 # ============ 注册路由 ============

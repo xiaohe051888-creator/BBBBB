@@ -8,7 +8,3 @@ export { default as LoginModal } from './LoginModal';
 export { DashboardHeader } from './DashboardHeader';
 export { WorkflowStatusBar } from './WorkflowStatusBar';
 export { AnalysisPanel } from './AnalysisPanel';
-
-// 兼容旧导入（已废弃，请使用新组件名）
-export { DashboardHeader as TopStatusBar } from './DashboardHeader';
-export { WorkflowStatusBar as WorkflowBar } from './WorkflowStatusBar';

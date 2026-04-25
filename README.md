@@ -1,113 +1,71 @@
-# 百家乐智能分析与预测系统 (Mobile App v3.0)
+# Baccarat AI Prediction & Auto-Trading System
 
-> 一套基于手动数据录入、原生高性能五路走势图分析、三 AI 大模型协作预测的智能辅助系统。
-> **目前已全面重构为 React Native (Expo) 移动端应用。**
+基于 React Web + FastAPI 打造的高级量化自动托管分析系统。本系统结合了 **三路AI大模型**（OpenAI, Claude, Gemini）与 **量化强规则引擎**，实现对博弈趋势的毫秒级解析、自动下注与资金风控。
 
----
+## 🎯 核心架构：双脑引擎驱动
 
-## 目录
+系统通过管理员后台支持无缝切换“双脑”预测模式：
 
-- [项目简介](#项目简介)
-- [系统架构](#系统架构)
-- [功能特性](#功能特性)
-- [快速启动](#快速启动)
-- [项目结构](#项目结构)
+### 1. 🧠 AI 三模型深度交叉分析（AI Mode）
+- **庄模型 (OpenAI)**：偏向保守防守与长期趋势识别。
+- **闲模型 (Claude)**：擅长短线反转与震荡区间嗅探。
+- **综合模型 (Gemini)**：统筹决策，结合系统特有的**等待期微学习（Micro-Learning）**与**错题本记忆（MistakeBook）**进行复盘进化。
+- **机制**：通过高度结构化的 Prompt 分析“大路”与“下三路”的红蓝特征，输出高维度的博弈预测。
 
----
-
-## 项目简介
-
-BBBBB 是一套**百家乐走势分析与预测系统**（v3.0.0 移动端模式），专为手机单手操作和高性能渲染而设计。
-
-核心工作流：
-```text
-手机快捷录入本靴数据 → 生成原生 Skia 五路走势图 → 三模型 AI 深度预测 
-→ 用户参考下注 → 底部抽屉录入开奖结果 → 自动结算与复盘记录 → 触发下一局预测
-```
-
-**亮点：**
-- **原生应用体验**：基于 React Native 打造，拥有极致丝滑的 Bottom Sheet 抽屉交互与底层手势支持。
-- **电竞级走势图**：废弃了传统的 DOM 节点堆叠，采用 `@shopify/react-native-skia` 2D 绘图引擎重写了珠盘路与大路，支持百局走势流畅滑动。
-- **移动端防挂机断线**：集成 `AppState` 监听，App 从后台唤醒后自动重连 WebSocket 并静默刷新全量数据，防止锁屏漏单。
-- **高性能长列表**：历史注单与错题本使用 `@shopify/flash-list` 渲染，支持千条数据 60FPS 滚动不卡顿。
-- **单靴纯净隔离**：彻底移除了旧版多桌台 (`tableId`) 概念，系统每次仅专注分析当前一靴，换靴时彻底物理清空旧有数据与错题本残留，避免“幽灵血迹”污染 AI。
+### 2. 📈 强规则量化引擎（Rule Engine Mode）
+- **纯粹的数学量化**：摒弃 AI 幻觉，完全基于算法矩阵扫描。
+- **动态权重进化 (Adaptive Weights)**：根据本靴最近 20 局的“长龙”与“单跳”出现频率，自动微调得分权重。
+- **防爆瞬断检测 (Pattern Break)**：一旦识别到坚固的长龙规律被随机性瞬间打断（例如 5连庄后突开闲），引擎瞬间触发防守，暴扣追龙权重，拒绝无脑死磕。
 
 ---
 
-## 系统架构
+## ⚙️ 核心机制与全托管哲学
 
-系统分为两个主要部分：
+系统已从早期的“人工辅助工具”彻底进化为**“全自动托管交易机器”**。
 
-1. **Backend (后端)**: FastAPI + SQLite + WebSockets
-   - 提供 RESTful API 用于数据上传、开奖结果提报、错题本查询。
-   - 包含智能 AI 分析代理（DeepSeek, OpenAI, Claude）的三模型联合预测服务。
-   - 通过 WebSocket 实时推送系统状态、走势更新、结算结果与系统日志。
+### 全自动下注与零逃课 (Enforced Auto-Betting)
+- **每局必下**：系统不允许用户“手动下注”或“跳过下注”。无论 AI 是给出明确方向，还是退缩给出“观望/非法结果”，系统后端都会执行**强制兜底下注**。
+- **隔离污染**：如果是“强规则引擎”在运行，系统会从物理层面切断大模型的 Token 消耗，绝不触发微学习和错题本，做到双脑 100% 物理隔离。
 
-2. **Mobile (移动端)**: React Native + Expo
-   - 使用 `@react-navigation/bottom-tabs` 进行页面路由。
-   - 使用 `@tanstack/react-query` 管理 API 数据缓存与状态同步。
-   - 使用 `@gorhom/bottom-sheet` 实现流畅的开奖、上传交互。
-
----
-
-## 功能特性
-
-* **单靴精准分析**：彻底抛弃复杂的桌台选择，一键“换靴”，数据独立，AI 分析更纯粹。
-* **快捷数据上传**：通过底部抽屉输入纯数字序列（1=庄, 2=闲, 3=和），即可极速初始化一靴数据。
-* **AI 三模型预测机制**：
-  * 在开奖后或数据上传后自动触发。
-  * 若模型遇到网络波动或限流，系统支持最高 5 次的指数退避重试（1s -> 16s）。
-  * 若分析彻底失败，系统自动回退至“等待开奖”状态，并显示【开奖】按钮，允许用户手动继续，绝生死锁。
-* **深度学习与错题本**：
-  * 当用户点击“换靴”时，触发后台长达数十秒的 AI 深度学习。
-  * 生成详细的错误原因分析并记录入库，App 内置独立的《错题本》Tab 供用户随时复盘。
+### 资金风控与熔断预警 (Margin Call & Circuit Breaker)
+- **风险具象化**：风险不再体现在“是否下注”，而是体现在“下注金额”的收缩（降级为“保守”层级）。
+- **2000元软预警**：当系统余额 $\le 2000$ 时，前端弹出橙色低水位预警，且具备防频繁刷屏锁。
+- **0元硬熔断**：当系统余额不足以下注时，触发**系统级熔断**（Status = "余额不足"）。前端立刻封锁开奖按钮，禁止录入新数据，直到管理员前往后台执行“余额充值”。
 
 ---
 
-## 快速启动
+## 🛠️ 技术栈与启动说明
 
-### 1. 启动后端 (Backend)
+### 后端 (Backend)
+- **框架**: FastAPI (Python 3.10+) + SQLAlchemy + SQLite (异步)
+- **特性**: 严格的 `with_for_update` 悲观锁、多模型异步并发请求与容错（指数退避重试）。
+- **启动**: 
+  ```bash
+  cd backend
+  python -m venv venv
+  source venv/bin/activate
+  pip install -r requirements.txt
+  uvicorn app.main:app --host 0.0.0.0 --port 8000
+  ```
 
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# 启动 FastAPI 服务 (默认运行在 http://localhost:8000)
-python3 -m uvicorn app.api.main:app --host 0.0.0.0 --port 8000
-```
-
-### 2. 启动移动端 App (Mobile)
-
-请确保你的开发机已安装 Node.js (v18+)
-
-```bash
-cd mobile
-npm install
-
-# 启动 Expo 开发服务器
-npm run start
-```
-*在终端中按 `a` 可在 Android 模拟器中打开，按 `i` 可在 iOS 模拟器中打开，或者使用手机上的 Expo Go 扫码预览。*
+### 前端 (Frontend)
+- **框架**: React 18 + Vite + TypeScript + TailwindCSS / Ant Design
+- **特性**: WebSocket 长链接 30秒心跳防假死保活、断线指数重连、React Query 乐观 UI 渲染、组件级内存泄漏严格控制。
+- **启动**: 
+  ```bash
+  cd frontend
+  npm install
+  npm run dev
+  ```
 
 ---
 
-## 项目结构
-
-```text
-/workspace
-├── backend/                # FastAPI 后端目录
-│   ├── app/                # 核心应用逻辑 (API, Services, Models)
-│   ├── requirements.txt    # 后端依赖
-│   └── tests/              # 自动化测试用例
-└── mobile/                 # React Native (Expo) 移动端目录
-    ├── src/
-    │   ├── api/            # API 请求与拦截器
-    │   ├── components/     # UI 组件 (WorkflowStatusBar, FiveRoadsChart, BottomSheets)
-    │   ├── hooks/          # React Query 与 WebSocket 逻辑
-    │   ├── navigation/     # AppNavigator 底部导航路由
-    │   └── screens/        # 页面 (Dashboard, Records, Mistakes)
-    ├── App.js              # 移动端入口文件
-    └── package.json        # 前端依赖
-```
+## 📁 目录结构摘要
+* `backend/app/services/game/`
+  * `analysis.py` (分析分发与降级拦截中心)
+  * `rule_engine.py` (强规则量化算法核心)
+  * `betting.py` (强制自动下注与破产拦截)
+  * `reveal.py` (开奖结算与连错错题本隔离逻辑)
+* `frontend/src/components/dashboard/`
+  * `DashboardPage.tsx` (全自动托管主界面)
+  * `AdminPage.tsx` (双脑切换与资金调账控制台)

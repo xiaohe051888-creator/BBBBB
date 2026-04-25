@@ -6,12 +6,9 @@
  * 优化：乐观UI策略 - 数据立即显示，后台静默刷新，零等待体验
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Progress } from 'antd';
 import { getToken } from '../services/api';
-import type { HealthScoreResponse } from '../services/api';
-import type { GameRecord } from '../hooks/useGameState';
-import { MAX_GAMES_PER_BOOT, DEFAULT_BET_AMOUNT } from '../utils/constants';
+import { MAX_GAMES_PER_BOOT } from '../utils/constants';
 import { RevealModal, LoginModal, DashboardHeader, WorkflowStatusBar, AnalysisPanel } from '../components/dashboard';
 import { FiveRoadChart } from '../components/roads';
 import { GameTable, BetTable, LogTable } from '../components/tables';
@@ -28,24 +25,18 @@ import {
   useBetsQuery,
   useRoadsQuery,
   useAnalysisQuery,
-  usePlaceBetMutation,
   useRevealResultMutation,
   useAddLogOptimistically,
   useAddBetOptimistically,
-  useUpdateBetOptimistically,
   useAddGameOptimistically,
-  useUpdateRoadsOptimistically,
   useUpdateStateOptimistically,
-  useUpdateAnalysisOptimistically,
 } from '../hooks';
 import * as api from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryClient';
 
 const DashboardPage: React.FC = () => {
-  
-  // navigate暂未使用，保留以备后续路由跳转
-  void useNavigate;
+
   const queryClient = useQueryClient();
 
   // 系统实时诊断
@@ -128,11 +119,8 @@ const DashboardPage: React.FC = () => {
   // 乐观更新函数
   const addLogOptimistically = useAddLogOptimistically();
   const addBetOptimistically = useAddBetOptimistically();
-  const updateBetOptimistically = useUpdateBetOptimistically();
   const addGameOptimistically = useAddGameOptimistically();
-  const updateRoadsOptimistically = useUpdateRoadsOptimistically();
   const updateStateOptimistically = useUpdateStateOptimistically();
-  const updateAnalysisOptimistically = useUpdateAnalysisOptimistically();
 
   // 页面可见性变化时刷新数据（从上传页面返回时）
   useEffect(() => {

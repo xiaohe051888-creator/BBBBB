@@ -24,11 +24,15 @@ class Base(DeclarativeBase):
     pass
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 async def init_db():
     """初始化数据库表"""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    print("数据库初始化完成")
+    logger.info("数据库初始化完成")
 
 
 async def get_session() -> AsyncSession:

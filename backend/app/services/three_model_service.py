@@ -339,8 +339,8 @@ class ThreeModelService:
         Returns:
             包含三模型输出的完整结果（is_complete永远为True）
         """
-        print(f"[三模型分析] 开始分析第{game_number}局，永不降级模式")
-        
+        logger.info(f"[三模型分析] 开始分析第{game_number}局，永不降级模式")
+
         # 并行执行庄模型和闲模型（带全局超时保护）
         banker_task = asyncio.create_task(
             self._banker_model(game_history, road_data, mistake_context)
@@ -362,13 +362,13 @@ class ThreeModelService:
         
         # 综合模型汇总（永不降级）
         combined_result = await self._combined_model(
-            banker_result, player_result, 
+            banker_result, player_result,
             consecutive_errors, game_history,
             road_data, mistake_context, prompt_template
         )
-        
-        print(f"[三模型分析] 第{game_number}局分析完成，预测={combined_result.get('final_prediction')}")
-        
+
+        logger.info(f"[三模型分析] 第{game_number}局分析完成，预测={combined_result.get('final_prediction')}")
+
         return {
             "game_number": game_number,
             "banker_model": banker_result,
