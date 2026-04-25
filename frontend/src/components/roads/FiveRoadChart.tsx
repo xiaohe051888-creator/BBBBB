@@ -65,7 +65,7 @@ const EmptyState = ({ height }: { height: number }) => (
  * - 小路和螳螂路各占50%
  * - 所有路都精确显示6格高度
  */
-export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
+export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data }) => {
   // 标题栏高度
   const HEADER_HEIGHT = 32;
   
@@ -408,6 +408,6 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
         </div>
       </div>
     );
-};
+});
 
 export default FiveRoadChart;
