@@ -99,12 +99,11 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
 
           // 发送心跳包保活
           if (pingTimerRef.current) clearInterval(pingTimerRef.current);
-          pingTimerRef.current = setInterval(() => {
+          pingTimerRef.current = window.setInterval(() => {
             if (ws.readyState === WebSocket.OPEN) {
-              // 注意：为了兼容后端纯文本的 ping 判断，这里发送普通字符串 "ping"
-              ws.send("ping");
+              ws.send(JSON.stringify({ type: 'ping' }));
             }
-          }, 30000); // 30秒心跳
+          }, 30000);
         };
 
         ws.onmessage = (event) => {
@@ -175,7 +174,10 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
 
     return () => {
           clearTimeout(stateTimer);
-          if (pingTimerRef.current) clearInterval(pingTimerRef.current);
+          if (pingTimerRef.current) {
+            clearInterval(pingTimerRef.current);
+            pingTimerRef.current = null;
+          }
           isUnmountedRef.current = true;
           if (reconnectTimerRef.current) {
             clearTimeout(reconnectTimerRef.current);

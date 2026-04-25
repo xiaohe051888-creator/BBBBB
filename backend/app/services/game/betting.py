@@ -39,7 +39,11 @@ async def place_bet(
             if direction not in ("庄", "闲"):
                 return {"success": False, "error": "下注方向只能是庄或闲"}
             
+            import math
             amount = float(amount)
+            if math.isnan(amount) or math.isinf(amount) or amount < 0:
+                return {"success": False, "error": "非法的下注金额"}
+                
             amount = max(settings.MIN_BET, min(settings.MAX_BET, int(amount / settings.BET_STEP) * settings.BET_STEP))
             
             # 余额不足时：停止下注动作，返回明确错误，并将系统挂起为“余额不足”状态

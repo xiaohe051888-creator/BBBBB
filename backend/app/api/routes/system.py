@@ -294,6 +294,10 @@ async def adjust_balance(
     _: dict = Depends(get_current_user),
 ):
     """管理员手动调整余额"""
+    import math
+    if math.isnan(req.amount) or math.isinf(req.amount) or req.amount < 0:
+        raise HTTPException(400, "非法的金额参数")
+
     from app.services.game.session import get_session, get_session_lock, broadcast_event
     from app.services.game.logging import write_game_log
 
