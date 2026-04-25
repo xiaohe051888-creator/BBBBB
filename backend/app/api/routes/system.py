@@ -352,14 +352,20 @@ async def update_prediction_mode(
     return {"status": "success", "prediction_mode": req.mode}
 
 class APIKeyUpdateRequest(BaseModel):
-    openai_key: str | None = None
-    anthropic_key: str | None = None
-    gemini_key: str | None = None
+    openai_key: str | None = Field(None, max_length=200, description="OpenAI API Key")
+    anthropic_key: str | None = Field(None, max_length=200, description="Anthropic API Key")
+    gemini_key: str | None = Field(None, max_length=200, description="Gemini API Key")
+
+    @validator("openai_key", "anthropic_key", "gemini_key")
+    def validate_keys(cls, v):
+        if v is not None and ("\n" in v or "\r" in v):
+            raise ValueError("API Key 不能包含换行符")
+        return v
 
 @router.post("/api-keys")
 async def update_api_keys(
     req: APIKeyUpdateRequest,
-    # _: dict = Depends(get_current_user), # Uncomment for auth in production
+    _: dict = Depends(get_current_user),
 ):
     """Update API Keys in .env and runtime settings"""
     env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
@@ -407,7 +413,7 @@ async def update_api_keys(
 
 @router.post("/test-api-keys")
 async def test_api_keys(
-    # _: dict = Depends(get_current_user)
+    _: dict = Depends(get_current_user)
 ):
     """Test connection to the 3 AI models"""
     results = {}

@@ -2,25 +2,19 @@
 路由共享的Pydantic模型定义
 """
 from typing import Optional, List
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, Field
 from app.core.config import settings
 
 
 class GameUploadItem(BaseModel):
     """单局开奖记录"""
-    game_number: int
-    result: str  # "庄"/"闲"/"和"
-    
+    game_number: int = Field(..., ge=1, le=80, description="局号必须在 1 到 80 之间")
+    result: str = Field(..., max_length=10)
+
     @validator("result")
     def validate_result(cls, v):
         if v not in ("庄", "闲", "和"):
             raise ValueError("开奖结果必须是：庄、闲、和")
-        return v
-    
-    @validator("game_number")
-    def validate_game_number(cls, v):
-        if v < 1:
-            raise ValueError("局号必须大于0")
         return v
 
 
@@ -40,9 +34,9 @@ class UploadRequest(BaseModel):
 
 class RevealRequest(BaseModel):
     """开奖请求"""
-    game_number: int
-    result: str
-    
+    game_number: int = Field(..., ge=1, le=80, description="局号必须在 1 到 80 之间")
+    result: str = Field(..., max_length=10)
+
     @validator("result")
     def validate_result(cls, v):
         if v not in ("庄", "闲", "和"):
@@ -51,11 +45,11 @@ class RevealRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    """登录请求"""
-    password: str
+    """管理员登录请求"""
+    password: str = Field(..., min_length=1, max_length=128)
 
 
 class ChangePasswordRequest(BaseModel):
     """修改密码请求"""
-    old_password: str
-    new_password: str
+    old_password: str = Field(..., min_length=1, max_length=128)
+    new_password: str = Field(..., min_length=4, max_length=128, description="新密码至少需要4个字符")

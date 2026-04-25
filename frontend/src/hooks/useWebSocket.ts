@@ -47,6 +47,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectCountRef = useRef(0); // 记录重连次数，用于指数退避
   const isUnmountedRef = useRef(false);
   // 使用 state 触发重连
   const [reconnectTrigger, setReconnectTrigger] = useState(0);
@@ -94,17 +95,24 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
 
         ws.onopen = () => {
           setConnectionState('open');
-          
+          reconnectCountRef.current = 0; // 连接成功，重置重连次数
+
           // 发送心跳包保活
           if (pingTimerRef.current) clearInterval(pingTimerRef.current);
           pingTimerRef.current = setInterval(() => {
             if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ type: 'ping' }));
+              // 注意：为了兼容后端纯文本的 ping 判断，这里发送普通字符串 "ping"
+              ws.send("ping");
             }
           }, 30000); // 30秒心跳
         };
 
         ws.onmessage = (event) => {
+          // 处理服务端的 pong 响应（可能为文本或 JSON）
+          if (event.data === "pong" || event.data === '{"type":"pong"}') {
+            return;
+          }
+          
           try {
             const message: WebSocketMessage = JSON.parse(event.data);
             const callbacks = callbacksRef.current;
@@ -141,17 +149,24 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
         ws.onclose = () => {
           setConnectionState('closed');
           if (!isUnmountedRef.current) {
+            // 指数退避策略：3s, 6s, 12s, 24s... 最大 30 秒
+            const backoffDelay = Math.min(reconnectInterval * Math.pow(2, reconnectCountRef.current), 30000);
+            reconnectCountRef.current += 1;
+            
             reconnectTimerRef.current = setTimeout(() => {
               setReconnectTrigger(prev => prev + 1);
-            }, reconnectInterval);
+            }, backoffDelay);
           }
         };
       } catch {
         setConnectionState('closed');
         if (!isUnmountedRef.current) {
+          const backoffDelay = Math.min(reconnectInterval * Math.pow(2, reconnectCountRef.current), 30000);
+          reconnectCountRef.current += 1;
+          
           reconnectTimerRef.current = setTimeout(() => {
             setReconnectTrigger(prev => prev + 1);
-          }, reconnectInterval + 2000);
+          }, backoffDelay);
         }
       }
     };

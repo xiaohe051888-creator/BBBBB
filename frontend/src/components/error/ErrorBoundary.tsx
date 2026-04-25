@@ -55,41 +55,16 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <Result
           status="error"
-          title="组件渲染出错"
+          title="组件加载异常"
           subTitle={
-            <div style={{ textAlign: 'left', maxWidth: 600, margin: '0 auto' }}>
-              <p style={{ color: '#ff4d4f', fontWeight: 500 }}>
-                {this.state.error?.message || '未知错误'}
-              </p>
-              {this.state.errorInfo && (
-                <details style={{ marginTop: 16, textAlign: 'left' }}>
-                  <summary style={{ cursor: 'pointer', color: '#1890ff' }}>
-                    查看错误详情
-                  </summary>
-                  <pre
-                    style={{
-                      marginTop: 8,
-                      padding: 12,
-                      background: '#f6f8fa',
-                      borderRadius: 6,
-                      fontSize: 12,
-                      overflow: 'auto',
-                      maxHeight: 300,
-                    }}
-                  >
-                    {this.state.errorInfo.componentStack}
-                  </pre>
-                </details>
-              )}
+            <div style={{ textAlign: 'left', maxWidth: 600, margin: '0 auto', color: 'rgba(255,255,255,0.65)' }}>
+              <p>该区块在渲染时发生错误，请尝试刷新页面。如果问题持续存在，请联系管理员。</p>
             </div>
           }
           extra={[
-            <Button type="primary" key="reset" onClick={this.handleReset}>
-              重试
-            </Button>,
-            <Button key="reload" onClick={() => window.location.reload()}>
-              刷新页面
-            </Button>,
+            <Button type="primary" onClick={this.handleReset} key="retry">
+              重试加载
+            </Button>
           ]}
         />
       );
