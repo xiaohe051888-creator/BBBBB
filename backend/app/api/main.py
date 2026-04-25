@@ -213,5 +213,12 @@ def get_broadcast_func():
 async def spa_fallback(full_path: str = ""):
     index_path = os.path.join(_static_dir, "index.html")
     if os.path.exists(index_path):
-        return FileResponse(index_path)
+        return FileResponse(
+            index_path,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
     raise HTTPException(404, "前端未构建，请先在 frontend 运行 npm run build 并将产物移入 backend/static")

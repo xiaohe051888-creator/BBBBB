@@ -98,7 +98,8 @@ const RoadMapPage: React.FC = () => {
   const { data: roadData } = useRoadsQuery({});
 
   // React Query获取游戏记录（用于原始数据表格）
-  const { data: gamesData } = useGamesQuery({});
+  // 必须传入 pageSize: 100，否则默认分页只能拉取 20 条，导致图表和统计数据被截断
+  const { data: gamesData } = useGamesQuery({ page: 1, pageSize: 100 });
 
   // 使用useMemo缓存games，避免useMemo依赖变化
   const games = useMemo(() => gamesData?.games || [], [gamesData]);
