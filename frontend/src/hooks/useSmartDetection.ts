@@ -374,12 +374,22 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
     removeAlertRef.current = removeAlert;
   }, [removeAlert]);
 
+  const timersRef = useRef<Record<string, number | ReturnType<typeof setTimeout>>>({});
+
+  // 组件卸载时清理所有自动关闭的定时器
+  useEffect(() => {
+    return () => {
+      Object.values(timersRef.current).forEach(clearTimeout);
+    };
+  }, []);
+
   const addAlert = useCallback((alert: Omit<SmartAlert, 'id'>) => {
     const newAlert: SmartAlert = {
       ...alert,
       id: generateId(),
     };
-    setAlerts(prev => [...prev, newAlert]);
+    
+    setAlerts(prev => [newAlert, ...prev].slice(0, 10)); // 最多保留10条
 
     // 根据类型显示消息
     if (alert.type === 'danger') {
@@ -392,13 +402,16 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
       message.info(alert.message);
     }
 
-    // 自动关闭
+    // 自动关闭，并保存定时器ID以防内存泄漏
     if (alert.autoClose !== false) {
-      setTimeout(() => {
+      const duration = alert.duration || 5000;
+      const timer = setTimeout(() => {
         if (removeAlertRef.current) {
           removeAlertRef.current(newAlert.id);
         }
-      }, alert.duration || 5000);
+        delete timersRef.current[newAlert.id];
+      }, duration);
+      timersRef.current[newAlert.id] = timer;
     }
   }, []);
 

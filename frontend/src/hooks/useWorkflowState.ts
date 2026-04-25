@@ -282,6 +282,17 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
     resetWorkflowRef.current = resetWorkflow;
   }, [resetWorkflow]);
 
+  const settlingTimerRef = useRef<number | ReturnType<typeof setTimeout> | null>(null);
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (settlingTimerRef.current) {
+        clearTimeout(settlingTimerRef.current);
+      }
+    };
+  }, []);
+
   const completeSettlement = useCallback(() => {
     const now = Date.now();
     setWorkflowState(prev => ({
@@ -291,9 +302,14 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
       nextActionDeadline: now + TIMEOUT_CONFIG.settling * 1000,
     }));
     setElapsed(0);
-    
-    // 结算完成后自动回到空闲状态
-    setTimeout(() => {
+
+    // 清除可能已存在的旧定时器
+    if (settlingTimerRef.current) {
+      clearTimeout(settlingTimerRef.current);
+    }
+
+    // 结算完成后自动回到空闲状态，并保存定时器以防内存泄漏
+    settlingTimerRef.current = setTimeout(() => {
       if (resetWorkflowRef.current) {
         resetWorkflowRef.current();
       }

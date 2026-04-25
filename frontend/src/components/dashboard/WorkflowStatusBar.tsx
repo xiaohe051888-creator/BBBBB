@@ -136,6 +136,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 16,
+      flexWrap: 'wrap', // 添加此属性以修复在手机端按钮溢出屏幕的问题
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span style={{
