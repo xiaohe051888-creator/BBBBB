@@ -119,7 +119,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     if (!status || status === '空闲') {
       if (gameCount === 0) return '等待开局 (未上传数据)';
       if ((systemState?.game_number || 0) >= 72) return '';
-      return '请录入下一局开奖结果';
+      return '等待开奖'; // <== 修改这里，将具体的“请录入第 X 局”引导完全交给下方的 WorkflowStatusBar，避免重复
     }
     if ((systemState?.game_number || 0) >= 72) return '';
     return status;

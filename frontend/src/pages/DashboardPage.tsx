@@ -52,7 +52,8 @@ const DashboardPage: React.FC = () => {
   const { data: stats } = useStatsQuery({});
   const { data: analysis, isFetching: analysisFetching } = useAnalysisQuery({});
   const { data: logsData } = useLogsQuery({ pageSize: 50 });
-  const { data: gamesData } = useGamesQuery({ page: gamePage });
+  // 修复截断Bug：获取本靴游戏记录时不分页（pageSize设为100），确保计算统计（庄、闲、和）时能涵盖所有 72 局
+  const { data: gamesData } = useGamesQuery({ page: 1, pageSize: 100 });
   const { data: betsData } = useBetsQuery({ page: betPage });
   const { data: roadData } = useRoadsQuery({});
 
