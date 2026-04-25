@@ -226,8 +226,8 @@ async def _settle_bet(
                 sess.consecutive_errors = 0
             else:
                 sess.consecutive_errors += 1
-                # 错题本记录
-                if sess.consecutive_errors >= 1:
+                # 仅当预测模式为 'ai' 时才将错误记录存入 AI 的错题本，避免污染模型记忆
+                if sess.consecutive_errors >= 1 and sess.prediction_mode == "ai":
                     mistake = MistakeBook(
                         boot_number=sess.boot_number,
                         game_number=game_number,
