@@ -46,7 +46,10 @@ const LoginModal: React.FC<LoginModalProps> = ({
     
     setLoading(true);
     try {
-      await api.adminLogin(password);
+      const res = await api.adminLogin(password);
+      if (res.data && res.data.token) {
+        api.setToken(res.data.token);
+      }
       message.success('登录成功');
       onSuccess();
     } catch (err: any) {
