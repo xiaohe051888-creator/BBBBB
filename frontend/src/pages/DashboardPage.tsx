@@ -305,16 +305,14 @@ const DashboardPage: React.FC = () => {
         {/* 左侧：五路走势图 */}
         <div style={{ flex: '1 1 500px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
           <div className="road-card" style={{ background: '#1a1d24', borderRadius: 12, padding: 16, marginBottom: 16, overflow: 'hidden', minHeight: 400 }}>
-            <div className="section-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: '#58a6ff', marginRight: 8 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
-                </span>
-                <span className="section-title" style={{ marginRight: 16 }}>五路走势</span>
-              </div>
+            <div className="section-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+              <span style={{ color: '#58a6ff', marginRight: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+              </span>
+              <span className="section-title" style={{ marginRight: 16 }}>五路走势</span>
 
               {/* 庄闲和统计徽标 */}
-              <Space size={8} wrap>
+              <Space size={8}>
                 <Tag color="#ff4d4f" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>庄 {bankerCount}</Tag>
                 <Tag color="#1890ff" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>闲 {playerCount}</Tag>
                 <Tag color="#52c41a" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>和 {tieCount}</Tag>
