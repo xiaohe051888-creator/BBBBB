@@ -149,9 +149,7 @@ start_backend() {
     
     # 启动后端
     print_info "启动后端服务 (端口: $BACKEND_PORT)..."
-    # 后端应用内已配置 RotatingFileHandler 切割日志 (backend_app.log)，
-    # 为防止无限追加的 backend.log 撑爆磁盘，将标准输出丢弃
-    nohup python -m uvicorn app.api.main:app --host 0.0.0.0 --port $BACKEND_PORT > /dev/null 2>&1 &
+    nohup python -m uvicorn app.api.main:app --host 0.0.0.0 --port $BACKEND_PORT > ../$BACKEND_LOG 2>&1 &
     
     local backend_pid=$!
     echo $backend_pid > ../$LOG_DIR/backend.pid

@@ -38,7 +38,8 @@ if os.path.exists(env_path):
 else:
     logger.warning(f"⚠️  [api/main.py] 环境变量文件不存在: {env_path}")
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -116,6 +117,28 @@ app = FastAPI(
     version=settings.APP_VERSION,
     lifespan=lifespan,
 )
+
+# ============ 全局异常处理器 (Global Exception Handler) ============
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    兜底捕获所有未被处理的 Python 异常 (500 错误)。
+    防止后端直接吐出带有堆栈信息的 HTML 页面导致前端 axios 无法解析，
+    而是返回统一的 JSON 结构，并确保异常被记录到 RotatingFileHandler。
+    """
+    logger.error(f"【严重系统异常】访问 {request.method} {request.url.path} 时发生崩溃:", exc_info=exc)
+    
+    # 避免跨域拦截（当 500 发生时，FastAPI 默认的 HTML 响应可能不带 CORS 头）
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "error": "Internal Server Error",
+            "detail": str(exc) if settings.DEBUG else "系统内部发生错误，请查看后台日志",
+            "path": request.url.path
+        },
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
 
 # CORS配置
 def _parse_cors_origins() -> List[str]:
