@@ -34,6 +34,7 @@ async def get_system_state():
                 "boot_number": mem_state["boot_number"],
                 "game_number": mem_state["next_game_number"] - 1,
                 "balance": mem_state["balance"],
+                "prediction_mode": mem_state.get("prediction_mode", "ai"),
                 "predict_direction": mem_state["predict_direction"],
                 "predict_confidence": mem_state["predict_confidence"],
                 "current_bet_tier": mem_state["predict_bet_tier"],
@@ -42,12 +43,13 @@ async def get_system_state():
                 "pending_bet": mem_state["pending_bet"],
                 "next_game_number": mem_state["next_game_number"],
             }
-        
+
         return {
             "status": mem_state["status"],
             "boot_number": state.boot_number,
             "game_number": state.game_number,
             "current_game_result": state.current_game_result,
+            "prediction_mode": getattr(state, "prediction_mode", mem_state.get("prediction_mode", "ai")),
             "predict_direction": mem_state["predict_direction"] or state.predict_direction,
             "predict_confidence": mem_state["predict_confidence"] or state.predict_confidence,
             "current_model_version": state.current_model_version,
