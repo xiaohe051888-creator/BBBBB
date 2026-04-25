@@ -112,6 +112,10 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // 清空画布并设置高分屏缩放
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(canvasPixelSize.dpr, 0, 0, canvasPixelSize.dpr, 0, 0);
+
     const displayWidth = canvasPixelSize.styleWidth;
     const displayHeight = canvasPixelSize.styleHeight;
 

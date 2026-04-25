@@ -168,11 +168,9 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
     return roadHeight + 6;
   }, [roadHeight]);
 
-  // 使用内置配置计算珠盘路的精确尺寸（包含14列）
+  // 使用内置配置计算珠盘路的精确尺寸（包含12列）
   const beadRoadWidth = useMemo(() => {
-    // 假设 baseConfig 的 cellSize 和 padding 都是通用的，但这里我们用它计算
-    // 实际 BeadRoadCanvas 内部可能有自己的配置，但为了外部排版，我们基于 baseConfig 推算
-    return PADDING * 2 + 14 * (BASE_CELL_SIZE + CELL_GAP);
+    return PADDING * 2 + 12 * (BASE_CELL_SIZE + CELL_GAP);
   }, []);
 
   // 计算各路总高度（含标题栏）- 使用minHeight
@@ -230,10 +228,9 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                // 移除 padding-bottom，使用原生滚动条控制
               }}
             >
-            <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
+              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
               {hasData.big ? (
                 <BigRoadCanvas data={roads.big} config={baseConfig} />
               ) : (
@@ -321,10 +318,9 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                // 移除 padding-bottom，使用原生滚动条控制
               }}
             >
-              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
+              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
                 {hasData.bigEye ? (
                   <DerivedRoadCanvas data={roads.bigEye} config={baseConfig} />
                 ) : (
@@ -374,10 +370,9 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                // 移除 padding-bottom，使用原生滚动条控制
               }}
             >
-              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
+              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
                 {hasData.small ? (
                   <DerivedRoadCanvas data={roads.small} config={baseConfig} />
                 ) : (
@@ -418,10 +413,9 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
                 width: '100%',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                // 移除 padding-bottom，使用原生滚动条控制
               }}
             >
-              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
+              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
                 {hasData.cockroach ? (
                   <DerivedRoadCanvas data={roads.cockroach} config={baseConfig} />
                 ) : (

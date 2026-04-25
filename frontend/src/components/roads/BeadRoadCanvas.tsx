@@ -56,6 +56,12 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // 清空画布
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 设置高分屏缩放
+    ctx.setTransform(canvasPixelSize.dpr, 0, 0, canvasPixelSize.dpr, 0, 0);
+
     const displayWidth = canvasPixelSize.styleWidth;
     const displayHeight = canvasPixelSize.styleHeight;
 
@@ -66,8 +72,14 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     const cellSize = mergedConfig.cellSize;
     const cellGap = mergedConfig.cellGap;
     const padding = mergedConfig.padding;
-    const fixedCols = 14;
+    const fixedCols = 12; // 珠盘路永远显示完整的 6x12
     const fixedRows = 6;
+
+    // 计算列偏移量（如果超过12列，向左移动以显示最新数据）
+    const maxCol = data && data.points.length > 0 
+      ? Math.max(...data.points.map(p => p.column)) 
+      : 0;
+    const offsetCol = Math.max(0, maxCol - 11);
 
     // 始终绘制完整网格
     if (mergedConfig.showGrid) {
@@ -81,9 +93,11 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
 
     // 按坐标绘制点
     for (const point of data.points) {
-      if (point.column >= fixedCols || point.row >= fixedRows) continue;
+      const displayCol = point.column - offsetCol;
+      // 只绘制当前可视范围内的 12 列数据
+      if (displayCol < 0 || displayCol >= fixedCols || point.row >= fixedRows) continue;
 
-      const x = padding + point.column * (cellSize + cellGap) + cellSize / 2;
+      const x = padding + displayCol * (cellSize + cellGap) + cellSize / 2;
       const y = padding + point.row * (cellSize + cellGap) + cellSize / 2;
 
       const color = getPointColor(point.value, false);
