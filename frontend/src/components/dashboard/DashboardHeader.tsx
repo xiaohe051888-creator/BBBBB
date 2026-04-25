@@ -62,9 +62,21 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const [isEndBootModalVisible, setIsEndBootModalVisible] = useState(false);
   const [isEndingBoot, setIsEndingBoot] = useState(false);
 
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    type: 'warning' as 'warning' | 'error',
+    title: '',
+    content: ''
+  });
+
   const handleEndBoot = async () => {
     if (systemState?.status === '深度学习中') {
-      Modal.warning({ title: '操作被拒绝', content: '当前靴正在进行深度学习，请等待完成后再开启新靴。' });
+      setAlertModal({
+        visible: true,
+        type: 'warning',
+        title: '操作被拒绝',
+        content: '当前靴正在进行深度学习，请等待完成后再开启新靴。'
+      });
       return;
     }
     setIsEndBootModalVisible(true);
@@ -77,7 +89,12 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       await endBoot();
       navigate('/', { state: { isNewBoot: true } });
     } catch (e: unknown) {
-      Modal.error({ title: '结束本靴失败', content: (e as Error).message });
+      setAlertModal({
+        visible: true,
+        type: 'error',
+        title: '结束本靴失败',
+        content: (e as Error).message
+      });
     } finally {
       setIsEndingBoot(false);
       setIsEndBootModalVisible(false);
@@ -370,6 +387,87 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               }}
             >
               {isEndingBoot ? '深度学习触发中...' : '确认终结'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 全局提示自定义暗黑弹窗（替代 Modal.warning 和 Modal.error） */}
+      <Modal
+        open={alertModal.visible}
+        onCancel={() => setAlertModal(prev => ({ ...prev, visible: false }))}
+        footer={null}
+        closable={false}
+        width={400}
+        styles={{
+          mask: { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
+          body: {
+            backgroundColor: '#0f1521',
+            border: `1px solid ${alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.3)' : 'rgba(250, 173, 20, 0.3)'}`,
+            borderRadius: '16px',
+            boxShadow: `0 0 40px ${alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.15)' : 'rgba(250, 173, 20, 0.15)'}, inset 0 1px 0 rgba(255, 255, 255, 0.05)`,
+            padding: 0,
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <div style={{ position: 'relative' }}>
+          {/* 顶部装饰条 */}
+          <div style={{ 
+            height: 4, 
+            background: alertModal.type === 'error' 
+              ? 'linear-gradient(90deg, #ff4d4f, #ff7875, #ff4d4f)' 
+              : 'linear-gradient(90deg, #faad14, #ffd666, #faad14)' 
+          }} />
+          
+          <div style={{ padding: '32px 32px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+              <div style={{ 
+                width: 48, 
+                height: 48, 
+                borderRadius: '50%', 
+                background: alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.1)' : 'rgba(250, 173, 20, 0.1)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                flexShrink: 0,
+                border: `1px solid ${alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.2)' : 'rgba(250, 173, 20, 0.2)'}`
+              }}>
+                <AlertTriangleIcon width={24} height={24} color={alertModal.type === 'error' ? '#ff4d4f' : '#faad14'} />
+              </div>
+              <div>
+                <h3 style={{ margin: '0 0 8px', color: '#fff', fontSize: 20, fontWeight: 600, letterSpacing: '0.5px' }}>
+                  {alertModal.title}
+                </h3>
+                <p style={{ margin: 0, color: 'rgba(255,255,255,0.65)', fontSize: 14, lineHeight: 1.6 }}>
+                  {alertModal.content}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ 
+            padding: '16px 32px', 
+            background: 'rgba(255,255,255,0.02)', 
+            borderTop: '1px solid rgba(255,255,255,0.05)',
+            display: 'flex',
+            justifyContent: 'flex-end'
+          }}>
+            <Button 
+              type="primary" 
+              onClick={() => setAlertModal(prev => ({ ...prev, visible: false }))}
+              style={{ 
+                background: alertModal.type === 'error' ? '#ff4d4f' : '#faad14',
+                borderColor: 'transparent',
+                borderRadius: 8,
+                height: 38,
+                padding: '0 24px',
+                fontWeight: 600,
+                color: alertModal.type === 'error' ? '#fff' : '#000',
+                boxShadow: `0 4px 12px ${alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.3)' : 'rgba(250, 173, 20, 0.3)'}`
+              }}
+            >
+              我知道了
             </Button>
           </div>
         </div>
