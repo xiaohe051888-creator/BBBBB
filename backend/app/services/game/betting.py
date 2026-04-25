@@ -97,22 +97,20 @@ async def place_bet(
             session_module._session = sess_backup
             raise e
     
-    # 触发上一局的微学习（利用等待开奖的时间）
-    # 注意：创建新任务时使用新的数据库会话，避免会话状态冲突
-    if game_number > 1:
-        from .learning import micro_learning_previous_game
-        from app.core.database import async_session
-        
-        async def run_micro_learning():
-            try:
-                async with async_session() as new_db:
-                    await micro_learning_previous_game(new_db, sess.boot_number, game_number - 1)
-            except Exception as e:
-                import logging
-                logging.getLogger("uvicorn.error").error(f"微学习失败: {e}", exc_info=True)
-        
-        asyncio.create_task(run_micro_learning())
-    
+    # 触发本局的实时微学习（利用等待开奖的时间，综合模型提前复盘走势）
+    from .learning import micro_learning_current_trend
+    from app.core.database import async_session
+
+    async def run_micro_learning():
+        try:
+            async with async_session() as new_db:
+                await micro_learning_current_trend(new_db, sess.boot_number, game_number)
+        except Exception as e:
+            import logging
+            logging.getLogger("uvicorn.error").error(f"等待期实时学习失败: {e}", exc_info=True)
+
+    asyncio.create_task(run_micro_learning())
+
     await broadcast_event("bet_placed", {
         "game_number": game_number,
         "direction": direction,
@@ -120,7 +118,6 @@ async def place_bet(
         "tier": tier,
         "balance_after": balance_after,
         "status": "等待开奖",
-        "micro_learning": "进行中" if game_number > 1 else "无上一局",
     })
     
     return {

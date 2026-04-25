@@ -134,14 +134,19 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
           size="small"
           title={
             <Space>
-              <SyncOutlined spin />
-              <Text strong>微学习中</Text>
+              <SyncOutlined spin style={{ color: '#1890ff' }} />
+              <Text strong style={{ color: '#1890ff' }}>实时学习中</Text>
             </Space>
           }
-          style={{ borderLeft: '4px solid #1890ff' }}
+          style={{ 
+            borderLeft: '4px solid #1890ff', 
+            background: 'rgba(24,144,255,0.05)',
+            boxShadow: '0 0 10px rgba(24,144,255,0.15) inset',
+            animation: 'pulse-glow 2s infinite'
+          }}
         >
-          <Text type="secondary">
-            正在分析第{microLearning.game_number}局的错误模式，提升下一局预测准确率...
+          <Text style={{ color: 'rgba(255,255,255,0.85)' }}>
+            {microLearning.message || `综合模型正在根据第${microLearning.game_number}局现有走势图进行深度微学习与策略进化，以提升下局准确率...`}
           </Text>
         </Card>
       )}
@@ -150,18 +155,12 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
       {microLearning && microLearning.status === '完成' && (
         <Card
           size="small"
-          style={{ borderLeft: '4px solid #52c41a', backgroundColor: '#f6ffed' }}
+          style={{ borderLeft: '4px solid #52c41a', background: 'rgba(82,196,26,0.1)' }}
         >
           <Space>
-            {getMicroLearningIcon(microLearning.status)}
-            <Text>
-              第{microLearning.game_number}局微学习完成：
-              预测{microLearning.prediction}，实际{microLearning.actual}，
-              {microLearning.is_correct ? (
-                <span style={{ color: '#52c41a' }}>正确✓</span>
-              ) : (
-                <span style={{ color: '#ff4d4f' }}>错误✗</span>
-              )}
+            <CheckCircleOutlined style={{ color: '#52c41a' }} />
+            <Text style={{ color: '#52c41a' }}>
+              第{microLearning.game_number}局实时学习完成，已更新最新策略模型
             </Text>
           </Space>
         </Card>
