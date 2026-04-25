@@ -490,110 +490,98 @@ class RoadEngine:
         
         return road
     
+    def _calculate_derived_road_standard(self, big_road: RoadData, k: int, road_type: str, display_name: str) -> RoadData:
+        """
+        通用的下三路（衍生路）标准澳门算法：大眼仔(k=1)、小路(k=2)、曱甴路(k=3)
+        
+        核心规则：
+        - 齐整：大路换列的第一粒（落在第0行），比较前1列与前k+1列的长度是否相等
+        - 有无：大路同列向下的第二粒及以后（落在第1行及以下），向左看k列的同一行是否有记录
+        - 直落：接在“有无”之后，如果向左看k列为空，且其上一行向左看k列也为空，则为直落
+        """
+        road = RoadData(road_type=road_type, display_name=display_name)
+        if not big_road.points:
+            return road
+            
+        # 建立大路坐标矩阵： (col, row) -> RoadPoint，用于快速查找
+        # 必须排除和局点，因为下三路是不看和局的
+        matrix: Dict[Tuple[int, int], RoadPoint] = {}
+        # 记录每列的真实长度（排除和局和拐弯导致的行跳跃，这里我们直接记录该列有多少个非和局点）
+        # 但是“齐整”看的是列的“长度”。对于拐弯的情况，澳门规则是将拐弯的子算在同一列里。
+        # 也就是：一列的“长度” = 该列在逻辑上包含的点的数量。
+        # 我们需要先按逻辑列分组，恢复没有视觉拐弯时的大路。
+        
+        logical_cols: Dict[int, int] = {} # 逻辑列索引 -> 长度
+        
+        # 提取所有的逻辑列。大路中，每次 is_new_column = True 就代表新的逻辑列。
+        current_logical_col = -1
+        logical_matrix: Dict[Tuple[int, int], RoadPoint] = {} # (逻辑列, 逻辑行) -> Point
+        
+        for p in big_road.points:
+            if p.is_tie:
+                continue
+            if p.is_new_column:
+                current_logical_col += 1
+                logical_cols[current_logical_col] = 0
+            
+            logical_row = logical_cols[current_logical_col]
+            logical_matrix[(current_logical_col, logical_row)] = p
+            logical_cols[current_logical_col] += 1
+
+        color_sequence = []
+        
+        # 起始列规则：大眼仔k=1(起始第1列第1行或第2列第0行)
+        # 逻辑列从0开始。
+        for col in range(1, current_logical_col + 1):
+            length = logical_cols[col]
+            for row in range(length):
+                p = logical_matrix[(col, row)]
+                
+                # 检查是否满足该路的起始条件
+                # 起始列：col >= k 且 (row >= 1 或 col >= k + 1)
+                if col < k:
+                    continue
+                if col == k and row == 0:
+                    continue
+                    
+                color = "蓝" # 默认蓝
+                
+                if row == 0:
+                    # 换列第一粒 -> 齐整
+                    # 比较 col - 1 的长度 和 col - (k + 1) 的长度
+                    len_prev = logical_cols[col - 1]
+                    len_ref = logical_cols[col - (k + 1)]
+                    if len_prev == len_ref:
+                        color = "红"
+                    else:
+                        color = "蓝"
+                else:
+                    # 同列向下 -> 有无 / 直落
+                    # 向左看k列的同一行是否有记录
+                    ref_col = col - k
+                    if (ref_col, row) in logical_matrix:
+                        color = "红" # 有无：有 -> 红
+                    else:
+                        # 有无：无，检查直落
+                        # 上一行向左看k列是否也为空
+                        if (ref_col, row - 1) not in logical_matrix:
+                            color = "红" # 直落：空且上为空 -> 红
+                        else:
+                            color = "蓝" # 有无：空且上不为空 -> 蓝
+                            
+                color_sequence.append((p.game_number, color))
+                
+        # 按照和大路相同的布局规则生成下三路的网格
+        return self._layout_derived_road(color_sequence, road_type, display_name)
+
     def _calculate_big_eye_road(self, big_road: RoadData) -> RoadData:
-        """
-        大眼仔路算法 - 使用和大路相同的拐弯逻辑
-        
-        规则：
-        1. 从第2列大路开始生成（需要参考第1列）
-        2. 红=高度相等（规律延续），蓝=高度不等（规律转折）
-        3. 布局算法和大路完全一致：相同颜色往下排，不同颜色换新列，6个满后拐弯
-        """
-        road = RoadData(road_type="big_eye", display_name="大眼仔路")
-        
-        if not big_road.points:
-            return road
-        
-        # 按列分组计算高度
-        columns: Dict[int, List[RoadPoint]] = {}
-        for p in big_road.points:
-            if p.column not in columns:
-                columns[p.column] = []
-            columns[p.column].append(p)
-        
-        col_heights = {col: len(points) for col, points in columns.items()}
-        max_col = max(columns.keys()) if columns else 0
-        
-        # 生成大眼仔路的颜色序列（从第2列开始）
-        color_sequence = []
-        for col in range(2, max_col + 1):
-            current_height = col_heights.get(col, 0)
-            prev_height = col_heights.get(col - 1, 0)
-            value = "红" if current_height == prev_height else "蓝"
-            color_sequence.append((col, value))
-        
-        # 使用和大路相同的拐弯算法布局
-        return self._layout_derived_road(color_sequence, "big_eye", "大眼仔路")
-    
+        return self._calculate_derived_road_standard(big_road, 1, "big_eye", "大眼仔路")
+
     def _calculate_small_road(self, big_road: RoadData) -> RoadData:
-        """
-        小路算法 - 使用和大路相同的拐弯逻辑
-        
-        规则：
-        1. 从第3列大路开始生成（需要参考第1列，隔一列）
-        2. 红=高度相等，蓝=高度不等
-        3. 布局算法和大路完全一致
-        """
-        road = RoadData(road_type="small_road", display_name="小路")
-        
-        if not big_road.points:
-            return road
-        
-        # 按列分组计算高度
-        columns: Dict[int, List[RoadPoint]] = {}
-        for p in big_road.points:
-            if p.column not in columns:
-                columns[p.column] = []
-            columns[p.column].append(p)
-        
-        col_heights = {col: len(points) for col, points in columns.items()}
-        max_col = max(columns.keys()) if columns else 0
-        
-        # 生成小路的颜色序列（从第3列开始，参考col-2）
-        color_sequence = []
-        for col in range(3, max_col + 1):
-            current_height = col_heights.get(col, 0)
-            ref_height = col_heights.get(col - 2, 0)
-            value = "红" if current_height == ref_height else "蓝"
-            color_sequence.append((col, value))
-        
-        # 使用和大路相同的拐弯算法布局
-        return self._layout_derived_road(color_sequence, "small_road", "小路")
-    
+        return self._calculate_derived_road_standard(big_road, 2, "small_road", "小路")
+
     def _calculate_cockroach_road(self, big_road: RoadData) -> RoadData:
-        """
-        螳螂路算法 - 使用和大路相同的拐弯逻辑
-        
-        规则：
-        1. 从第4列大路开始生成（需要参考第1列，隔两列）
-        2. 红=高度相等，蓝=高度不等
-        3. 布局算法和大路完全一致
-        """
-        road = RoadData(road_type="cockroach_road", display_name="螳螂路")
-        
-        if not big_road.points:
-            return road
-        
-        # 按列分组计算高度
-        columns: Dict[int, List[RoadPoint]] = {}
-        for p in big_road.points:
-            if p.column not in columns:
-                columns[p.column] = []
-            columns[p.column].append(p)
-        
-        col_heights = {col: len(points) for col, points in columns.items()}
-        max_col = max(columns.keys()) if columns else 0
-        
-        # 生成螳螂路的颜色序列（从第4列开始，参考col-3）
-        color_sequence = []
-        for col in range(4, max_col + 1):
-            current_height = col_heights.get(col, 0)
-            ref_height = col_heights.get(col - 3, 0)
-            value = "红" if current_height == ref_height else "蓝"
-            color_sequence.append((col, value))
-        
-        # 使用和大路相同的拐弯算法布局
-        return self._layout_derived_road(color_sequence, "cockroach_road", "螳螂路")
+        return self._calculate_derived_road_standard(big_road, 3, "cockroach_road", "螳螂路")
 
 
 # 便捷函数
