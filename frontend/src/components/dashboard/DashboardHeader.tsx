@@ -101,37 +101,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     }
   };
 
-  const getStatusColor = (status?: string) => {
-    if (status === '等待开奖') return '#faad14';
-    if (status === '分析完成') return '#52c41a';
-    if (status === '分析中') return '#1890ff';
-    return 'rgba(255,255,255,0.5)';
-  };
-
-  const getStatusDot = (status?: string) => {
-    if (status === '等待开奖') return '#faad14';
-    if (status === '分析完成') return '#52c41a';
-    if (status === '分析中') return '#1890ff';
-    return '#8b949e';
-  };
-
-  const getDisplayStatus = (status?: string) => {
-    if (!status || status === '空闲') {
-      if (gameCount === 0) return '等待开局 (未上传数据)';
-      if ((systemState?.game_number || 0) >= 72) return '';
-      return '等待开奖'; // <== 修改这里，将具体的“请录入第 X 局”引导完全交给下方的 WorkflowStatusBar，避免重复
-    }
-    if ((systemState?.game_number || 0) >= 72) return '';
-    return status;
-  };
-
   return (
     <div className="top-status-bar" style={{ padding: '16px 24px', background: 'linear-gradient(180deg, #141b26 0%, #0f151e 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-        
+
         {/* 左侧组：系统信息 + 最新开奖/预测（合并在一边，避免中间空旷） */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', flex: '1 1 auto' }}>
-          
+
           {/* 1. 系统状态信息 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.15)', padding: '6px 14px', borderRadius: 20 }}>
@@ -140,15 +116,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 第 <span style={{ color: '#ffd700', fontSize: 16 }}>{systemState?.boot_number || 1}</span> 靴
               </span>
             </div>
-
-            {getDisplayStatus(systemState?.status) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.03)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div className="status-indicator-dot" style={{ backgroundColor: getStatusDot(systemState?.status), width: 8, height: 8, borderRadius: '50%', boxShadow: `0 0 8px ${getStatusDot(systemState?.status)}` }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: getStatusColor(systemState?.status) }}>
-                  {getDisplayStatus(systemState?.status)}
-                </span>
-              </div>
-            )}
           </div>
 
           {/* 2. 已开局信息 & 下局预测 */}
