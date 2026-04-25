@@ -76,6 +76,22 @@ async def run_ai_analysis(
                 for r in records
             ]
             
+            if sess.prediction_mode == "ai":
+                from app.core.config import settings
+                api_configured = bool(
+                    (settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10) or
+                    (settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10) or
+                    (settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10)
+                )
+                if not api_configured:
+                    # 自动降级为规则引擎
+                    sess.prediction_mode = "rule"
+                    sess._api_configured_checked = False
+                    import logging
+                    logging.getLogger(__name__).warning("未配置AI大模型API Key，系统已自动降级为强规则引擎模式！")
+                else:
+                    sess._api_configured_checked = True
+
             if sess.prediction_mode == "rule":
                 from app.services.game.rule_engine import BaccaratRuleEngine
                 rule_engine = BaccaratRuleEngine()
@@ -88,7 +104,7 @@ async def run_ai_analysis(
                         "final_prediction": rule_res["predict"],
                         "confidence": rule_res["confidence"],
                         "bet_tier": rule_res["tier"],
-                        "summary": "【强规则引擎模式】\n" + rule_res["summary"],
+                        "summary": ("⚠️ 【系统提示】：未检测到有效的 AI 大模型 API Key 配置，系统已自动为您降级并启用【强规则引擎模式】。\n\n" if not getattr(sess, '_api_configured_checked', True) else "") + "【强规则引擎模式】\n" + rule_res["summary"],
                     },
                     "banker_model": {"summary": "规则引擎未提供独立的庄模型摘要。"},
                     "player_model": {"summary": "规则引擎未提供独立的闲模型摘要。"},

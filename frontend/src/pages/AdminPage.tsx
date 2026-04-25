@@ -137,6 +137,20 @@ const AdminPage: React.FC = () => {
 
   const handleModeChange = async (e: any) => {
     const newMode = e.target.value;
+    
+    // 如果选择 AI 模式，但尚未配置至少一个大模型 API，则拦截并提示
+    if (newMode === 'ai') {
+      const isConfigured = 
+        threeModelStatus?.models?.banker?.api_key_set || 
+        threeModelStatus?.models?.player?.api_key_set || 
+        threeModelStatus?.models?.combined?.api_key_set;
+        
+      if (!isConfigured) {
+        message.warning('无法切换至 AI 模式：您尚未配置任何 AI 大模型的 API Key。系统将继续使用强规则引擎。');
+        return;
+      }
+    }
+
     setUpdatingMode(true);
     try {
       await api.updatePredictionMode(newMode);
@@ -291,18 +305,22 @@ const AdminPage: React.FC = () => {
                   >
                     <Row gutter={[16, 16]}>
                       <Col xs={24} sm={12}>
-                        <Radio.Button 
-                          value="ai" 
-                          style={{ 
-                            width: '100%', height: 'auto', padding: '16px', 
+                        <Radio.Button
+                          value="ai"
+                          style={{
+                            width: '100%', height: 'auto', padding: '16px',
                             textAlign: 'left', borderRadius: 8,
                             borderColor: predictionMode === 'ai' ? '#722ed1' : 'rgba(255,255,255,0.2)',
-                            background: predictionMode === 'ai' ? 'rgba(114,46,209,0.1)' : 'transparent'
+                            background: predictionMode === 'ai' ? 'rgba(114,46,209,0.1)' : 'transparent',
+                            opacity: (threeModelStatus && !threeModelStatus?.models?.banker?.api_key_set && !threeModelStatus?.models?.player?.api_key_set && !threeModelStatus?.models?.combined?.api_key_set) ? 0.6 : 1
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                             <Icons.Brain /> <span style={{ fontSize: 16, fontWeight: 'bold' }}>3个AI大模型预测</span>
                             {predictionMode === 'ai' && <Tag color="purple" style={{ marginLeft: 'auto' }}>当前激活</Tag>}
+                            {(threeModelStatus && !threeModelStatus?.models?.banker?.api_key_set && !threeModelStatus?.models?.player?.api_key_set && !threeModelStatus?.models?.combined?.api_key_set) && (
+                              <Tag color="error" style={{ marginLeft: 'auto' }}>未配置API</Tag>
+                            )}
                           </div>
                           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', whiteSpace: 'normal' }}>
                             通过三个独立的 AI 大模型（庄模型、闲模型、综合模型）交叉论证，融合历史血迹与等待期微学习经验，进行高维度深度分析。

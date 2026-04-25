@@ -12,6 +12,7 @@ import {
   UploadIcon,
   CloudUploadIcon,
 } from '../icons';
+import { useSystemStateQuery } from '../../hooks/useQueries';
 
 interface Analysis {
   prediction?: string | null;
@@ -34,6 +35,8 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   aiAnalyzing,
 }) => {
   const navigate = useNavigate();
+  const { data: systemState } = useSystemStateQuery({});
+  const isRuleMode = systemState?.prediction_mode === 'rule';
 
   // 分析中状态 - 三模型进度指示器
   if (aiAnalyzing) {
@@ -47,55 +50,67 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <div style={{ fontSize: 28, marginBottom: 12, animation: 'pulse-glow 1.5s infinite', color: '#1890ff' }}>
             <RobotIcon width={28} height={28} />
           </div>
-          <div style={{ color: '#1890ff', fontSize: 14, fontWeight: 600 }}>AI三模型正在分析中...</div>
-          {/* 三模型进度指示器 */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16, marginBottom: 8 }}>
-            {[
-              { name: '庄模型', icon: 'B', color: '#ff4d4f', delay: 0 },
-              { name: '闲模型', icon: 'P', color: '#1890ff', delay: 0.5 },
-              { name: '综合模型', icon: 'AI', color: '#52c41a', delay: 1 },
-            ].map((model) => (
-              <div
-                key={model.name}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 4,
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  background: `rgba(${model.color === '#ff4d4f' ? '255,77,79' : model.color === '#1890ff' ? '24,144,255' : '82,196,26'}, 0.1)`,
-                  border: `1px solid rgba(${model.color === '#ff4d4f' ? '255,77,79' : model.color === '#1890ff' ? '24,144,255' : '82,196,26'}, 0.2)`,
-                  animation: `fadeInUp 0.3s ease ${model.delay}s both`,
-                }}
-              >
-                <span style={{ fontSize: 14, fontWeight: 700, color: model.color }}>{model.icon}</span>
-                <span style={{ fontSize: 10, color: model.color, fontWeight: 600 }}>{model.name}</span>
-                <div
-                  style={{
-                    width: 40,
-                    height: 3,
-                    borderRadius: 2,
-                    background: 'rgba(255,255,255,0.1)',
-                    overflow: 'hidden',
-                  }}
-                >
+          <div style={{ color: '#1890ff', fontSize: 14, fontWeight: 600 }}>
+            {isRuleMode ? '量化规则引擎正在进行毫秒级推演...' : 'AI三模型正在深度交叉分析中...'}
+          </div>
+          
+          {!isRuleMode && (
+            <>
+              {/* 三模型进度指示器 */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16, marginBottom: 8 }}>
+                {[
+                  { name: '庄模型', icon: 'B', color: '#ff4d4f', delay: 0 },
+                  { name: '闲模型', icon: 'P', color: '#1890ff', delay: 0.5 },
+                  { name: '综合模型', icon: 'AI', color: '#52c41a', delay: 1 },
+                ].map((model) => (
                   <div
+                    key={model.name}
                     style={{
-                      width: '100%',
-                      height: '100%',
-                      background: model.color,
-                      animation: `shimmer 1.5s ease-in-out ${model.delay}s infinite`,
-                      transformOrigin: 'left',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: `rgba(${model.color === '#ff4d4f' ? '255,77,79' : model.color === '#1890ff' ? '24,144,255' : '82,196,26'}, 0.1)`,
+                      border: `1px solid rgba(${model.color === '#ff4d4f' ? '255,77,79' : model.color === '#1890ff' ? '24,144,255' : '82,196,26'}, 0.2)`,
+                      animation: `fadeInUp 0.3s ease ${model.delay}s both`,
                     }}
-                  />
-                </div>
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 700, color: model.color }}>{model.icon}</span>
+                    <span style={{ fontSize: 10, color: model.color, fontWeight: 600 }}>{model.name}</span>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 3,
+                        borderRadius: 2,
+                        background: 'rgba(255,255,255,0.1)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          background: model.color,
+                          animation: `shimmer 1.5s ease-in-out ${model.delay}s infinite`,
+                          transformOrigin: 'left',
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 8 }}>
-            正在并行调用 OpenAI · Claude · Gemini
-          </div>
+              <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 8 }}>
+                正在并行调用 OpenAI · Claude · Gemini
+              </div>
+            </>
+          )}
+          {isRuleMode && (
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 16 }}>
+              正在执行长龙跟随与下三路共振判定
+            </div>
+          )}
         </div>
       </div>
     );
