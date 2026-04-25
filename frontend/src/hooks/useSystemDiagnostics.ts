@@ -279,10 +279,14 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
   useEffect(() => {
     if (!enabled) return;
 
+    let activeTimeout: NodeJS.Timeout | null = null;
+
     const checkAI = async () => {
       if (isUnmountedRef.current) return;
       try {
         const res = await api.getSystemDiagnostics();
+        if (isUnmountedRef.current) return;
+        
         const diag = res.data;
         if (!diag) return;
 
@@ -311,7 +315,8 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         ];
 
         // 使用setTimeout避免同步setState
-        setTimeout(() => {
+        activeTimeout = setTimeout(() => {
+          if (isUnmountedRef.current) return;
           setAiModels(newModels);
 
           // 检查是否有AI模型问题
@@ -348,6 +353,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
     return () => {
       clearTimeout(initialTimer);
       clearInterval(timer);
+      if (activeTimeout) clearTimeout(activeTimeout);
     };
   }, [enabled, addIssue, removeIssueBySource]);
 

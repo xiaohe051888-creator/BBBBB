@@ -141,35 +141,24 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
         ws.onclose = () => {
           setConnectionState('closed');
           if (!isUnmountedRef.current) {
-            reconnectTimerRef.current = setTimeout(connect, reconnectInterval);
+            reconnectTimerRef.current = setTimeout(() => {
+              setReconnectTrigger(prev => prev + 1);
+            }, reconnectInterval);
           }
         };
       } catch {
         setConnectionState('closed');
         if (!isUnmountedRef.current) {
-          reconnectTimerRef.current = setTimeout(connect, reconnectInterval + 2000);
+          reconnectTimerRef.current = setTimeout(() => {
+            setReconnectTrigger(prev => prev + 1);
+          }, reconnectInterval + 2000);
         }
       }
     };
 
     connect();
 
-    ws.onclose = () => {
-          if (!isUnmountedRef.current) {
-            setConnectionState('closed');
-            // 断线重连
-            reconnectTimerRef.current = setTimeout(() => {
-              setReconnectTrigger(prev => prev + 1);
-            }, reconnectInterval);
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.error('[WebSocket] 连接错误:', error);
-          // 错误时会自动触发 close 事件，由 close 处理重连
-        };
-
-        return () => {
+    return () => {
           clearTimeout(stateTimer);
           if (pingTimerRef.current) clearInterval(pingTimerRef.current);
           isUnmountedRef.current = true;

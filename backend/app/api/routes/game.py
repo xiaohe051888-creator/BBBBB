@@ -70,23 +70,43 @@ async def upload_game_results(req: UploadRequest):
             from app.services.game.logging import write_game_log
             from app.services.game.session import broadcast_event
             logging.getLogger("uvicorn.error").error(f"AI分析失败(upload): {e}", exc_info=True)
-            sess = get_session()
-            sess.status = "等待开奖"
             try:
+                from app.services.game.session import get_session
+                from app.services.game.state import get_or_create_state
+                sess = get_session()
+                sess.status = "错误"
                 async with async_session() as log_session:
-                    await write_game_log(
-                        log_session, upload_result["boot_number"], upload_result["max_game_number"],
-                        "LOG-MDL-002", "AI分析异常", "失败",
-                        f"触发AI三模型分析失败: {str(e)}",
-                        category="系统异常",
-                        priority="P1"
-                    )
+                    state = await get_or_create_state(log_session)
+                    state.status = "错误"
                     await log_session.commit()
-                await broadcast_event("state_update", {"status": "等待开奖"})
-            except Exception:
+                    await write_game_log(
+                        log_session, upload_result["boot_number"], 0,
+                        "LOG-SYS-ERR", "AI分析报错", "失败",
+                        f"上传触发分析时发生系统错误: {str(e)}", priority="P1"
+                    )
+                await broadcast_event("state_update", {"status": "错误"})
+            except:
                 pass
-    
-    asyncio.create_task(_trigger_analysis())
+        finally:
+            # 无论如何，确保状态机不会死锁在“分析中”
+            from app.services.game.session import get_session, broadcast_event
+            sess = get_session()
+            if sess.status == "分析中":
+                sess.status = "等待开奖"
+                try:
+                    async with async_session() as final_session:
+                        from app.services.game.state import get_or_create_state
+                        state = await get_or_create_state(final_session)
+                        state.status = "等待开奖"
+                        await final_session.commit()
+                    await broadcast_event("state_update", {"status": "等待开奖"})
+                except:
+                    pass
+
+    # 保存对后台任务的强引用以防止GC回收
+    from app.services.game.session import add_background_task
+    task = asyncio.create_task(_trigger_analysis())
+    add_background_task(task)
     
     return {
         "success": True,

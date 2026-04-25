@@ -46,9 +46,18 @@ class ManualSession:
 
 # 全局单例会话和锁
 _session: Optional[ManualSession] = None
-_session_lock: asyncio.Lock = asyncio.Lock()
+# 全局内存锁 (懒加载，避免跨事件循环问题)
+_session_lock = None
+# 后台任务强引用集合，防止被垃圾回收
+_background_tasks = set()
 # WebSocket广播函数（由main.py注入）
 _broadcast_func: Optional[Callable] = None
+
+
+def add_background_task(task):
+    """保存后台任务的强引用"""
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
 
 def get_session() -> ManualSession:
@@ -60,7 +69,10 @@ def get_session() -> ManualSession:
 
 
 def get_session_lock() -> asyncio.Lock:
-    """获取会话锁"""
+    """获取全局内存锁（安全的惰性初始化）"""
+    global _session_lock
+    if _session_lock is None:
+        _session_lock = asyncio.Lock()
     return _session_lock
 
 

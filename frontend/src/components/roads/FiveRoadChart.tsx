@@ -116,6 +116,8 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
 
   // 自动滚动到最新数据
   useEffect(() => {
+    const timeoutIds: NodeJS.Timeout[] = [];
+
     const scrollToLatest = (
       ref: React.RefObject<HTMLDivElement | null>,
       currentLength: number,
@@ -124,11 +126,12 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
       if (ref.current && currentLength > 0) {
         if (prevLength === 0 || currentLength > prevLength) {
           // 使用 setTimeout 确保子组件 Canvas 尺寸已更新并触发 DOM Reflow
-          setTimeout(() => {
+          const tid = setTimeout(() => {
             if (ref.current) {
               ref.current.scrollLeft = ref.current.scrollWidth;
             }
           }, 50);
+          timeoutIds.push(tid);
         }
       }
     };
@@ -144,6 +147,10 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
 
     scrollToLatest(cockroachScrollRef, roads.cockroach?.points.length || 0, prevLengths.current.cockroach);
     prevLengths.current.cockroach = roads.cockroach?.points.length || 0;
+
+    return () => {
+      timeoutIds.forEach(clearTimeout);
+    };
   }, [roads]);
 
   // 基础配置
