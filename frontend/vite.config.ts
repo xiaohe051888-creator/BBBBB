@@ -4,8 +4,8 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // 生产构建：相对路径，适配 Docker 静态文件托管
-  base: './',
+  // 必须使用绝对路径，否则多级前端路由（如 /admin/logs）会导致资源请求变成 /admin/assets/xxx
+  base: '/',
   // 开发服务器代理（避免跨域）
   server: {
     port: 5173,
