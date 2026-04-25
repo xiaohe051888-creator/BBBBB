@@ -33,6 +33,10 @@ async def reveal_game(
             if sess.status != "等待开奖":
                 return {"success": False, "error": f"当前状态({sess.status})无法录入开奖结果，请勿重复操作"}
 
+            # 防跳局校验：只能开当前等待的这一局
+            if game_number != sess.next_game_number:
+                return {"success": False, "error": f"系统当前等待录入的是第 {sess.next_game_number} 局，无法直接录入第 {game_number} 局！"}
+
             if game_number > 72:
                 return {"success": False, "error": "单靴最多支持 72 局，本靴已结束，请新开一靴"}
 

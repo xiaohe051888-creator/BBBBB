@@ -103,7 +103,24 @@ async def upload_games(
                 )
                 await db.commit()
                 return {"success": False, "error": "上传数据为空"}
+
+            # 防跳局校验：上传的数据局号必须连续，且不能有空档
+            sorted_games = sorted(games, key=lambda x: x["game_number"])
             
+            # 校验传入的数组本身是否连续 (例如不能传 [1, 2, 4])
+            for i in range(1, len(sorted_games)):
+                if sorted_games[i]["game_number"] != sorted_games[i-1]["game_number"] + 1:
+                    return {"success": False, "error": f"上传数据不连续，存在跳局（从局号 {sorted_games[i-1]['game_number']} 直接跳到了 {sorted_games[i]['game_number']}）"}
+            
+            # 校验是否与当前系统状态无缝衔接
+            first_game_number = sorted_games[0]["game_number"]
+            # 如果是新靴，必须从第 1 局开始传
+            if is_new_boot and first_game_number != 1:
+                return {"success": False, "error": f"新靴上传必须从第 1 局开始，不能从第 {first_game_number} 局开始"}
+            # 如果是续传本靴，必须紧接着系统当前的 next_game_number 传
+            if not is_new_boot and first_game_number != sess.next_game_number:
+                return {"success": False, "error": f"上传局号断层！系统当前等待的是第 {sess.next_game_number} 局，但上传的数据从第 {first_game_number} 局开始。"}
+
             # 记录重置前的状态（用于日志）
             old_status = sess.status
             sess.boot_number
