@@ -368,7 +368,7 @@ const DashboardPage: React.FC = () => {
               </span>
               <span className="section-title">五路走势</span>
               <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                第{systemState?.boot_number || 1}靴 · 已{games.length}局
+                第{systemState?.boot_number || 1}靴 · 已{systemState?.game_number || 0}局
               </span>
             </div>
             <div style={{ overflowX: 'auto', maxWidth: '100%' }}>

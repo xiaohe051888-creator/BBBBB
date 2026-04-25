@@ -244,7 +244,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
         <div style={{
           display: 'flex',
           flexDirection: 'row',
-          flexWrap: 'wrap',
+          flexWrap: 'nowrap',
           gap: '8px',
           width: '100%',
         }}>
@@ -289,9 +289,8 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
 
           {/* 大眼仔路 - 占据剩余宽度 */}
           <div style={{
-            flex: '2 1 400px',
-            minWidth: 'min(300px, 100%)',
-            maxWidth: '100%',
+            flex: '1 1 400px',
+            minWidth: '300px',
             display: 'flex',
             flexDirection: 'column',
             background: '#161b22',
@@ -335,15 +334,14 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
         <div style={{
           display: 'flex',
           flexDirection: 'row',
-          flexWrap: 'wrap',
+          flexWrap: 'nowrap',
           gap: '8px',
           width: '100%',
         }}>
           {/* 小路 */}
           <div style={{
             flex: '1 1 300px',
-            minWidth: 'min(300px, 100%)',
-            maxWidth: '100%',
+            minWidth: '300px',
             display: 'flex',
             flexDirection: 'column',
             background: '#161b22',
@@ -385,8 +383,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
           {/* 螳螂路 */}
           <div style={{
             flex: '1 1 300px',
-            minWidth: 'min(300px, 100%)',
-            maxWidth: '100%',
+            minWidth: '300px',
             display: 'flex',
             flexDirection: 'column',
             background: '#161b22',
