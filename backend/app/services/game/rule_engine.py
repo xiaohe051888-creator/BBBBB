@@ -24,9 +24,10 @@ class BaccaratRuleEngine:
         核心进化算法：通过历史回测调整权重
         如果本靴最近经常出现长龙，调高长龙权重；如果经常断成单跳，调高震荡权重。
         加入“规则瞬断（Pattern Break）”的极速惩罚机制应对100%的随机性。
+        返回是否触发了“断裂混沌期”。
         """
         if not game_history or len(game_history) < 5:
-            return
+            return False
 
         streak_count = 0
         chop_count = 0
@@ -67,6 +68,7 @@ class BaccaratRuleEngine:
             self.weights["dragon_streak"] = max(10, self.weights["dragon_streak"] - 30)
             
         logger.info(f"规则引擎已自我进化！当前权重 -> 长龙:{self.weights['dragon_streak']}, 单跳:{self.weights['chop_oscillation']}")
+        return recent_break
 
     def analyze(self, game_history: List[Dict], road_data: Dict) -> Dict:
         """
@@ -74,11 +76,14 @@ class BaccaratRuleEngine:
         返回结构与 AI 模型类似，保证前端兼容
         """
         # 1. 每次分析前，先通过历史复盘进行“自我进化”
-        self._evolve_weights_from_history(game_history)
+        is_chaos = self._evolve_weights_from_history(game_history)
 
         banker_score = 0
         player_score = 0
         reasons = []
+        
+        if is_chaos:
+            reasons.append("⚠️ 【混沌防守触发】：上一局发生了强规律的随机断裂，系统进入混沌期防守状态，已强制大幅扣除长龙权重。")
 
         # 2. 大路连胜分析 (长龙跟随)
         big_road = self._extract_points(road_data.get("big_road", []))
@@ -145,13 +150,20 @@ class BaccaratRuleEngine:
         prediction = "庄" if banker_score > player_score else "闲"
         confidence = max(55.0, min(95.0, 50 + abs(banker_score - player_score) * 0.5))
         
+        # 混沌防守期的极端保护：强制拉低置信度，强制设为“保守”层级
+        if is_chaos:
+            confidence = min(confidence, 60.0)
+            tier = "保守"
+        else:
+            tier = "高" if confidence > 75 else "标准"
+        
         summary = "基于强化规则引擎分析：\n" + "\n".join(f"- {r}" for r in reasons)
         
         return {
             "predict": prediction,
             "confidence": round(confidence / 100.0, 2),
             "bet_amount": 100,  # 默认值，可以在外层覆盖
-            "tier": "高" if confidence > 75 else "标准",
+            "tier": tier,
             "summary": summary
         }
 
