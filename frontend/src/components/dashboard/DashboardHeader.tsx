@@ -3,8 +3,8 @@
  * 
  * 包含: 系统状态、桌台信息、当前/预测局、余额、健康分、操作按钮
  */
-import React from 'react';
-import { Button, Tag, Space, Tooltip, Modal } from 'antd';
+import React, { useState } from 'react';
+import { Button, Tag, Space, Tooltip, Modal, Spin } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
   UploadIcon,
@@ -15,6 +15,8 @@ import {
   CoinIcon,
   ShieldIcon,
   ArrowRightIcon,
+  CloseIcon,
+  AlertTriangleIcon
 } from '../icons';
 import { SystemStatusPanel } from '../ui/SystemStatusPanel';
 import type { HealthScoreResponse } from '../../services/api';
@@ -57,6 +59,30 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 }) => {
   
   const navigate = useNavigate();
+  const [isEndBootModalVisible, setIsEndBootModalVisible] = useState(false);
+  const [isEndingBoot, setIsEndingBoot] = useState(false);
+
+  const handleEndBoot = async () => {
+    if (systemState?.status === '深度学习中') {
+      Modal.warning({ title: '操作被拒绝', content: '当前靴正在进行深度学习，请等待完成后再开启新靴。' });
+      return;
+    }
+    setIsEndBootModalVisible(true);
+  };
+
+  const confirmEndBoot = async () => {
+    try {
+      setIsEndingBoot(true);
+      const { endBoot } = await import('../../services/api');
+      await endBoot();
+      navigate('/', { state: { isNewBoot: true } });
+    } catch (e: unknown) {
+      Modal.error({ title: '结束本靴失败', content: (e as Error).message });
+    } finally {
+      setIsEndingBoot(false);
+      setIsEndBootModalVisible(false);
+    }
+  };
 
   const getStatusColor = (status?: string) => {
     if (status === '等待开奖') return '#faad14';
@@ -209,25 +235,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <Button
               type="primary"
               danger
-              onClick={async () => {
-                if (systemState?.status === '深度学习中') {
-                  Modal.warning({ title: '操作被拒绝', content: '当前靴正在进行深度学习，请等待完成后再开启新靴。' });
-                  return;
-                }
-                Modal.confirm({
-                  title: '结束本靴并开启新靴？',
-                  content: '这将会触发深度学习，并进入上传页面录入新靴数据。',
-                  onOk: async () => {
-                    try {
-                      const { endBoot } = await import('../../services/api');
-                      await endBoot();
-                      navigate('/', { state: { isNewBoot: true } });
-                    } catch (e: unknown) {
-                      Modal.error({ title: '结束本靴失败', content: (e as Error).message });
-                    }
-                  }
-                });
-              }}
+              onClick={handleEndBoot}
               style={{ borderRadius: 8, fontWeight: 600, height: 36, padding: '0 16px' }}
             >
               结束本靴
@@ -261,6 +269,112 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </Space>
         </div>
       </div>
+
+      {/* 深度定制的“结束本靴”暗黑科幻弹窗 */}
+      <Modal
+        open={isEndBootModalVisible}
+        onCancel={() => !isEndingBoot && setIsEndBootModalVisible(false)}
+        footer={null}
+        closable={false}
+        width={440}
+        maskClosable={!isEndingBoot}
+        styles={{
+          mask: { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
+          body: {
+            backgroundColor: '#0f1521',
+            border: '1px solid rgba(255, 77, 79, 0.3)',
+            borderRadius: '16px',
+            boxShadow: '0 0 40px rgba(255, 77, 79, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+            padding: 0,
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <div style={{ position: 'relative' }}>
+          {/* 顶部警告装饰条 */}
+          <div style={{ height: 4, background: 'linear-gradient(90deg, #ff4d4f, #ff7875, #ff4d4f)' }} />
+          
+          <div style={{ padding: '32px 32px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+              <div style={{ 
+                width: 48, 
+                height: 48, 
+                borderRadius: '50%', 
+                background: 'rgba(255, 77, 79, 0.1)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                flexShrink: 0,
+                border: '1px solid rgba(255, 77, 79, 0.2)'
+              }}>
+                <AlertTriangleIcon width={24} height={24} color="#ff4d4f" />
+              </div>
+              <div>
+                <h3 style={{ margin: '0 0 8px', color: '#fff', fontSize: 20, fontWeight: 600, letterSpacing: '0.5px' }}>
+                  结束本靴并深度学习
+                </h3>
+                <p style={{ margin: 0, color: 'rgba(255,255,255,0.65)', fontSize: 14, lineHeight: 1.6 }}>
+                  您即将终结当前的盘面分析。系统会将本靴的完整数据打包，喂给 <strong>AI 综合模型</strong> 进行错题本复盘与特征提取。
+                </p>
+              </div>
+            </div>
+
+            <div style={{ 
+              marginTop: 24, 
+              padding: '16px', 
+              background: 'rgba(0, 0, 0, 0.3)', 
+              borderRadius: 8,
+              border: '1px dashed rgba(255, 255, 255, 0.1)'
+            }}>
+              <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.8 }}>
+                <li>当前预测缓存将被清空。</li>
+                <li>本靴错误记录将永久固化至“血迹地图”。</li>
+                <li>操作完成后，系统将自动跳转至新靴上传页。</li>
+              </ul>
+            </div>
+          </div>
+
+          <div style={{ 
+            padding: '16px 32px', 
+            background: 'rgba(255,255,255,0.02)', 
+            borderTop: '1px solid rgba(255,255,255,0.05)',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 12
+          }}>
+            <Button 
+              onClick={() => setIsEndBootModalVisible(false)}
+              disabled={isEndingBoot}
+              style={{ 
+                background: 'transparent', 
+                borderColor: 'rgba(255,255,255,0.2)', 
+                color: 'rgba(255,255,255,0.8)',
+                borderRadius: 8,
+                height: 38,
+                padding: '0 20px'
+              }}
+            >
+              取消
+            </Button>
+            <Button 
+              type="primary" 
+              danger 
+              onClick={confirmEndBoot}
+              loading={isEndingBoot}
+              style={{ 
+                borderRadius: 8,
+                height: 38,
+                padding: '0 24px',
+                fontWeight: 600,
+                boxShadow: '0 4px 12px rgba(255, 77, 79, 0.3)'
+              }}
+            >
+              {isEndingBoot ? '深度学习触发中...' : '确认终结'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 };
