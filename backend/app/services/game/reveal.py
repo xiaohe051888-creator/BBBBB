@@ -28,6 +28,9 @@ async def reveal_game(
         sess_backup = copy.deepcopy(sess)
         
         try:
+            if game_number > 72:
+                return {"success": False, "error": "单靴最多支持 72 局，本靴已结束，请新开一靴"}
+
             if result not in ("庄", "闲", "和"):
                 await write_game_log(
                     db, sess.boot_number, game_number,

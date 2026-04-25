@@ -85,6 +85,9 @@ async def upload_games(
     """
     上传批量开奖记录
     """
+    if len(games) > 72:
+        return {"success": False, "error": "单靴最多支持录入 72 局"}
+
     lock = get_session_lock()
     async with lock:
         sess = get_session()
