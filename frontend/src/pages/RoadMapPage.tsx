@@ -211,19 +211,17 @@ const RoadMapPage: React.FC = () => {
           <Button icon={<Icons.Back />} onClick={() => navigate("/dashboard")}>
             返回
           </Button>
-          <span className="page-nav-title">
+          <span className="page-nav-title" style={{ display: 'flex', alignItems: 'center' }}>
             <Icons.Chart />
-            <span style={{ marginLeft: 8 }}>五路走势图 </span>
+            <span style={{ marginLeft: 8, marginRight: 16 }}>五路走势图 </span>
+            
+            {/* 庄闲和统计徽标 */}
+            <Space size={8}>
+              <Tag color="#ff4d4f" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>庄 {stats.bankerCount}</Tag>
+              <Tag color="#1890ff" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>闲 {stats.playerCount}</Tag>
+              <Tag color="#52c41a" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>和 {stats.tieCount}</Tag>
+            </Space>
           </span>
-          <Select
-            size="small"
-            placeholder="靴号"
-            value={bootNumber}
-            onChange={setBootNumber}
-            options={bootOptions}
-            style={{ width: 120 }}
-            allowClear
-          />
         </div>
 
         <div className="page-nav-right">
@@ -268,14 +266,22 @@ const RoadMapPage: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Icons.Target />
-              <span style={{ fontSize: '15px', fontWeight: 600, color: '#e6edf3' }}>
-                五路走势图
-              </span>
-              <span style={{ fontSize: '12px', color: '#8b949e' }}>
-                澳门标准布局
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Icons.Target />
+                <span style={{ fontSize: '15px', fontWeight: 600, color: '#e6edf3' }}>
+                  五路走势图
+                </span>
+                <span style={{ fontSize: '12px', color: '#8b949e' }}>
+                  澳门标准布局
+                </span>
+              </div>
+              {/* 内部小统计 */}
+              <Space size={8}>
+                <Tag color="rgba(255, 77, 79, 0.15)" style={{ color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.3)', borderRadius: 12 }}>庄 {stats.bankerCount}</Tag>
+                <Tag color="rgba(24, 144, 255, 0.15)" style={{ color: '#1890ff', border: '1px solid rgba(24, 144, 255, 0.3)', borderRadius: 12 }}>闲 {stats.playerCount}</Tag>
+                <Tag color="rgba(82, 196, 26, 0.15)" style={{ color: '#52c41a', border: '1px solid rgba(82, 196, 26, 0.3)', borderRadius: 12 }}>和 {stats.tieCount}</Tag>
+              </Space>
             </div>
             
             {/* 图例说明 */}

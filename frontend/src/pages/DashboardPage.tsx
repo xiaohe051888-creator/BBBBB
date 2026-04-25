@@ -6,7 +6,7 @@
  * 优化：乐观UI策略 - 数据立即显示，后台静默刷新，零等待体验
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Progress } from 'antd';
+import { Progress, Space, Tag } from 'antd';
 import { getToken } from '../services/api';
 import { MAX_GAMES_PER_BOOT } from '../utils/constants';
 import { RevealModal, LoginModal, DashboardHeader, WorkflowStatusBar, AnalysisPanel } from '../components/dashboard';
@@ -208,6 +208,11 @@ const DashboardPage: React.FC = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [ queryClient]);
 
+  // 计算庄、闲、和的统计数据
+  const bankerCount = games.filter(g => g.result === '庄').length;
+  const playerCount = games.filter(g => g.result === '闲').length;
+  const tieCount = games.filter(g => g.result === '和').length;
+
   // 等待开奖计时器
   const hasPendingBet = !!systemState?.pending_bet;
   // pendingGameNumber暂未使用
@@ -296,11 +301,19 @@ const DashboardPage: React.FC = () => {
         {/* 左侧：五路走势图 */}
         <div style={{ flex: '1 1 500px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
           <div className="road-card" style={{ background: '#1a1d24', borderRadius: 12, padding: 16, marginBottom: 16, overflow: 'hidden', minHeight: 400 }}>
-            <div className="section-header" style={{ marginBottom: 12 }}>
-              <span style={{ color: '#58a6ff' }}>
+            <div className="section-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+              <span style={{ color: '#58a6ff', marginRight: 8 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
               </span>
-              <span className="section-title">五路走势</span>
+              <span className="section-title" style={{ marginRight: 16 }}>五路走势</span>
+              
+              {/* 庄闲和统计徽标 */}
+              <Space size={8}>
+                <Tag color="#ff4d4f" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>庄 {bankerCount}</Tag>
+                <Tag color="#1890ff" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>闲 {playerCount}</Tag>
+                <Tag color="#52c41a" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>和 {tieCount}</Tag>
+              </Space>
+
               <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
                 第{systemState?.boot_number || 1}靴 · 已{systemState?.game_number || 0}局
               </span>
