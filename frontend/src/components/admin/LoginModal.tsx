@@ -66,7 +66,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
       onCancel={onCancel}
       footer={null}
       centered
-      maskStyle={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
+      styles={{ mask: { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' } }}
       width={400}
       style={{ maxWidth: 'calc(100vw - 32px)' }}
       closable={false}

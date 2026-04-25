@@ -40,7 +40,7 @@ export const NumberFillModal: React.FC<NumberFillModalProps> = ({
       onCancel={handleClose}
       footer={null}
       centered
-      maskStyle={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
+      styles={{ mask: { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' } }}
       width={440}
       style={{
         background: 'linear-gradient(145deg, #1a2332, #141b26)',
