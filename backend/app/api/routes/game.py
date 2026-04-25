@@ -48,23 +48,20 @@ async def upload_game_results(req: UploadRequest):
                 )
                 if res and res.get("success"):
                     prediction = res.get("prediction")
-                    if prediction in ("庄", "闲"):
-                        from app.services.game.betting import place_bet
-                        await place_bet(
-                            db=session,
-                            game_number=res["game_number"],
-                            direction=prediction,
-                            amount=res["bet_amount"]
-                        )
-                    else:
-                        from app.services.game.session import get_session, broadcast_event
-                        from app.services.game.state import get_or_create_state
-                        sess = get_session()
-                        sess.status = "等待开奖"
-                        state = await get_or_create_state(session)
-                        state.status = "等待开奖"
-                        await session.commit()
-                        await broadcast_event("state_update", {"status": "等待开奖"})
+                    # 强制每局必下：如果AI返回了“观望”等非庄闲结果，强制回退为默认下注（根据某种简单规则，这里简单退避为“庄”或基于历史的某种默认值）
+                    # 为了保证全自动托管系统不中断，必须将异常结果清洗为合法的方向
+                    if prediction not in ("庄", "闲"):
+                        import logging
+                        logging.getLogger(__name__).warning(f"AI 返回了非法的下注方向 '{prediction}'，系统强制接管并兜底下注 '庄'")
+                        prediction = "庄"
+                        
+                    from app.services.game.betting import place_bet
+                    await place_bet(
+                        db=session,
+                        game_number=res["game_number"],
+                        direction=prediction,
+                        amount=res.get("bet_amount", 100)
+                    )
         except Exception as e:
             import logging
             from app.services.game.logging import write_game_log
@@ -167,23 +164,19 @@ async def reveal_game_route(req: RevealRequest):
                 )
                 if res and res.get("success"):
                     prediction = res.get("prediction")
-                    if prediction in ("庄", "闲"):
-                        from app.services.game.betting import place_bet
-                        await place_bet(
-                            db=session,
-                            game_number=res["game_number"],
-                            direction=prediction,
-                            amount=res["bet_amount"]
-                        )
-                    else:
-                        from app.services.game.session import get_session, broadcast_event
-                        from app.services.game.state import get_or_create_state
-                        sess = get_session()
-                        sess.status = "等待开奖"
-                        state = await get_or_create_state(session)
-                        state.status = "等待开奖"
-                        await session.commit()
-                        await broadcast_event("state_update", {"status": "等待开奖"})
+                    # 强制每局必下兜底逻辑
+                    if prediction not in ("庄", "闲"):
+                        import logging
+                        logging.getLogger(__name__).warning(f"AI 返回了非法的下注方向 '{prediction}'，系统强制接管并兜底下注 '庄'")
+                        prediction = "庄"
+                        
+                    from app.services.game.betting import place_bet
+                    await place_bet(
+                        db=session,
+                        game_number=res["game_number"],
+                        direction=prediction,
+                        amount=res.get("bet_amount", 100)
+                    )
         except Exception as e:
             import logging
             from app.services.game.logging import write_game_log

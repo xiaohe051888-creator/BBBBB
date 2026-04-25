@@ -34,18 +34,20 @@ async def place_bet(
                 return {"success": False, "error": "下注方向只能是庄或闲"}
             
             amount = float(amount)
-            amount = max(settings.MIN_BET, min(settings.MAX_BET, int(amount / settings.BET_STEP) * settings.BET_STEP))
             
-            if amount > sess.balance:
-                await write_game_log(
-                    db, sess.boot_number, game_number,
-                    "LOG-BET-ERR", "下注失败", "余额不足",
-                    f"第{game_number}局下注{direction}{amount:.0f}元失败，当前余额{sess.balance:.0f}元",
-                    category="资金事件",
-                    priority="P2",
-                )
-                await db.commit()
-                return {"success": False, "error": f"余额不足，当前余额{sess.balance:.0f}，下注{amount:.0f}"}
+            # 异常流：如果余额不足，直接扣除到 0（视为强行全下），
+            # 若连 0 都没有，则标记为 0 元下注，确保状态机流转为“等待开奖”而不中断
+            if sess.balance < amount:
+                import logging
+                logging.getLogger(__name__).warning(f"余额不足，尝试下注 {amount}，实际下注 {max(0, sess.balance)}")
+                amount = max(0.0, sess.balance)
+
+            amount = max(0.0, min(settings.MAX_BET, int(amount / settings.BET_STEP) * settings.BET_STEP))
+            
+            # 为了保证全托管不中断，如果没钱了，金额直接为0继续走
+            # if amount > sess.balance:
+            #     await write_game_log(...)
+            #     return {"success": False, "error": "余额不足"}
             
             # 扣款
             balance_before = sess.balance

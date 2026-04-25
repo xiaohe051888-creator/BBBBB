@@ -83,44 +83,9 @@ const DashboardPage: React.FC = () => {
     }
   }, [hasGameData, analysisFetching, analysis]);
 
-  // 自动下注逻辑：AI分析出结果后，前端自动向后端提交下注请求
-  const hasAutoBetRef = React.useRef(false);
-  const placeBetMutation = usePlaceBetMutation();
-
-  useEffect(() => {
-    if (analysis?.prediction && !systemState?.pending_bet && !hasAutoBetRef.current ) {
-      const gameNumber = systemState?.next_game_number;
-      if (!gameNumber) return;
-
-      hasAutoBetRef.current = true;
-
-      const timer = setTimeout(async () => {
-        try {
-          await placeBetMutation.mutateAsync({
-            direction: analysis.prediction as '庄' | '闲',
-            amount: DEFAULT_BET_AMOUNT,
-          });
-        } catch (err: unknown) {
-          const errorMsg = err instanceof Error ? err.message : '自动下注失败';
-          addIssue({
-            level: 'critical',
-            title: '自动下注记录失败',
-            detail: `第${gameNumber}局自动记录下注失败: ${errorMsg}`,
-            source: 'system',
-          });
-          hasAutoBetRef.current = false;
-        }
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [analysis, systemState?.pending_bet, systemState?.next_game_number, placeBetMutation, addIssue]);
-
-  useEffect(() => {
-    if (hasGameData && !analysis) {
-      hasAutoBetRef.current = false;
-    }
-  }, [hasGameData, analysis]);
+  // 由于我们已将自动下注逻辑移至后端 _trigger_analysis 和 reveal 闭环中强制执行，
+  // 这里的纯前端自动下注逻辑已被废弃，防止出现重复下注或冲突。
+  // 系统现在是100%后端强制托管模式。
 
   // 智能检测
   const { integrityIssues, abnormalPatterns, bettingAdvice, alerts, removeAlert, markSynced } = useSmartDetection({
