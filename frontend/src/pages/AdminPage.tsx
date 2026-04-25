@@ -314,7 +314,7 @@ const AdminPage: React.FC = () => {
             children: (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {/* 分析预测模式设置 */}
-                <Card title="分析预测模式设置" size="small" headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <Card title="分析预测模式设置" size="small" styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}>
                   <div style={{ marginBottom: 16, color: 'rgba(255,255,255,0.6)' }}>
                     选择系统的分析预测大脑。同一时间仅能激活一种模式。
                   </div>
@@ -372,7 +372,7 @@ const AdminPage: React.FC = () => {
                 </Card>
 
                 {/* 资金与余额管理 */}
-                <Card title="资金与余额管理" size="small" headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <Card title="资金与余额管理" size="small" styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}>
                   <div style={{ marginBottom: 16, color: 'rgba(255,255,255,0.6)' }}>
                     系统风险主要体现在下注金额上。您可以随时在此为系统增加或扣除测试余额。
                     当前系统余额：<span style={{ fontSize: 18, color: '#52c41a', fontWeight: 'bold' }}>{systemState?.balance?.toLocaleString()}</span>
@@ -470,7 +470,7 @@ const AdminPage: React.FC = () => {
 
                 {/* AI学习 */}
                 <Card title="AI学习" size="small">
-                  <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                  <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                     <Row gutter={[12, 12]}>
                       <Col xs={24} sm={8}>
                         <Statistic title="学习条件" value="200~1000局" suffix="总历史数据" />
@@ -482,7 +482,7 @@ const AdminPage: React.FC = () => {
                         <Statistic 
                           title="当前状态" 
                           value={aiLearningStatus?.is_learning ? '学习中' : '空闲'} 
-                          valueStyle={{ color: aiLearningStatus?.is_learning ? '#faad14' : '#52c41a' }} 
+                          styles={{ content: { color: aiLearningStatus?.is_learning ? '#faad14' : '#52c41a' } }} 
                         />
                       </Col>
                     </Row>
@@ -562,7 +562,7 @@ const AdminPage: React.FC = () => {
         title="修改默认密码"
         open={changePwdVisible}
         closable={!mustChange}
-        maskClosable={!mustChange}
+        mask={{ closable: !mustChange }}
         onCancel={() => !mustChange && setChangePwdVisible(false)}
         onOk={handleChangePassword}
         okText="保存新密码"
@@ -570,7 +570,7 @@ const AdminPage: React.FC = () => {
         cancelButtonProps={mustChange ? { style: { display: 'none' } } : {}}
       >
         {mustChange && <div style={{ color: '#faad14', marginBottom: 16 }}>安全提示：您正在使用默认密码登录，请修改为新密码。</div>}
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <Input.Password placeholder="当前密码" value={oldPwd} onChange={e => setOldPwd(e.target.value)} />
           <Input.Password placeholder="新密码" value={newPwd} onChange={e => setNewPwd(e.target.value)} />
         </Space>

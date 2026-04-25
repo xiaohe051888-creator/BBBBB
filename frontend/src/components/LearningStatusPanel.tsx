@@ -81,7 +81,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
   }
 
   return (
-    <Space direction="vertical" style={{ width: '100%' }}>
+    <Space orientation="vertical" style={{ width: '100%' }}>
       {/* 深度学习状态 */}
       {isDeepLearning && deepLearning && (
         <Card
@@ -97,7 +97,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
           }
           style={{ borderLeft: '4px solid #722ed1' }}
         >
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space orientation="vertical" style={{ width: '100%' }}>
             <Text type="secondary">
               第{deepLearning.boot_number}靴数据学习，生成新版本模型...
             </Text>

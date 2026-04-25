@@ -142,7 +142,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       ]}
       width={500}
       style={{ maxWidth: 'calc(100vw - 32px)' }}
-      maskClosable={false}
+      mask={{ closable: false }}
     >
       <div style={{ marginBottom: 16, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
         配置专属的大模型 API 密钥。如果留空 API Key，将保留现有的密钥不变。

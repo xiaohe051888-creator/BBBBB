@@ -293,7 +293,7 @@ const MistakeBookPage: React.FC = () => {
               title="总错误数"
               value={summary.totalErrors}
               suffix="条"
-              valueStyle={{ fontSize: 18, color: summary.totalErrors > 15 ? '#ff4d4f' : '#58a6ff' }}
+              styles={{ content: { fontSize: 18, color: summary.totalErrors > 15 ? '#ff4d4f' : '#58a6ff' } }}
             />
           </Card>
           <Card size="small">
@@ -301,21 +301,21 @@ const MistakeBookPage: React.FC = () => {
               title="平均置信度"
               value={(summary.avgConfidence * 100).toFixed(0)}
               suffix="%"
-              valueStyle={{ fontSize: 18, color: summary.avgConfidence > 0.7 ? '#722ed1' : '#52c41a' }}
+              styles={{ content: { fontSize: 18, color: summary.avgConfidence > 0.7 ? '#722ed1' : '#52c41a' } }}
             />
           </Card>
           <Card size="small">
             <Statistic
               title="庄向误判"
               value={summary.byDirection.banker}
-              valueStyle={{ fontSize: 16, color: '#ff4d4f' }}
+              styles={{ content: { fontSize: 16, color: '#ff4d4f' } }}
             />
           </Card>
           <Card size="small">
             <Statistic
               title="闲向误判"
               value={summary.byDirection.player}
-              valueStyle={{ fontSize: 16, color: '#1890ff' }}
+              styles={{ content: { fontSize: 16, color: '#1890ff' } }}
             />
           </Card>
           {Object.keys(summary.byType).map(type => {
@@ -326,7 +326,7 @@ const MistakeBookPage: React.FC = () => {
                 <Statistic
                   title={info?.label || type}
                   value={count}
-                  valueStyle={{ fontSize: 18, color: info?.color || '#888' }}
+                  styles={{ content: { fontSize: 18, color: info?.color || '#888' } }}
                 />
               </Card>
             );

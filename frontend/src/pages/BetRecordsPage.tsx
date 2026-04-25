@@ -286,40 +286,40 @@ const BetRecordsPage: React.FC = () => {
           gap: 10 
         }}>
           <Card size="small">
-            <Statistic title="总下注" value={summary.totalBets} suffix="笔" valueStyle={{ fontSize: 16, color: '#58a6ff' }} />
+            <Statistic title="总下注" value={summary.totalBets} suffix="笔" styles={{ content: { fontSize: 16, color: '#58a6ff' } }} />
           </Card>
           <Card size="small">
-            <Statistic title="总投注" value={summary.totalAmount} prefix="¥" valueStyle={{ fontSize: 16 }} />
+            <Statistic title="总投注" value={summary.totalAmount} prefix="¥" styles={{ content: { fontSize: 16 } }} />
           </Card>
           <Card size="small">
             <Statistic
               title="总盈亏"
               value={summary.totalPnL}
               prefix={summary.totalPnL >= 0 ? <Icons.Rise /> : <Icons.Fall />}
-              valueStyle={{ fontSize: 16, color: summary.totalPnL >= 0 ? '#ff4d4f' : '#52c41a' }}
+              styles={{ content: { fontSize: 16, color: summary.totalPnL >= 0 ? '#ff4d4f' : '#52c41a' } }}
             />
           </Card>
           <Card size="small">
-            <Statistic title="胜率" value={summary.winRate.toFixed(1)} suffix="%" valueStyle={{ fontSize: 16, color: summary.winRate >= 50 ? '#ff4d4f' : '#52c41a' }} />
+            <Statistic title="胜率" value={summary.winRate.toFixed(1)} suffix="%" styles={{ content: { fontSize: 16, color: summary.winRate >= 50 ? '#ff4d4f' : '#52c41a' } }} />
           </Card>
           <Card size="small">
-            <Statistic title="胜/负/待" value={`${summary.winCount}/${summary.lossCount}/${summary.pendingCount}`} valueStyle={{ fontSize: 13 }} />
+            <Statistic title="胜/负/待" value={`${summary.winCount}/${summary.lossCount}/${summary.pendingCount}`} styles={{ content: { fontSize: 13 } }} />
           </Card>
           <Card size="small">
-            <Statistic title="均注" value={Math.round(summary.avgBet)} prefix="¥" valueStyle={{ fontSize: 14 }} />
+            <Statistic title="均注" value={Math.round(summary.avgBet)} prefix="¥" styles={{ content: { fontSize: 14 } }} />
           </Card>
           <Card size="small">
-            <Statistic title="最大单赢" value={summary.maxWin} prefix="+" valueStyle={{ fontSize: 14, color: '#ff4d4f' }} />
+            <Statistic title="最大单赢" value={summary.maxWin} prefix="+" styles={{ content: { fontSize: 14, color: '#ff4d4f' } }} />
           </Card>
           <Card size="small">
             <Statistic
               title="连胜/连败"
               value={Math.abs(summary.currentStreak)}
               suffix={summary.currentStreak > 0 ? '胜' : summary.currentStreak < 0 ? '败' : '-'}
-              valueStyle={{
+              styles={{ content: {
                 fontSize: 13,
                 color: summary.currentStreak > 2 ? '#ff4d4f' : summary.currentStreak < -2 ? '#52c41a' : undefined,
-              }}
+              } }}
             />
           </Card>
         </div>

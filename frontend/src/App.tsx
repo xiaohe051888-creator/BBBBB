@@ -7,7 +7,7 @@
  * - 功能页：桌面端可折叠侧边栏 + 移动端底部Tab栏 + 顶部状态栏 + 内容区
  */
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ConfigProvider, theme, App as AntApp } from 'antd';
 import { QueryClientProvider } from '@tanstack/react-query';
 import zhCN from 'antd/locale/zh_CN';
@@ -279,4 +279,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default App; // Main App entry component

@@ -23,7 +23,7 @@ export const SmartAlerts: React.FC<SmartAlertsProps> = ({
   }
 
   return (
-    <Space direction="vertical" style={{ width: '100%' }}>
+    <Space orientation="vertical" style={{ width: '100%' }}>
       {alerts.map((alert) => (
         <Alert
           key={alert.id}

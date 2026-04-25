@@ -262,7 +262,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         closable={false}
         width={440}
         style={{ maxWidth: 'calc(100vw - 32px)' }}
-        maskClosable={!isEndingBoot}
+        mask={{ closable: !isEndingBoot }}
         styles={{
           mask: { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
           body: {
