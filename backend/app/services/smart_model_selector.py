@@ -19,16 +19,16 @@
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, desc
 
 from app.core.config import settings
 from app.models.schemas import (
-    ModelVersion, GameRecord, MistakeBook,
-    SystemState, LogPriority, LogCategory, SystemLog,
+    ModelVersion, SystemState, LogPriority,
+    LogCategory, SystemLog,
 )
 
 logger = logging.getLogger(__name__)

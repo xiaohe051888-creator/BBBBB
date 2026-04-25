@@ -4,7 +4,6 @@ FastAPI 主应用 - 百家乐分析预测系统（手动模式）
 """
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
 from typing import List
 
 import logging
@@ -20,20 +19,19 @@ if os.path.exists(env_path):
 else:
     logger.warning(f"⚠️  [api/main.py] 环境变量文件不存在: {env_path}")
 
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import FileResponse
 from sqlalchemy import select, desc
 
 from app.core.config import settings
 from app.core.database import init_db, async_session
-from app.models.schemas import AdminUser, SystemLog, SystemState, BetRecord, MistakeBook
+from app.models.schemas import AdminUser, SystemLog, BetRecord, MistakeBook
 
 # ============ 导入路由模块 ============
-from app.api.routes import game, bet, logs, stats, auth, analysis, websocket
+from app.api.routes import game, bet, logs, stats, analysis
 from app.api.routes import system as system_routes
-from app.api.routes.utils import get_current_user
 
 
 # ============ 全局状态 ============

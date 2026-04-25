@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 
 from app.core.config import settings
-from app.models.schemas import GameRecord, BetRecord, SystemLog, MistakeBook, RoadMap, AIMemory
-from .session import get_session, get_session_lock, broadcast_event, clear_session
+from app.models.schemas import GameRecord, BetRecord, MistakeBook, RoadMap, AIMemory
+from .session import get_session, get_session_lock, broadcast_event
 from .state import get_or_create_state
 from .logging import write_game_log
 import copy
@@ -106,7 +106,7 @@ async def upload_games(
             
             # 记录重置前的状态（用于日志）
             old_status = sess.status
-            old_boot = sess.boot_number
+            sess.boot_number
             
             # 推断靴号：取现有最大靴号
             stmt = select(GameRecord.boot_number).order_by(GameRecord.boot_number.desc()).limit(1)

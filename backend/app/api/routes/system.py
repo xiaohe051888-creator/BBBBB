@@ -1,7 +1,6 @@
 """
 系统状态路由
 """
-from typing import List, Dict, Any
 from fastapi import APIRouter, Query, HTTPException, Depends
 from sqlalchemy import select, func, desc
 from datetime import datetime, timedelta
@@ -95,7 +94,6 @@ async def get_health_score():
         health_details["ai_models"]["issues"].append("Gemini(综合模型)未配置")
     
     # 2. 数据库健康检查 (30分)
-    db_ok = True
     try:
         async with async_session() as session:
             result = await session.execute(select(func.count()).select_from(GameRecord))
@@ -103,7 +101,7 @@ async def get_health_score():
             
             stmt = select(GameRecord).order_by(desc(GameRecord.id)).limit(1)
             result = await session.execute(stmt)
-            latest_game = result.scalar_one_or_none()
+            result.scalar_one_or_none()
             
             if game_count > 0:
                 health_details["database"]["score"] += 20
@@ -119,7 +117,6 @@ async def get_health_score():
                 health_details["database"]["issues"].append(f"无状态记录")
                 
     except Exception as e:
-        db_ok = False
         health_details["database"]["score"] = 0
         health_details["database"]["issues"].append(f"数据库连接异常: {str(e)[:30]}")
     
@@ -460,7 +457,7 @@ async def test_api_keys(
         import google.generativeai as genai
         genai.configure(api_key=settings.GEMINI_API_KEY)
         model = genai.GenerativeModel(settings.GEMINI_MODEL)
-        res = model.generate_content("Hello")
+        model.generate_content("Hello")
         results["gemini"] = {"success": True, "message": "Connection successful"}
     except Exception as e:
         results["gemini"] = {"success": False, "message": str(e)}

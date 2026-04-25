@@ -2,7 +2,7 @@
 认证工具函数
 """
 from typing import Optional
-from fastapi import HTTPException, Request, Depends, Query
+from fastapi import HTTPException, Request, Query
 from jose import jwt, JWTError
 from app.core.config import settings
 

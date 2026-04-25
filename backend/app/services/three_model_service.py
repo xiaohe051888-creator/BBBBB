@@ -301,12 +301,12 @@ class ThreeModelService:
             # 简单清洗输出，防止返回 markdown 代码块包裹
             clean_result = result.replace("```json", "").replace("```markdown", "").replace("```", "").strip()
             return clean_result
-        except Exception as e:
+        except Exception:
             # 如果综合模型失败，降级给庄模型/闲模型进行提炼
             try:
                 result = await self.banker_client.call(prompt)
                 return result.replace("```", "").strip()
-            except Exception as e2:
+            except Exception:
                 return "未能成功提取实时策略，网络或 API 超时。"
 
     async def analyze(

@@ -2,14 +2,12 @@
 学习模块 - 微学习和深度学习
 """
 from datetime import datetime
-from typing import Dict, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.models.schemas import GameRecord, AIMemory
-from .session import get_session, broadcast_event
-from .logging import write_game_log
+from .session import broadcast_event
 
 
 async def micro_learning_current_trend(
@@ -30,7 +28,6 @@ async def micro_learning_current_trend(
             "message": "综合模型正在根据本靴现有走势图进行微学习和自我提升...",
         })
 
-        from app.services.ai_learning_service import AILearningService
         from app.services.smart_model_selector import SmartModelSelector
         from app.services.road_engine import UnifiedRoadEngine
         from app.services.three_model_service import ThreeModelService

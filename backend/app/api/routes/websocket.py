@@ -3,7 +3,7 @@ WebSocket路由
 """
 import asyncio
 from typing import List, Dict
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from datetime import datetime
 from jose import jwt, JWTError
 

@@ -3,14 +3,13 @@
 """
 import asyncio
 from typing import Optional
-from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, HTTPException
 
 from app.core.database import async_session
-from app.models.schemas import GameRecord, BetRecord
-from sqlalchemy import select, func, desc
+from app.models.schemas import GameRecord
+from sqlalchemy import select, func
 
-from app.api.routes.schemas import UploadRequest, RevealRequest, BetRequest
-from app.api.routes.utils import get_current_user
+from app.api.routes.schemas import UploadRequest, RevealRequest
 
 router = APIRouter(prefix="/api/games", tags=["游戏"])
 

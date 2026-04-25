@@ -1,7 +1,7 @@
 """
 路由共享的Pydantic模型定义
 """
-from typing import Optional, List
+from typing import List
 from pydantic import BaseModel, validator, Field
 from app.core.config import settings
 

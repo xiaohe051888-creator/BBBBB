@@ -3,7 +3,7 @@
 """
 from typing import Optional
 from fastapi import APIRouter, Query
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func
 
 from app.core.database import async_session
 from app.models.schemas import GameRecord, SystemState, MistakeBook

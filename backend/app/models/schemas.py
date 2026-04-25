@@ -1,11 +1,10 @@
 """
 数据模型定义 - 百家乐分析预测系统
 """
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, Enum as SQLEnum, JSON
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, JSON
 from sqlalchemy.sql import func
 from sqlalchemy import UniqueConstraint, Index
 from enum import Enum as PyEnum
-from datetime import datetime
 from app.core.database import Base
 
 

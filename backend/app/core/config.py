@@ -2,7 +2,7 @@
 系统配置模块 - 百家乐分析预测系统（手动模式）
 """
 import os
-from typing import Optional, List
+from typing import Optional
 
 class Settings:
     """系统全局配置"""

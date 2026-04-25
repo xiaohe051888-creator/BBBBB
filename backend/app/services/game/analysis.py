@@ -2,7 +2,7 @@
 AI分析模块 - 处理三模型分析预测
 """
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -117,7 +117,7 @@ async def run_ai_analysis(
                 # 获取当前版本（用于学习）
                 selector = SmartModelSelector(db)
                 current_version = await selector.get_current_version()
-                version_id = current_version.version_id if current_version else "default"
+                current_version.version_id if current_version else "default"
                 
                 # 获取AI记忆库 (提取最新生成的实时微学习策略经验)
                 from app.models.schemas import AIMemory

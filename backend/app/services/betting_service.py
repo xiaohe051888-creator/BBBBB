@@ -2,8 +2,7 @@
 模拟跟注与结算服务
 仿真下注验证，不向目标网站执行真实下注
 """
-from typing import Dict, Optional
-from datetime import datetime
+from typing import Dict
 from dataclasses import dataclass
 from app.core.config import settings
 

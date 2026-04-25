@@ -28,6 +28,11 @@ async def reveal_game(
         sess_backup = copy.deepcopy(sess)
         
         try:
+            # 状态机防连击校验：如果当前不是“等待开奖”状态，一律拒绝处理
+            # 必须前置于所有逻辑，防止连点导致重复派发后台分析任务或算力浪费
+            if sess.status != "等待开奖":
+                return {"success": False, "error": f"当前状态({sess.status})无法录入开奖结果，请勿重复操作"}
+
             if game_number > 72:
                 return {"success": False, "error": "单靴最多支持 72 局，本靴已结束，请新开一靴"}
 

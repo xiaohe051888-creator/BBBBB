@@ -39,7 +39,6 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 
 class Base(DeclarativeBase):
     """ORM 基类"""
-    pass
 
 
 import logging

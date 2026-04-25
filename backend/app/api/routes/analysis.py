@@ -3,7 +3,7 @@ AI分析相关路由
 """
 import asyncio
 from fastapi import APIRouter, Query, Depends, HTTPException
-from sqlalchemy import select, desc
+from sqlalchemy import select
 
 from app.core.database import async_session
 from app.models.schemas import SystemLog, SystemState
