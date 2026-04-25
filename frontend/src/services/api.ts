@@ -363,12 +363,21 @@ export const getRoadRawData = async (bootNumber?: number) => {
 
 export const createWebSocket = (): WebSocket => {
   const token = getToken();
-  // WebSocket URL 格式: ws://localhost:8000/ws
-  const baseWsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
   
-  const wsUrl = baseWsUrl.includes('/ws/')
+  // 智能推断 WebSocket URL：
+  // 1. 如果配置了 VITE_WS_URL，直接使用
+  // 2. 如果在开发环境或没有配置，根据当前页面地址自动生成 ws(s)://host:port/ws
+  let baseWsUrl = import.meta.env.VITE_WS_URL;
+  if (!baseWsUrl) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host; // 包含端口
+    baseWsUrl = `${protocol}//${host}`;
+  }
+
+  const wsUrl = baseWsUrl.includes('/ws')
     ? baseWsUrl
     : `${baseWsUrl}/ws`;
+    
   const urlWithToken = token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl;
   return new WebSocket(urlWithToken);
 };
