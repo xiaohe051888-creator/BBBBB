@@ -14,6 +14,7 @@ import { FiveRoadChart } from '../components/roads';
 import { GameTable, BetTable, LogTable } from '../components/tables';
 import { LearningStatusPanel } from '../components/learning';
 import { SmartAlerts } from '../components/ui';
+import { debounce } from 'lodash';
 import {
   useAdminLogin,
   useSmartDetection,
@@ -30,6 +31,7 @@ import {
   useAddBetOptimistically,
   useAddGameOptimistically,
   useUpdateStateOptimistically,
+  useWebSocket,
 } from '../hooks';
 import * as api from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
@@ -122,6 +124,69 @@ const DashboardPage: React.FC = () => {
   const addGameOptimistically = useAddGameOptimistically();
   const updateStateOptimistically = useUpdateStateOptimistically();
 
+  // 节流与防抖的缓存失效函数 (避免高频 WebSocket 导致打挂服务器)
+  const debouncedInvalidateLogs = useCallback(
+    debounce(() => queryClient.invalidateQueries({ queryKey: ['logs'] }), 300),
+    [queryClient]
+  );
+  
+  const debouncedInvalidateBets = useCallback(
+    debounce(() => queryClient.invalidateQueries({ queryKey: ['bets'] }), 300),
+    [queryClient]
+  );
+
+  const debouncedInvalidateGames = useCallback(
+    debounce(() => queryClient.invalidateQueries({ queryKey: ['games'] }), 300),
+    [queryClient]
+  );
+
+  const debouncedInvalidateState = useCallback(
+    debounce(() => queryClient.invalidateQueries({ queryKey: queryKeys.systemState() }), 300),
+    [queryClient]
+  );
+
+  // 统一使用强化过的 useWebSocket
+  useWebSocket({
+    onLog: (data) => {
+      addLogOptimistically(data);
+      debouncedInvalidateLogs();
+    },
+    onBetPlaced: (data) => {
+      addBetOptimistically({
+        game_number: data.game_number,
+        bet_direction: data.direction,
+        bet_amount: data.amount,
+        bet_tier: data.tier,
+        status: '待开奖',
+        created_at: new Date().toISOString(),
+      });
+      debouncedInvalidateBets();
+      debouncedInvalidateState();
+    },
+    onGameRevealed: (data) => {
+      if (data?.settlement_info) {
+        addGameOptimistically({
+          game_number: data.settlement_info.game_number,
+          result: data.settlement_info.result,
+          banker_score: 0,
+          player_score: 0,
+          is_banker_pair: false,
+          is_player_pair: false,
+        });
+      }
+      debouncedInvalidateGames();
+      debouncedInvalidateState();
+    },
+    onStateUpdate: (data) => {
+      updateStateOptimistically({
+        status: data.status,
+        boot_number: data.boot_number,
+        game_number: data.game_number,
+      });
+      debouncedInvalidateState();
+    }
+  });
+
   // 页面可见性变化时刷新数据（从上传页面返回时）
   useEffect(() => {
     
@@ -140,120 +205,6 @@ const DashboardPage: React.FC = () => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [ queryClient]);
-
-  // WebSocket
-  useEffect(() => {
-    
-
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let isUnmounted = false;
-
-    const connectWS = () => {
-      if (isUnmounted) return;
-      try {
-        const ws = api.createWebSocket();
-
-        ws.onmessage = (event) => {
-          try {
-            const msg = JSON.parse(event.data);
-            const { type, data } = msg;
-
-            switch (type) {
-              case 'log':
-                if (data) {
-                  addLogOptimistically( data);
-                  queryClient.invalidateQueries({ queryKey: ['logs'] });
-                }
-                break;
-              case 'bet_placed':
-                if (data) {
-                  addBetOptimistically( {
-                    game_number: data.game_number,
-                    bet_direction: data.direction,
-                    bet_amount: data.amount,
-                    bet_tier: data.tier,
-                    status: data.status,
-                    balance_before: data.balance_after + data.amount,
-                    balance_after: data.balance_after,
-                    bet_time: new Date().toISOString(),
-                    game_result: null,
-                    error_id: null,
-                    settlement_amount: null,
-                    profit_loss: null,
-                    adapt_summary: null,
-                  });
-                  updateStateOptimistically( {
-                    balance: data.balance_after,
-                    pending_bet: {
-                      direction: data.direction,
-                      amount: data.amount,
-                      tier: data.tier,
-                      game_number: data.game_number,
-                      time: new Date().toISOString(),
-                    },
-                    status: '等待开奖',
-                  });
-                  queryClient.invalidateQueries({ queryKey: ['bets'] });
-                  queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
-                }
-                break;
-              case 'game_revealed':
-                if (data) {
-                  addGameOptimistically({
-                    game_number: data.game_number,
-                    result: data.result,
-                  } as unknown as GameRecord);
-                  queryClient.invalidateQueries({ queryKey: ['games'] });
-                  queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
-                }
-                break;
-              case 'micro_learning':
-                setMicroLearning(data);
-                break;
-              case 'deep_learning_started':
-              case 'deep_learning_progress':
-              case 'deep_learning_completed':
-              case 'deep_learning_failed':
-                setDeepLearning(data);
-                if (data.status === '完成' || data.status === '失败') {
-                  queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
-                }
-                break;
-              case 'state_update':
-                if (data) {
-                  updateStateOptimistically( {
-                    status: data.status,
-                    boot_number: data.boot_number,
-                    game_number: data.game_number,
-                  });
-                  queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
-                }
-                break;
-            }
-          } catch {
-            // 忽略解析错误
-          }
-        };
-
-        ws.onclose = () => {
-          if (!isUnmounted) {
-            reconnectTimer = setTimeout(connectWS, 3000);
-          }
-        };
-      } catch {
-        if (!isUnmounted) {
-          reconnectTimer = setTimeout(connectWS, 5000);
-        }
-      }
-    };
-
-    connectWS();
-
-    return () => {
-      isUnmounted = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-    };
-  }, [ addLogOptimistically, addBetOptimistically, addGameOptimistically, updateStateOptimistically, queryClient]);
 
   // 等待开奖计时器
   const hasPendingBet = !!systemState?.pending_bet;
