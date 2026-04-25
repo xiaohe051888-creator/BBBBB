@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Select, Button, message, Space, Spin, Alert } from 'antd';
+import { Modal, Form, Input, Select, Button, App, Space, Spin, Alert } from 'antd';
 import type { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
 import * as apiService from '../../services/api';
 
@@ -40,6 +40,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [testing, setTesting] = useState(false);
+  const { message } = App.useApp();
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean; message: string} | null>(null);
 

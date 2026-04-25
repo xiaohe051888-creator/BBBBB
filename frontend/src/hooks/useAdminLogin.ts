@@ -3,7 +3,7 @@
  * 统一管理管理员登录逻辑
  */
 import { useState, useCallback } from 'react';
-import { message } from 'antd';
+import { App } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../services/api';
 import { useSystemDiagnostics } from './useSystemDiagnostics';
@@ -39,6 +39,7 @@ export const useAdminLogin = (
   options: UseAdminLoginOptions = {}
 ): UseAdminLoginReturn => {
   const navigate = useNavigate();
+  const { message } = App.useApp();
   const [visible, setVisible] = useState(false);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { message, Modal } from 'antd';
+import { App, Modal } from 'antd';
 import * as api from '../services/api';
 import type { GameResult } from '../components/upload';
 import {
@@ -34,6 +34,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isNewBoot = location.state?.isNewBoot || false;
+  const { message } = App.useApp();
 
   // 72局数据
   const [games, setGames] = useState<GameResult[]>(Array(DEFAULT_ROWS).fill(''));

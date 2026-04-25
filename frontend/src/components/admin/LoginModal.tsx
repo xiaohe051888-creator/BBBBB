@@ -2,7 +2,7 @@
  * 管理员登录弹窗组件 - 精致图标、中文全站
  */
 import React, { useState } from 'react';
-import { Modal, Input, message } from 'antd';
+import { Modal, Input, App } from 'antd';
 import * as api from '../../services/api';
 
 interface LoginModalProps {
@@ -30,13 +30,10 @@ const Icons = {
   ),
 };
 
-const LoginModal: React.FC<LoginModalProps> = ({
-  visible,
-  onCancel,
-  onSuccess,
-}) => {
+export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuccess }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { message } = App.useApp();
 
   const handleLogin = async () => {
     if (!password) {
@@ -59,11 +56,17 @@ const LoginModal: React.FC<LoginModalProps> = ({
       setLoading(false);
     }
   };
+
+  const handleClose = () => {
+    setPassword('');
+    onCancel();
+  };
+
   return (
     <Modal
       title={null}
       open={visible}
-      onCancel={onCancel}
+      onCancel={handleClose}
       footer={null}
       centered
       styles={{ mask: { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' } }}

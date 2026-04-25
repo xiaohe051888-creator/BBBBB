@@ -3,7 +3,7 @@
  * 管理工作流状态、倒计时、自动检测漏操作等功能
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { message } from 'antd';
+import { App } from 'antd';
 
 // ====== 类型定义 ======
 
@@ -87,6 +87,7 @@ const WARNING_THRESHOLD = 30;
  */
 export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowStateReturn => {
   const { systemStatus, pendingBet, currentGameNumber } = options;
+  const { message } = App.useApp();
   
   // ====== 状态 ======
   const [workflowState, setWorkflowState] = useState<WorkflowState>({
