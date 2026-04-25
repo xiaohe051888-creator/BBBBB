@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Button, message, Space, Spin, Alert } from 'antd';
-import * as api from '../../services/api';
-import { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
+import type { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
+import * as apiService from '../../services/api';
 
 interface ApiConfigModalProps {
   visible: boolean;
@@ -89,7 +89,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
     setTesting(true);
     setTestResult(null);
     try {
-      await api.testApiConnection(payload);
+      await apiService.testApiConnection(payload);
       setTestResult({ success: true, message: '测试成功！API 连接正常，模型响应符合预期。' });
       message.success('API 测试成功');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -112,7 +112,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
     setSaving(true);
     try {
-      await api.updateApiConfig(payload);
+      await apiService.updateApiConfig(payload);
       message.success(`${roleName} API 配置保存成功`);
       onSuccess();
       onCancel();
