@@ -5,7 +5,7 @@
  *
  * 优化：乐观UI策略 - 数据立即显示，后台静默刷新，零等待体验
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Progress, Space, Tag } from 'antd';
 import { getToken } from '../services/api';
 import { MAX_GAMES_PER_BOOT } from '../utils/constants';
@@ -125,23 +125,23 @@ const DashboardPage: React.FC = () => {
   const updateStateOptimistically = useUpdateStateOptimistically();
 
   // 节流与防抖的缓存失效函数 (避免高频 WebSocket 导致打挂服务器)
-  const debouncedInvalidateLogs = useCallback(
-    debounce(() => queryClient.invalidateQueries({ queryKey: ['logs'] }), 300),
-    [queryClient]
-  );
-  
-  const debouncedInvalidateBets = useCallback(
-    debounce(() => queryClient.invalidateQueries({ queryKey: ['bets'] }), 300),
+  const debouncedInvalidateLogs = useMemo(
+    () => debounce(() => queryClient.invalidateQueries({ queryKey: ['logs'] }), 300),
     [queryClient]
   );
 
-  const debouncedInvalidateGames = useCallback(
-    debounce(() => queryClient.invalidateQueries({ queryKey: ['games'] }), 300),
+  const debouncedInvalidateBets = useMemo(
+    () => debounce(() => queryClient.invalidateQueries({ queryKey: ['bets'] }), 300),
     [queryClient]
   );
 
-  const debouncedInvalidateState = useCallback(
-    debounce(() => queryClient.invalidateQueries({ queryKey: queryKeys.systemState() }), 300),
+  const debouncedInvalidateGames = useMemo(
+    () => debounce(() => queryClient.invalidateQueries({ queryKey: ['games'] }), 300),
+    [queryClient]
+  );
+
+  const debouncedInvalidateState = useMemo(
+    () => debounce(() => queryClient.invalidateQueries({ queryKey: queryKeys.systemState() }), 300),
     [queryClient]
   );
 

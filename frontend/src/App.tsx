@@ -18,7 +18,6 @@ import BetRecordsPage from './pages/BetRecordsPage';
 import LogsPage from './pages/LogsPage';
 import MistakeBookPage from './pages/MistakeBookPage';
 import AdminPage from './pages/AdminPage';
-import { getToken } from './services/api';
 import { queryClient } from './lib/queryClient';
 import { PageErrorBoundary } from './components/error';
 

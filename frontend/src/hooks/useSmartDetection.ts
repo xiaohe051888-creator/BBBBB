@@ -2,7 +2,7 @@
  * 智能检测系统 Hook
  * 提供数据完整性检测、异常模式检测、智能风险提示等功能
  */
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { message } from 'antd';
 import type { GameRecord, BetRecord, SystemState } from './useGameState';
 
@@ -421,7 +421,7 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
   // ====== 数据同步状态 ======
   // 注意：原有的60秒过期提示已被移除，因为页面有React Query的自动刷新机制，
   // 频繁提示用户刷新会造成干扰。
-  const lastSyncTime = Date.now();
+  const [lastSyncTime] = useState(() => Date.now());
   const isDataStale = false;
   const markSynced = useCallback(() => {}, []);
   

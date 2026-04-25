@@ -20,6 +20,7 @@ import {
 } from '../icons';
 import { SystemStatusPanel } from '../ui/SystemStatusPanel';
 import type { HealthScoreResponse } from '../../services/api';
+import { endBoot } from '../../services/api';
 import type { SystemDiagnostics } from '../../hooks/useSystemDiagnostics';
 import type { BettingAdvice } from '../../hooks/useSmartDetection';
 
@@ -85,7 +86,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const confirmEndBoot = async () => {
     try {
       setIsEndingBoot(true);
-      const { endBoot } = await import('../../services/api');
       await endBoot();
       navigate('/', { state: { isNewBoot: true } });
     } catch (e: unknown) {
