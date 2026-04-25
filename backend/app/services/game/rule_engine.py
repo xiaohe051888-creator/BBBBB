@@ -23,6 +23,7 @@ class BaccaratRuleEngine:
         """
         核心进化算法：通过历史回测调整权重
         如果本靴最近经常出现长龙，调高长龙权重；如果经常断成单跳，调高震荡权重。
+        加入“规则瞬断（Pattern Break）”的极速惩罚机制应对100%的随机性。
         """
         if not game_history or len(game_history) < 5:
             return
@@ -34,12 +35,17 @@ class BaccaratRuleEngine:
         history = [g.get("result") for g in game_history[-20:] if g.get("result") in ("庄", "闲")]
         
         current_streak = 1
+        recent_break = False # 是否刚刚发生规律中断
+        
         for i in range(1, len(history)):
             if history[i] == history[i-1]:
                 current_streak += 1
             else:
+                # 当趋势中断时，检查是不是刚断了一个长龙
                 if current_streak >= 3:
                     streak_count += 1
+                    if i == len(history) - 1: # 就是上一局刚刚断掉的
+                        recent_break = True
                 elif current_streak == 1:
                     chop_count += 1
                 current_streak = 1
@@ -47,13 +53,18 @@ class BaccaratRuleEngine:
         if current_streak >= 3:
             streak_count += 1
 
-        # 动态调整逻辑（自适应微调，上限100，下限10）
+        # 宏观趋势调整逻辑（自适应微调，上限100，下限10）
         if streak_count > chop_count:
             self.weights["dragon_streak"] = min(80, self.weights["dragon_streak"] + 5)
             self.weights["chop_oscillation"] = max(10, self.weights["chop_oscillation"] - 5)
         elif chop_count > streak_count:
             self.weights["chop_oscillation"] = min(80, self.weights["chop_oscillation"] + 5)
             self.weights["dragon_streak"] = max(10, self.weights["dragon_streak"] - 5)
+            
+        # 瞬时随机中断惩罚：如果上一局刚刚打断了一个极强的规律，下一局的该规律权重瞬间暴跌（防陷阱）
+        if recent_break:
+            logger.info("检测到长龙规律被随机性瞬间打断！强制调低追龙权重。")
+            self.weights["dragon_streak"] = max(10, self.weights["dragon_streak"] - 30)
             
         logger.info(f"规则引擎已自我进化！当前权重 -> 长龙:{self.weights['dragon_streak']}, 单跳:{self.weights['chop_oscillation']}")
 
