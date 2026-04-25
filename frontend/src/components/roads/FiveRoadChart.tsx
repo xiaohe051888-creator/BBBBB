@@ -169,70 +169,23 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
   }, [scrollContainerHeight]);
 
   return (
-    <div style={{
-      width: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-      padding: '8px',
-      background: '#0d1117',
-    }}>
-      {/* 第1排：大路 + 珠盘路（珠盘路为主大路为辅的标准布局） */}
       <div style={{
-        display: 'flex',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: '8px',
         width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        padding: '8px',
+        background: '#0d1117',
       }}>
-        {/* 珠盘路 - 固定宽度（约14列）但在小屏幕下占满 */}
+        {/* 第1排：大路（单独一行） */}
         <div style={{
-          flex: '1 1 300px',
-          maxWidth: '100%',
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',
           borderRadius: '8px',
           border: '1px solid #30363d',
           overflow: 'hidden',
-        }}>
-          <div style={{
-            padding: '6px 12px',
-            background: '#21262d',
-            borderBottom: '1px solid #30363d',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            height: `${HEADER_HEIGHT}px`,
-            flexShrink: 0,
-          }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>珠盘路</span>
-            <span style={{ fontSize: '10px', color: '#8b949e' }}>Bead</span>
-          </div>
-          <div style={{
-            height: `${scrollContainerHeight}px`,
-            paddingBottom: '12px',
-            overflow: 'hidden',
-          }}>
-            {hasData.bead ? (
-              <BeadRoadCanvas data={roads.bead} config={baseConfig} />
-            ) : (
-              <EmptyState height={roadHeight} />
-            )}
-          </div>
-        </div>
-
-        {/* 大路 - 占据剩余宽度 */}
-        <div style={{
-          flex: '2 1 400px',
-          minWidth: 'min(300px, 100%)',
-          maxWidth: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#161b22',
-          borderRadius: '8px',
-          border: '1px solid #30363d',
-          overflow: 'hidden',
+          width: '100%',
         }}>
           <div style={{
             padding: '6px 12px',
@@ -262,157 +215,213 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
           <div
             ref={bigRoadScrollRef}
             style={{
-              height: `${scrollContainerHeight}px`,
-              paddingBottom: '12px',
+              width: '100%',
               overflowX: 'auto',
               overflowY: 'hidden',
+              paddingBottom: '12px',
             }}
           >
-            {hasData.big ? (
-              <BigRoadCanvas data={roads.big} config={baseConfig} />
-            ) : (
-              <EmptyState height={roadHeight} />
-            )}
+            <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
+              {hasData.big ? (
+                <BigRoadCanvas data={roads.big} config={baseConfig} />
+              ) : (
+                <EmptyState height={roadHeight} />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 第2排：珠盘路 + 大眼仔路 */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: '8px',
+          width: '100%',
+        }}>
+          {/* 珠盘路 - 固定宽度（约14列） */}
+          <div style={{
+            flex: '1 1 300px',
+            maxWidth: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#161b22',
+            borderRadius: '8px',
+            border: '1px solid #30363d',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '6px 12px',
+              background: '#21262d',
+              borderBottom: '1px solid #30363d',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: `${HEADER_HEIGHT}px`,
+              flexShrink: 0,
+            }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>珠盘路</span>
+              <span style={{ fontSize: '10px', color: '#8b949e' }}>Bead</span>
+            </div>
+            <div style={{
+              width: '100%',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              paddingBottom: '12px',
+            }}>
+              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
+                {hasData.bead ? (
+                  <BeadRoadCanvas data={roads.bead} config={baseConfig} />
+                ) : (
+                  <EmptyState height={roadHeight} />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 大眼仔路 - 占据剩余宽度 */}
+          <div style={{
+            flex: '2 1 400px',
+            minWidth: 'min(300px, 100%)',
+            maxWidth: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#161b22',
+            borderRadius: '8px',
+            border: '1px solid #30363d',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '6px 12px',
+              background: '#21262d',
+              borderBottom: '1px solid #30363d',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: `${HEADER_HEIGHT}px`,
+              flexShrink: 0,
+            }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>大眼仔路</span>
+              <span style={{ fontSize: '10px', color: '#8b949e' }}>Big Eye</span>
+            </div>
+            <div
+              ref={bigEyeScrollRef}
+              style={{
+                width: '100%',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                paddingBottom: '12px',
+              }}
+            >
+              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
+                {hasData.bigEye ? (
+                  <DerivedRoadCanvas data={roads.bigEye} config={baseConfig} />
+                ) : (
+                  <EmptyState height={roadHeight} />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 第3排：小路 + 螳螂路 */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: '8px',
+          width: '100%',
+        }}>
+          {/* 小路 */}
+          <div style={{
+            flex: '1 1 300px',
+            minWidth: 'min(300px, 100%)',
+            maxWidth: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#161b22',
+            borderRadius: '8px',
+            border: '1px solid #30363d',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '6px 12px',
+              background: '#21262d',
+              borderBottom: '1px solid #30363d',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: `${HEADER_HEIGHT}px`,
+              flexShrink: 0,
+            }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>小路</span>
+              <span style={{ fontSize: '10px', color: '#8b949e' }}>Small</span>
+            </div>
+            <div
+              ref={smallScrollRef}
+              style={{
+                width: '100%',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                paddingBottom: '12px',
+              }}
+            >
+              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
+                {hasData.small ? (
+                  <DerivedRoadCanvas data={roads.small} config={baseConfig} />
+                ) : (
+                  <EmptyState height={roadHeight} />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 螳螂路 */}
+          <div style={{
+            flex: '1 1 300px',
+            minWidth: 'min(300px, 100%)',
+            maxWidth: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#161b22',
+            borderRadius: '8px',
+            border: '1px solid #30363d',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '6px 12px',
+              background: '#21262d',
+              borderBottom: '1px solid #30363d',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: `${HEADER_HEIGHT}px`,
+              flexShrink: 0,
+            }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>螳螂路</span>
+              <span style={{ fontSize: '10px', color: '#8b949e' }}>Cockroach</span>
+            </div>
+            <div
+              ref={cockroachScrollRef}
+              style={{
+                width: '100%',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                paddingBottom: '12px',
+              }}
+            >
+              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content' }}>
+                {hasData.cockroach ? (
+                  <DerivedRoadCanvas data={roads.cockroach} config={baseConfig} />
+                ) : (
+                  <EmptyState height={roadHeight} />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* 第2排：大眼仔路 + 小路 + 螳螂路 */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: '8px',
-        width: '100%',
-      }}>
-        {/* 大眼仔路 */}
-        <div style={{
-          flex: '1 1 250px',
-          minWidth: 'min(250px, 100%)',
-          maxWidth: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#161b22',
-          borderRadius: '8px',
-          border: '1px solid #30363d',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            padding: '6px 12px',
-            background: '#21262d',
-            borderBottom: '1px solid #30363d',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            height: `${HEADER_HEIGHT}px`,
-            flexShrink: 0,
-          }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>大眼仔路</span>
-            <span style={{ fontSize: '10px', color: '#8b949e' }}>Big Eye</span>
-          </div>
-          <div
-            ref={bigEyeScrollRef}
-            style={{
-              height: `${scrollContainerHeight}px`,
-              paddingBottom: '12px',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-            }}
-          >
-            {hasData.bigEye ? (
-              <DerivedRoadCanvas data={roads.bigEye} config={baseConfig} />
-            ) : (
-              <EmptyState height={roadHeight} />
-            )}
-          </div>
-        </div>
-
-        {/* 小路 */}
-        <div style={{
-          flex: '1 1 250px',
-          minWidth: 'min(250px, 100%)',
-          maxWidth: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#161b22',
-          borderRadius: '8px',
-          border: '1px solid #30363d',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            padding: '6px 12px',
-            background: '#21262d',
-            borderBottom: '1px solid #30363d',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            height: `${HEADER_HEIGHT}px`,
-            flexShrink: 0,
-          }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>小路</span>
-            <span style={{ fontSize: '10px', color: '#8b949e' }}>Small</span>
-          </div>
-          <div
-            ref={smallScrollRef}
-            style={{
-              height: `${scrollContainerHeight}px`,
-              paddingBottom: '12px',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-            }}
-          >
-            {hasData.small ? (
-              <DerivedRoadCanvas data={roads.small} config={baseConfig} />
-            ) : (
-              <EmptyState height={roadHeight} />
-            )}
-          </div>
-        </div>
-
-        {/* 螳螂路 */}
-        <div style={{
-          flex: '1 1 250px',
-          minWidth: 'min(250px, 100%)',
-          maxWidth: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#161b22',
-          borderRadius: '8px',
-          border: '1px solid #30363d',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            padding: '6px 12px',
-            background: '#21262d',
-            borderBottom: '1px solid #30363d',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            height: `${HEADER_HEIGHT}px`,
-            flexShrink: 0,
-          }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>螳螂路</span>
-            <span style={{ fontSize: '10px', color: '#8b949e' }}>Cockroach</span>
-          </div>
-          <div
-            ref={cockroachScrollRef}
-            style={{
-              height: `${scrollContainerHeight}px`,
-              paddingBottom: '12px',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-            }}
-          >
-            {hasData.cockroach ? (
-              <DerivedRoadCanvas data={roads.cockroach} config={baseConfig} />
-            ) : (
-              <EmptyState height={roadHeight} />
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default FiveRoadChart;
