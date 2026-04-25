@@ -92,7 +92,7 @@ const DashboardPage: React.FC = () => {
       if (bal > 2000) {
         if (lowBalanceWarned) {
           setLowBalanceWarned(false);
-          removeIssueBySource('system', 'low_balance');
+          dismissIssue('low_balance');
         }
       } 
       // 当余额 <= 2000 且 > 0 时触发一次性警告
@@ -107,7 +107,7 @@ const DashboardPage: React.FC = () => {
         });
       }
     }
-  }, [systemState?.balance, lowBalanceWarned, addIssue, removeIssueBySource]);
+  }, [systemState?.balance, lowBalanceWarned, addIssue, dismissIssue]);
 
   // 智能检测
   const { integrityIssues, abnormalPatterns, bettingAdvice, alerts, removeAlert, markSynced } = useSmartDetection({
