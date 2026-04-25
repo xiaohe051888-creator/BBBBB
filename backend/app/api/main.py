@@ -116,19 +116,26 @@ app.add_middleware(
 )
 
 # ============ 前端静态文件托管（Docker/生产模式） ============
-_static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
-if os.path.isdir(_static_dir) and os.listdir(_static_dir):
+# 指向 backend/static
+_static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "static")
+
+# 始终注册回退路由，不依赖启动时的目录是否存在，
+# 这样即使热更新或稍后挂载，也能正确处理请求。
+@app.get("/")
+@app.get("/{full_path:path}")
+async def spa_fallback(full_path: str = ""):
+    # 如果是 API、WS 或已知的资源请求，不拦截
+    if full_path.startswith("api/") or full_path.startswith("ws") or full_path.startswith("assets/"):
+        raise HTTPException(404, f"路由不存在: /{full_path}")
+        
+    index_path = os.path.join(_static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    raise HTTPException(404, "前端未构建，请先在 frontend 运行 npm run build 并将产物移入 backend/static")
+
+# 只有目录确实存在才挂载 assets，避免启动报错
+if os.path.isdir(_static_dir) and os.path.isdir(os.path.join(_static_dir, "assets")):
     app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets")), name="static-assets")
-
-    @app.get("/{full_path:path}")
-    async def spa_fallback(full_path: str):
-        if full_path.startswith("api/") or full_path.startswith("ws") or full_path.startswith("assets/"):
-            raise HTTPException(404, f"路由不存在: /{full_path}")
-        index_path = os.path.join(_static_dir, "index.html")
-        if os.path.exists(index_path):
-            return FileResponse(index_path)
-        raise HTTPException(404, "前端未构建，请先运行 npm run build")
-
     logger.info(f"   📦 前端静态文件已挂载: {_static_dir}")
 
 
