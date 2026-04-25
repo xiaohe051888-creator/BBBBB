@@ -268,7 +268,7 @@ const App: React.FC = () => {
                   <Route path="/dashboard/bets" element={<BetRecordsPage />} />
                   <Route path="/dashboard/logs" element={<LogsPage />} />
                   <Route path="/dashboard/mistakes" element={<MistakeBookPage />} />
-                  <Route path="/admin" element={getToken() ? <AdminPage /> : <Navigate to="/" replace />} />
+                  <Route path="/admin" element={<AdminPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </AppLayout>
