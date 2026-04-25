@@ -284,6 +284,54 @@ from pydantic import BaseModel
 class PredictionModeRequest(BaseModel):
     mode: str
 
+class BalanceAdjustmentRequest(BaseModel):
+    action: str  # "add" or "sub"
+    amount: float
+
+@router.post("/balance")
+async def adjust_balance(
+    req: BalanceAdjustmentRequest,
+    _: dict = Depends(get_current_user),
+):
+    """管理员手动调整余额"""
+    if req.action not in ("add", "sub"):
+        raise HTTPException(400, "无效的操作类型，只能是 'add' 或 'sub'")
+    if req.amount <= 0:
+        raise HTTPException(400, "调整金额必须大于 0")
+
+    from app.services.game.session import get_session, get_session_lock
+    from app.services.game.logging import write_game_log
+
+    lock = get_session_lock()
+    async with lock:
+        sess = get_session()
+        old_balance = sess.balance
+
+        if req.action == "add":
+            sess.balance += req.amount
+        else:
+            if sess.balance < req.amount:
+                raise HTTPException(400, "余额不足，无法扣减")
+            sess.balance -= req.amount
+
+        async with async_session() as db:
+            stmt = select(SystemState).order_by(SystemState.id.desc()).limit(1)
+            res = await db.execute(stmt)
+            state = res.scalar_one_or_none()
+            if state:
+                state.balance = sess.balance
+            
+            action_text = "增加" if req.action == "add" else "扣除"
+            await write_game_log(
+                db, sess.boot_number, sess.next_game_number - 1,
+                "LOG-SYS-BAL", "管理员调账", "成功",
+                f"管理员手动{action_text}余额: {req.amount:.0f}，原余额: {old_balance:.0f}，现余额: {sess.balance:.0f}",
+                category="资金事件", priority="P1"
+            )
+            await db.commit()
+
+    return {"status": "success", "new_balance": sess.balance}
+
 @router.post("/prediction-mode")
 async def update_prediction_mode(
     req: PredictionModeRequest,

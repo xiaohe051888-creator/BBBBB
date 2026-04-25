@@ -472,4 +472,8 @@ export const updatePredictionMode = async (mode: 'ai' | 'rule') => {
   return api.post('/system/prediction-mode', { mode });
 };
 
+export const adjustBalance = async (payload: { action: 'add' | 'sub'; amount: number }) => {
+  return api.post('/system/balance', payload);
+};
+
 export default api;

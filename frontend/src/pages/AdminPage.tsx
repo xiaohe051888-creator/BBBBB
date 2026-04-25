@@ -127,6 +127,8 @@ const AdminPage: React.FC = () => {
   // 预测模式
   const [predictionMode, setPredictionMode] = useState<'ai' | 'rule'>('ai');
   const [updatingMode, setUpdatingMode] = useState(false);
+  const [balanceAmount, setBalanceAmount] = useState<string>('');
+  const [adjustingBalance, setAdjustingBalance] = useState(false);
   const { data: systemState } = useSystemStateQuery({});
 
   useEffect(() => {
@@ -137,14 +139,14 @@ const AdminPage: React.FC = () => {
 
   const handleModeChange = async (e: any) => {
     const newMode = e.target.value;
-    
+
     // 如果选择 AI 模式，但尚未配置至少一个大模型 API，则拦截并提示
     if (newMode === 'ai') {
-      const isConfigured = 
-        threeModelStatus?.models?.banker?.api_key_set || 
-        threeModelStatus?.models?.player?.api_key_set || 
+      const isConfigured =
+        threeModelStatus?.models?.banker?.api_key_set ||
+        threeModelStatus?.models?.player?.api_key_set ||
         threeModelStatus?.models?.combined?.api_key_set;
-        
+
       if (!isConfigured) {
         message.warning('无法切换至 AI 模式：您尚未配置任何 AI 大模型的 API Key。系统将继续使用强规则引擎。');
         return;
@@ -160,6 +162,25 @@ const AdminPage: React.FC = () => {
       message.error(`切换模式失败: ${error?.response?.data?.detail || error.message}`);
     } finally {
       setUpdatingMode(false);
+    }
+  };
+
+  const handleBalanceAdjust = async (action: 'add' | 'sub') => {
+    const amt = parseFloat(balanceAmount);
+    if (isNaN(amt) || amt <= 0) {
+      message.warning('请输入有效的操作金额');
+      return;
+    }
+    
+    setAdjustingBalance(true);
+    try {
+      const res = await api.adjustBalance({ action, amount: amt });
+      message.success(`余额${action === 'add' ? '充值' : '扣除'}成功，当前余额: ${res.data.new_balance}`);
+      setBalanceAmount('');
+    } catch (error: any) {
+      message.error(`操作失败: ${error?.response?.data?.detail || error.message}`);
+    } finally {
+      setAdjustingBalance(false);
     }
   };
   
@@ -348,6 +369,39 @@ const AdminPage: React.FC = () => {
                       </Col>
                     </Row>
                   </Radio.Group>
+                </Card>
+
+                {/* 资金与余额管理 */}
+                <Card title="资金与余额管理" size="small" headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ marginBottom: 16, color: 'rgba(255,255,255,0.6)' }}>
+                    系统风险主要体现在下注金额上。您可以随时在此为系统增加或扣除测试余额。
+                    当前系统余额：<span style={{ fontSize: 18, color: '#52c41a', fontWeight: 'bold' }}>{systemState?.balance?.toLocaleString()}</span>
+                  </div>
+                  <Space style={{ display: 'flex', flexWrap: 'wrap' }}>
+                    <Input 
+                      placeholder="输入操作金额" 
+                      type="number"
+                      value={balanceAmount}
+                      onChange={(e) => setBalanceAmount(e.target.value)}
+                      style={{ width: 200, background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+                    />
+                    <Button 
+                      type="primary" 
+                      style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                      loading={adjustingBalance}
+                      onClick={() => handleBalanceAdjust('add')}
+                    >
+                      增加余额 (充值)
+                    </Button>
+                    <Button 
+                      danger 
+                      type="primary"
+                      loading={adjustingBalance}
+                      onClick={() => handleBalanceAdjust('sub')}
+                    >
+                      减少余额 (扣除)
+                    </Button>
+                  </Space>
                 </Card>
 
                 {/* 三模型状态 */}
