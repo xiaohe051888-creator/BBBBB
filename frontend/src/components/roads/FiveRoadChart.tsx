@@ -123,7 +123,12 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = ({ data }) => {
     ) => {
       if (ref.current && currentLength > 0) {
         if (prevLength === 0 || currentLength > prevLength) {
-          ref.current.scrollLeft = ref.current.scrollWidth;
+          // 使用 setTimeout 确保子组件 Canvas 尺寸已更新并触发 DOM Reflow
+          setTimeout(() => {
+            if (ref.current) {
+              ref.current.scrollLeft = ref.current.scrollWidth;
+            }
+          }, 50);
         }
       }
     };
