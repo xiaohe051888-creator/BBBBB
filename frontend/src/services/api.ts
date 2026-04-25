@@ -63,9 +63,9 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401) {
       clearToken();
-      // 只在非登录页面时跳转
+      // 只在非登录页面且非首页（上传页弹窗）时跳转，防止弹窗显示错误信息前被强制刷新
       const currentPath = window.location.pathname;
-      if (!currentPath.includes('/login') && !currentPath.includes('/start')) {
+      if (!currentPath.includes('/login') && !currentPath.includes('/start') && currentPath !== '/') {
         console.warn('认证失败(401)，请重新登录');
         window.location.href = '/?session_expired=true';
       }

@@ -345,7 +345,8 @@ const UploadPage: React.FC<UploadPageProps> = () => {
         onCancel={() => setLoginVisible(false)}
         onSuccess={async () => {
           setLoginVisible(false);
-          window.location.reload();
+          // 跳转到管理员页面，而不是刷新当前页
+          navigate('/admin');
         }}
       />
 
