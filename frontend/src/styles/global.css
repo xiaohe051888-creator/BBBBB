@@ -1487,7 +1487,7 @@ body {
   .page-container { padding: 12px 16px; }
   .top-status-bar { padding: 10px 16px; }
   .manual-status-bar { padding: 8px 16px; }
-  .dashboard-main-grid { flex-direction: column !important; }
+  .dashboard-main-grid { flex-direction: column !important; display: flex !important; }
   .left-panel, .right-panel { width: 100% !important; flex: none !important; }
 }
 
@@ -1509,7 +1509,7 @@ body {
   /* Dashboard 专用 */
   .top-status-bar { padding: 10px 12px; }
   .manual-status-bar { padding: 8px 12px; }
-  .dashboard-main-grid { padding: 10px !important; }
+  .dashboard-main-grid { padding: 10px !important; flex-direction: column !important; display: flex !important; }
 
   /* 页面导航栏 */
   .page-nav-bar {
