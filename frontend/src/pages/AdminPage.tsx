@@ -7,11 +7,12 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Card, Button, Table, Tag, Space, Input, Modal, message,
-  Select, Tabs, Empty, Statistic, Row, Col, Divider,
+  Select, Tabs, Empty, Statistic, Row, Col, Divider, Radio
 } from 'antd';
 import * as api from '../services/api';
 import { clearToken } from '../services/api';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
+import { useSystemStateQuery } from '../hooks/useQueries';
 import { StartLearningModal } from '../components/dashboard/StartLearningModal';
 import { ApiConfigModal } from '../components/admin/ApiConfigModal';
 
@@ -35,6 +36,11 @@ const Icons = {
   Key: () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+    </svg>
+  ),
+  Trend: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
     </svg>
   ),
   Robot: () => (
@@ -117,6 +123,31 @@ const AdminPage: React.FC = () => {
   const [newPwd, setNewPwd] = useState('');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mustChange, setMustChange] = useState((location.state as any)?.mustChangePassword || false);
+
+  // 预测模式
+  const [predictionMode, setPredictionMode] = useState<'ai' | 'rule'>('ai');
+  const [updatingMode, setUpdatingMode] = useState(false);
+  const { data: systemState } = useSystemStateQuery({});
+
+  useEffect(() => {
+    if (systemState?.prediction_mode) {
+      setPredictionMode(systemState.prediction_mode);
+    }
+  }, [systemState?.prediction_mode]);
+
+  const handleModeChange = async (e: any) => {
+    const newMode = e.target.value;
+    setUpdatingMode(true);
+    try {
+      await api.updatePredictionMode(newMode);
+      setPredictionMode(newMode);
+      message.success(`已切换至 ${newMode === 'ai' ? '3个AI大模型' : '强规则引擎'} 预测模式`);
+    } catch (error: any) {
+      message.error(`切换模式失败: ${error?.response?.data?.detail || error.message}`);
+    } finally {
+      setUpdatingMode(false);
+    }
+  };
   
   // 强制修改密码
   useEffect(() => {
@@ -244,9 +275,63 @@ const AdminPage: React.FC = () => {
         items={[
           {
             key: 'ai',
-            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Robot /> AI大模型</span>,
+            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Robot /> AI大模型与规则引擎</span>,
             children: (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* 分析预测模式设置 */}
+                <Card title="分析预测模式设置" size="small" headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ marginBottom: 16, color: 'rgba(255,255,255,0.6)' }}>
+                    选择系统的分析预测大脑。同一时间仅能激活一种模式。
+                  </div>
+                  <Radio.Group 
+                    value={predictionMode} 
+                    onChange={handleModeChange}
+                    disabled={updatingMode}
+                    style={{ width: '100%' }}
+                  >
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24} sm={12}>
+                        <Radio.Button 
+                          value="ai" 
+                          style={{ 
+                            width: '100%', height: 'auto', padding: '16px', 
+                            textAlign: 'left', borderRadius: 8,
+                            borderColor: predictionMode === 'ai' ? '#722ed1' : 'rgba(255,255,255,0.2)',
+                            background: predictionMode === 'ai' ? 'rgba(114,46,209,0.1)' : 'transparent'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <Icons.Brain /> <span style={{ fontSize: 16, fontWeight: 'bold' }}>3个AI大模型预测</span>
+                            {predictionMode === 'ai' && <Tag color="purple" style={{ marginLeft: 'auto' }}>当前激活</Tag>}
+                          </div>
+                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', whiteSpace: 'normal' }}>
+                            通过三个独立的 AI 大模型（庄模型、闲模型、综合模型）交叉论证，融合历史血迹与等待期微学习经验，进行高维度深度分析。
+                          </div>
+                        </Radio.Button>
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <Radio.Button 
+                          value="rule" 
+                          style={{ 
+                            width: '100%', height: 'auto', padding: '16px', 
+                            textAlign: 'left', borderRadius: 8,
+                            borderColor: predictionMode === 'rule' ? '#1890ff' : 'rgba(255,255,255,0.2)',
+                            background: predictionMode === 'rule' ? 'rgba(24,144,255,0.1)' : 'transparent'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <Icons.Trend /> <span style={{ fontSize: 16, fontWeight: 'bold' }}>强规则引擎预测</span>
+                            {predictionMode === 'rule' && <Tag color="blue" style={{ marginLeft: 'auto' }}>当前激活</Tag>}
+                          </div>
+                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', whiteSpace: 'normal' }}>
+                            联网强化后的量化规则引擎。基于多路共振、长龙跟随、单跳震荡等严格的数学模型与走势图特征，进行毫秒级果断决策。
+                          </div>
+                        </Radio.Button>
+                      </Col>
+                    </Row>
+                  </Radio.Group>
+                </Card>
+
                 {/* 三模型状态 */}
                 <Card title="三模型状态" size="small">
                   {threeModelStatus ? (

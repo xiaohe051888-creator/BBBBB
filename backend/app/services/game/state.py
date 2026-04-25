@@ -35,6 +35,7 @@ async def get_current_state() -> Dict[str, Any]:
     sess = get_session()
     return {
         "status": sess.status,
+        "prediction_mode": sess.prediction_mode,
         "boot_number": sess.boot_number,
         "next_game_number": sess.next_game_number,
         "predict_direction": sess.predict_direction,

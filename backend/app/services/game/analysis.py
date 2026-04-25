@@ -76,58 +76,77 @@ async def run_ai_analysis(
                 for r in records
             ]
             
-            # 调用AI三模型服务
-            ai_service = ThreeModelService()
-            
-            # 获取当前版本（用于学习）
-            selector = SmartModelSelector(db)
-            current_version = await selector.get_current_version()
-            version_id = current_version.version_id if current_version else "default"
-            
-            # 获取AI记忆库 (提取最新生成的实时微学习策略经验)
-            from app.models.schemas import AIMemory
-            stmt_memory = select(AIMemory).where(
-                AIMemory.boot_number == boot_number,
-                AIMemory.mistake_type == "实时推演策略"
-            ).order_by(AIMemory.created_at.desc()).limit(1)
-            memory_result = await db.execute(stmt_memory)
-            latest_memory = memory_result.scalar_one_or_none()
-
-            realtime_strategy = latest_memory.self_reflection if latest_memory else ""
-
-            # 构建错题上下文
-            mistake_context = [
-                {
-                    "game_number": m.game_number,
-                    "error_id": m.error_id,
-                    "error_type": m.error_type,
-                    "predict_direction": m.predict_direction,
-                    "actual_result": m.actual_result,
-                    "analysis": m.analysis,
+            if sess.prediction_mode == "rule":
+                from app.services.game.rule_engine import BaccaratRuleEngine
+                rule_engine = BaccaratRuleEngine()
+                
+                # 同步调用规则引擎（由于规则引擎是同步的，不带 await）
+                rule_res = rule_engine.analyze(game_history, road_data)
+                
+                analysis_result = {
+                    "combined_model": {
+                        "final_prediction": rule_res["predict"],
+                        "confidence": rule_res["confidence"],
+                        "bet_tier": rule_res["tier"],
+                        "summary": "【强规则引擎模式】\n" + rule_res["summary"],
+                    },
+                    "banker_model": {"summary": "规则引擎未提供独立的庄模型摘要。"},
+                    "player_model": {"summary": "规则引擎未提供独立的闲模型摘要。"},
+                    "bet_amount": rule_res["bet_amount"]
                 }
-                for m in mistakes
-            ]
-            
-            if realtime_strategy:
-                mistake_context.append({
-                    "game_number": "实时前瞻",
-                    "error_id": "REALTIME-001",
-                    "error_type": "实时高维特征提取",
-                    "predict_direction": "N/A",
-                    "actual_result": "N/A",
-                    "analysis": realtime_strategy,
-                })
-            
-            # 执行三模型分析
-            analysis_result = await ai_service.analyze(
-                game_number=sess.next_game_number,
-                boot_number=boot_number,
-                game_history=game_history,
-                road_data=road_data,
-                mistake_context=mistake_context,
-                consecutive_errors=sess.consecutive_errors,
-                prompt_template=current_version.prompt_template if current_version else None,
-            )
+            else:
+                # 调用AI三模型服务
+                ai_service = ThreeModelService()
+    
+                # 获取当前版本（用于学习）
+                selector = SmartModelSelector(db)
+                current_version = await selector.get_current_version()
+                version_id = current_version.version_id if current_version else "default"
+                
+                # 获取AI记忆库 (提取最新生成的实时微学习策略经验)
+                from app.models.schemas import AIMemory
+                stmt_memory = select(AIMemory).where(
+                    AIMemory.boot_number == boot_number,
+                    AIMemory.mistake_type == "实时推演策略"
+                ).order_by(AIMemory.created_at.desc()).limit(1)
+                memory_result = await db.execute(stmt_memory)
+                latest_memory = memory_result.scalar_one_or_none()
+    
+                realtime_strategy = latest_memory.self_reflection if latest_memory else ""
+    
+                # 构建错题上下文
+                mistake_context = [
+                    {
+                        "game_number": m.game_number,
+                        "error_id": m.error_id,
+                        "error_type": m.error_type,
+                        "predict_direction": m.predict_direction,
+                        "actual_result": m.actual_result,
+                        "analysis": m.analysis,
+                    }
+                    for m in mistakes
+                ]
+                
+                if realtime_strategy:
+                    mistake_context.append({
+                        "game_number": "实时前瞻",
+                        "error_id": "REALTIME-001",
+                        "error_type": "实时高维特征提取",
+                        "predict_direction": "N/A",
+                        "actual_result": "N/A",
+                        "analysis": realtime_strategy,
+                    })
+                
+                # 执行三模型分析
+                analysis_result = await ai_service.analyze(
+                    game_number=sess.next_game_number,
+                    boot_number=boot_number,
+                    game_history=game_history,
+                    road_data=road_data,
+                    mistake_context=mistake_context,
+                    consecutive_errors=sess.consecutive_errors,
+                    prompt_template=current_version.prompt_template if current_version else None,
+                )
             
             # 保存预测结果到会话（适配ThreeModelService返回结构）
             combined_model = analysis_result.get("combined_model", {})

@@ -21,6 +21,7 @@ interface MicroLearningStatus {
   is_correct?: boolean;
   reason?: string;
   error?: string;
+  message?: string;
 }
 
 interface DeepLearningStatus {

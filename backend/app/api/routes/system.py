@@ -281,6 +281,32 @@ async def get_system_diagnostics():
 
 from pydantic import BaseModel
 
+class PredictionModeRequest(BaseModel):
+    mode: str
+
+@router.post("/prediction-mode")
+async def update_prediction_mode(
+    req: PredictionModeRequest,
+    _: dict = Depends(get_current_user),
+):
+    """Update system prediction mode (ai or rule)"""
+    if req.mode not in ("ai", "rule"):
+        raise HTTPException(400, "Invalid prediction mode")
+    
+    async with async_session() as session:
+        stmt = select(SystemState)
+        result = await session.execute(stmt)
+        state = result.scalar_one_or_none()
+        
+        if state:
+            state.prediction_mode = req.mode
+            await session.commit()
+            
+        mem_sess = get_session()
+        mem_sess.prediction_mode = req.mode
+        
+    return {"status": "success", "prediction_mode": req.mode}
+
 class APIKeyUpdateRequest(BaseModel):
     openai_key: str | None = None
     anthropic_key: str | None = None

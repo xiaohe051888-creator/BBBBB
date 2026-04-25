@@ -468,4 +468,8 @@ export const testApiConnection = async (payload: ApiConfigPayload) => {
   return api.post('/admin/api-config/test', payload);
 };
 
+export const updatePredictionMode = async (mode: 'ai' | 'rule') => {
+  return api.post('/system/prediction-mode', { mode });
+};
+
 export default api;
