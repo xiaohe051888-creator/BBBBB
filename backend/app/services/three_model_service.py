@@ -965,7 +965,7 @@ class ThreeModelService:
             lines.append("")
 
         # 下三路描述
-        for road_name, road_key in [("大眼仔路", "big_eye_road"), ("小路", "small_road"), ("螳螂路", "crock_road")]:
+        for road_name, road_key in [("大眼仔路", "big_eye"), ("小路", "small_road"), ("螳螂路", "cockroach_road")]:
             road_points = _get_points(road_data.get(road_key))
             if road_points:
                 lines.append(f"3. {road_name}（规律节奏）:")
