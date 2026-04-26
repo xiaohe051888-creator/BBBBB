@@ -292,6 +292,11 @@ body {
   box-shadow: 0 24px 80px rgba(0,0,0,0.5) !important;
   overflow: hidden;
 }
+/* 限制所有 Modal 的最大宽度，防止移动端溢出 */
+.ant-modal {
+  max-width: calc(100vw - 32px) !important;
+  margin: 0 auto;
+}
 .ant-modal-header {
   background: transparent !important;
   border-bottom-color: var(--border-subtle) !important;

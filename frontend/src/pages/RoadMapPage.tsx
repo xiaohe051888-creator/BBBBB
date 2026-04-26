@@ -318,8 +318,14 @@ const RoadMapPage: React.FC = () => {
       {activeTab === 'raw' && (
         <Card title={<span><Icons.File /> 原始开奖数据</span>} style={{ minHeight: 'calc(100vh - 160px)' }}>
           <Table
+            className="mobile-card-table"
             dataSource={rawData}
-            columns={rawColumns}
+            columns={rawColumns.map(col => ({
+              ...col,
+              onCell: () => ({
+                'data-label': typeof col.title === 'string' ? col.title : ''
+              } as React.HTMLAttributes<HTMLElement>)
+            }))}
             rowKey="game_number"
             size="small"
             pagination={{
