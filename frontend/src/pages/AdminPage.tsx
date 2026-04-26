@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Card, Button, Table, Tag, Space, Input, Modal, App,
-  Select, Tabs, Empty, Statistic, Row, Col, Divider, Radio
+  Select, Tabs, Empty, Statistic, Row, Col, Radio
 } from 'antd';
 import * as api from '../services/api';
 import { clearToken } from '../services/api';
@@ -234,7 +234,7 @@ const AdminPage: React.FC = () => {
       await api.startAiLearning(0);
       message.success('AI深度学习已启动');
       loadAiLearningStatus();
-    } catch (err: unknown) {
+    } catch (err: any) {
       const errorMsg = err instanceof Error ? err.message : '启动学习失败';
       message.error(errorMsg);
     }
@@ -265,7 +265,7 @@ const AdminPage: React.FC = () => {
       message.success('密码修改成功');
       setChangePwdVisible(false);
       setMustChange(false);
-    } catch (err: unknown) {
+    } catch (err: any) {
       const errorMsg = err instanceof Error ? err.message : '修改失败';
       message.error(errorMsg);
       // 记录错误到系统状态面板

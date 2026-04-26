@@ -16,6 +16,17 @@ services:
       - key: CORS_ORIGINS
         value: "*"
 
+  - type: web
+    name: baccarat-frontend
+    env: static
+    buildCommand: "cd frontend && npm install && npm run build"
+    staticPublishPath: "./frontend/dist"
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: "https://baccarat-backend.onrender.com/api"
+      - key: VITE_WS_URL
+        value: "wss://baccarat-backend.onrender.com/ws"
+
 databases:
   - name: baccarat-db
     plan: free

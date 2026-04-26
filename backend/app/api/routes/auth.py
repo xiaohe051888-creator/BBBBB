@@ -240,7 +240,7 @@ async def test_api_config(
                 base_url=req.base_url if req.base_url else None,
                 http_client=httpx.AsyncClient(timeout=10.0)
             )
-            res = await client.chat.completions.create(
+            await client.chat.completions.create(
                 model=req.model,
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=5
@@ -255,7 +255,7 @@ async def test_api_config(
                 base_url=req.base_url if req.base_url else None,
                 http_client=httpx.AsyncClient(timeout=10.0)
             )
-            res = await client.messages.create(
+            await client.messages.create(
                 model=req.model,
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=5
@@ -277,7 +277,7 @@ async def test_api_config(
                 base_url=req.base_url or "https://api.deepseek.com/v1",
                 http_client=httpx.AsyncClient(timeout=10.0)
             )
-            res = await client.chat.completions.create(
+            await client.chat.completions.create(
                 model=req.model,
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=5

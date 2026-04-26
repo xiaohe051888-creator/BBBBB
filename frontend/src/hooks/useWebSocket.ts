@@ -23,7 +23,7 @@ interface UseWebSocketOptions {
 
 interface UseWebSocketReturn {
   /** 发送消息 */
-  sendMessage: (message: unknown) => void;
+  sendMessage: (message: any) => void;
   /** 手动重连 */
   reconnect: () => void;
   /** 连接状态 */
@@ -72,7 +72,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     };
   }, [onStateUpdate, onLog, onAnalysis, onGameRevealed, onBetPlaced]);
 
-  const sendMessage = useCallback((message: unknown) => {
+  const sendMessage = useCallback((message: any) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     }

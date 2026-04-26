@@ -32,8 +32,8 @@ async def place_bet(
         sess_backup = copy.deepcopy(sess)
         
         try:
-            # 状态机防越权与篡改校验：如果当前不是“等待下注”状态，一律拒绝处理
-            if sess.status != "等待下注":
+            # 状态机防越权与篡改校验：如果当前不是“等待下注”或“分析完成”状态，一律拒绝处理
+            if sess.status not in ("等待下注", "分析完成"):
                 return {"success": False, "error": f"当前状态({sess.status})无法下注，请勿非法操作"}
 
             if direction not in ("庄", "闲"):

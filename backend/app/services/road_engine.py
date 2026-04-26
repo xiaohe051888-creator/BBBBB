@@ -71,36 +71,7 @@ class RoadEngine:
             error_map: 局号到错误ID的映射，用于标记错误局
         """
         self.error_map = error_map or {}
-    
-    def calculate_all_roads(self, entries: List[Tuple[int, str]]) -> Dict[str, RoadData]:
-        """
-        计算所有路牌
-        
-        Args:
-            entries: [(game_number, result), ...] result: "庄"/"闲"/"和"
-        
-        Returns:
-            Dict[str, RoadData]: 所有路牌数据
-        """
-        # 计算大路（基础路）
-        big_road = self._calculate_big_road(entries)
-        
-        # 计算珠盘路
-        bead_road = self._calculate_bead_road(entries)
-        
-        # 计算下三路（基于大路）
-        big_eye = self._calculate_big_eye_road(big_road)
-        small_road = self._calculate_small_road(big_road)
-        cockroach_road = self._calculate_cockroach_road(big_road)
-        
-        return {
-            "big_road": big_road,
-            "bead_road": bead_road,
-            "big_eye": big_eye,
-            "small_road": small_road,
-            "cockroach_road": cockroach_road,
-        }
-    
+
     # ========== 兼容API方法（用于stats.py等） ==========
     
     def set_error_marks(self, error_map: Dict[int, int]):

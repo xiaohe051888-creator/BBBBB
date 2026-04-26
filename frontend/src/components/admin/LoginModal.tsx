@@ -49,6 +49,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
       }
       message.success('登录成功');
       onSuccess();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       // 兼容 FastAPI 返回的 {"detail": "错误原因"} 格式，否则前端提示永远是 undefined
       message.error(err.response?.data?.detail || err.response?.data?.error || err.message || '登录失败，密码错误');

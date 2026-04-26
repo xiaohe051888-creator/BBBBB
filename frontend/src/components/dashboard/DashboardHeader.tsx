@@ -4,11 +4,10 @@
  * 包含: 系统状态、桌台信息、当前/预测局、余额、健康分、操作按钮
  */
 import React, { useState } from 'react';
-import { Button, Tag, Space, Tooltip, Modal, Spin } from 'antd';
+import { Button, Space, Modal } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { StopOutlined, ExclamationCircleOutlined, DollarOutlined, RobotOutlined, AppstoreOutlined, CloudUploadOutlined, UnlockOutlined, LockOutlined } from '@ant-design/icons';
+import { StopOutlined, ExclamationCircleOutlined, DollarOutlined, AppstoreOutlined, CloudUploadOutlined, UnlockOutlined, LockOutlined } from '@ant-design/icons';
 import { SystemStatusPanel } from '../ui/SystemStatusPanel';
-import type { HealthScoreResponse } from '../../services/api';
 import { endBoot } from '../../services/api';
 import type { SystemDiagnostics } from '../../hooks/useSystemDiagnostics';
 import type { BettingAdvice } from '../../hooks/useSmartDetection';
@@ -45,7 +44,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onRetryConnection,
   isLoggedIn,
   onOpenLogin,
-  gameCount,
 }) => {
   
   const navigate = useNavigate();

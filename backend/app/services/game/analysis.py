@@ -134,7 +134,6 @@ async def run_ai_analysis(
                 })
             
             # 获取当前版本（用于学习）
-            from app.services.smart_model_selector import SmartModelSelector
             selector = SmartModelSelector(db)
             current_version = await selector.get_current_version()
             prompt_template = current_version.prompt_template if current_version else None
@@ -168,7 +167,6 @@ async def run_ai_analysis(
         }
     else:
         # 调用AI三模型服务
-        from app.services.three_model_service import ThreeModelService
         ai_service = ThreeModelService()
 
         # 执行三模型分析

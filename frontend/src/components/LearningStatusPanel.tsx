@@ -3,12 +3,7 @@
  */
 import React from 'react';
 import { Card, Progress, Tag, Typography, Space, Alert } from 'antd';
-import {
-  SyncOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  LoadingOutlined,
-} from '@ant-design/icons';
+import { CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { RobotIcon } from './ui/Icons';
 
 const { Text, Title } = Typography;
@@ -62,16 +57,6 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
       case 'AI分析': return 'processing';
       case '生成版本': return 'warning';
       default: return 'default';
-    }
-  };
-
-  // 微学习状态图标
-  const getMicroLearningIcon = (status?: string) => {
-    switch (status) {
-      case '完成': return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
-      case '失败': return <CloseCircleOutlined style={{ color: '#ff4d4f' }} />;
-      case '跳过': return <SyncOutlined style={{ color: '#faad14' }} />;
-      default: return <LoadingOutlined style={{ color: '#1890ff' }} spin />;
     }
   };
 

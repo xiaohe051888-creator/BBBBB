@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, Button, Spin, Alert } from 'antd';
-import { ExperimentOutlined, LoadingOutlined, CheckCircleOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { Modal, Button, Spin } from 'antd';
+import { ExperimentOutlined, LoadingOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 
 interface StartLearningModalProps {
   visible: boolean;

@@ -185,30 +185,6 @@ const UploadPage: React.FC<UploadPageProps> = () => {
     }
   };
 
-  // 管理员登录
-  const handleLogin = async (password: string) => {
-    try {
-      const res = await api.adminLogin(password);
-      const { must_change_password, token } = res.data;
-      api.setToken(token);
-      if (must_change_password) {
-        message.warning('首次登录请修改默认密码');
-        navigate('/admin', { state: { mustChangePassword: true, token } });
-      } else {
-        navigate('/admin', { state: { token } });
-      }
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : '密码错误，请重新输入';
-      message.error(errorMsg);
-      addIssue({
-        level: 'warning',
-        title: '管理员登录失败',
-        detail: `登录失败: ${errorMsg}`,
-        source: 'system',
-      });
-    }
-  };
-
   return (
     <div style={{
       position: 'relative',

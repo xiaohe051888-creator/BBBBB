@@ -1,6 +1,6 @@
 import React from 'react';
-import { Modal, Button, Space } from 'antd';
-import { DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { Modal, Button } from 'antd';
+import { DeleteOutlined } from '@ant-design/icons';
 
 interface ClearDataModalProps {
   visible: boolean;

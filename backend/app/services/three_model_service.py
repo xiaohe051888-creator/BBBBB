@@ -12,10 +12,11 @@
 3. 永不失败：完善的错误处理、指数退避重试、动态超时调整
 4. 强制完成：所有模型必须返回完整输出，不接受任何降级结果
 """
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 from dataclasses import dataclass, field
 from datetime import datetime
 import json
+import logging
 from app.core.config import settings
 import aiohttp
 import asyncio
@@ -352,7 +353,7 @@ class ThreeModelService:
         Returns:
             包含三模型输出的完整结果（is_complete永远为True）
         """
-        logger.info(f"[三模型分析] 开始分析第{game_number}局，永不降级模式")
+        logging.info(f"[三模型分析] 开始分析第{game_number}局，永不降级模式")
 
         # 并行执行庄模型和闲模型（带全局超时保护）
         banker_task = asyncio.create_task(
@@ -380,7 +381,7 @@ class ThreeModelService:
             road_data, mistake_context, prompt_template
         )
 
-        logger.info(f"[三模型分析] 第{game_number}局分析完成，预测={combined_result.get('final_prediction')}")
+        logging.info(f"[三模型分析] 第{game_number}局分析完成，预测={combined_result.get('final_prediction')}")
 
         return {
             "game_number": game_number,

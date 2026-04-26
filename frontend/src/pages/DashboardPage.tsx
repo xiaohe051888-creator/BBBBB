@@ -34,7 +34,6 @@ import {
   useUpdateStateOptimistically,
   useWebSocket,
 } from '../hooks';
-import * as api from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryClient';
 
@@ -229,11 +228,11 @@ const DashboardPage: React.FC = () => {
   const [revealLoading, setRevealLoading] = useState(false);
 
   // 管理员登录
-  const { visible: loginVisible, password: loginPassword, loading: loginLoading, openLogin, closeLogin, setPassword: setLoginPassword, handleLogin: handleAdminLogin } = useAdminLogin();
+  const { visible: loginVisible, openLogin, closeLogin } = useAdminLogin();
 
   // 学习状态
-  const [microLearning, setMicroLearning] = useState<any>(null);
-  const [deepLearning, setDeepLearning] = useState<any>(null);
+  const [microLearning] = useState<any>(null);
+  const [deepLearning] = useState<any>(null);
 
   const handleOpenReveal = () => {
     if (systemState?.status === '余额不足') {

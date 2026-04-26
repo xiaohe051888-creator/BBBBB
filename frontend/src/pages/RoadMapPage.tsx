@@ -91,9 +91,6 @@ const RoadMapPage: React.FC = () => {
   // 标签页状态
   const [activeTab, setActiveTab] = useState<'chart' | 'raw' | 'analysis'>('chart');
 
-  // 靴号筛选
-  const [bootNumber, setBootNumber] = useState<number | undefined>();
-
   // React Query获取五路数据（乐观UI：立即显示缓存数据）
   const { data: roadData } = useRoadsQuery({});
 
@@ -112,18 +109,6 @@ const RoadMapPage: React.FC = () => {
       result_time: g.result_time,
       predict_direction: g.predict_direction,
       predict_correct: g.predict_correct,
-    }));
-  }, [games]);
-
-  // 靴号选项
-  const bootOptions = useMemo(() => {
-    const bootSet = new Set(games.map(g => {
-      // 从game_number推断靴号（每靴66局）
-      return Math.floor((g.game_number - 1) / 66) + 1;
-    }));
-    return Array.from(bootSet).sort((a, b) => a - b).map(boot => ({
-      label: `第${boot}靴`,
-      value: boot,
     }));
   }, [games]);
 

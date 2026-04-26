@@ -11,7 +11,6 @@ interface ParticleBackgroundProps {
 const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
   particleCount = { mobile: 25, desktop: 60 },
 }) => {
-  return null; // Temporarily disabled for headless browser testing
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
