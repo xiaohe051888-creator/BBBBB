@@ -70,24 +70,6 @@ class BaccaratRuleEngine:
         if recent_break:
             logger.info("检测到长龙规律被随机性瞬间打断！强制调低追龙权重。")
             self.weights["dragon_streak"] = max(10, self.weights["dragon_streak"] - 30)
-            
-            # 记录系统日志
-            try:
-                sess = get_session()
-                asyncio.create_task(
-                    write_game_log(
-                        None,
-                        category="AI事件",
-                        priority="P2",
-                        event_type="策略进化",
-                        event_result="-",
-                        description=f"检测到长龙规律被瞬间打断，系统进入混沌防守状态，已动态调低追龙权重至 {self.weights['dragon_streak']}",
-                        game_number=sess.game_number,
-                        boot_number=sess.boot_number
-                    )
-                )
-            except Exception:
-                pass
 
         logger.info(f"规则引擎已自我进化！当前权重 -> 长龙:{self.weights['dragon_streak']}, 单跳:{self.weights['chop_oscillation']}")
         return recent_break

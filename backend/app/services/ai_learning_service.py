@@ -861,14 +861,15 @@ class AILearningService:
             # 如果是预测错误导致的微学习，记录到系统日志
             if not is_correct and self_reflection:
                 await write_game_log(
-                    self.session,
-                    category="AI事件",
-                    priority="P2",
+                    session=self.session,
+                    boot_number=boot_number,
+                    game_number=game_number,
+                    event_code="LOG-AI-003",
                     event_type="AI微学习",
                     event_result="成功",
                     description=f"第{game_number}局预测失准，AI已完成深度复盘并生成短期记忆。反思: {self_reflection.get('lesson', '调整策略模型')}。",
-                    game_number=game_number,
-                    boot_number=boot_number,
+                    category="AI事件",
+                    priority="P2"
                 )
 
             # 4. 更新版本性能

@@ -270,14 +270,15 @@ async def _settle_bet(
                     db.add(mistake)
                     
                     await write_game_log(
-                        db,
-                        category="AI事件",
-                        priority="P1" if sess.consecutive_errors >= 2 else "P2",
+                        session=db,
+                        boot_number=sess.boot_number,
+                        game_number=game_number,
+                        event_code="LOG-ERR-001",
                         event_type="记入错题本",
                         event_result="-",
                         description=f"第{game_number}局预测失准，已将现场盘面与证据链记入错题本。连续失准: {sess.consecutive_errors}次。",
-                        game_number=game_number,
-                        boot_number=sess.boot_number,
+                        category="AI事件",
+                        priority="P1" if sess.consecutive_errors >= 2 else "P2"
                     )
 
     return settlement_info
