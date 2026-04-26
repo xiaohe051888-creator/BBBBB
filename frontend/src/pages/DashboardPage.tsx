@@ -167,6 +167,10 @@ const DashboardPage: React.FC = () => {
         profit_loss: null,
         adapt_summary: null,
       });
+      // 同步乐观更新系统余额，防止闪烁
+      updateStateOptimistically({
+        balance: data.balance_after
+      });
       debouncedInvalidateBets();
       debouncedInvalidateState();
     },

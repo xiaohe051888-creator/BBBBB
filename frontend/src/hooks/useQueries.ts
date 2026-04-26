@@ -394,7 +394,11 @@ export const useUpdateRoadsOptimistically = () => {
 export const useUpdateStateOptimistically = () => {
   const queryClient = useQueryClient();
 
-  return (updates: Partial<SystemState>) => {
+  return async (updates: Partial<SystemState>) => {
+    // 1. 取消任何进行中的查询，防止被旧的轮询数据覆盖
+    await queryClient.cancelQueries({ queryKey: queryKeys.systemState() });
+    
+    // 2. 乐观更新
     queryClient.setQueryData(
       queryKeys.systemState(),
       (oldData: SystemState | undefined) => {
