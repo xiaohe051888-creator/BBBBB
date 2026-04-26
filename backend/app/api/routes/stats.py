@@ -63,11 +63,14 @@ async def get_road_maps(
 ):
     """获取五路走势图数据"""
     async with async_session() as session:
-        # 获取所有记录（包括和局），用于珠盘路显示。限制最大2000条防止全表扫描导致内存溢出
-        query = select(GameRecord).order_by(GameRecord.boot_number.desc(), GameRecord.game_number.desc()).limit(2000)
+        from app.services.game.state import get_session
+        if boot_number is None:
+            boot_number = get_session().boot_number
 
-        if boot_number is not None:
-            query = query.where(GameRecord.boot_number == boot_number)
+        # 获取当前靴的所有记录（包括和局），用于珠盘路显示。限制最大2000条防止全表扫描导致内存溢出
+        query = select(GameRecord).where(
+            GameRecord.boot_number == boot_number
+        ).order_by(GameRecord.game_number.desc()).limit(2000)
 
         result = await session.execute(query)
         # 将结果反转回正序（按靴号和局号正向排序），以便前端正确绘制走势图
@@ -146,11 +149,14 @@ async def get_road_raw_data(
 ):
     """获取原始开奖结果列表（用于前端本地计算走势图）"""
     async with async_session() as session:
-        # 防全表扫描，最多拉取最近的2000条记录
-        query = select(GameRecord).order_by(GameRecord.boot_number.desc(), GameRecord.game_number.desc()).limit(2000)
+        from app.services.game.state import get_session
+        if boot_number is None:
+            boot_number = get_session().boot_number
 
-        if boot_number is not None:
-            query = query.where(GameRecord.boot_number == boot_number)
+        # 防全表扫描，最多拉取最近的2000条记录
+        query = select(GameRecord).where(
+            GameRecord.boot_number == boot_number
+        ).order_by(GameRecord.game_number.desc()).limit(2000)
 
         result = await session.execute(query)
         records = list(result.scalars().all())

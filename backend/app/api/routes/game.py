@@ -238,11 +238,12 @@ async def get_game_records(
 ):
     """获取开奖记录（分页）"""
     async with async_session() as session:
-        query = select(GameRecord)
-        
-        if boot_number is not None:
-            query = query.where(GameRecord.boot_number == boot_number)
-        
+        from app.services.game.state import get_session
+        if boot_number is None:
+            boot_number = get_session().boot_number
+
+        query = select(GameRecord).where(GameRecord.boot_number == boot_number)
+
         order_col = getattr(GameRecord, sort_by, GameRecord.game_number)
         query = query.order_by(order_col.desc() if sort_order == "desc" else order_col.asc())
         
