@@ -96,10 +96,10 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
     }
     if (!hasGameData) {
       return {
-        icon: <UploadIcon />,
+        icon: <TargetIcon />,
         iconColor: '#1890ff',
-        title: '系统已就绪，请上传开奖记录',
-        subtitle: '点击右上角【上传数据】按钮开始',
+        title: '系统已就绪，请录入第一局结果',
+        subtitle: '点击右侧【🎯 开奖】按钮开始',
         bgGradient: 'linear-gradient(135deg, rgba(24,144,255,0.15), rgba(24,144,255,0.08))',
         borderColor: 'rgba(24,144,255,0.25)',
       };
@@ -119,7 +119,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       icon: <ChartIcon />,
       iconColor: '#8b949e',
       title: `请录入第 ${systemState?.next_game_number || (systemState?.game_number || 0) + 1} 局开奖结果`,
-      subtitle: '分析完成，系统已自动下注。请点击右上角【上传数据】录入最新路单',
+      subtitle: '分析完成，系统已自动下注。请点击右侧【🎯 开奖】按钮录入本局结果',
       bgGradient: 'linear-gradient(135deg, rgba(150,150,150,0.1), rgba(150,150,150,0.05))',
       borderColor: 'rgba(255,255,255,0.1)',
     };
@@ -157,8 +157,8 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
         </span>
       </div>
 
-      {/* 等待开奖时显示开奖按钮 */}
-      {(systemState?.status === '等待开奖' || hasPendingBet) && (
+      {/* 等待开奖或等待第一局录入时显示开奖按钮 */}
+        {(systemState?.status === '等待开奖' || systemState?.status === '等待新靴' || systemState?.status === '空闲' || hasPendingBet || !hasGameData) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* 工作流倒计时 */}
           {hasPendingBet && waitSeconds >= 0 && (

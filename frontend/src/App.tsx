@@ -11,7 +11,6 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { ConfigProvider, theme, App as AntApp } from 'antd';
 import { QueryClientProvider } from '@tanstack/react-query';
 import zhCN from 'antd/locale/zh_CN';
-import UploadPage from './pages/UploadPage';
 import DashboardPage from './pages/DashboardPage';
 import RoadMapPage from './pages/RoadMapPage';
 import BetRecordsPage from './pages/BetRecordsPage';
@@ -263,15 +262,15 @@ const App: React.FC = () => {
             <BrowserRouter>
               <AppLayout>
                 <Routes>
-                  <Route path="/" element={<UploadPage />} />
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/dashboard/roadmap" element={<RoadMapPage />} />
-                  <Route path="/dashboard/bets" element={<BetRecordsPage />} />
-                  <Route path="/dashboard/logs" element={<LogsPage />} />
-                  <Route path="/dashboard/mistakes" element={<MistakeBookPage />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/dashboard/roadmap" element={<RoadMapPage />} />
+                    <Route path="/dashboard/bets" element={<BetRecordsPage />} />
+                    <Route path="/dashboard/logs" element={<LogsPage />} />
+                    <Route path="/dashboard/mistakes" element={<MistakeBookPage />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
               </AppLayout>
             </BrowserRouter>
           </AntApp>

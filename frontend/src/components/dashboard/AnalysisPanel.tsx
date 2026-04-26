@@ -6,7 +6,7 @@
 import React from 'react';
 import { Tag, Progress, Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { RobotOutlined, BulbOutlined, UploadOutlined, CloudUploadOutlined } from '@ant-design/icons';
+import { RobotOutlined, BulbOutlined, AimOutlined } from '@ant-design/icons';
 import { useSystemStateQuery } from '../../hooks/useQueries';
 
 interface Analysis {
@@ -111,30 +111,20 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     );
   }
 
-  // 等待数据上传状态
+  // 等待开奖结果状态
   if (!hasGameData) {
     return (
-      <div className="analysis-card" style={{ minHeight: 'auto' }}>
-        <div className="section-header">
-          <span style={{ color: '#fadb14' }}><BulbOutlined /></span>
-          <span className="section-title">智能分析</span>
+      <div className="analysis-card empty" style={{ background: '#1a1d24', borderRadius: 12, padding: 24, textAlign: 'center', minHeight: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: '50%', background: 'rgba(24,144,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16
+        }}>
+          <AimOutlined style={{ fontSize: 32, color: '#1890ff' }} />
         </div>
-        <div style={{ textAlign: 'center', padding: 'clamp(24px, 5vw, 40px) 16px', color: 'rgba(255,255,255,0.4)' }}>
-          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>
-            <CloudUploadOutlined style={{ fontSize: 48 }} />
+        <div style={{ color: '#e6edf3' }}>
+          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>系统已就绪</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', maxWidth: 250, margin: '0 auto 20px' }}>
+            请点击【🎯 开奖】按钮录入第一局结果开始AI分析
           </div>
-          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>等待数据上传</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', marginBottom: 16 }}>
-            系统已就绪，请上传开奖记录开始AI分析
-          </div>
-          <Button
-            type="primary"
-            icon={<UploadOutlined />}
-            onClick={() => navigate("/")}
-            style={{ borderRadius: 6 }}
-          >
-            上传数据
-          </Button>
         </div>
       </div>
     );

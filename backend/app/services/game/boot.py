@@ -109,16 +109,19 @@ async def run_deep_learning(
     """
     执行深度学习 - 带进度推送
     """
+    from app.services.game.session import get_session, get_session_lock
     sess = get_session()
+    lock = get_session_lock()
     
     try:
         async with async_session() as db:
             from app.services.ai_learning_service import AILearningService
             
             # 更新进度：数据准备
-            sess.deep_learning_status["status"] = "数据准备"
-            sess.deep_learning_status["progress"] = 10
-            sess.deep_learning_status["message"] = "正在收集训练数据..."
+            async with lock:
+                sess.deep_learning_status["status"] = "数据准备"
+                sess.deep_learning_status["progress"] = 10
+                sess.deep_learning_status["message"] = "正在收集训练数据..."
             
             await broadcast_event("deep_learning_progress", {
                 "boot_number": boot_number,
@@ -130,9 +133,10 @@ async def run_deep_learning(
             await asyncio.sleep(1)  # 模拟处理时间
             
             # 更新进度：AI分析
-            sess.deep_learning_status["status"] = "AI分析"
-            sess.deep_learning_status["progress"] = 30
-            sess.deep_learning_status["message"] = "AI正在深度分析错误模式..."
+            async with lock:
+                sess.deep_learning_status["status"] = "AI分析"
+                sess.deep_learning_status["progress"] = 30
+                sess.deep_learning_status["message"] = "AI正在深度分析错误模式..."
             
             await broadcast_event("deep_learning_progress", {
                 "boot_number": boot_number,
@@ -145,9 +149,10 @@ async def run_deep_learning(
             ai_learning = AILearningService(db)
             
             # 更新进度：AI分析中
-            sess.deep_learning_status["status"] = "AI分析"
-            sess.deep_learning_status["progress"] = 40
-            sess.deep_learning_status["message"] = "AI正在深度分析错误模式..."
+            async with lock:
+                sess.deep_learning_status["status"] = "AI分析"
+                sess.deep_learning_status["progress"] = 40
+                sess.deep_learning_status["message"] = "AI正在深度分析错误模式..."
             
             await broadcast_event("deep_learning_progress", {
                 "boot_number": boot_number,
@@ -163,9 +168,10 @@ async def run_deep_learning(
                 raise Exception(result.error or "深度学习失败")
             
             # 更新进度：生成新版本
-            sess.deep_learning_status["status"] = "生成版本"
-            sess.deep_learning_status["progress"] = 80
-            sess.deep_learning_status["message"] = f"正在生成新版本 {result.version}..."
+            async with lock:
+                sess.deep_learning_status["status"] = "生成版本"
+                sess.deep_learning_status["progress"] = 80
+                sess.deep_learning_status["message"] = f"正在生成新版本 {result.version}..."
             
             await broadcast_event("deep_learning_progress", {
                 "boot_number": boot_number,
@@ -176,27 +182,28 @@ async def run_deep_learning(
             })
             
             # 更新进度：完成
-            sess.deep_learning_status["status"] = "完成"
-            sess.deep_learning_status["progress"] = 100
-            sess.deep_learning_status["message"] = "深度学习完成，新版本已生成"
-            
-            # 设置状态为等待新靴
-            sess.status = "等待新靴"
-            
-            # 清空预测缓存
-            sess.predict_direction = None
-            sess.predict_confidence = None
-            sess.predict_bet_tier = None
-            sess.predict_bet_amount = None
-            sess.banker_summary = None
-            sess.player_summary = None
-            sess.combined_summary = None
+            async with lock:
+                sess.deep_learning_status["status"] = "完成"
+                sess.deep_learning_status["progress"] = 100
+                sess.deep_learning_status["message"] = "深度学习完成，新版本已生成"
+                
+                # 设置状态为等待新靴
+                sess.status = "等待新靴"
+                
+                # 清空预测缓存
+                sess.predict_direction = None
+                sess.predict_confidence = None
+                sess.predict_bet_tier = None
+                sess.predict_bet_amount = None
+                sess.banker_summary = None
+                sess.player_summary = None
+                sess.combined_summary = None
             
             await broadcast_event("deep_learning_completed", {
                 "boot_number": boot_number,
                 "status": "完成",
                 "progress": 100,
-                "message": "深度学习完成，可以上传新靴数据了",
+                "message": "深度学习完成，可以开始新靴了",
             })
             
             await write_game_log(
@@ -216,16 +223,22 @@ async def run_deep_learning(
             # 自动清理历史垃圾数据，防止无限膨胀
             try:
                 from sqlalchemy import delete
-                from app.models.schemas import AIMemory, SystemLog
+                from app.models.schemas import AIMemory, SystemLog, GameRecord, BetRecord, MistakeBook, RoadMap
                 from datetime import datetime, timedelta
                 
-                # 1. 保留最近 10 靴的微学习记忆，删除更早的
-                keep_boot_threshold = max(1, boot_number - 10)
-                await db.execute(delete(AIMemory).where(AIMemory.boot_number < keep_boot_threshold))
+                # 1. 微学习是当前靴自动学习成长的，换靴即清空所有微学习记忆（最多保存71局）
+                await db.execute(delete(AIMemory))
                 
                 # 2. 清理 30 天前的常规日志
                 thirty_days_ago = datetime.now() - timedelta(days=30)
                 await db.execute(delete(SystemLog).where(SystemLog.log_time < thirty_days_ago))
+                
+                # 3. 保留最近 10 靴的游戏记录数据，防止超出 AI 1000局学习上限
+                keep_boot_threshold = max(1, boot_number - 10)
+                await db.execute(delete(GameRecord).where(GameRecord.boot_number < keep_boot_threshold))
+                await db.execute(delete(BetRecord).where(BetRecord.boot_number < keep_boot_threshold))
+                await db.execute(delete(MistakeBook).where(MistakeBook.boot_number < keep_boot_threshold))
+                await db.execute(delete(RoadMap).where(RoadMap.boot_number < keep_boot_threshold))
                 
             except Exception as clean_err:
                 import logging
@@ -233,9 +246,10 @@ async def run_deep_learning(
             
             await db.commit()
     except Exception as e:
-        sess.deep_learning_status["status"] = "失败"
-        sess.deep_learning_status["message"] = f"深度学习失败: {str(e)}"
-        sess.status = "空闲"
+        async with lock:
+            sess.deep_learning_status["status"] = "失败"
+            sess.deep_learning_status["message"] = f"深度学习失败: {str(e)}"
+            sess.status = "空闲"
         
         await broadcast_event("deep_learning_failed", {
             "boot_number": boot_number,
@@ -244,6 +258,8 @@ async def run_deep_learning(
         })
         
         async with async_session() as db:
+            state = await get_or_create_state(db)
+            state.status = "空闲"
             await write_game_log(
                 db, boot_number, None,
                 "LOG-BOOT-003", "深度学习", "失败",

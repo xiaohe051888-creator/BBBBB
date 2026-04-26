@@ -50,9 +50,9 @@ export const ERROR_PROMPTS = {
 
 export const EMPTY_STATES = {
   noData: {
-    main: '暂无数据，请先上传开奖记录。',
-    guide: '点击"上传数据"按钮，手动输入开奖结果开始分析。',
-    sub: '支持1-72局批量上传，上传后自动计算五路走势图。',
+    main: '暂无数据，系统已准备就绪。',
+    guide: '点击"开奖"按钮，录入第一局结果开始AI预测分析。',
+    sub: '系统将基于您的录入结果自动计算五路走势图。',
   },
   waitingResult: {
     main: '等待开奖中',

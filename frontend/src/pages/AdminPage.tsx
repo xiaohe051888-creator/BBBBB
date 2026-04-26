@@ -99,7 +99,7 @@ const AdminPage: React.FC = () => {
   // 未登录则重定向到首页
   React.useEffect(() => {
     if (!token) {
-      navigate('/');
+      navigate('/dashboard');
     }
   }, [token, navigate]);
   
@@ -296,13 +296,13 @@ const AdminPage: React.FC = () => {
       {/* 顶部 */}
       <div className="page-nav-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div className="page-nav-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<Icons.Back />} onClick={() => navigate('/')} size="small">返回启动页</Button>
+          <Button icon={<Icons.Back />} onClick={() => navigate('/dashboard')} size="small">返回总览</Button>
           <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600 }}>管理员后台</span>
-          <Tag color="blue">手动模式</Tag>
+          <Tag color="blue">自动验证模式</Tag>
         </div>
         <div className="page-nav-right" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Button icon={<Icons.Key />} onClick={() => setChangePwdVisible(true)} size="small">修改密码</Button>
-          <Button danger icon={<Icons.Logout />} onClick={() => { clearToken(); navigate('/'); }} size="small">退出登录</Button>
+          <Button danger icon={<Icons.Logout />} onClick={() => { clearToken(); navigate('/dashboard'); }} size="small">退出登录</Button>
         </div>
       </div>
 

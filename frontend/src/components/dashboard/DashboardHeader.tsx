@@ -74,7 +74,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     try {
       setIsEndingBoot(true);
       await endBoot();
-      navigate('/', { state: { isNewBoot: true } });
+      navigate('/dashboard', { state: { isNewBoot: true } });
     } catch (e: unknown) {
       setAlertModal({
         visible: true,
@@ -225,14 +225,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <span>结束本靴</span>
             </Button>
 
-            <Button
-              icon={<CloudUploadOutlined />}
-              onClick={() => navigate('/', { state: { isNewBoot: false } })}
-              title="上传数据"
-              style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: 8, height: 36 }}
-            >
-              <span>上传数据</span>
-            </Button>
+
 
             {isLoggedIn ? (
               <Button
@@ -318,7 +311,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.8 }}>
                 <li>当前预测缓存将被清空。</li>
                 <li>本靴错误记录将永久固化至“血迹地图”。</li>
-                <li>操作完成后，系统将自动跳转至新靴上传页。</li>
+                <li>操作完成后，系统将准备好开始新靴。</li>
               </ul>
             </div>
           </div>

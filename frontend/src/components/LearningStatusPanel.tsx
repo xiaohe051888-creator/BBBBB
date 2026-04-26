@@ -97,7 +97,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
             
             {deepLearning.status === '完成' && (
               <Alert
-                title="深度学习完成！可以上传新靴数据了"
+                title="深度学习完成！系统已准备好开始新靴"
                 type="success"
                 showIcon
               />
