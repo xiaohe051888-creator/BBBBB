@@ -1,5 +1,5 @@
 """
-系统配置模块 - 百家乐分析预测系统（手动模式）
+系统配置模块 - 百家乐分析预测系统
 """
 import os
 from typing import Optional
@@ -109,7 +109,7 @@ class Settings:
     # 系统健康分采样窗口
     HEALTH_SAMPLE_WINDOW: int = 500
     
-    # 手动模式配置
+    # 游戏限制配置
     MAX_UPLOAD_GAMES: int = 72         # 单次最大上传局数
     MIN_UPLOAD_GAMES: int = 1          # 单次最小上传局数
 

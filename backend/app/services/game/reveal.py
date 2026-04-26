@@ -245,7 +245,7 @@ async def _settle_bet(
         sess.pending_game_number = None
         
     # 补丁：更新连续错误计数和错题本
-    # 我们把这段逻辑从 _settle_bet 中移到外面，确保即使用户手动跳过没有下注，
+    # 我们把这段逻辑从 _settle_bet 中移到外面，确保即使因为特殊原因没有下注，
     # 系统仍然能根据“AI预测方向”和“真实开奖结果”进行连续错误的累加，触发风控或退避
     if result != "和" and sess.predict_direction:
         if sess.predict_direction == result:

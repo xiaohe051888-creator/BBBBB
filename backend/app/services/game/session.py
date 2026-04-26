@@ -11,7 +11,7 @@ from app.core.config import settings
 
 @dataclass
 class ManualSession:
-    """手动游戏会话 - 内存态，全局单例"""
+    """游戏会话 - 内存态，全局单例"""
     boot_number: int = 1
     next_game_number: int = 1           # 下一局的局号（等待开奖的局号）
     status: str = "空闲"               # 空闲/分析中/等待开奖/分析完成/深度学习中/等待新靴

@@ -32,7 +32,7 @@ async def get_or_create_state(db: AsyncSession) -> SystemState:
 
 
 async def get_current_state() -> Dict[str, Any]:
-    """获取当前手动游戏状态（内存态）"""
+    """获取当前游戏状态（内存态）"""
     sess = get_session()
     return {
         "status": sess.status,

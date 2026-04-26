@@ -1,5 +1,5 @@
 """
-游戏服务模块 - 百家乐手动游戏流程管理
+游戏服务模块 - 百家乐游戏流程管理
 """
 from .session import (
     ManualSession,

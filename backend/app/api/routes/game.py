@@ -224,7 +224,7 @@ async def get_deep_learning_status():
 
 @router.get("/current-state")
 async def get_game_current_state():
-    """获取当前手动游戏内存状态（等待开奖、预测结果等）"""
+    """获取当前游戏内存状态（等待开奖、预测结果等）"""
     from app.services.game import get_current_state
     return await get_current_state()
 

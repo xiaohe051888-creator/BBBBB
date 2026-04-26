@@ -1,5 +1,5 @@
 """
-FastAPI 主应用 - 百家乐分析预测系统（手动模式）
+FastAPI 主应用 - 百家乐分析预测系统
 路由拆分版本 - 统一入口
 """
 import os
@@ -95,7 +95,7 @@ async def lifespan(app: FastAPI):
             mem_sess.boot_number = db_state.boot_number
             mem_sess.next_game_number = db_state.game_number + 1
 
-    # 注入广播函数到手动游戏服务
+    # 注入广播函数到游戏服务
     from app.services.game import set_broadcast_func
     set_broadcast_func(broadcast_update)
     
