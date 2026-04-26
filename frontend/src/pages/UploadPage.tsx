@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { App, Modal } from 'antd';
+import { App } from 'antd';
 import * as api from '../services/api';
 import type { GameResult } from '../components/upload';
 import {

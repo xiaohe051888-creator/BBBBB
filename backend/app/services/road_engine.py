@@ -474,9 +474,6 @@ class RoadEngine:
         if not big_road.points:
             return road
             
-        # 建立大路坐标矩阵： (col, row) -> RoadPoint，用于快速查找
-        # 必须排除和局点，因为下三路是不看和局的
-        matrix: Dict[Tuple[int, int], RoadPoint] = {}
         # 记录每列的真实长度（排除和局和拐弯导致的行跳跃，这里我们直接记录该列有多少个非和局点）
         # 但是“齐整”看的是列的“长度”。对于拐弯的情况，澳门规则是将拐弯的子算在同一列里。
         # 也就是：一列的“长度” = 该列在逻辑上包含的点的数量。

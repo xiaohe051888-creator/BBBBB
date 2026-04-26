@@ -1,18 +1,21 @@
 # ============================================
-# BBBBB 生产环境 Docker Compose 覆盖配置
+# Baccarat Analysis System - Production Compose
 # ============================================
-# 使用: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 # ============================================
 
 services:
-  bbbbb:
+  baccarat-app:
     environment:
       - DEBUG=false
-      # ⚠️ 以下变量必须通过 .env 文件或命令行传入真实值
+      # ⚠️ Must provide via .env file or command line in production
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD}
+      
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     restart: always
     deploy:
       resources:

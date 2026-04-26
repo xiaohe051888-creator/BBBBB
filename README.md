@@ -34,29 +34,25 @@
 
 ---
 
-## 🛠️ 技术栈与启动说明
+## 🛠️ 技术栈与快速启动
 
-### 后端 (Backend)
-- **框架**: FastAPI (Python 3.10+) + SQLAlchemy + SQLite (异步)
-- **特性**: 严格的 `with_for_update` 悲观锁、多模型异步并发请求与容错（指数退避重试）。
-- **启动**: 
-  ```bash
-  cd backend
-  python -m venv venv
-  source venv/bin/activate
-  pip install -r requirements.txt
-  uvicorn app.main:app --host 0.0.0.0 --port 8000
-  ```
+### 方式一：一键全栈启动（推荐）
+系统内置了完善的一键启动脚本，自动处理端口清理、依赖安装、构建以及服务健康检测。
+```bash
+./start-all.sh
+```
 
-### 前端 (Frontend)
-- **框架**: React 18 + Vite + TypeScript + TailwindCSS / Ant Design
-- **特性**: WebSocket 长链接 30秒心跳防假死保活、断线指数重连、React Query 乐观 UI 渲染、组件级内存泄漏严格控制。
-- **启动**: 
-  ```bash
-  cd frontend
-  npm install
-  npm run dev
-  ```
+### 方式二：Docker 容器化部署
+支持基于 Docker Compose 的多阶段构建，完美隔离运行环境，自动挂载 SQLite 数据卷保证数据持久化。
+```bash
+docker compose up --build -d
+```
+
+### 方式三：云端 Serverless 部署 (Render)
+项目根目录已包含 `render.yaml` 配置文件，支持在 Render 平台上一键部署双服务：
+- **后端**: Python FastAPI Web Service
+- **前端**: Node.js Static Site (Vite Build)
+仅需在 Render 平台连接 GitHub 仓库，即可实现全自动 CI/CD 生产级托管。
 
 ---
 
@@ -66,6 +62,6 @@
   * `rule_engine.py` (强规则量化算法核心)
   * `betting.py` (强制自动下注与破产拦截)
   * `reveal.py` (开奖结算与连错错题本隔离逻辑)
-* `frontend/src/components/dashboard/`
+* `frontend/src/pages/`
   * `DashboardPage.tsx` (全自动托管主界面)
   * `AdminPage.tsx` (双脑切换与资金调账控制台)

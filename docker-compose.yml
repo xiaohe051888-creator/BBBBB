@@ -1,48 +1,59 @@
 # ============================================
-# BBBBB 百家乐分析预测系统 - Docker Compose 编排
+# Baccarat Analysis System - Docker Compose
 # ============================================
-# 使用方法:
-#   开发模式:  docker compose up --build
-#   生产模式:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-#   停止:      docker compose down
-#   查看日志:  docker compose logs -f
+# Usage:
+#   Dev mode:   docker compose up --build
+#   Prod mode:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   Stop:       docker compose down
+#   Logs:       docker compose logs -f
 # ============================================
 
 services:
-  bbbbb:
+  baccarat-app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bbbbb-app
+    container_name: baccarat-app
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
-      # --- 调试 ---
+      # --- Debug ---
       - DEBUG=${DEBUG:-false}
-      # --- 安全（生产环境必须修改！）---
+      
+      # --- Security (Must change in production!) ---
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-in-production}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000}
-      # --- 管理员 ---
-      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:-Admin@8888}
-      # --- AI API ---
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      
+      # --- Admin ---
+      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:-8888}
+      
+      # --- AI API (Three Models) ---
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-}
+      
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - AI_MODEL=${AI_MODEL:-claude-sonnet-4-20250514}
-      # --- 采集目标 ---
-      - TARGET_TABLE_26_URL=${TARGET_TABLE_26_URL:-https://rd.lile333.com/?d=26}
-      - TARGET_TABLE_27_URL=${TARGET_TABLE_27_URL:-https://rd.lile333.com/?d=27}
-      # --- 爬虫 ---
-      - LILE333_HEADLESS=${LILE333_HEADLESS:-true}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
+      - ANTHROPIC_API_BASE=${ANTHROPIC_API_BASE:-}
+      
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-flash}
+      - GEMINI_API_BASE=${GEMINI_API_BASE:-}
+
+      - OFOX_API_BASE=${OFOX_API_BASE:-}
+      - OFOX_API_KEY=${OFOX_API_KEY:-}
+      
     volumes:
-      # 数据持久化（数据库 + 日志）
-      - bbbbb-data:/app/data
+      # Data persistence (Database + Logs)
+      - baccarat-data:/app/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/system/health?table_id=26"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/system/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
 
 volumes:
-  bbbbb-data:
+  baccarat-data:
     driver: local

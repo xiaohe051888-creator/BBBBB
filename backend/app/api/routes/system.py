@@ -4,7 +4,6 @@
 from fastapi import APIRouter, Query, HTTPException, Depends
 from sqlalchemy import select, func, desc
 from datetime import datetime, timedelta
-import os
 
 from app.core.database import async_session
 from app.models.schemas import GameRecord, BetRecord, SystemLog, SystemState
@@ -116,7 +115,7 @@ async def get_health_score():
             if state:
                 health_details["database"]["score"] += 10
             else:
-                health_details["database"]["issues"].append(f"无状态记录")
+                health_details["database"]["issues"].append("无状态记录")
                 
     except Exception as e:
         health_details["database"]["score"] = 0
@@ -278,7 +277,7 @@ async def get_system_diagnostics():
     }
 
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from typing import Literal
 
 class PredictionModeRequest(BaseModel):

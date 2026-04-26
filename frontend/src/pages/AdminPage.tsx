@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * 管理员页面 - AI学习 & 数据库查看（手动模式）
  * 移除爬虫相关功能，专注AI模型管理和数据查看

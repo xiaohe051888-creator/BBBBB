@@ -124,7 +124,7 @@ class AILearningService:
         
         # 3. 检查版本数量限制
         version_stmt = select(func.count()).select_from(
-            select(ModelVersion).where(ModelVersion.is_eliminated == False).subquery()
+            select(ModelVersion).where(ModelVersion.is_eliminated is False).subquery()
         )
         ver_result = await self.session.execute(version_stmt)
         active_versions = ver_result.scalar() or 0
@@ -678,7 +678,7 @@ class AILearningService:
     async def _cleanup_old_versions(self):
         """清理旧版本（超过5个时淘汰最旧的活跃版本）"""
         stmt = select(ModelVersion).where(
-            ModelVersion.is_eliminated == False
+            ModelVersion.is_eliminated is False
         ).order_by(ModelVersion.created_at)
         
         result = await self.session.execute(stmt)
@@ -714,7 +714,7 @@ class AILearningService:
         - 用户评分 × 0.1
         """
         stmt = select(ModelVersion).where(
-            ModelVersion.is_eliminated == False
+            ModelVersion.is_eliminated is False
         ).order_by(desc(ModelVersion.created_at))
         
         result = await self.session.execute(stmt)

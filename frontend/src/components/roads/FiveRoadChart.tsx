@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import type { SingleRoadData } from '../../services/api';
 import BeadRoadCanvas from './BeadRoadCanvas';
 import BigRoadCanvas from './BigRoadCanvas';
@@ -74,14 +74,6 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
   const CELL_GAP = 2;
   const PADDING = 6;
   
-  // 检测移动端
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // 使用useMemo缓存计算结果
   const roads = useMemo(() => ({
@@ -170,20 +162,10 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
     return PADDING * 2 + 6 * (BASE_CELL_SIZE + CELL_GAP);
   }, []);
 
-  // 滚动容器高度，减少预留空间，让滚动条显得更紧凑
-  const scrollContainerHeight = useMemo(() => {
-    return roadHeight + 6;
-  }, [roadHeight]);
-
   // 使用内置配置计算珠盘路的精确尺寸（包含12列）
   const beadRoadWidth = useMemo(() => {
     return PADDING * 2 + 12 * (BASE_CELL_SIZE + CELL_GAP);
   }, []);
-
-  // 计算各路总高度（含标题栏）- 使用minHeight
-  const totalRowHeight = useMemo(() => {
-    return scrollContainerHeight + HEADER_HEIGHT;
-  }, [scrollContainerHeight]);
 
   return (
       <div style={{

@@ -112,7 +112,7 @@ class SmartModelSelector:
         """强制选择指定版本"""
         stmt = select(ModelVersion).where(
             ModelVersion.version == version_name,
-            ModelVersion.is_eliminated == False,
+            ModelVersion.is_eliminated is False,
         )
         result = await self.session.execute(stmt)
         version = result.scalar_one_or_none()
@@ -133,7 +133,7 @@ class SmartModelSelector:
     async def _get_active_versions(self) -> List[ModelVersion]:
         """获取所有非淘汰的模型版本"""
         stmt = select(ModelVersion).where(
-            ModelVersion.is_eliminated == False
+            ModelVersion.is_eliminated is False
         ).order_by(desc(ModelVersion.created_at))
         
         result = await self.session.execute(stmt)
@@ -284,7 +284,7 @@ class SmartModelSelector:
         # 首先尝试获取标记为激活的版本
         stmt = select(ModelVersion).where(
             ModelVersion.is_active == True,
-            ModelVersion.is_eliminated == False
+            ModelVersion.is_eliminated is False
         ).order_by(desc(ModelVersion.created_at))
         
         result = await self.session.execute(stmt)
@@ -295,7 +295,7 @@ class SmartModelSelector:
         
         # 如果没有激活的版本，返回最新的非淘汰版本
         stmt2 = select(ModelVersion).where(
-            ModelVersion.is_eliminated == False
+            ModelVersion.is_eliminated is False
         ).order_by(desc(ModelVersion.created_at))
         
         result2 = await self.session.execute(stmt2)

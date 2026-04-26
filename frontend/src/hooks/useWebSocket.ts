@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * WebSocket 连接管理 Hook
  * 统一管理 WebSocket 连接、重连和消息处理
