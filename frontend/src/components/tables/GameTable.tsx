@@ -113,8 +113,14 @@ const GameTable: React.FC<GameTableProps> = ({
 
   return (
     <Table
+      className="mobile-card-table"
       dataSource={data}
-      columns={columns}
+      columns={columns.map(col => ({
+        ...col,
+        onCell: () => ({
+          'data-label': typeof col.title === 'string' ? col.title : ''
+        } as React.HTMLAttributes<HTMLElement>)
+      }))}
       rowKey="game_number"
       size="small"
       loading={loading}

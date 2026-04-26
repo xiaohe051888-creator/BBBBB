@@ -204,13 +204,15 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
           <SystemStatusPanel diagnostics={diagnostics} onDismissIssue={onDismissIssue} onRetryConnection={onRetryConnection} compact />
 
-          <Space size={8} wrap>
+          {/* 操作按钮组（移动端下只显示图标，不显示文字） */}
+          <Space size={8} wrap className="mobile-action-group">
             <Button
               type="primary"
               danger
               onClick={handleEndBoot}
               disabled={isEndingBoot}
               icon={<StopOutlined />}
+              title="结束本靴"
               style={{
                 height: 38,
                 padding: '0 20px',
@@ -222,32 +224,35 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 background: 'linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%)'
               }}
             >
-              结束本靴
+              <span>结束本靴</span>
             </Button>
 
             <Button
               icon={<CloudUploadOutlined />}
               onClick={() => navigate('/', { state: { isNewBoot: false } })}
+              title="上传数据"
               style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: 8, height: 36 }}
             >
-              上传数据
+              <span>上传数据</span>
             </Button>
 
             {isLoggedIn ? (
               <Button
                 icon={<UnlockOutlined />}
                 onClick={() => navigate('/admin')}
+                title="管理员"
                 style={{ background: 'rgba(255,215,0,0.08)', borderColor: 'rgba(255,215,0,0.3)', color: '#ffd700', borderRadius: 8, height: 36 }}
               >
-                管理员
+                <span>管理员</span>
               </Button>
             ) : (
               <Button
                 icon={<LockOutlined />}
                 onClick={onOpenLogin}
+                title="登录"
                 style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: 8, height: 36 }}
               >
-                登录
+                <span>登录</span>
               </Button>
             )}
           </Space>

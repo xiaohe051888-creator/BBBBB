@@ -91,9 +91,15 @@ const BetTable: React.FC<BetTableProps> = ({
 
   return (
     <Table
+      className="mobile-card-table"
       dataSource={data}
-      columns={columns}
-      rowKey={(r) => `${r.game_number}-${r.bet_time || Date.now()}`}
+      columns={columns.map(col => ({
+        ...col,
+        onCell: () => ({
+          'data-label': typeof col.title === 'string' ? col.title : ''
+        } as React.HTMLAttributes<HTMLElement>)
+      }))}
+      rowKey={(r) => `bet-${r.game_number}-${r.bet_time || Date.now()}`}
       size="small"
       loading={loading}
       pagination={{

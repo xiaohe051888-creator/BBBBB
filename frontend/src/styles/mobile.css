@@ -1,0 +1,151 @@
+/* ====== 移动端专属深度优化 (Mobile Native Experience) ====== */
+
+@media (max-width: 768px) {
+  /* 1. 顶部控制栏极简重构 */
+  .top-status-bar {
+    padding: 12px 16px !important;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+    background: rgba(15, 21, 30, 0.85) !important;
+  }
+  
+  .top-status-bar > div {
+    gap: 8px !important;
+  }
+  
+  /* 隐藏桌面端多余的文字标签 */
+  .top-status-bar .ant-btn span:not(.anticon) {
+    display: none !important;
+  }
+  
+  /* 操作按钮压缩为纯图标圆角矩形 */
+  .top-status-bar .ant-btn {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px !important;
+  }
+
+  /* 最新开奖与下局预测卡片紧凑化 */
+  .top-status-bar .predict-pulse-container,
+  .top-status-bar > div > div > div:nth-child(2) > div {
+    padding: 4px 10px !important;
+    gap: 6px !important;
+  }
+  
+  .top-status-bar span {
+    font-size: 12px !important;
+    letter-spacing: 0 !important;
+  }
+  
+  .top-status-bar .predict-result-blink {
+    font-size: 14px !important;
+    padding: 2px 6px !important;
+  }
+
+  /* 2. 状态倒计时栏吸顶悬浮 */
+  .status-bar {
+    position: sticky;
+    top: 60px; /* 紧贴在 header 之下 */
+    z-index: 99;
+    padding: 8px 16px !important;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  
+  .status-bar .ant-btn {
+    height: 32px !important;
+    font-size: 13px !important;
+    padding: 0 16px !important;
+  }
+
+  /* 3. 走势图原生横向阻尼滑动 */
+  .dashboard-main-grid {
+    padding: 12px !important;
+  }
+  
+  .road-card {
+    padding: 12px !important;
+    border-radius: 16px !important;
+  }
+  
+  /* 隐藏桌面端的多余滚动条，使用原生平滑滚动 */
+  .five-road-scroll-container {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch; /* iOS 原生滚动回弹 */
+    scrollbar-width: none; /* Firefox 隐藏滚动条 */
+    padding-bottom: 8px; /* 留出一点滚动空间 */
+    margin: 0 -12px; /* 让走势图突破卡片边界，撑满屏幕 */
+    padding: 0 12px; /* 内部再把间距找回来 */
+  }
+  
+  .five-road-scroll-container::-webkit-scrollbar {
+    display: none; /* Chrome/Safari 隐藏滚动条 */
+  }
+
+  /* 4. 分析面板卡片化与紧凑化 */
+  .analysis-card {
+    padding: 16px 12px !important;
+    border-radius: 16px !important;
+  }
+  
+  .analysis-card .section-header {
+    margin-bottom: 12px !important;
+  }
+  
+  /* 5. 底部表格转换为移动端信息流卡片 (Card List) */
+  /* 这里我们使用 CSS 强制隐藏 Table 的 Header，并把 tr 变成 card */
+  .mobile-card-table .ant-table-thead {
+    display: none !important; /* 隐藏表头 */
+  }
+  
+  .mobile-card-table .ant-table-tbody > tr {
+    display: block !important;
+    background: rgba(255,255,255,0.02) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 12px !important;
+    margin-bottom: 12px !important;
+    padding: 12px !important;
+  }
+  
+  .mobile-card-table .ant-table-tbody > tr > td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 4px 0 !important;
+    border: none !important;
+  }
+  
+  /* 使用 ::before 伪元素把列名重新显示出来 */
+  .mobile-card-table .ant-table-tbody > tr > td::before {
+    content: attr(data-label);
+    color: rgba(255,255,255,0.45);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  
+  .mobile-card-table .ant-table-cell {
+    text-align: right !important;
+  }
+
+  /* 6. 防误触与热区放大 */
+  .ant-btn {
+    min-height: 36px;
+  }
+  
+  .ant-select-selector {
+    min-height: 36px !important;
+  }
+  
+  /* 7. 解决底部导航栏遮挡问题 */
+  .dashboard-container,
+  .page-container {
+    padding-bottom: calc(var(--mobile-bottom-tab-height) + 40px) !important;
+  }
+}

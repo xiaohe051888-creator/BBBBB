@@ -323,7 +323,7 @@ const DashboardPage: React.FC = () => {
                 第{systemState?.boot_number || 1}靴 · 已开{validGamesLength}局
               </span>
             </div>
-            <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+            <div className="five-road-scroll-container" style={{ overflowX: 'auto', maxWidth: '100%' }}>
               <FiveRoadChart data={roadData?.roads ?? null} />
             </div>
           </div>

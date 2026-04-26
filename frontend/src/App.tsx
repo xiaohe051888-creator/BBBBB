@@ -20,6 +20,8 @@ import MistakeBookPage from './pages/MistakeBookPage';
 import AdminPage from './pages/AdminPage';
 import { queryClient } from './lib/queryClient';
 import { PageErrorBoundary } from './components/error';
+import './styles/global.css';
+import './styles/mobile.css';
 
 // 精致SVG图标组件
 const NavIcons = {
