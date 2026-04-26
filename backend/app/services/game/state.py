@@ -23,6 +23,7 @@ async def get_or_create_state(db: AsyncSession) -> SystemState:
             balance=settings.DEFAULT_BALANCE,
             boot_number=1,
             game_number=0,
+            prediction_mode="ai",
         )
         db.add(state)
         await db.flush()
@@ -73,6 +74,8 @@ async def sync_balance_from_db(db: AsyncSession):
         sess.balance = state.balance
         sess.boot_number = state.boot_number or 1
         sess.consecutive_errors = state.consecutive_errors or 0
+        if hasattr(state, "prediction_mode") and state.prediction_mode:
+            sess.prediction_mode = state.prediction_mode
         
         # 恢复下一局号
         stmt2 = select(GameRecord.game_number).where(
