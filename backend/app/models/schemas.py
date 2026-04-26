@@ -1,7 +1,7 @@
 """
 数据模型定义 - 百家乐分析预测系统
 """
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, JSON
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, JSON, Numeric
 from sqlalchemy.sql import func
 from sqlalchemy import UniqueConstraint, Index
 from enum import Enum as PyEnum
@@ -84,8 +84,8 @@ class GameRecord(Base):
     predict_correct = Column(Boolean, nullable=True, comment="预测是否正确")
     error_id = Column(String(20), nullable=True, comment="错误编号")
     settlement_status = Column(String(10), nullable=True, comment="结算状态")
-    profit_loss = Column(Float, default=0.0, comment="本局盈亏")
-    balance_after = Column(Float, default=0.0, comment="结算后余额")
+    profit_loss = Column(Numeric(10, 2), default=0.0, comment="本局盈亏")
+    balance_after = Column(Numeric(10, 2), default=0.0, comment="结算后余额")
     result_time = Column(DateTime, nullable=True, comment="开奖时间")
     created_at = Column(DateTime, server_default=func.now())
     
@@ -125,15 +125,15 @@ class BetRecord(Base):
     game_number = Column(Integer, nullable=False)
     bet_seq = Column(Integer, default=1, comment="下注序号")
     bet_direction = Column(String(4), nullable=False, comment="下注方向：庄/闲")
-    bet_amount = Column(Float, nullable=False, comment="下注金额")
+    bet_amount = Column(Numeric(10, 2), nullable=False, comment="下注金额")
     bet_tier = Column(String(10), default="标准", comment="下注档位")
     status = Column(String(10), default="待开奖", comment="状态")
     game_result = Column(String(4), nullable=True, comment="开奖结果")
     error_id = Column(String(20), nullable=True, comment="错误编号")
-    settlement_amount = Column(Float, nullable=True, comment="结算金额")
-    profit_loss = Column(Float, nullable=True, comment="本局盈亏")
-    balance_before = Column(Float, nullable=False, comment="余额变动前")
-    balance_after = Column(Float, nullable=False, comment="余额变动后")
+    settlement_amount = Column(Numeric(10, 2), nullable=True, comment="结算金额")
+    profit_loss = Column(Numeric(10, 2), nullable=True, comment="本局盈亏")
+    balance_before = Column(Numeric(10, 2), nullable=False, comment="余额变动前")
+    balance_after = Column(Numeric(10, 2), nullable=False, comment="余额变动后")
     adapt_summary = Column(Text, nullable=True, comment="自适应依据摘要")
     bet_time = Column(DateTime, nullable=True, comment="下注时间")
     settle_time = Column(DateTime, nullable=True, comment="结算时间")
@@ -198,6 +198,7 @@ class MistakeBook(Base):
     
     __table_args__ = (
         Index("idx_mistake_boot", "boot_number"),
+        UniqueConstraint("boot_number", "game_number", name="uq_mistake_boot_game"),
     )
 
 
@@ -328,7 +329,7 @@ class SystemState(Base):
     prediction_mode = Column(String(20), default="ai", comment="预测模式：ai / rule")
     current_model_version = Column(String(20), nullable=True)
     current_bet_tier = Column(String(10), default="标准")
-    balance = Column(Float, default=20000.0)
+    balance = Column(Numeric(10, 2), default=20000.0)
     consecutive_errors = Column(Integer, default=0, comment="连续失准次数")
     health_score = Column(Float, default=100.0, comment="系统健康分")
     data_integrity = Column(Float, default=100.0, comment="数据完整性")

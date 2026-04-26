@@ -213,6 +213,24 @@ async def run_deep_learning(
             state.predict_confidence = None
             state.current_bet_tier = "标准"
             
+            # 自动清理历史垃圾数据，防止无限膨胀
+            try:
+                from sqlalchemy import delete
+                from app.models.schemas import AIMemory, SystemLog
+                from datetime import datetime, timedelta
+                
+                # 1. 保留最近 10 靴的微学习记忆，删除更早的
+                keep_boot_threshold = max(1, boot_number - 10)
+                await db.execute(delete(AIMemory).where(AIMemory.boot_number < keep_boot_threshold))
+                
+                # 2. 清理 30 天前的常规日志
+                thirty_days_ago = datetime.now() - timedelta(days=30)
+                await db.execute(delete(SystemLog).where(SystemLog.log_time < thirty_days_ago))
+                
+            except Exception as clean_err:
+                import logging
+                logging.getLogger(__name__).warning(f"数据清理任务失败: {clean_err}")
+            
             await db.commit()
     except Exception as e:
         sess.deep_learning_status["status"] = "失败"

@@ -96,12 +96,28 @@ class BettingService:
         """
         执行下注（扣款）
         
+        Raises:
+            ValueError: 下注金额小于最小限额或大于最大限额
+            Exception: 余额不足 (InsufficientBalance)
+            
         Returns:
             下注后余额
         """
+        from app.core.config import settings
+        
+        if amount <= 0:
+            raise ValueError(f"非法的下注金额: {amount}")
+            
+        if amount < settings.MIN_BET:
+            raise ValueError(f"下注金额 {amount} 低于最小限红 {settings.MIN_BET}")
+            
+        if amount > settings.MAX_BET:
+            raise ValueError(f"下注金额 {amount} 高于最大限红 {settings.MAX_BET}")
+
         if amount > self.balance:
-            amount = self.balance
-        self.balance -= amount
+            raise Exception(f"余额不足: 当前余额 {self.balance:.2f}，尝试下注 {amount:.2f}")
+            
+        self.balance = round(self.balance - amount, 2)
         return self.balance
     
     def settle_bet(

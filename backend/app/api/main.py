@@ -196,6 +196,8 @@ app.include_router(auth_router)
 
 
 # --- 管理员：查看数据库记录 ---
+from fastapi import Depends
+from app.api.routes.utils import get_current_user
 from app.models.schemas import GameRecord
 
 @app.get("/api/admin/database-records")
@@ -203,7 +205,7 @@ async def get_database_records(
     table_name: str = Query(..., pattern="^(game_records|bet_records|system_logs|mistake_book)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    # _: dict = Depends(get_current_user),
+    _: dict = Depends(get_current_user),
 ):
     """查看数据库记录（需认证）"""
     table_map = {

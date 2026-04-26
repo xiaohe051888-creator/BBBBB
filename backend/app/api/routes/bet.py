@@ -2,11 +2,12 @@
 下注记录路由
 """
 from typing import Optional
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from sqlalchemy import select, func
 
 from app.core.database import async_session
 from app.models.schemas import BetRecord
+from app.api.routes.utils import get_current_user
 
 router = APIRouter(prefix="/api/bets", tags=["下注"])
 
@@ -19,6 +20,7 @@ async def get_bet_records(
     page_size: int = Query(20, ge=1, le=100),
     sort_by: str = Query("bet_time", pattern="^(bet_time|game_number|bet_amount|profit_loss)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
+    _: dict = Depends(get_current_user),
 ):
     """获取下注记录（分页+筛选）"""
     async with async_session() as session:

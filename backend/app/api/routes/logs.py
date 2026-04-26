@@ -2,13 +2,14 @@
 日志路由
 """
 from typing import Optional
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from sqlalchemy import select, func
 
 from app.core.database import async_session
 from app.models.schemas import SystemLog
+from app.api.routes.utils import get_current_user
 
-router = APIRouter(prefix="/api/logs", tags=["日志"])
+router = APIRouter(prefix="/api/logs", tags=["系统日志"])
 
 
 @router.get("")
@@ -18,6 +19,7 @@ async def get_logs(
     game_number: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
+    _: dict = Depends(get_current_user),
 ):
     """获取实盘日志（分页+筛选）"""
     async with async_session() as session:

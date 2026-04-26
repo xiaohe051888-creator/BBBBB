@@ -11,7 +11,11 @@ from app.core.config import settings
 from app.services.game import get_current_state, get_session
 from app.api.routes.utils import get_current_user
 
-router = APIRouter(prefix="/api/system", tags=["系统状态"])
+router = APIRouter(
+    prefix="/api/system", 
+    tags=["系统状态"],
+    dependencies=[Depends(get_current_user)]
+)
 
 
 @router.get("/state")

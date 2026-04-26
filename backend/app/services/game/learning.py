@@ -139,7 +139,7 @@ async def micro_learning_previous_game(
         
         is_correct = prev_game.predict_correct if prev_game.predict_direction else False
         
-        await ai_learning.micro_learning(
+        learning_result = await ai_learning.micro_learning(
             boot_number=boot_number,
             game_number=prev_game_number,
             version_id=current_version.version_id if current_version else "default",
@@ -152,6 +152,9 @@ async def micro_learning_previous_game(
             player_evidence={"summary": "", "confidence": 0.5},
         )
         
+        if not learning_result.get("success"):
+            raise Exception(learning_result.get("error", "微学习内部异常"))
+        
         await broadcast_event("micro_learning", {
             "game_number": prev_game_number,
             "status": "完成",
@@ -162,6 +165,8 @@ async def micro_learning_previous_game(
         })
         
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"微学习失败(局号:{prev_game_number}): {e}", exc_info=True)
         await broadcast_event("micro_learning", {
             "game_number": prev_game_number,
             "status": "失败",
