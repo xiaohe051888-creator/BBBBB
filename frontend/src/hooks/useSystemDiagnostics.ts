@@ -264,14 +264,23 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
 
   useEffect(() => {
     if (!enabled) return;
-    // 使用setTimeout避免同步调用
-    const initialTimer = setTimeout(() => {
-      checkBackend();
-    }, 0);
-    backendCheckRef.current = setInterval(checkBackend, 15000);
+    
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let isMounted = true;
+
+    const runCheck = async () => {
+      if (!isMounted || isUnmountedRef.current) return;
+      await checkBackend();
+      if (isMounted && !isUnmountedRef.current) {
+        timer = setTimeout(runCheck, 15000);
+      }
+    };
+
+    timer = setTimeout(runCheck, 0);
+
     return () => {
-      clearTimeout(initialTimer);
-      if (backendCheckRef.current) clearInterval(backendCheckRef.current);
+      isMounted = false;
+      if (timer) clearTimeout(timer);
     };
   }, [enabled, checkBackend]);
 
@@ -345,14 +354,23 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
       }
     };
 
-    // 使用setTimeout避免同步调用
-    const initialTimer = setTimeout(() => {
-      checkAI();
-    }, 0);
-    const timer = setInterval(checkAI, 30000);
+    // 包装为一个递归调度的函数
+    let isMounted = true;
+    let loopTimer: ReturnType<typeof setTimeout> | null = null;
+    
+    const runAIAndSchedule = async () => {
+      if (!isMounted || isUnmountedRef.current) return;
+      await checkAI(); // 等待请求和状态处理完成
+      if (isMounted && !isUnmountedRef.current) {
+        loopTimer = setTimeout(runAIAndSchedule, 30000); // 调度下一次检查
+      }
+    };
+
+    loopTimer = setTimeout(runAIAndSchedule, 0);
+
     return () => {
-      clearTimeout(initialTimer);
-      clearInterval(timer);
+      isMounted = false;
+      if (loopTimer) clearTimeout(loopTimer);
       if (activeTimeout) clearTimeout(activeTimeout);
     };
   }, [enabled, addIssue, removeIssueBySource]);

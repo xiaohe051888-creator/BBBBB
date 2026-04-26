@@ -305,32 +305,38 @@ async def adjust_balance(
         sess = get_session()
         old_balance = sess.balance
 
-        if req.action == "add":
-            sess.balance += req.amount
-        else:
-            if sess.balance < req.amount:
-                raise HTTPException(400, "余额不足，无法扣减")
-            sess.balance -= req.amount
+        if req.action == "sub" and sess.balance < req.amount:
+            raise HTTPException(400, "余额不足，无法扣减")
 
-        async with async_session() as db:
-            stmt = select(SystemState).order_by(SystemState.id.desc()).limit(1)
-            res = await db.execute(stmt)
-            state = res.scalar_one_or_none()
-            if state:
-                state.balance = sess.balance
-            else:
-                from app.services.game.state import get_or_create_state
-                state = await get_or_create_state(db)
+        try:
+            async with async_session() as db:
+                stmt = select(SystemState).order_by(SystemState.id.desc()).limit(1)
+                res = await db.execute(stmt)
+                state = res.scalar_one_or_none()
+                if not state:
+                    from app.services.game.state import get_or_create_state
+                    state = await get_or_create_state(db)
+                
+                # Apply changes to both memory and DB safely inside transaction
+                if req.action == "add":
+                    sess.balance += req.amount
+                else:
+                    sess.balance -= req.amount
+                    
                 state.balance = sess.balance
 
-            action_text = "增加" if req.action == "add" else "扣除"
-            await write_game_log(
-                db, sess.boot_number, sess.next_game_number - 1,
-                "LOG-SYS-BAL", "管理员调账", "成功",
-                f"管理员手动{action_text}余额: {req.amount:.0f}，原余额: {old_balance:.0f}，现余额: {sess.balance:.0f}",
-                category="资金事件", priority="P1"
-            )
-            await db.commit()
+                action_text = "增加" if req.action == "add" else "扣除"
+                await write_game_log(
+                    db, sess.boot_number, sess.next_game_number - 1,
+                    "LOG-SYS-BAL", "管理员调账", "成功",
+                    f"管理员手动{action_text}余额: {req.amount:.0f}，原余额: {old_balance:.0f}，现余额: {sess.balance:.0f}",
+                    category="资金事件", priority="P1"
+                )
+                await db.commit()
+        except Exception as e:
+            # Rollback memory state on DB failure
+            sess.balance = old_balance
+            raise HTTPException(500, f"数据库同步失败: {str(e)}")
 
         await broadcast_event("state_update", {"balance": sess.balance})
 

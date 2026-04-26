@@ -61,6 +61,7 @@ async def upload_game_results(req: UploadRequest):
                         direction=prediction,
                         amount=res.get("bet_amount", 100)
                     )
+                    await session.commit()
         except Exception as e:
             import logging
             from app.services.game.logging import write_game_log

@@ -173,18 +173,33 @@ async def run_ai_analysis(
         }
     else:
         # 调用AI三模型服务
-        ai_service = ThreeModelService()
-
-        # 执行三模型分析
-        analysis_result = await ai_service.analyze(
-            game_number=next_game_number,
-            boot_number=boot_number,
-            game_history=game_history,
-            road_data=road_data,
-            mistake_context=mistake_context,
-            consecutive_errors=consecutive_errors,
-            prompt_template=prompt_template,
-        )
+        try:
+            ai_service = ThreeModelService()
+            # 执行三模型分析
+            analysis_result = await ai_service.analyze(
+                game_number=next_game_number,
+                boot_number=boot_number,
+                game_history=game_history,
+                road_data=road_data,
+                mistake_context=mistake_context,
+                consecutive_errors=consecutive_errors,
+                prompt_template=prompt_template,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"AI分析发生致命异常: {e}", exc_info=True)
+            # 触发降级为安全的错误回退结构，防止死锁卡死在“分析中”
+            analysis_result = {
+                "combined_model": {
+                    "final_prediction": "观望", 
+                    "confidence": 0.0, 
+                    "bet_tier": "保守", 
+                    "summary": f"系统异常，AI降级: {str(e)}"
+                },
+                "banker_model": {"summary": "分析失败"},
+                "player_model": {"summary": "分析失败"},
+                "bet_amount": 0
+            }
 
     # ================== 重新加锁更新状态 ==================
     async with lock:

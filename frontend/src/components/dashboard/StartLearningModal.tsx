@@ -16,6 +16,7 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
+    if (loading) return;
     setLoading(true);
     try {
       await onConfirm();

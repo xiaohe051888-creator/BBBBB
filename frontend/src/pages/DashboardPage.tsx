@@ -249,6 +249,7 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleConfirmReveal = async () => {
+    if (revealLoading) return;
     if (!revealResult) return;
     const gameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
     if (!gameNumber) return;

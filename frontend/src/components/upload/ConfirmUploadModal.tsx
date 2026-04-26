@@ -22,6 +22,7 @@ export const ConfirmUploadModal: React.FC<ConfirmUploadModalProps> = ({
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
+    if (loading) return;
     setLoading(true);
     try {
       await onConfirm();

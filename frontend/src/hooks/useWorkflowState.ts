@@ -193,7 +193,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
         clearInterval(timerRef.current);
       }
     };
-  }, [workflowState.status]);
+  }, [workflowState.status, message]);
   
   // ====== 计算计时器显示 ======
   

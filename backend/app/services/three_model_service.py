@@ -789,7 +789,10 @@ class ThreeModelService:
         elif "```" in json_str:
             json_str = json_str.split("```")[1].split("```")[0]
         
-        data = json.loads(json_str)
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError:
+            return {"is_complete": False}
         
         return {
             "model_type": model_type,
@@ -813,7 +816,10 @@ class ThreeModelService:
         elif "```" in json_str:
             json_str = json_str.split("```")[1].split("```")[0]
         
-        data = json.loads(json_str)
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError:
+            return {"is_complete": False}
         
         # 连续失准时强制保守档
         bet_tier = data.get("bet_tier", "标准")

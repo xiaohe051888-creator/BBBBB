@@ -244,41 +244,41 @@ async def _settle_bet(
         sess.pending_bet_time = None
         sess.pending_game_number = None
         
-        # 补丁：更新连续错误计数和错题本
-        # 我们把这段逻辑从 _settle_bet 中移到外面，确保即使用户手动跳过没有下注，
-        # 系统仍然能根据“AI预测方向”和“真实开奖结果”进行连续错误的累加，触发风控或退避
-        if result != "和" and sess.predict_direction:
-            if sess.predict_direction == result:
-                sess.consecutive_errors = 0
-            else:
-                sess.consecutive_errors += 1
-                # 仅当预测模式为 'ai' 时才将错误记录存入 AI 的错题本，避免污染模型记忆
-                if sess.consecutive_errors >= 1 and sess.prediction_mode == "ai":
-                    mistake = MistakeBook(
-                        boot_number=sess.boot_number,
-                        game_number=game_number,
-                        error_id=f"ERR-B{sess.boot_number}G{game_number}",
-                        error_type="趋势误判",
-                        predict_direction=sess.predict_direction or "",
-                        actual_result=result,
-                        banker_summary=sess.banker_summary,
-                        player_summary=sess.player_summary,
-                        combined_summary=sess.combined_summary,
-                        confidence=sess.predict_confidence,
-                        analysis=f"预测{sess.predict_direction}，实际开{result}，连续失准{sess.consecutive_errors}次",
-                    )
-                    db.add(mistake)
-                    
-                    await write_game_log(
-                        session=db,
-                        boot_number=sess.boot_number,
-                        game_number=game_number,
-                        event_code="LOG-ERR-001",
-                        event_type="记入错题本",
-                        event_result="-",
-                        description=f"第{game_number}局预测失准，已将现场盘面与证据链记入错题本。连续失准: {sess.consecutive_errors}次。",
-                        category="AI事件",
-                        priority="P1" if sess.consecutive_errors >= 2 else "P2"
-                    )
+    # 补丁：更新连续错误计数和错题本
+    # 我们把这段逻辑从 _settle_bet 中移到外面，确保即使用户手动跳过没有下注，
+    # 系统仍然能根据“AI预测方向”和“真实开奖结果”进行连续错误的累加，触发风控或退避
+    if result != "和" and sess.predict_direction:
+        if sess.predict_direction == result:
+            sess.consecutive_errors = 0
+        else:
+            sess.consecutive_errors += 1
+            # 仅当预测模式为 'ai' 时才将错误记录存入 AI 的错题本，避免污染模型记忆
+            if sess.consecutive_errors >= 1 and sess.prediction_mode == "ai":
+                mistake = MistakeBook(
+                    boot_number=sess.boot_number,
+                    game_number=game_number,
+                    error_id=f"ERR-B{sess.boot_number}G{game_number}",
+                    error_type="趋势误判",
+                    predict_direction=sess.predict_direction or "",
+                    actual_result=result,
+                    banker_summary=sess.banker_summary,
+                    player_summary=sess.player_summary,
+                    combined_summary=sess.combined_summary,
+                    confidence=sess.predict_confidence,
+                    analysis=f"预测{sess.predict_direction}，实际开{result}，连续失准{sess.consecutive_errors}次",
+                )
+                db.add(mistake)
+                
+                await write_game_log(
+                    session=db,
+                    boot_number=sess.boot_number,
+                    game_number=game_number,
+                    event_code="LOG-ERR-001",
+                    event_type="记入错题本",
+                    event_result="-",
+                    description=f"第{game_number}局预测失准，已将现场盘面与证据链记入错题本。连续失准: {sess.consecutive_errors}次。",
+                    category="AI事件",
+                    priority="P1" if sess.consecutive_errors >= 2 else "P2"
+                )
 
     return settlement_info
