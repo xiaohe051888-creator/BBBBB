@@ -339,7 +339,7 @@ const BetRecordsPage: React.FC = () => {
                 }
                 success={{ percent: 0 }}
                 strokeColor="#ff4d4f"
-                trailColor="#52c41a"
+                railColor="#52c41a"
                 format={() => `${summary.winCount}胜 / ${summary.lossCount}负`}
               />
             </div>
@@ -437,7 +437,7 @@ const BetRecordsPage: React.FC = () => {
               'data-label': typeof col.title === 'string' ? col.title : ''
             } as React.HTMLAttributes<HTMLElement>)
           }))}
-          rowKey={(r) => `bet-${r.game_number}-${r.bet_direction}`}
+          rowKey={(r, index) => `bet-${r.game_number}-${r.bet_direction}-${r.bet_amount}-${index}`}
           size="small"
           pagination={{
             current: page,

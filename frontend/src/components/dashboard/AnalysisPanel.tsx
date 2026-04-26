@@ -175,7 +175,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             size={34}
             format={() => `${((analysis.confidence || 0) * 100).toFixed(0)}%`}
             strokeColor={(analysis.confidence || 0) >= 0.7 ? '#52c41a' : '#faad14'}
-            trailColor="rgba(48,54,68,0.3)"
+            railColor="rgba(48,54,68,0.3)"
             strokeWidth={3}
             style={{ fontSize: 10 }}
           />
