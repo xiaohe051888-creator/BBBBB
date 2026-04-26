@@ -346,13 +346,17 @@ async def update_prediction_mode(
         raise HTTPException(400, "Invalid prediction mode")
     
     async with async_session() as session:
-        stmt = select(SystemState)
+        stmt = select(SystemState).order_by(SystemState.id.desc()).limit(1)
         result = await session.execute(stmt)
         state = result.scalar_one_or_none()
         
         if state:
             state.prediction_mode = req.mode
-            await session.commit()
+        else:
+            from app.services.game.state import get_or_create_state
+            state = await get_or_create_state(session)
+            state.prediction_mode = req.mode
+        await session.commit()
             
         mem_sess = get_session()
         mem_sess.prediction_mode = req.mode

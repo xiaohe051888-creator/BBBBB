@@ -206,6 +206,13 @@ async def run_deep_learning(
                 category="AI事件",
                 priority="P1",
             )
+            
+            state = await get_or_create_state(db)
+            state.status = "等待新靴"
+            state.predict_direction = None
+            state.predict_confidence = None
+            state.current_bet_tier = "标准"
+            
             await db.commit()
     except Exception as e:
         sess.deep_learning_status["status"] = "失败"

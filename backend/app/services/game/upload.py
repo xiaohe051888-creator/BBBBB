@@ -194,6 +194,10 @@ async def upload_games(
             state.boot_number = boot_number
             state.game_number = max_game
             state.balance = sess.balance
+            state.consecutive_errors = 0
+            state.predict_direction = None
+            state.predict_confidence = None
+            state.current_bet_tier = "标准"
             
             # 记录重置日志
             action_type = "开启新靴" if is_new_boot else "覆盖本靴"

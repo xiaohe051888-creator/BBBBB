@@ -273,7 +273,11 @@ class SmartModelSelector:
         
         if state:
             state.current_model_version = result["selected_version"]
-            await self.session.commit()
+        else:
+            from app.services.game.state import get_or_create_state
+            state = await get_or_create_state(self.session)
+            state.current_model_version = result["selected_version"]
+        await self.session.commit()
     
     async def get_current_version(self) -> Optional[ModelVersion]:
         """

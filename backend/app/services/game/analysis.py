@@ -43,12 +43,15 @@ async def run_ai_analysis(
             records = result.scalars().all()
             
             if not records:
+                sess.status = "错误"
                 await write_game_log(
                     db, boot_number, sess.next_game_number,
                     "LOG-VAL-003", "AI分析", "失败",
                     f"AI分析失败：靴号{boot_number}无历史数据",
                     priority="P2",
                 )
+                state = await get_or_create_state(db)
+                state.status = "错误"
                 await db.commit()
                 return {"success": False, "error": "无历史数据可供分析"}
             
@@ -93,6 +96,9 @@ async def run_ai_analysis(
                     # 自动降级为规则引擎
                     prediction_mode = "rule"
                     sess.prediction_mode = "rule"
+                    state = await get_or_create_state(db)
+                    state.prediction_mode = "rule"
+                    await db.commit()
                     sess._api_configured_checked = False
                     import logging
                     logging.getLogger(__name__).warning("未配置AI大模型API Key，系统已自动降级为强规则引擎模式！")
@@ -203,6 +209,7 @@ async def run_ai_analysis(
             state = await get_or_create_state(db)
             state.predict_direction = sess.predict_direction
             state.predict_confidence = sess.predict_confidence
+            state.current_bet_tier = sess.predict_bet_tier
             
             await write_game_log(
                 db, boot_number, sess.next_game_number,

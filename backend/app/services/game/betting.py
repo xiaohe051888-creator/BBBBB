@@ -98,6 +98,7 @@ async def place_bet(
             state = await get_or_create_state(db)
             state.status = "等待开奖"
             state.balance = balance_after
+            state.current_bet_tier = sess.pending_bet_tier
             
             await write_game_log(
                 db, sess.boot_number, game_number,
