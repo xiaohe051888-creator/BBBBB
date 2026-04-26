@@ -39,6 +39,7 @@ from app.models.schemas import (
     GameRecord, ModelVersion, MistakeBook, AIMemory,
     LogPriority, LogCategory, SystemLog,
 )
+from app.services.game.logging import write_game_log
 
 logger = logging.getLogger(__name__)
 
@@ -857,6 +858,19 @@ class AILearningService:
             self.session.add(memory)
             await self.session.commit()
             
+            # 如果是预测错误导致的微学习，记录到系统日志
+            if not is_correct and self_reflection:
+                await write_game_log(
+                    self.session,
+                    category="AI事件",
+                    priority="P2",
+                    event_type="AI微学习",
+                    event_result="成功",
+                    description=f"第{game_number}局预测失准，AI已完成深度复盘并生成短期记忆。反思: {self_reflection.get('lesson', '调整策略模型')}。",
+                    game_number=game_number,
+                    boot_number=boot_number,
+                )
+
             # 4. 更新版本性能
             await self.update_version_performance(version_id, is_correct)
             
