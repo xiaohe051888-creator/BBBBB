@@ -296,8 +296,13 @@ export const useAddLogOptimistically = () => {
         if (newLog.id && oldData.logs.some(l => l.id === newLog.id)) {
           return oldData;
         }
+        
+        // 动态保持当前数组容量上限，不强制缩水，并允许最多缓冲到 500 条
+        const currentLength = oldData.logs.length;
+        const maxLimit = Math.max(currentLength + 1, 500);
+
         return {
-          logs: [newLog, ...oldData.logs].slice(0, 50),
+          logs: [newLog, ...oldData.logs].slice(0, maxLimit),
           total: oldData.total + 1,
         };
       }
