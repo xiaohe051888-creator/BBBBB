@@ -47,7 +47,11 @@ const LogsPage: React.FC = () => {
   }, [searchText]);
 
   // React Query获取数据（乐观UI：永远不显示loading，数据来了直接渲染）
-  const { data: logsData } = useLogsQuery({});
+  const { data: logsData } = useLogsQuery({
+    category: filterCategory || undefined,
+    page: 1,
+    pageSize: 200 // 初始拉取200条以保证筛选和过滤时数据充足
+  });
 
   // 使用useMemo缓存logs，避免useMemo依赖变化
   const logs = useMemo(() => logsData?.logs || [], [logsData]);
