@@ -160,6 +160,8 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
             style={{
               width: 8,
               height: 8,
+              minWidth: 8,
+              minHeight: 8,
               borderRadius: '50%',
               backgroundColor: color,
               flexShrink: 0,
@@ -201,8 +203,11 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
           <div style={{
             width: 8,
             height: 8,
+            minWidth: 8,
+            minHeight: 8,
             borderRadius: '50%',
             backgroundColor: healthColor(overallHealth),
+            flexShrink: 0,
             animation: (overallHealth === 'critical' || overallHealth === 'warning') ? 'pulse-glow 1.5s infinite' : undefined,
           }} />
           <span style={{ fontSize: 13, fontWeight: 600, color: '#e6edf3' }}>系统状态</span>
@@ -336,6 +341,8 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
                   <div style={{
                     width: 6,
                     height: 6,
+                    minWidth: 6,
+                    minHeight: 6,
                     borderRadius: '50%',
                     backgroundColor: issueColor(issue.level),
                     marginTop: 4,

@@ -33,7 +33,7 @@
 
   /* 最新开奖与下局预测卡片紧凑化 */
   .top-status-bar .predict-pulse-container,
-  .top-status-bar > div > div > div:nth-child(2) > div {
+  .top-status-bar .latest-result {
     padding: 4px 10px !important;
     gap: 6px !important;
   }

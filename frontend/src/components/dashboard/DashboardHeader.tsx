@@ -117,7 +117,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             flexWrap: 'wrap',
           }}>
             {/* 左半部分：最新开奖 */}
-            <div style={{ padding: '6px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div className="latest-result" style={{ padding: '6px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>最新开奖</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 20, fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
