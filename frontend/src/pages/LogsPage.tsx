@@ -378,7 +378,7 @@ const LogsPage: React.FC = () => {
                 pageSizeOptions: ['20', '50', '100', '200'],
                 size: 'small',
               }}
-              scroll={{ x: 'max-content', y: 'calc(max(300px, 100vh - 380px))' }}
+              scroll={{ y: 'calc(100vh - 380px)' }}
               locale={{ emptyText: '暂无日志记录' }}
               rowClassName={(record) => {
                 if (record.is_pinned) return 'log-pinned';
