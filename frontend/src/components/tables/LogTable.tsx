@@ -2,7 +2,7 @@
  * 实盘日志表格组件 - 自适应布局，无横向滚动
  */
 import React from 'react';
-import { Table, Space } from 'antd';
+import { Table, Space, Modal, Button } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { PRIORITY_COLORS } from '../../utils/constants';
@@ -108,9 +108,41 @@ const LogTable: React.FC<LogTableProps> = ({
       title: '说明',
       dataIndex: 'description',
       width: '45%',
-      render: (v: string) => (
-        <span style={{ fontSize: 12, color: '#c9d1d9', lineHeight: 1.4 }}>{v}</span>
-      ),
+      render: (v: string, record: LogEntry) => {
+        if (!v) return <span style={{ fontSize: 12, color: '#c9d1d9' }}>-</span>;
+        
+        const isLong = v.length > 25;
+        const displayStr = isLong ? v.substring(0, 25) + '...' : v;
+        
+        return (
+          <Space size={4} wrap>
+            <span style={{ fontSize: 12, color: '#c9d1d9', lineHeight: 1.4 }}>{displayStr}</span>
+            {isLong && (
+              <Button
+                type="link"
+                size="small"
+                style={{ padding: 0, fontSize: 12 }}
+                onClick={() => {
+                  Modal.info({
+                    title: `日志详情 - ${record.event_type}`,
+                    width: 600,
+                    maskClosable: true,
+                    content: (
+                      <div style={{ maxHeight: '60vh', overflowY: 'auto', marginTop: 16 }}>
+                        <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontSize: 13, color: '#c9d1d9', backgroundColor: '#161b22', padding: 12, borderRadius: 6 }}>
+                          {v}
+                        </pre>
+                      </div>
+                    ),
+                  });
+                }}
+              >
+                详情
+              </Button>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
