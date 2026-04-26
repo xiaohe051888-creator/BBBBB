@@ -113,6 +113,16 @@
     box-sizing: border-box !important; /* 防止父容器 100% 溢出屏幕 */
   }
 
+  /* 移除移动端表格可能产生的内部嵌套滚动条，让整个页面自然滚动 */
+  .mobile-card-table .ant-table-body {
+    display: block !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
   .mobile-card-table colgroup {
     display: none !important;
   }
@@ -127,36 +137,40 @@
     box-sizing: border-box !important; /* 强制把 padding 算在宽度内，防止卡片右侧被裁剪 */
   }
 
+  /* 修复：使用 Block + 绝对定位左侧标签，从而完美支持单行文字截断 (Ellipsis) */
   .mobile-card-table .ant-table-tbody > tr > td {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 6px 0 !important;
+    display: block !important;
+    position: relative !important;
+    padding: 6px 0 6px 70px !important; /* 左侧留出 70px 空间给 ::before 的标签 */
     border: none !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    text-align: right !important; /* 右侧内容靠右对齐 */
+    min-height: 32px !important;
+    
+    /* 强制所有行单行显示、超出截断 */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
-  /* 使用 ::before 伪元素把列名重新显示出来 */
+  /* 使用 ::before 伪元素把列名绝对定位在左侧 */
   .mobile-card-table .ant-table-tbody > tr > td::before {
     content: attr(data-label);
+    position: absolute;
+    left: 0;
+    top: 6px;
     color: rgba(255,255,255,0.45);
     font-size: 13px;
     font-weight: 500;
-    min-width: 60px;
     text-align: left;
-    margin-right: 12px;
-    flex-shrink: 0;
+    white-space: nowrap;
   }
 
+  /* 清除之前可能遗留的 flex 属性 */
   .mobile-card-table .ant-table-cell {
-    text-align: right !important;
-    flex: 1 1 auto;
-    min-width: 0; /* 允许截断 */
-    overflow: hidden;
-    display: flex;
-    justify-content: flex-end;
+    /* 重置为空，由上面的 td 选择器接管 */
   }
 
   /* 6. 防误触与热区放大 */
