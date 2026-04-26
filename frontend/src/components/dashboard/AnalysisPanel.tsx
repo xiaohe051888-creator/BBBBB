@@ -189,7 +189,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* 庄模型 */}
         <div className="model-block model-block-banker">
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
             <span className="model-icon-badge" style={{ color: '#ff4d4f', fontWeight: 700 }}>B</span>
             <span style={{ fontWeight: 700, fontSize: 13, color: '#ff4d4f' }}>庄模型</span>
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,77,79,0.5)', background: 'rgba(255,77,79,0.08)', padding: '1px 8px', borderRadius: 8 }}>
@@ -201,7 +201,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
 
         {/* 闲模型 */}
         <div className="model-block model-block-player">
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
             <span className="model-icon-badge" style={{ color: '#1890ff', fontWeight: 700 }}>P</span>
             <span style={{ fontWeight: 700, fontSize: 13, color: '#1890ff' }}>闲模型</span>
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(24,144,255,0.5)', background: 'rgba(24,144,255,0.08)', padding: '1px 8px', borderRadius: 8 }}>
@@ -213,7 +213,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
 
         {/* 综合模型 */}
         <div className="model-block model-block-combined" style={{ marginBottom: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
             <span className="model-icon-badge" style={{ color: '#52c41a', fontWeight: 700 }}>AI</span>
             <span style={{ fontWeight: 700, fontSize: 13, color: '#52c41a' }}>综合模型</span>
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(82,196,26,0.5)', background: 'rgba(82,196,26,0.08)', padding: '1px 8px', borderRadius: 8 }}>

@@ -121,7 +121,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             {/* 左半部分：最新开奖 */}
             <div style={{ padding: '6px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>最新开奖</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 20, fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
                   {Math.min(systemState?.game_number || 0, 72)} <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.45)' }}>局</span>
                 </span>
@@ -163,7 +163,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               boxShadow: '0 0 15px rgba(255,215,0,0.15) inset'
             }}>
               <span style={{ fontSize: 13, color: '#ffd666', letterSpacing: 1, fontWeight: 600 }}>下局预测</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 {(systemState?.game_number || 0) >= 72 ? (
                   <span style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,215,0,0.8)' }}>
                     本靴结束，请新开一靴
@@ -285,7 +285,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <div style={{ height: 4, background: 'linear-gradient(90deg, #ff4d4f, #ff7875, #ff4d4f)' }} />
           
           <div style={{ padding: 'clamp(20px, 4vw, 32px) clamp(16px, 4vw, 32px) clamp(16px, 3vw, 24px)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ 
                 width: 48, 
                 height: 48, 
@@ -395,7 +395,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           }} />
           
           <div style={{ padding: '32px 32px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ 
                 width: 48, 
                 height: 48, 

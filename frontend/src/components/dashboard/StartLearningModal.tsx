@@ -41,7 +41,7 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
           borderRadius: 16,
           border: '1px solid rgba(114,46,209,0.15)', // Purple
           boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
-          padding: '32px 24px 24px',
+          padding: 'clamp(20px, 4vw, 32px) clamp(16px, 3vw, 24px) clamp(16px, 3vw, 24px)',
         }
       }}
       closeIcon={<span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 18 }}>×</span>}

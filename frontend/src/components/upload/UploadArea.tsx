@@ -81,7 +81,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
         <button
           onClick={() => navigate('/dashboard')}
           style={{
-            padding: '14px 28px',
+            padding: 'clamp(10px, 2vw, 14px) clamp(16px, 4vw, 28px)',
             borderRadius: 12,
             border: '1px solid rgba(255,255,255,0.12)',
             background: 'linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
@@ -107,7 +107,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
           onClick={onUpload}
           disabled={uploading || filled === 0}
           style={{
-            padding: '14px 32px',
+            padding: 'clamp(10px, 2vw, 14px) clamp(16px, 4vw, 32px)',
             borderRadius: 12,
             border: 'none',
             background: filled === 0
