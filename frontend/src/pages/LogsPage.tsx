@@ -225,7 +225,7 @@ const LogsPage: React.FC = () => {
       dataIndex: 'category',
       width: '10%',
       render: (v: string) => (
-        <Tag style={{ fontSize: 10, padding: '0 4px' }}>{v.slice(0, 4)}</Tag>
+        <Tag style={{ fontSize: 10, padding: '0 4px' }}>{v?.slice(0, 4)}</Tag>
       ),
     },
     {
