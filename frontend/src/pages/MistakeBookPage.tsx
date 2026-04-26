@@ -393,8 +393,14 @@ const MistakeBookPage: React.FC = () => {
       {/* 数据表格 - 自适应布局，无横向滚动 */}
       <Card size="small">
         <Table
+          className="mobile-card-table"
           dataSource={filtered}
-          columns={columns}
+          columns={columns.map(col => ({
+            ...col,
+            onCell: () => ({
+              'data-label': typeof col.title === 'string' ? col.title : ''
+            } as React.HTMLAttributes<HTMLElement>)
+          }))}
           rowKey={(r) => `mistake-${r.id}-${r.game_number}`}
           size="small"
           pagination={{

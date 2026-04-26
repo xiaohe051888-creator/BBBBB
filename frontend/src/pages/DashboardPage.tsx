@@ -304,7 +304,7 @@ const DashboardPage: React.FC = () => {
       {/* 主体内容 */}
       <div className="dashboard-main-grid" style={{ padding: 16, display: 'flex', gap: 16, flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
         {/* 左侧：五路走势图 */}
-        <div style={{ flex: '1 1 500px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
+        <div className="left-panel" style={{ flex: '1 1 500px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
           <div className="road-card" style={{ background: '#1a1d24', borderRadius: 12, padding: 16, marginBottom: 16, overflow: 'hidden', minHeight: 400 }}>
             <div className="section-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
               <span style={{ color: '#58a6ff', marginRight: 8 }}>
@@ -365,7 +365,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* 右侧：分析面板 + 数据表格 */}
-        <div style={{ flex: '1 1 400px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="right-panel" style={{ flex: '1 1 400px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* 智能分析 */}
           <AnalysisPanel
             analysis={analysis ?? null}

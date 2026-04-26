@@ -429,8 +429,14 @@ const BetRecordsPage: React.FC = () => {
       {/* 数据表格 - 自适应布局 */}
       <Card size="small">
         <Table
+          className="mobile-card-table"
           dataSource={filteredBets}
-          columns={columns}
+          columns={columns.map(col => ({
+            ...col,
+            onCell: () => ({
+              'data-label': typeof col.title === 'string' ? col.title : ''
+            } as React.HTMLAttributes<HTMLElement>)
+          }))}
           rowKey={(r) => `bet-${r.game_number}-${r.bet_direction}`}
           size="small"
           pagination={{

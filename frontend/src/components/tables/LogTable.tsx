@@ -116,8 +116,14 @@ const LogTable: React.FC<LogTableProps> = ({
 
   return (
     <Table
+      className="mobile-card-table"
       dataSource={data}
-      columns={columns}
+      columns={columns.map(col => ({
+        ...col,
+        onCell: () => ({
+          'data-label': typeof col.title === 'string' ? col.title : ''
+        } as React.HTMLAttributes<HTMLElement>)
+      }))}
       rowKey={(record) => record.id || Math.random().toString(36).substr(2, 9)}
       size="small"
       loading={loading}

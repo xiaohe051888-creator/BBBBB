@@ -357,8 +357,14 @@ const LogsPage: React.FC = () => {
           {/* 日志表格 - 乐观UI：永远不显示loading，数据来了直接渲染 */}
           <Card size="small">
             <Table
+              className="mobile-card-table"
               dataSource={filteredLogs}
-              columns={columns}
+              columns={columns.map(col => ({
+                ...col,
+                onCell: () => ({
+                  'data-label': typeof col.title === 'string' ? col.title : ''
+                } as React.HTMLAttributes<HTMLElement>)
+              }))}
               rowKey="id"
               size="small"
               pagination={{
