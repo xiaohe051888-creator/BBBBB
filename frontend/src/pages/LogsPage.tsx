@@ -69,7 +69,7 @@ const LogsPage: React.FC = () => {
 
   // 手动刷新
   const handleRefresh = () => {
-        queryClient.invalidateQueries({ queryKey: ['logs'] });
+    queryClient.invalidateQueries({ queryKey: ['logs'] });
   };
 
   // WebSocket实时推送

@@ -101,10 +101,32 @@
   
   /* 5. 底部表格转换为移动端信息流卡片 (Card List) */
   /* 这里我们使用 CSS 强制隐藏 Table 的 Header，并把 tr 变成 card */
-  .mobile-card-table .ant-table-thead {
-    display: none !important; /* 隐藏表头 */
+  .mobile-card-table .ant-table-thead,
+  .mobile-card-table .ant-table-header {
+    display: none !important; /* 彻底隐藏表头及其外层包裹的暗色背景占位盒子 */
   }
-  
+
+  .mobile-card-table table,
+  .mobile-card-table .ant-table-tbody {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important; /* 防止父容器 100% 溢出屏幕 */
+  }
+
+  /* 移除移动端表格可能产生的内部嵌套滚动条，让整个页面自然滚动 */
+  .mobile-card-table .ant-table-body {
+    display: block !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .mobile-card-table colgroup {
+    display: none !important;
+  }
+
   .mobile-card-table .ant-table-tbody > tr {
     display: block !important;
     background: rgba(255,255,255,0.02) !important;
@@ -112,16 +134,20 @@
     border-radius: 12px !important;
     margin-bottom: 12px !important;
     padding: 12px !important;
+    box-sizing: border-box !important; /* 强制把 padding 算在宽度内，防止卡片右侧被裁剪 */
   }
-  
+
   .mobile-card-table .ant-table-tbody > tr > td {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
     padding: 4px 0 !important;
     border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
-  
+
   /* 使用 ::before 伪元素把列名重新显示出来 */
   .mobile-card-table .ant-table-tbody > tr > td::before {
     content: attr(data-label);
@@ -129,7 +155,7 @@
     font-size: 13px;
     font-weight: 500;
   }
-  
+
   .mobile-card-table .ant-table-cell {
     text-align: right !important;
   }
