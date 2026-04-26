@@ -104,7 +104,17 @@
   .mobile-card-table .ant-table-thead {
     display: none !important; /* 隐藏表头 */
   }
-  
+
+  .mobile-card-table table,
+  .mobile-card-table .ant-table-tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .mobile-card-table colgroup {
+    display: none !important;
+  }
+
   .mobile-card-table .ant-table-tbody > tr {
     display: block !important;
     background: rgba(255,255,255,0.02) !important;
@@ -113,25 +123,37 @@
     margin-bottom: 12px !important;
     padding: 12px !important;
   }
-  
+
   .mobile-card-table .ant-table-tbody > tr > td {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    padding: 4px 0 !important;
+    padding: 6px 0 !important;
     border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
-  
+
   /* 使用 ::before 伪元素把列名重新显示出来 */
   .mobile-card-table .ant-table-tbody > tr > td::before {
     content: attr(data-label);
     color: rgba(255,255,255,0.45);
     font-size: 13px;
     font-weight: 500;
+    min-width: 60px;
+    text-align: left;
+    margin-right: 12px;
+    flex-shrink: 0;
   }
-  
+
   .mobile-card-table .ant-table-cell {
     text-align: right !important;
+    flex: 1 1 auto;
+    min-width: 0; /* 允许截断 */
+    overflow: hidden;
+    display: flex;
+    justify-content: flex-end;
   }
 
   /* 6. 防误触与热区放大 */
