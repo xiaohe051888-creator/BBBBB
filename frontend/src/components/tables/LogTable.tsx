@@ -118,7 +118,7 @@ const LogTable: React.FC<LogTableProps> = ({
     <Table
       dataSource={data}
       columns={columns}
-      rowKey={(record) => record.id || Math.random().toString(36).substr(2, 9)}
+      rowKey={(record) => record.id ? String(record.id) : `log-${record.game_number || 0}-${record.event_code}-${record.log_time || ''}`}
       size="small"
       loading={loading}
       pagination={{

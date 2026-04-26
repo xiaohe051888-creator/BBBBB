@@ -437,7 +437,7 @@ const BetRecordsPage: React.FC = () => {
               'data-label': typeof col.title === 'string' ? col.title : ''
             } as React.HTMLAttributes<HTMLElement>)
           }))}
-          rowKey={(r, index) => `bet-${r.game_number}-${r.bet_direction}-${r.bet_amount}-${index}`}
+          rowKey={(r) => `bet-${r.game_number}-${r.bet_direction}-${r.bet_amount}-${r.bet_time || r.balance_before}`}
           size="small"
           pagination={{
             current: page,

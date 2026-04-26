@@ -99,7 +99,7 @@ const BetTable: React.FC<BetTableProps> = ({
           'data-label': typeof col.title === 'string' ? col.title : ''
         } as React.HTMLAttributes<HTMLElement>)
       }))}
-      rowKey={(r) => `bet-${r.game_number}-${r.bet_time || Date.now()}`}
+      rowKey={(r) => `bet-${r.game_number}-${r.bet_time || r.balance_before}`}
       size="small"
       loading={loading}
       pagination={{

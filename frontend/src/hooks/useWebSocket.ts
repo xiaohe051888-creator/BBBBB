@@ -184,8 +184,16 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
             clearTimeout(reconnectTimerRef.current);
           }
           if (wsRef.current) {
-            wsRef.current.onclose = null;
-            wsRef.current.close();
+            const ws = wsRef.current;
+            ws.onclose = null;
+            ws.onerror = null;
+            ws.onmessage = null;
+            if (ws.readyState === WebSocket.CONNECTING) {
+              // 避免 React 18 StrictMode 快速卸载时直接 close 导致的浏览器 console warning
+              ws.onopen = () => ws.close();
+            } else {
+              ws.close();
+            }
             wsRef.current = null;
           }
         };
