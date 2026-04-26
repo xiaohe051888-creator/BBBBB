@@ -247,10 +247,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <Button
                 icon={<LockOutlined />}
                 onClick={onOpenLogin}
-                title="登录"
+                title="管理员登录"
+                aria-label="管理员登录"
                 style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: 8, height: 36 }}
               >
-                <span>登录</span>
+                <span>管理员登录</span>
               </Button>
             )}
           </Space>

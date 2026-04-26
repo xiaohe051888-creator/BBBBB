@@ -163,6 +163,7 @@ const RevealModal: React.FC<RevealModalProps> = ({
         loading={loading}
         disabled={!result}
         onClick={onConfirm}
+        aria-label="确认开奖"
         style={{
           background: result
             ? 'linear-gradient(135deg,#52c41a,#389e0d)'

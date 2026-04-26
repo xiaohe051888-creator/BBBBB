@@ -196,6 +196,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
               borderRadius: 8,
               boxShadow: '0 4px 20px rgba(250,173,20,0.4)',
             }}
+            aria-label="开奖"
           >
             <TargetIcon width={16} height={16} /> 开奖
           </Button>

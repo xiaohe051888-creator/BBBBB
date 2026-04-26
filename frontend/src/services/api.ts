@@ -46,6 +46,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // 忽略 401 报错，不向控制台抛出异常或全局拦截，交给调用方处理
+    if (error.response?.status === 401) {
+      clearToken();
+      return Promise.reject(error);
+    }
     // 优先提取后端返回的详细错误信息 (FastAPI 默认在 detail 字段中)
     if (error.response?.data?.detail) {
       const detail = error.response.data.detail;
