@@ -35,9 +35,9 @@ export const BeadRoadGrid: React.FC<BeadRoadGridProps> = ({
       {/* 珠盘路网格 - 竖排布局 (1/7/13... 一列) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${BEAD_COLS}, 1fr)`,
+        gridTemplateColumns: `repeat(${BEAD_COLS}, minmax(28px, 1fr))`,
         gap: 'clamp(4px, 1vw, 8px)',
-        maxWidth: '100%',
+        minWidth: 'max-content',
       }}>
         {Array.from({ length: BEAD_COLS * BEAD_ROWS }).map((_, idx) => {
           // 竖排布局：idx 0 -> game 1, idx 1 -> game 7, idx 6 -> game 2
@@ -103,8 +103,9 @@ export const BeadRoadGrid: React.FC<BeadRoadGridProps> = ({
       {/* 列号标注 */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${BEAD_COLS}, 1fr)`,
+        gridTemplateColumns: `repeat(${BEAD_COLS}, minmax(28px, 1fr))`,
         gap: 'clamp(4px, 1vw, 8px)',
+        minWidth: 'max-content',
         marginTop: 8,
       } as React.CSSProperties}>
         {Array.from({ length: BEAD_COLS }).map((_, colIdx) => (

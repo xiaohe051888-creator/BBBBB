@@ -48,7 +48,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
         
 
         {/* 局数控制 */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>局数</span>
           <div style={{
             display: 'flex',
@@ -131,7 +131,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
         justifyContent: 'center',
       }}>
         {/* 快捷填充 */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>快捷</span>
           {QUICK_FILLS.map(f => (
             <button

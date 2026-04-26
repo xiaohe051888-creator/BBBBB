@@ -299,7 +299,7 @@ const AdminPage: React.FC = () => {
           <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600 }}>管理员后台</span>
           <Tag color="blue">手动模式</Tag>
         </div>
-        <div className="page-nav-right" style={{ display: 'flex', gap: 8 }}>
+        <div className="page-nav-right" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Button icon={<Icons.Key />} onClick={() => setChangePwdVisible(true)} size="small">修改密码</Button>
           <Button danger icon={<Icons.Logout />} onClick={() => { clearToken(); navigate('/'); }} size="small">退出登录</Button>
         </div>
@@ -337,7 +337,7 @@ const AdminPage: React.FC = () => {
                             opacity: (threeModelStatus && !threeModelStatus?.models?.banker?.api_key_set && !threeModelStatus?.models?.player?.api_key_set && !threeModelStatus?.models?.combined?.api_key_set) ? 0.6 : 1
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                             <Icons.Brain /> <span style={{ fontSize: 16, fontWeight: 'bold' }}>3个AI大模型预测</span>
                             {predictionMode === 'ai' && <Tag color="purple" style={{ marginLeft: 'auto' }}>当前激活</Tag>}
                             {(threeModelStatus && !threeModelStatus?.models?.banker?.api_key_set && !threeModelStatus?.models?.player?.api_key_set && !threeModelStatus?.models?.combined?.api_key_set) && (
@@ -359,7 +359,7 @@ const AdminPage: React.FC = () => {
                             background: predictionMode === 'rule' ? 'rgba(24,144,255,0.1)' : 'transparent'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                             <Icons.Trend /> <span style={{ fontSize: 16, fontWeight: 'bold' }}>强规则引擎预测</span>
                             {predictionMode === 'rule' && <Tag color="blue" style={{ marginLeft: 'auto' }}>当前激活</Tag>}
                           </div>
@@ -384,7 +384,7 @@ const AdminPage: React.FC = () => {
                       type="number"
                       value={balanceAmount}
                       onChange={(e) => setBalanceAmount(e.target.value)}
-                      style={{ width: 200, background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+                      style={{ width: 200, maxWidth: '100%', background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                     />
                     <Button 
                       type="primary" 
@@ -411,7 +411,7 @@ const AdminPage: React.FC = () => {
                     <Row gutter={[12, 12]}>
                       <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #ff4d4f', background: 'rgba(255,77,79,0.04)' }}>
-                          <div style={{ fontWeight: 700, color: '#ff4d4f', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ fontWeight: 700, color: '#ff4d4f', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Banker /> 庄模型</span>
                             <Button type="link" size="small" onClick={() => handleOpenApiConfig('banker')}>配置 API</Button>
                           </div>
@@ -429,7 +429,7 @@ const AdminPage: React.FC = () => {
                       </Col>
                       <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #1890ff', background: 'rgba(24,144,255,0.04)' }}>
-                          <div style={{ fontWeight: 700, color: '#1890ff', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ fontWeight: 700, color: '#1890ff', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Player /> 闲模型</span>
                             <Button type="link" size="small" onClick={() => handleOpenApiConfig('player')}>配置 API</Button>
                           </div>
@@ -447,7 +447,7 @@ const AdminPage: React.FC = () => {
                       </Col>
                       <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #52c41a', background: 'rgba(82,196,26,0.04)' }}>
-                          <div style={{ fontWeight: 700, color: '#52c41a', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ fontWeight: 700, color: '#52c41a', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Brain /> 综合模型</span>
                             <Button type="link" size="small" onClick={() => handleOpenApiConfig('combined')}>配置 API</Button>
                           </div>
@@ -535,7 +535,7 @@ const AdminPage: React.FC = () => {
                   <Select
                     value={dbTable}
                     onChange={(v) => { setDbTable(v); setDbPage(1); }}
-                    style={{ width: 160 }}
+                    style={{ width: 160, maxWidth: '100%' }}
                     options={[
                       { label: '开奖记录', value: 'game_records' },
                       { label: '下注记录', value: 'bet_records' },

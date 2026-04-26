@@ -242,7 +242,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
         onClick={() => setLoginVisible(true)}
         style={{
           position: 'fixed',
-          top: 16,
+          top: 'env(safe-area-inset-top, 16px)', // 适配刘海屏
           right: 16,
           zIndex: 10,
           padding: '8px 16px',
@@ -258,6 +258,7 @@ const UploadPage: React.FC<UploadPageProps> = () => {
           gap: 6,
           backdropFilter: 'blur(8px)',
           transition: 'all 0.2s',
+          marginTop: 16 // 为不支持env的浏览器做降级
         }}
       >
         <UploadIcons.Admin />
