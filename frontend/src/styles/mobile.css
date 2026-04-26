@@ -15,20 +15,20 @@
     gap: 8px !important;
   }
   
-  /* 隐藏桌面端多余的文字标签 */
-  .top-status-bar .ant-btn span:not(.anticon) {
-    display: none !important;
+  /* 恢复结束本靴的展示，因为它非常重要，或者说让图标能明确展示出来，由于文字隐藏可能会产生误解，我们恢复所有移动端按钮文字，只进行轻微的缩小和优化即可 */
+  .top-status-bar .mobile-action-group .ant-btn span:not(.anticon) {
+    display: inline-block !important;
+    font-size: 12px !important;
   }
   
-  /* 操作按钮压缩为纯图标圆角矩形 */
-  .top-status-bar .ant-btn {
-    width: 36px !important;
-    height: 36px !important;
-    padding: 0 !important;
+  .top-status-bar .mobile-action-group .ant-btn {
+    width: auto !important;
+    height: 32px !important;
+    padding: 0 10px !important;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 10px !important;
+    border-radius: 8px !important;
   }
 
   /* 最新开奖与下局预测卡片紧凑化 */
