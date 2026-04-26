@@ -413,10 +413,10 @@ const MistakeBookPage: React.FC = () => {
           }}
           scroll={{ x: 'max-content', y: 'calc(max(300px, 100vh - 520px))' }}
           locale={{ emptyText: <Empty description={
-            <span>
-              暂无错题记录<br />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+              <span>暂无错题记录</span>
               <span style={{ color: '#8b949e', fontSize: 12 }}>预测正确时不会产生错题记录 ✅</span>
-            </span>
+            </div>
           } /> }}
           rowClassName={() => 'row-mistake'}
           style={{ width: '100%' }}

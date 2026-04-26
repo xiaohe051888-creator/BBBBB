@@ -192,9 +192,9 @@ const LogsPage: React.FC = () => {
     {
       title: '时间',
       dataIndex: 'log_time',
-      width: '12%',
+      width: '14%',
       render: (v: string) => (
-        <span style={{ fontFamily: 'monospace', fontSize: 11 }}>
+        <span style={{ fontFamily: 'monospace', fontSize: 11, whiteSpace: 'nowrap' }}>
           {v ? dayjs(v).format('HH:mm:ss') : ''}
         </span>
       ),
@@ -204,7 +204,7 @@ const LogsPage: React.FC = () => {
     {
       title: '局号',
       dataIndex: 'game_number',
-      width: '8%',
+      width: '6%',
       render: (v: number | null) => v ?? '-',
     },
     {

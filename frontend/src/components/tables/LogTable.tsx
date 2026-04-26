@@ -63,10 +63,10 @@ const LogTable: React.FC<LogTableProps> = ({
     {
       title: '时间',
       dataIndex: 'log_time',
-      width: '18%',
+      width: '20%',
       align: 'center',
       render: (v: string) => (
-        <span style={{ fontSize: 11, color: '#8b949e', fontFamily: 'monospace' }}>
+        <span style={{ fontSize: 11, color: '#8b949e', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
           {v ? dayjs(v).format('HH:mm:ss') : '-'}
         </span>
       ),
@@ -74,7 +74,7 @@ const LogTable: React.FC<LogTableProps> = ({
     {
       title: '局',
       dataIndex: 'game_number',
-      width: '12%',
+      width: '10%',
       align: 'center',
       render: (v: number | null) => (
         <span style={{ fontSize: 12, fontWeight: 500 }}>{v ?? '-'}</span>
