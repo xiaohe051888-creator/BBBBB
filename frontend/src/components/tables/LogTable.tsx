@@ -108,7 +108,6 @@ const LogTable: React.FC<LogTableProps> = ({
       title: '说明',
       dataIndex: 'description',
       width: '45%',
-      ellipsis: true,
       render: (v: string) => (
         <span style={{ fontSize: 12, color: '#c9d1d9', lineHeight: 1.4 }}>{v}</span>
       ),
@@ -117,14 +116,8 @@ const LogTable: React.FC<LogTableProps> = ({
 
   return (
     <Table
-      className="mobile-card-table"
       dataSource={data}
-      columns={columns.map(col => ({
-        ...col,
-        onCell: () => ({
-          'data-label': typeof col.title === 'string' ? col.title : ''
-        } as React.HTMLAttributes<HTMLElement>)
-      }))}
+      columns={columns}
       rowKey={(record) => record.id || Math.random().toString(36).substr(2, 9)}
       size="small"
       loading={loading}

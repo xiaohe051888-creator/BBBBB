@@ -229,7 +229,7 @@ const LogsPage: React.FC = () => {
       dataIndex: 'category',
       width: '10%',
       render: (v: string) => (
-        <Tag style={{ fontSize: 10, padding: '0 4px' }}>{v?.slice(0, 4)}</Tag>
+        <Tag style={{ fontSize: 10, padding: '0 4px' }}>{v ? v.slice(0, 4) : '-'}</Tag>
       ),
     },
     {
@@ -361,14 +361,8 @@ const LogsPage: React.FC = () => {
           {/* 日志表格 - 乐观UI：永远不显示loading，数据来了直接渲染 */}
           <Card size="small">
             <Table
-              className="mobile-card-table"
               dataSource={filteredLogs}
-              columns={columns.map(col => ({
-                ...col,
-                onCell: () => ({
-                  'data-label': typeof col.title === 'string' ? col.title : ''
-                } as React.HTMLAttributes<HTMLElement>)
-              }))}
+              columns={columns}
               rowKey="id"
               size="small"
               pagination={{
