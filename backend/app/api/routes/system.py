@@ -13,13 +13,11 @@ from app.api.routes.utils import get_current_user
 
 router = APIRouter(
     prefix="/api/system", 
-    tags=["系统状态"],
-    dependencies=[Depends(get_current_user)]
+    tags=["系统状态"]
 )
 
-
 @router.get("/state")
-async def get_system_state():
+async def get_system_state(_: dict = Depends(get_current_user)):
     """获取系统状态"""
     from app.services.game import get_current_state
     
