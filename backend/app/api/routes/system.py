@@ -318,7 +318,11 @@ async def adjust_balance(
             state = res.scalar_one_or_none()
             if state:
                 state.balance = sess.balance
-            
+            else:
+                from app.services.game.state import get_or_create_state
+                state = await get_or_create_state(db)
+                state.balance = sess.balance
+
             action_text = "增加" if req.action == "add" else "扣除"
             await write_game_log(
                 db, sess.boot_number, sess.next_game_number - 1,
