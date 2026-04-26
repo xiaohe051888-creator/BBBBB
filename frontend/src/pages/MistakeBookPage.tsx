@@ -411,7 +411,7 @@ const MistakeBookPage: React.FC = () => {
             showSizeChanger: true,
             showTotal: total => `共 ${total} 条`,
           }}
-          scroll={{ y: 'calc(100vh - 520px)' }}
+          scroll={{ x: 'max-content', y: 'calc(max(300px, 100vh - 520px))' }}
           locale={{ emptyText: <Empty description={
             <span>
               暂无错题记录<br />

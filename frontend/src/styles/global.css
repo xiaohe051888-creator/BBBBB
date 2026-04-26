@@ -294,7 +294,7 @@ body {
 }
 /* 限制所有 Modal 的最大宽度，防止移动端溢出 */
 .ant-modal {
-  max-width: calc(100vw - 32px) !important;
+  max-width: calc(100% - 32px) !important;
   margin: 0 auto;
 }
 .ant-modal-header {
@@ -436,6 +436,8 @@ body {
   left: 0;
   top: 0;
   height: 100vh;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .sidebar-collapsed {
@@ -717,6 +719,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 12px 24px;
+  padding-top: calc(env(safe-area-inset-top, 0) + 12px);
   background: linear-gradient(135deg, #161b22 0%, #1c2128 100%);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
@@ -780,6 +783,8 @@ body {
   overflow-y: auto;
   overflow-x: auto;  /* 改为auto，允许水平滚动 */
   padding: 16px 24px;
+  padding-top: env(safe-area-inset-top, 16px);
+  padding-bottom: env(safe-area-inset-bottom, 16px);
   min-width: 0;  /* 允许flex子项收缩 */
 }
 
@@ -1314,7 +1319,7 @@ body {
 .start-page-card {
   position: relative;
   width: 520px;
-  max-width: calc(100vw - 32px);
+  max-width: calc(100% - 32px);
   z-index: 10;
   animation: fadeInUp 0.8s ease-out;
 }

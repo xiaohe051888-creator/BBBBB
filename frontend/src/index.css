@@ -591,6 +591,10 @@ a:hover { color: var(--gold-light); }
   .btn-gold { padding: 6px 16px !important; font-size: 13px !important; }
   
   /* 表格水平滚动 */
+  .ant-table-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+  }
   .ant-table { font-size: 11.5px !important; }
   .ant-table-thead > tr > th { padding: 6px 8px !important; font-size: 10px !important; }
   .ant-table-tbody > tr > td { padding: 5px 8px !important; font-size: 11px !important; }

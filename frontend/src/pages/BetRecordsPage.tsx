@@ -450,7 +450,7 @@ const BetRecordsPage: React.FC = () => {
             pageSizeOptions: ['10', '20', '50', '100'],
             size: 'small',
           }}
-          scroll={{ y: 'calc(100vh - 520px)' }}
+          scroll={{ x: 'max-content', y: 'calc(max(300px, 100vh - 520px))' }}
           locale={{ emptyText: <Empty description="暂无下注记录" /> }}
           rowClassName={(record) => {
             if (record.status === '待结算') return 'row-pending';

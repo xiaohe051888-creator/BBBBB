@@ -239,7 +239,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
         <div style={{
           display: 'flex',
           flexDirection: 'row',
-          flexWrap: 'nowrap',
+          flexWrap: 'wrap',
           gap: '8px',
           width: '100%',
         }}>
@@ -285,7 +285,8 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
           {/* 大眼仔路 - 占据剩余宽度 */}
           <div style={{
             flex: '1 1 400px',
-            minWidth: '300px',
+            minWidth: 0,
+            maxWidth: '100%',
             display: 'flex',
             flexDirection: 'column',
             background: '#161b22',

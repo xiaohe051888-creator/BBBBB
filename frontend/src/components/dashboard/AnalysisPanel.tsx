@@ -41,7 +41,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <span style={{ color: '#fadb14' }}><BulbOutlined /></span>
           <span className="section-title">智能分析</span>
         </div>
-        <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+        <div style={{ textAlign: 'center', padding: 'clamp(20px, 4vw, 32px) 16px' }}>
           <div style={{ fontSize: 28, marginBottom: 12, animation: 'pulse-glow 1.5s infinite', color: '#1890ff' }}>
             <RobotOutlined style={{ fontSize: 28 }} />
           </div>
@@ -52,7 +52,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           {!isRuleMode && (
             <>
               {/* 三模型进度指示器 */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16, marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16, marginBottom: 8, flexWrap: 'wrap' }}>
                 {[
                   { name: '庄模型', icon: 'B', color: '#ff4d4f', delay: 0 },
                   { name: '闲模型', icon: 'P', color: '#1890ff', delay: 0.5 },
@@ -119,7 +119,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <span style={{ color: '#fadb14' }}><BulbOutlined /></span>
           <span className="section-title">智能分析</span>
         </div>
-        <div style={{ textAlign: 'center', padding: '40px 16px', color: 'rgba(255,255,255,0.4)' }}>
+        <div style={{ textAlign: 'center', padding: 'clamp(24px, 5vw, 40px) 16px', color: 'rgba(255,255,255,0.4)' }}>
           <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>
             <CloudUploadOutlined style={{ fontSize: 48 }} />
           </div>
@@ -148,7 +148,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <span style={{ color: '#fadb14' }}><BulbOutlined /></span>
           <span className="section-title">智能分析</span>
         </div>
-        <div style={{ textAlign: 'center', padding: '40px 16px', color: 'rgba(255,255,255,0.4)' }}>
+        <div style={{ textAlign: 'center', padding: 'clamp(24px, 5vw, 40px) 16px', color: 'rgba(255,255,255,0.4)' }}>
           <div style={{ fontSize: 32, marginBottom: 12, animation: 'pulse-glow 2s infinite', color: '#52c41a' }}>
             <RobotOutlined style={{ fontSize: 32 }} />
           </div>

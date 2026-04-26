@@ -91,14 +91,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   };
 
   return (
-    <div className="top-status-bar" style={{ padding: '16px 24px', background: 'linear-gradient(180deg, #141b26 0%, #0f151e 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+    <div className="top-status-bar" style={{ padding: 'clamp(12px, 2vw, 16px) clamp(16px, 3vw, 24px)', background: 'linear-gradient(180deg, #141b26 0%, #0f151e 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 
         {/* 左侧组：系统信息 + 最新开奖/预测（合并在一边，避免中间空旷） */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', flex: '1 1 auto' }}>
 
           {/* 1. 系统状态信息 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.15)', padding: '6px 14px', borderRadius: 20 }}>
                 <span style={{ color: '#ffd700', fontSize: 16 }}><AppstoreOutlined /></span>
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: 0.5 }}>
@@ -119,7 +119,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             flexWrap: 'wrap',
           }}>
             {/* 左半部分：最新开奖 */}
-            <div style={{ padding: '6px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ padding: '6px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>最新开奖</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 20, fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
@@ -156,7 +156,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
             {/* 右半部分：下局预测 */}
             <div className="predict-pulse-container" style={{
-              padding: '6px 20px', display: 'flex', alignItems: 'center', gap: 12,
+              padding: '6px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
               background: 'rgba(255,215,0,0.08)',
               borderRadius: 8,
               border: '1px solid rgba(255,215,0,0.2)',
@@ -284,7 +284,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           {/* 顶部警告装饰条 */}
           <div style={{ height: 4, background: 'linear-gradient(90deg, #ff4d4f, #ff7875, #ff4d4f)' }} />
           
-          <div style={{ padding: '32px 32px 24px' }}>
+          <div style={{ padding: 'clamp(20px, 4vw, 32px) clamp(16px, 4vw, 32px) clamp(16px, 3vw, 24px)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
               <div style={{ 
                 width: 48, 
@@ -325,7 +325,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </div>
 
           <div style={{ 
-            padding: '16px 32px', 
+            padding: 'clamp(12px, 2vw, 16px) clamp(16px, 4vw, 32px)', 
             background: 'rgba(255,255,255,0.02)', 
             borderTop: '1px solid rgba(255,255,255,0.05)',
             display: 'flex',
@@ -341,7 +341,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 color: 'rgba(255,255,255,0.8)',
                 borderRadius: 8,
                 height: 38,
-                padding: '0 20px'
+                padding: '0 clamp(16px, 3vw, 24px)'
               }}
             >
               取消
@@ -421,7 +421,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </div>
 
           <div style={{ 
-            padding: '16px 32px', 
+            padding: 'clamp(12px, 2vw, 16px) clamp(16px, 4vw, 32px)', 
             background: 'rgba(255,255,255,0.02)', 
             borderTop: '1px solid rgba(255,255,255,0.05)',
             display: 'flex',
@@ -435,7 +435,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 borderColor: 'transparent',
                 borderRadius: 8,
                 height: 38,
-                padding: '0 24px',
+                padding: '0 clamp(16px, 3vw, 24px)',
                 fontWeight: 600,
                 color: alertModal.type === 'error' ? '#fff' : '#000',
                 boxShadow: `0 4px 12px ${alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.3)' : 'rgba(250, 173, 20, 0.3)'}`

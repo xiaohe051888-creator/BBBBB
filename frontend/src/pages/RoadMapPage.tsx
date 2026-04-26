@@ -362,7 +362,7 @@ const RoadMapPage: React.FC = () => {
       {activeTab === 'analysis' && (
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', minHeight: 'calc(100vh - 160px)' }}>
           {/* 路势分析 */}
-          <div className="roadmap-analysis-col" style={{ flex: '1 1 400px' }}>
+          <div className="roadmap-analysis-col" style={{ flex: '1 1 400px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
             <Card
               title={<span><Icons.Info /> 路势分析</span>}
               style={{ height: '100%' }}
@@ -383,7 +383,7 @@ const RoadMapPage: React.FC = () => {
           </div>
 
           {/* 统计面板 */}
-          <div className="roadmap-analysis-col" style={{ flex: '1 1 400px' }}>
+          <div className="roadmap-analysis-col" style={{ flex: '1 1 400px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
             <Card title={<span><Icons.Trend /> 数据统计</span>} style={{ marginBottom: 16 }}>
               <div className="stats-grid">
                 <Statistic title="总局数" value={stats.totalGames} suffix="局" styles={{ content: { color: '#58a6ff' } }} />
