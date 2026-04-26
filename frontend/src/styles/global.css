@@ -57,6 +57,7 @@
 html, body, #root {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
 }
 
@@ -86,6 +87,7 @@ body {
 /* ====== 通用页面容器 ====== */
 .page-wrapper {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-primary);
   padding: 16px;
   animation: pageFadeIn 0.3s ease-out;
@@ -419,6 +421,7 @@ body {
 .app-layout {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -436,6 +439,7 @@ body {
   left: 0;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   padding-top: env(safe-area-inset-top, 0);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
@@ -1129,6 +1133,7 @@ body {
 /* ====== Dashboard 专用样式 ====== */
 .dashboard-container {
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(180deg, #080c14 0%, #0a1019 40%, #0d1420 100%);
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text-primary);
