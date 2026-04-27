@@ -226,8 +226,8 @@ async def run_deep_learning(
                 from app.models.schemas import AIMemory, SystemLog, GameRecord, BetRecord, MistakeBook, RoadMap
                 from datetime import datetime, timedelta
                 
-                # 1. 微学习是当前靴自动学习成长的，换靴即清空所有微学习记忆（最多保存71局）
-                await db.execute(delete(AIMemory))
+                # 1. 换靴才清空微学习：仅保留当前这靴的微学习记忆，彻底删除之前所有靴的记忆
+                await db.execute(delete(AIMemory).where(AIMemory.boot_number < boot_number))
                 
                 # 2. 清理 30 天前的常规日志
                 thirty_days_ago = datetime.now() - timedelta(days=30)

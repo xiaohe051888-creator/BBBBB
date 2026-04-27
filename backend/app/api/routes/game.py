@@ -160,6 +160,7 @@ async def reveal_game_route(req: RevealRequest):
                         direction=prediction,
                         amount=res.get("bet_amount", 100)
                     )
+                    await session.commit()
         except Exception as e:
             import logging
             from app.services.game.logging import write_game_log
@@ -168,6 +169,9 @@ async def reveal_game_route(req: RevealRequest):
             sess.status = "等待开奖"
             try:
                 async with async_session() as log_session:
+                    from app.services.game.state import get_or_create_state
+                    state = await get_or_create_state(log_session)
+                    state.status = "等待开奖"
                     await write_game_log(
                         log_session, boot_number, sess.next_game_number,
                         "LOG-MDL-002", "AI分析异常", "失败",
@@ -179,8 +183,24 @@ async def reveal_game_route(req: RevealRequest):
                 await broadcast_event("state_update", {"status": "等待开奖"})
             except Exception:
                 pass
-    
-    asyncio.create_task(_trigger_next_analysis())
+        finally:
+            from app.services.game.session import get_session, broadcast_event
+            sess = get_session()
+            if sess.status == "分析中":
+                sess.status = "等待开奖"
+                try:
+                    async with async_session() as final_session:
+                        from app.services.game.state import get_or_create_state
+                        state = await get_or_create_state(final_session)
+                        state.status = "等待开奖"
+                        await final_session.commit()
+                    await broadcast_event("state_update", {"status": "等待开奖"})
+                except Exception:
+                    pass
+
+    from app.services.game.session import add_background_task
+    task = asyncio.create_task(_trigger_next_analysis())
+    add_background_task(task)
     
     return {
         **result,
