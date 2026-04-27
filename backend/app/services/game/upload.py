@@ -118,12 +118,9 @@ async def upload_games(
             
             # 校验是否与当前系统状态无缝衔接
             first_game_number = sorted_games[0]["game_number"]
-            # 如果是新靴，必须从第 1 局开始传
-            if is_new_boot and first_game_number != 1:
-                return {"success": False, "error": f"新靴上传必须从第 1 局开始，不能从第 {first_game_number} 局开始"}
-            # 如果是续传本靴，必须紧接着系统当前的 next_game_number 传
-            if not is_new_boot and first_game_number != sess.next_game_number:
-                return {"success": False, "error": f"上传局号断层！系统当前等待的是第 {sess.next_game_number} 局，但上传的数据从第 {first_game_number} 局开始。"}
+            # 如果是新靴，或者重置本靴，都必须从第 1 局开始传
+            if first_game_number != 1:
+                return {"success": False, "error": f"上传数据必须从第 1 局开始，不能从第 {first_game_number} 局开始"}
 
             # 记录重置前的状态（用于日志）
             old_status = sess.status

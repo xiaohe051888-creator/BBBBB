@@ -7,3 +7,4 @@ export { default as RevealModal } from './RevealModal';
 export { DashboardHeader } from './DashboardHeader';
 export { WorkflowStatusBar } from './WorkflowStatusBar';
 export { AnalysisPanel } from './AnalysisPanel';
+export { UploadModal } from './UploadModal';

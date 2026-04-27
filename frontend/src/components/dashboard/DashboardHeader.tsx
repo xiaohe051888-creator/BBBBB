@@ -8,6 +8,7 @@ import { Button, Space, Modal } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { StopOutlined, ExclamationCircleOutlined, DollarOutlined, AppstoreOutlined, CloudUploadOutlined, UnlockOutlined, LockOutlined } from '@ant-design/icons';
 import { SystemStatusPanel } from '../ui/SystemStatusPanel';
+import { UploadModal } from './UploadModal';
 import { endBoot } from '../../services/api';
 import type { SystemDiagnostics } from '../../hooks/useSystemDiagnostics';
 import type { BettingAdvice } from '../../hooks/useSmartDetection';
@@ -48,6 +49,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   
   const navigate = useNavigate();
   const [isEndBootModalVisible, setIsEndBootModalVisible] = useState(false);
+  const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
   const [isEndingBoot, setIsEndingBoot] = useState(false);
 
   const [alertModal, setAlertModal] = useState({
@@ -225,7 +227,22 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <span>结束本靴</span>
             </Button>
 
-
+            <Button
+              icon={<CloudUploadOutlined />}
+              onClick={() => setIsUploadModalVisible(true)}
+              title="重置本靴"
+              style={{ 
+                background: 'rgba(24,144,255,0.1)', 
+                borderColor: 'rgba(24,144,255,0.3)', 
+                color: '#1890ff', 
+                borderRadius: 8, 
+                height: 38,
+                padding: '0 20px',
+                fontWeight: 600
+              }}
+            >
+              <span>重置本靴</span>
+            </Button>
 
             {isLoggedIn ? (
               <Button
@@ -438,6 +455,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </div>
         </div>
       </Modal>
+
+      {/* 新增的重置本靴（覆盖当前靴）弹窗 */}
+      <UploadModal 
+        visible={isUploadModalVisible}
+        onCancel={() => setIsUploadModalVisible(false)}
+        onSuccess={() => setIsUploadModalVisible(false)}
+      />
 
     </div>
   );
