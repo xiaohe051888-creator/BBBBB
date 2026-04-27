@@ -30,6 +30,7 @@ import re
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from fastapi.encoders import jsonable_encoder
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
@@ -257,7 +258,7 @@ class AILearningService:
                     "result": r.result,
                     "predict_direction": r.predict_direction,
                     "predict_correct": r.predict_correct,
-                    "profit_loss": r.profit_loss,
+                    "profit_loss": float(r.profit_loss) if r.profit_loss is not None else 0.0,
                 }
                 for r in records
             ],
@@ -307,10 +308,10 @@ class AILearningService:
 - 当前综合准确率：{current_accuracy:.1f}%
 
 ## 最近开奖记录（全靴完整数据）
-{json.dumps(training_data['records'][-80:], ensure_ascii=False, indent=2)}
+{json.dumps(jsonable_encoder(training_data['records'][-80:]), ensure_ascii=False, indent=2)}
 
 ## 错误案例（错题本）
-{json.dumps(mistakes[-40:], ensure_ascii=False, indent=2)}
+{json.dumps(jsonable_encoder(mistakes[-40:]), ensure_ascii=False, indent=2)}
 
 ## 请输出以下JSON格式分析结果：
 {{
@@ -848,11 +849,11 @@ class AILearningService:
                 confidence=confidence,
                 error_type=error_analysis.get("error_type") if error_analysis else None,
                 error_dimension=error_analysis.get("dimension") if error_analysis else None,
-                error_analysis=json.dumps(error_analysis, ensure_ascii=False) if error_analysis else None,
+                error_analysis=json.dumps(jsonable_encoder(error_analysis), ensure_ascii=False) if error_analysis else None,
                 self_reflection=self_reflection.get("reflection") if self_reflection else None,
                 would_do_differently=self_reflection.get("would_do_differently") if self_reflection else None,
                 lesson_learned=self_reflection.get("lesson") if self_reflection else None,
-                road_snapshot=json.dumps(road_data, ensure_ascii=False) if road_data else None,
+                road_snapshot=json.dumps(jsonable_encoder(road_data), ensure_ascii=False) if road_data else None,
             )
             
             self.session.add(memory)
@@ -914,13 +915,13 @@ class AILearningService:
 - 错误类型：预测{prediction}但实际开{actual_result}
 
 庄模型证据：
-{json.dumps(banker_evidence, ensure_ascii=False, indent=2)}
+{json.dumps(jsonable_encoder(banker_evidence), ensure_ascii=False, indent=2)}
 
 闲模型证据：
-{json.dumps(player_evidence, ensure_ascii=False, indent=2)}
+{json.dumps(jsonable_encoder(player_evidence), ensure_ascii=False, indent=2)}
 
 五路走势图：
-{json.dumps(road_data, ensure_ascii=False, indent=2)}
+{json.dumps(jsonable_encoder(road_data), ensure_ascii=False, indent=2)}
 
 请从以下5个维度分析错误原因，返回JSON格式：
 {{
@@ -1003,7 +1004,7 @@ class AILearningService:
 错误信息：
 - 预测：{prediction}
 - 实际：{actual_result}
-- 错误分析：{json.dumps(error_analysis, ensure_ascii=False)}
+- 错误分析：{json.dumps(jsonable_encoder(error_analysis), ensure_ascii=False)}
 
 请回答以下5个问题，返回JSON格式：
 {{
