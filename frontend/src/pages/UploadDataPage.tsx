@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { App, Button, Card, Space } from 'antd';
 
 import { QuickKeyInput, type GameResult } from '../components/upload/QuickKeyInput';
+import { BeadGridInput } from '../components/upload/BeadGridInput';
 
 const MAX_GAMES = 72;
 
@@ -38,55 +39,7 @@ const UploadDataPage: React.FC = () => {
           <div style={{ flex: '1 1 520px', minWidth: 320 }}>
             <QuickKeyInput results={results} onChange={setResults} max={MAX_GAMES} />
             <div style={{ height: 12 }} />
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                gridTemplateRows: 'repeat(6, 34px)',
-                gridAutoFlow: 'column',
-                gap: 6,
-                padding: 12,
-                borderRadius: 12,
-                border: '1px solid rgba(255,255,255,0.08)',
-                background: 'rgba(255,255,255,0.03)',
-              }}
-            >
-              {Array.from({ length: MAX_GAMES }).map((_, idx) => {
-                const v = results[idx];
-                const bg =
-                  v === '庄' ? 'rgba(255,77,79,0.18)' :
-                  v === '闲' ? 'rgba(24,144,255,0.18)' :
-                  v === '和' ? 'rgba(250,173,20,0.18)' :
-                  'rgba(255,255,255,0.03)';
-                const bd =
-                  v === '庄' ? 'rgba(255,77,79,0.35)' :
-                  v === '闲' ? 'rgba(24,144,255,0.35)' :
-                  v === '和' ? 'rgba(250,173,20,0.35)' :
-                  'rgba(255,255,255,0.10)';
-
-                return (
-                  <div
-                    key={idx}
-                    style={{
-                      height: 34,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 10,
-                      border: `1px solid ${bd}`,
-                      background: bg,
-                      color: v ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.18)',
-                      fontWeight: 800,
-                      userSelect: 'none',
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                    title={`第 ${idx + 1} 局`}
-                  >
-                    {v ?? idx + 1}
-                  </div>
-                );
-              })}
-            </div>
+            <BeadGridInput results={results} onChange={setResults} max={MAX_GAMES} />
           </div>
 
           <div style={{ flex: '1 1 360px', minWidth: 300 }}>

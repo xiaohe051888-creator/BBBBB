@@ -112,8 +112,7 @@ health_check_frontend() {
     
     cd frontend
     
-    # 检查 node_modules
-    if [ ! -d "node_modules" ]; then
+    if [ ! -d "node_modules" ] || [ ! -d "node_modules/vite" ] || [ ! -d "node_modules/@types/node" ]; then
         print_info "安装前端依赖..."
         npm install >> ../$FRONTEND_LOG 2>&1
     fi
