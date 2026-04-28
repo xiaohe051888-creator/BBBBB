@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { App, Button, Card, Space } from 'antd';
 
-type GameResult = '庄' | '闲' | '和';
+import { QuickKeyInput, type GameResult } from '../components/upload/QuickKeyInput';
 
 const MAX_GAMES = 72;
 
@@ -36,10 +36,8 @@ const UploadDataPage: React.FC = () => {
       <Card>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 520px', minWidth: 320 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 700 }}>珠盘路录入</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>已录入 {results.length}/{MAX_GAMES} 局</div>
-            </div>
+            <QuickKeyInput results={results} onChange={setResults} max={MAX_GAMES} />
+            <div style={{ height: 12 }} />
             <div
               style={{
                 display: 'grid',
@@ -92,15 +90,7 @@ const UploadDataPage: React.FC = () => {
           <div style={{ flex: '1 1 360px', minWidth: 300 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
               <div style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 700 }}>局序列</div>
-              <Button
-                size="small"
-                onClick={() => {
-                  if (results.length >= MAX_GAMES) return;
-                  setResults(prev => [...prev, '庄']);
-                }}
-              >
-                追加一局（占位）
-              </Button>
+              <Button size="small" onClick={() => setResults([])}>清空</Button>
             </div>
 
             <div style={{ display: 'grid', gap: 8 }}>
