@@ -17,6 +17,7 @@ import BetRecordsPage from './pages/BetRecordsPage';
 import LogsPage from './pages/LogsPage';
 import MistakeBookPage from './pages/MistakeBookPage';
 import AdminPage from './pages/AdminPage';
+import UploadDataPage from './pages/UploadDataPage';
 import { queryClient } from './lib/queryClient';
 import { PageErrorBoundary } from './components/error';
 import './styles/global.css';
@@ -268,6 +269,7 @@ const App: React.FC = () => {
                     <Route path="/dashboard/bets" element={<BetRecordsPage />} />
                     <Route path="/dashboard/logs" element={<LogsPage />} />
                     <Route path="/dashboard/mistakes" element={<MistakeBookPage />} />
+                    <Route path="/upload" element={<UploadDataPage />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>

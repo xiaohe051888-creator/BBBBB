@@ -3,13 +3,11 @@
  * 
  * 包含: 系统状态、桌台信息、当前/预测局、余额、健康分、操作按钮
  */
-import React, { useState } from 'react';
-import { Button, Space, Modal } from 'antd';
+import React from 'react';
+import { Button, Space } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { StopOutlined, ExclamationCircleOutlined, DollarOutlined, AppstoreOutlined, CloudUploadOutlined, UnlockOutlined, LockOutlined } from '@ant-design/icons';
+import { DollarOutlined, AppstoreOutlined, CloudUploadOutlined, UnlockOutlined, LockOutlined } from '@ant-design/icons';
 import { SystemStatusPanel } from '../ui/SystemStatusPanel';
-import { UploadModal } from './UploadModal';
-import { endBoot } from '../../services/api';
 import type { SystemDiagnostics } from '../../hooks/useSystemDiagnostics';
 import type { BettingAdvice } from '../../hooks/useSmartDetection';
 
@@ -48,47 +46,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 }) => {
   
   const navigate = useNavigate();
-  const [isEndBootModalVisible, setIsEndBootModalVisible] = useState(false);
-  const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
-  const [isEndingBoot, setIsEndingBoot] = useState(false);
-
-  const [alertModal, setAlertModal] = useState({
-    visible: false,
-    type: 'warning' as 'warning' | 'error',
-    title: '',
-    content: ''
-  });
-
-  const handleEndBoot = async () => {
-    if (systemState?.status === '深度学习中') {
-      setAlertModal({
-        visible: true,
-        type: 'warning',
-        title: '操作被拒绝',
-        content: '当前靴正在进行深度学习，请等待完成后再开启新靴。'
-      });
-      return;
-    }
-    setIsEndBootModalVisible(true);
-  };
-
-  const confirmEndBoot = async () => {
-    try {
-      setIsEndingBoot(true);
-      await endBoot();
-      navigate('/dashboard', { state: { isNewBoot: true } });
-    } catch (e: unknown) {
-      setAlertModal({
-        visible: true,
-        type: 'error',
-        title: '结束本靴失败',
-        content: (e as Error).message
-      });
-    } finally {
-      setIsEndingBoot(false);
-      setIsEndBootModalVisible(false);
-    }
-  };
 
   return (
     <div className="top-status-bar" style={{ padding: 'clamp(12px, 2vw, 16px) clamp(16px, 3vw, 24px)', background: 'linear-gradient(180deg, #141b26 0%, #0f151e 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -207,41 +164,21 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           {/* 操作按钮组（移动端下只显示图标，不显示文字） */}
           <Space size={8} wrap className="mobile-action-group">
             <Button
-              type="primary"
-              danger
-              onClick={handleEndBoot}
-              disabled={isEndingBoot}
-              icon={<StopOutlined />}
-              title="结束本靴"
+              icon={<CloudUploadOutlined />}
+              onClick={() => navigate('/upload')}
+              title="上传数据"
               style={{
                 height: 38,
                 padding: '0 20px',
                 borderRadius: 8,
                 fontWeight: 600,
                 letterSpacing: 1,
-                boxShadow: '0 4px 12px rgba(245,34,45,0.3)',
-                border: 'none',
-                background: 'linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%)'
+                background: 'rgba(24,144,255,0.1)',
+                borderColor: 'rgba(24,144,255,0.3)',
+                color: '#1890ff',
               }}
             >
-              <span>结束本靴</span>
-            </Button>
-
-            <Button
-              icon={<CloudUploadOutlined />}
-              onClick={() => setIsUploadModalVisible(true)}
-              title="重置本靴"
-              style={{ 
-                background: 'rgba(24,144,255,0.1)', 
-                borderColor: 'rgba(24,144,255,0.3)', 
-                color: '#1890ff', 
-                borderRadius: 8, 
-                height: 38,
-                padding: '0 20px',
-                fontWeight: 600
-              }}
-            >
-              <span>重置本靴</span>
+              <span>上传数据</span>
             </Button>
 
             {isLoggedIn ? (
@@ -267,202 +204,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </Space>
         </div>
       </div>
-
-      {/* 深度定制的“结束本靴”暗黑科幻弹窗 */}
-      <Modal
-        open={isEndBootModalVisible}
-        onCancel={() => !isEndingBoot && setIsEndBootModalVisible(false)}
-        footer={null}
-        closable={false}
-        width={440}
-        style={{ maxWidth: 'calc(100vw - 32px)' }}
-        mask={{ closable: !isEndingBoot }}
-        styles={{
-          mask: { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-          body: {
-            backgroundColor: '#0f1521',
-            border: '1px solid rgba(255, 77, 79, 0.3)',
-            borderRadius: '16px',
-            boxShadow: '0 0 40px rgba(255, 77, 79, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-            padding: 0,
-            overflow: 'hidden'
-          }
-        }}
-      >
-        <div style={{ position: 'relative' }}>
-          {/* 顶部警告装饰条 */}
-          <div style={{ height: 4, background: 'linear-gradient(90deg, #ff4d4f, #ff7875, #ff4d4f)' }} />
-          
-          <div style={{ padding: 'clamp(20px, 4vw, 32px) clamp(16px, 4vw, 32px) clamp(16px, 3vw, 24px)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ 
-                width: 48, 
-                height: 48, 
-                borderRadius: '50%', 
-                background: 'rgba(255, 77, 79, 0.1)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                flexShrink: 0,
-                border: '1px solid rgba(255, 77, 79, 0.2)'
-              }}>
-                <ExclamationCircleOutlined style={{ fontSize: 24, color: '#ff4d4f' }} />
-              </div>
-              <div>
-                <h3 style={{ margin: '0 0 8px', color: '#fff', fontSize: 20, fontWeight: 600, letterSpacing: '0.5px' }}>
-                  结束本靴并深度学习
-                </h3>
-                <p style={{ margin: 0, color: 'rgba(255,255,255,0.65)', fontSize: 14, lineHeight: 1.6 }}>
-                  您即将终结当前的盘面分析。系统会将本靴的完整数据打包，喂给 <strong>AI 综合模型</strong> 进行错题本复盘与特征提取。
-                </p>
-              </div>
-            </div>
-
-            <div style={{ 
-              marginTop: 24, 
-              padding: '16px', 
-              background: 'rgba(0, 0, 0, 0.3)', 
-              borderRadius: 8,
-              border: '1px dashed rgba(255, 255, 255, 0.1)'
-            }}>
-              <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.8 }}>
-                <li>当前预测缓存将被清空。</li>
-                <li>本靴错误记录将永久固化至“血迹地图”。</li>
-                <li>操作完成后，系统将准备好开始新靴。</li>
-              </ul>
-            </div>
-          </div>
-
-          <div style={{ 
-            padding: 'clamp(12px, 2vw, 16px) clamp(16px, 4vw, 32px)', 
-            background: 'rgba(255,255,255,0.02)', 
-            borderTop: '1px solid rgba(255,255,255,0.05)',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: 12
-          }}>
-            <Button 
-              onClick={() => setIsEndBootModalVisible(false)}
-              disabled={isEndingBoot}
-              style={{ 
-                background: 'transparent', 
-                borderColor: 'rgba(255,255,255,0.2)', 
-                color: 'rgba(255,255,255,0.8)',
-                borderRadius: 8,
-                height: 38,
-                padding: '0 clamp(16px, 3vw, 24px)'
-              }}
-            >
-              取消
-            </Button>
-            <Button 
-              type="primary" 
-              danger 
-              onClick={confirmEndBoot}
-              loading={isEndingBoot}
-              style={{ 
-                borderRadius: 8,
-                height: 38,
-                padding: '0 24px',
-                fontWeight: 600,
-                boxShadow: '0 4px 12px rgba(255, 77, 79, 0.3)'
-              }}
-            >
-              {isEndingBoot ? '深度学习触发中...' : '确认终结'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* 全局提示自定义暗黑弹窗（替代 Modal.warning 和 Modal.error） */}
-      <Modal
-        open={alertModal.visible}
-        onCancel={() => setAlertModal(prev => ({ ...prev, visible: false }))}
-        footer={null}
-        closable={false}
-        width={400}
-        style={{ maxWidth: 'calc(100vw - 32px)' }}
-        styles={{
-          mask: { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-          body: {
-            backgroundColor: '#0f1521',
-            border: `1px solid ${alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.3)' : 'rgba(250, 173, 20, 0.3)'}`,
-            borderRadius: '16px',
-            boxShadow: `0 0 40px ${alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.15)' : 'rgba(250, 173, 20, 0.15)'}, inset 0 1px 0 rgba(255, 255, 255, 0.05)`,
-            padding: 0,
-            overflow: 'hidden'
-          }
-        }}
-      >
-        <div style={{ position: 'relative' }}>
-          {/* 顶部装饰条 */}
-          <div style={{ 
-            height: 4, 
-            background: alertModal.type === 'error' 
-              ? 'linear-gradient(90deg, #ff4d4f, #ff7875, #ff4d4f)' 
-              : 'linear-gradient(90deg, #faad14, #ffd666, #faad14)' 
-          }} />
-          
-          <div style={{ padding: '32px 32px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ 
-                width: 48, 
-                height: 48, 
-                borderRadius: '50%', 
-                background: alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.1)' : 'rgba(250, 173, 20, 0.1)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                flexShrink: 0,
-                border: `1px solid ${alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.2)' : 'rgba(250, 173, 20, 0.2)'}`
-              }}>
-                <ExclamationCircleOutlined style={{ fontSize: 24, color: alertModal.type === 'error' ? '#ff4d4f' : '#faad14' }} />
-              </div>
-              <div>
-                <h3 style={{ margin: '0 0 8px', color: '#fff', fontSize: 20, fontWeight: 600, letterSpacing: '0.5px' }}>
-                  {alertModal.title}
-                </h3>
-                <p style={{ margin: 0, color: 'rgba(255,255,255,0.65)', fontSize: 14, lineHeight: 1.6 }}>
-                  {alertModal.content}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ 
-            padding: 'clamp(12px, 2vw, 16px) clamp(16px, 4vw, 32px)', 
-            background: 'rgba(255,255,255,0.02)', 
-            borderTop: '1px solid rgba(255,255,255,0.05)',
-            display: 'flex',
-            justifyContent: 'flex-end'
-          }}>
-            <Button 
-              type="primary" 
-              onClick={() => setAlertModal(prev => ({ ...prev, visible: false }))}
-              style={{ 
-                background: alertModal.type === 'error' ? '#ff4d4f' : '#faad14',
-                borderColor: 'transparent',
-                borderRadius: 8,
-                height: 38,
-                padding: '0 clamp(16px, 3vw, 24px)',
-                fontWeight: 600,
-                color: alertModal.type === 'error' ? '#fff' : '#000',
-                boxShadow: `0 4px 12px ${alertModal.type === 'error' ? 'rgba(255, 77, 79, 0.3)' : 'rgba(250, 173, 20, 0.3)'}`
-              }}
-            >
-              我知道了
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* 新增的重置本靴（覆盖当前靴）弹窗 */}
-      <UploadModal 
-        visible={isUploadModalVisible}
-        onCancel={() => setIsUploadModalVisible(false)}
-        onSuccess={() => setIsUploadModalVisible(false)}
-      />
-
     </div>
   );
 };
