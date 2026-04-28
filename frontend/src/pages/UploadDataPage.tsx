@@ -42,6 +42,8 @@ const UploadDataPage: React.FC = () => {
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                gridTemplateRows: 'repeat(6, 34px)',
+                gridAutoFlow: 'column',
                 gap: 6,
                 padding: 12,
                 borderRadius: 12,
