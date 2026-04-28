@@ -41,6 +41,7 @@ export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+        gridTemplateRows: 'repeat(6, 34px)',
         gap: 6,
         padding: 12,
         borderRadius: 12,
@@ -68,6 +69,8 @@ export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
             role="button"
             tabIndex={0}
             style={{
+              gridColumn: Math.floor(idx / 6) + 1,
+              gridRow: (idx % 6) + 1,
               height: 34,
               display: 'flex',
               alignItems: 'center',
@@ -91,4 +94,3 @@ export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
     </div>
   );
 };
-
