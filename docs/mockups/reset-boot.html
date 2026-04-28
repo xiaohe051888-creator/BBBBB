@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>重置本靴 - 交互方案草图</title>
+    <style>
+      :root {
+        --bg: #0b0d12;
+        --panel: #111521;
+        --panel2: #0f1320;
+        --text: rgba(255, 255, 255, 0.88);
+        --muted: rgba(255, 255, 255, 0.55);
+        --gold: #ffd700;
+        --red: #ff4d4f;
+        --blue: #4c8dff;
+        --line: rgba(255, 255, 255, 0.10);
+        --chip: rgba(255, 215, 0, 0.10);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+        background: radial-gradient(1100px 600px at 20% -10%, rgba(76, 141, 255, 0.18), transparent 60%),
+          radial-gradient(900px 500px at 110% 10%, rgba(255, 215, 0, 0.16), transparent 55%),
+          var(--bg);
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 28px 18px 60px;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        color: var(--muted);
+        margin-bottom: 18px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      @media (min-width: 980px) {
+        .grid { grid-template-columns: 1.1fr 0.9fr; }
+      }
+      .card {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+        backdrop-filter: blur(10px);
+      }
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        letter-spacing: 0.2px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+      .chip {
+        border: 1px solid rgba(255, 215, 0, 0.25);
+        background: var(--chip);
+        color: rgba(255, 255, 255, 0.85);
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+      .flow {
+        display: grid;
+        gap: 10px;
+      }
+      .step {
+        border: 1px solid var(--line);
+        background: rgba(17, 21, 33, 0.6);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .step .k {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+      .badge {
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: rgba(255, 255, 255, 0.72);
+      }
+      .badge.red { border-color: rgba(255, 77, 79, 0.35); color: rgba(255, 77, 79, 0.95); }
+      .badge.blue { border-color: rgba(76, 141, 255, 0.35); color: rgba(76, 141, 255, 0.95); }
+      .step .t {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .step .d {
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .wire {
+        background: rgba(15, 19, 32, 0.55);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.25);
+      }
+      .brand { font-size: 12px; color: rgba(255, 255, 255, 0.75); }
+      .btnrow { display: flex; gap: 10px; }
+      .btn {
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.86);
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .btn.primary { border-color: rgba(255, 215, 0, 0.35); background: rgba(255, 215, 0, 0.10); color: var(--gold); }
+      .btn.danger { border-color: rgba(255, 77, 79, 0.35); background: rgba(255, 77, 79, 0.10); color: rgba(255, 77, 79, 0.95); }
+      .modal {
+        margin-top: 14px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+      }
+      .modal .hd {
+        padding: 12px 12px;
+        background: rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .modal .hd .title {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.92);
+      }
+      .modal .bd { padding: 12px; background: rgba(0, 0, 0, 0.18); }
+      .field {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(17, 21, 33, 0.55);
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.75);
+        line-height: 1.55;
+        min-height: 120px;
+      }
+      .warn {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 77, 79, 0.35);
+        background: rgba(255, 77, 79, 0.10);
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .footer {
+        margin-top: 18px;
+        color: rgba(255, 255, 255, 0.62);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      a { color: var(--gold); text-decoration: none; border-bottom: 1px dashed rgba(255, 215, 0, 0.35); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>“重置本靴”交互方案草图</h1>
+      <div class="sub">
+        目标：不换靴也能用一批新路单覆盖当前靴，并清空本靴的微学习/未完成数据，让系统从第 1 局重新开始验证。
+        这是“测试优先”的工作流，不改变默认的自动下注 + 手动开奖节奏。
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>方案 A（推荐）：重置本靴 → 弹窗粘贴路单 → 确认覆盖</h2>
+          <div class="flow">
+            <div class="step">
+              <div class="k">
+                <div class="t">1) 首页顶部按钮：重置本靴</div>
+                <div class="badge blue">低误触</div>
+              </div>
+              <div class="d">
+                放在“结束本靴”旁边，但视觉更弱（次要按钮）。仅管理员可见/可用。
+              </div>
+            </div>
+            <div class="step">
+              <div class="k">
+                <div class="t">2) 弹窗输入：粘贴新路单</div>
+                <div class="badge">支持 1~72 局</div>
+              </div>
+              <div class="d">
+                支持两种输入：一行一个（庄/闲/和），或用空格/逗号分隔。系统自动编号为第 1~N 局。
+              </div>
+            </div>
+            <div class="step">
+              <div class="k">
+                <div class="t">3) 二次确认：这会清空本靴数据</div>
+                <div class="badge red">不可逆</div>
+              </div>
+              <div class="d">
+                清空范围（仅本靴）：GameRecord/BetRecord/MistakeBook/RoadMap/AIMemory 以及内存态 pending_bet、预测缓存、连续错误计数等。
+                余额是否保留由你决定（通常保留，便于对比策略）。
+              </div>
+            </div>
+            <div class="step">
+              <div class="k">
+                <div class="t">4) 覆盖完成 → 自动触发下一局分析</div>
+                <div class="badge blue">无缝回到自动模式</div>
+              </div>
+              <div class="d">
+                覆盖后，系统进入“分析中”，给出下一局预测并自动下注；页面出现“开奖按钮”，你录入下一局结果继续跑。
+              </div>
+            </div>
+          </div>
+          <div class="chips">
+            <div class="chip">适合：频繁测试、数据纠错、回放某段路单</div>
+            <div class="chip">风险控制：二次确认 + 管理员权限</div>
+            <div class="chip">对外观影响小：不引入新页面</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>UI 草图（示意）</h2>
+          <div class="wire">
+            <div class="topbar">
+              <div class="brand">首页顶部操作区</div>
+              <div class="btnrow">
+                <div class="btn primary">重置本靴</div>
+                <div class="btn danger">结束本靴</div>
+                <div class="btn">管理员</div>
+              </div>
+            </div>
+
+            <div class="modal">
+              <div class="hd">
+                <div class="title">重置本靴并覆盖路单</div>
+                <div class="badge red">会清空本靴数据</div>
+              </div>
+              <div class="bd">
+                <div class="field">
+                  输入示例：<br />
+                  庄 闲 闲 庄 和 庄 ...<br />
+                  或一行一个：<br />
+                  庄<br />闲<br />闲<br />庄
+                </div>
+                <div class="warn">
+                  确认后将删除本靴所有已保存数据与本靴微学习记忆，并重置内存工作流。建议提供二次确认（输入“重置”或确认靴号）。
+                </div>
+                <div class="chips">
+                  <div class="chip">保留余额（默认）</div>
+                  <div class="chip">可选：重置余额到 20000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            方案 B（备选）：跳转到独立“上传/重置”页面。优点是承载更多配置项；缺点是页面增多、对现有流线型首页侵入更大。<br />
+            方案 A 更符合“验证工具”的轻量诉求。
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
