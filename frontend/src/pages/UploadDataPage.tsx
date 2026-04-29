@@ -39,11 +39,16 @@ const UploadDataPage: React.FC = () => {
         run_deep_learning: values.action === 'new_boot' ? values.runDeepLearning : undefined,
       });
       setConfirmOpen(false);
-      message.success(res.data?.message || '上传成功');
+      const serverMsg = res.data?.message || '上传成功';
+      if (serverMsg.includes('队列') || serverMsg.includes('深度学习')) {
+        message.info(serverMsg);
+      } else {
+        message.success(serverMsg);
+      }
       navigate('/dashboard');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      message.error(e?.response?.data?.detail || e?.response?.data?.error || e?.message || '上传失败');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string; error?: string } }; message?: string };
+      message.error(err?.response?.data?.detail || err?.response?.data?.error || err?.message || '上传失败');
     }
   };
 

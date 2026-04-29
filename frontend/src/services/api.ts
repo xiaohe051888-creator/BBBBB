@@ -210,17 +210,6 @@ export interface CurrentGameState {
   } | null;
 }
 
-/** 手动上传批量开奖记录（最多72局），上传后自动触发AI分析 */
-export const uploadGameResults = async (
-  games: GameUploadItem[],
-  isNewBoot?: boolean,
-) => {
-  return api.post<UploadResponse>('/games/upload', {
-    games,
-    is_new_boot: isNewBoot,
-  });
-};
-
 export type UploadMode = 'reset_current_boot' | 'new_boot';
 export type BalanceMode = 'keep' | 'reset_default';
 
