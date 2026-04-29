@@ -29,6 +29,8 @@ async def upload_game_results(req: UploadRequest):
     effective_run_deep_learning = True if req.run_deep_learning is None else bool(req.run_deep_learning)
 
     sess = get_session()
+    if sess.prediction_mode != "ai":
+        effective_run_deep_learning = False
     if sess.status == "深度学习中" and not (effective_mode == "new_boot" and effective_run_deep_learning):
         raise HTTPException(403, f"第{sess.deep_learning_status.get('boot_number', '?')}靴深度学习进行中，请等待完成后再上传")
 
@@ -239,7 +241,11 @@ async def end_current_boot(
     """
     结束本靴 - 触发深度学习，完成后才能开始新靴
     """
-    from app.services.game import end_boot
+    from app.services.game import end_boot, get_session
+
+    sess = get_session()
+    if sess.prediction_mode != "ai":
+        raise HTTPException(400, "规则引擎模式下不需要深度学习")
     
     async with async_session() as session:
         result = await end_boot(

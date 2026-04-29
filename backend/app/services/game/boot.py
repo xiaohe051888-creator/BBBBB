@@ -28,6 +28,9 @@ async def end_boot(
         sess_backup = copy.deepcopy(sess)
         
         try:
+            if sess.prediction_mode != "ai":
+                return {"success": False, "error": "规则引擎模式下不需要深度学习"}
+
             # 检查是否有待开奖注单
             if sess.pending_bet_direction is not None:
                 return {

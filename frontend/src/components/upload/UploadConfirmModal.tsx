@@ -31,12 +31,19 @@ export const UploadConfirmModal: React.FC<Props> = ({
   const [balanceMode, setBalanceMode] = React.useState<BalanceMode>('keep');
   const [runDeepLearning, setRunDeepLearning] = React.useState(true);
   const [confirmReset, setConfirmReset] = React.useState(false);
+  const predictionMode = systemState?.prediction_mode || 'ai';
 
   React.useEffect(() => {
     if (!open) return;
     setConfirmReset(false);
-    setRunDeepLearning(true);
+    setRunDeepLearning(predictionMode === 'ai');
   }, [open]);
+
+  React.useEffect(() => {
+    if (predictionMode !== 'ai') {
+      setRunDeepLearning(false);
+    }
+  }, [predictionMode]);
 
   const onOk = () => {
     if (action === 'reset_current_boot' && !confirmReset) return;
@@ -107,7 +114,7 @@ export const UploadConfirmModal: React.FC<Props> = ({
           />
         </div>
 
-        {action === 'new_boot' && (
+        {action === 'new_boot' && predictionMode === 'ai' && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ display: 'grid', gap: 2 }}>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>执行深度学习（end_boot）</div>
@@ -126,4 +133,3 @@ export const UploadConfirmModal: React.FC<Props> = ({
     </Modal>
   );
 };
-
