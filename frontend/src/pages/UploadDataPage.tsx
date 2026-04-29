@@ -62,6 +62,35 @@ const UploadDataPage: React.FC = () => {
         <Button onClick={() => navigate('/dashboard')}>返回首页</Button>
       </Space>
 
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.18)' }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>状态</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{systemState?.status ?? '-'}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, border: '1px solid rgba(255,215,0,0.18)', background: 'rgba(255,215,0,0.06)' }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>靴号</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#ffd700' }}>{systemState?.boot_number ?? '-'}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.18)' }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>已开局</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{systemState?.game_number ?? '-'}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, border: '1px solid rgba(82,196,26,0.20)', background: 'rgba(82,196,26,0.08)' }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>余额</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#52c41a', fontFamily: 'monospace' }}>
+                {systemState?.balance?.toLocaleString?.() ?? systemState?.balance ?? '-'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+            录入 {results.length}/{MAX_GAMES} 局
+          </div>
+        </div>
+      </Card>
+
       <Card>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 520px', minWidth: 320 }}>
