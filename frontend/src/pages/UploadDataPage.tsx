@@ -2,8 +2,10 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { App, Button, Card, Space } from 'antd';
 
+import { useSystemStateQuery } from '../hooks';
 import { QuickKeyInput, type GameResult } from '../components/upload/QuickKeyInput';
 import { BeadGridInput } from '../components/upload/BeadGridInput';
+import { UploadConfirmModal, type UploadConfirmValues } from '../components/upload/UploadConfirmModal';
 
 const MAX_GAMES = 72;
 
@@ -11,6 +13,8 @@ const UploadDataPage: React.FC = () => {
   const navigate = useNavigate();
   const { message } = App.useApp();
   const [results, setResults] = React.useState<GameResult[]>([]);
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const { data: systemState } = useSystemStateQuery({});
 
   const handleDelete = (index: number) => {
     setResults(prev => prev.filter((_, i) => i !== index));
@@ -21,7 +25,16 @@ const UploadDataPage: React.FC = () => {
       message.error(`局数必须在 1~${MAX_GAMES} 之间`);
       return;
     }
-    message.info('确认上传弹窗开发中');
+    setConfirmOpen(true);
+  };
+
+  const handleSubmit = (values: UploadConfirmValues) => {
+    setConfirmOpen(false);
+    message.info(
+      `已选择：${values.action === 'reset_current_boot' ? '重置本靴' : '结束本靴'}，` +
+      `${values.balanceMode === 'keep' ? '保留余额' : '重置余额'}，` +
+      `${values.action === 'new_boot' ? (values.runDeepLearning ? '执行深度学习' : '不执行深度学习') : ''}`
+    );
   };
 
   return (
@@ -86,6 +99,14 @@ const UploadDataPage: React.FC = () => {
           </div>
         </div>
       </Card>
+
+      <UploadConfirmModal
+        open={confirmOpen}
+        onCancel={() => setConfirmOpen(false)}
+        onSubmit={handleSubmit}
+        systemState={systemState}
+        gamesCount={results.length}
+      />
     </div>
   );
 };
