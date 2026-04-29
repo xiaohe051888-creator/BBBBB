@@ -221,6 +221,18 @@ export const uploadGameResults = async (
   });
 };
 
+export type UploadMode = 'reset_current_boot' | 'new_boot';
+export type BalanceMode = 'keep' | 'reset_default';
+
+export const uploadGameResultsV2 = async (params: {
+  games: GameUploadItem[];
+  mode: UploadMode;
+  balance_mode: BalanceMode;
+  run_deep_learning?: boolean;
+}) => {
+  return api.post<UploadResponse>('/games/upload', params);
+};
+
 /** 下注 */
 export const placeBet = async (
   gameNumber: number,

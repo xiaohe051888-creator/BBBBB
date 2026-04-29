@@ -32,6 +32,9 @@ async def upload_game_results(req: UploadRequest):
             db=session,
             games=[g.dict() for g in req.games],
             is_new_boot=req.is_new_boot,
+            mode=req.mode,
+            balance_mode=req.balance_mode,
+            run_deep_learning=req.run_deep_learning,
         )
     
     if not upload_result["success"]:

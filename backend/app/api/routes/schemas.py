@@ -1,7 +1,7 @@
 """
 路由共享的Pydantic模型定义
 """
-from typing import List
+from typing import List, Optional, Literal
 from pydantic import BaseModel, field_validator, Field
 from app.core.config import settings
 
@@ -23,6 +23,9 @@ class UploadRequest(BaseModel):
     """批量上传请求"""
     games: List[GameUploadItem]
     is_new_boot: bool = False
+    mode: Optional[Literal["reset_current_boot", "new_boot"]] = None
+    balance_mode: Optional[Literal["keep", "reset_default"]] = None
+    run_deep_learning: Optional[bool] = None
 
     @field_validator("games")
     @classmethod

@@ -81,6 +81,9 @@ async def upload_games(
     db: AsyncSession,
     games: List[Dict[str, Any]],
     is_new_boot: bool = False,
+    mode: Optional[str] = None,
+    balance_mode: Optional[str] = None,
+    run_deep_learning: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     上传批量开奖记录
@@ -122,6 +125,19 @@ async def upload_games(
             if first_game_number != 1:
                 return {"success": False, "error": f"上传数据必须从第 1 局开始，不能从第 {first_game_number} 局开始"}
 
+            effective_mode = mode
+            if effective_mode is None:
+                effective_mode = "new_boot" if is_new_boot else "reset_current_boot"
+
+            if effective_mode not in ("reset_current_boot", "new_boot"):
+                return {"success": False, "error": f"非法 mode: {effective_mode}"}
+
+            effective_balance_mode = balance_mode or "keep"
+            if effective_balance_mode not in ("keep", "reset_default"):
+                return {"success": False, "error": f"非法 balance_mode: {effective_balance_mode}"}
+
+            effective_run_deep_learning = True if run_deep_learning is None else bool(run_deep_learning)
+
             # 记录重置前的状态（用于日志）
             old_status = sess.status
             sess.boot_number
@@ -131,7 +147,13 @@ async def upload_games(
             result = await db.execute(stmt)
             existing_boot = result.scalar_one_or_none() or 0
             
-            if is_new_boot:
+            if effective_mode == "new_boot":
+                if effective_run_deep_learning:
+                    try:
+                        from .boot import end_boot
+                        await end_boot()
+                    except Exception as e:
+                        return {"success": False, "error": f"结束本靴/深度学习失败: {str(e)}"}
                 boot_number = existing_boot + 1
                 # 开启新靴，不需要清理上靴数据
                 await _reset_table_data(db, boot_number=None)
@@ -143,7 +165,7 @@ async def upload_games(
             
             # ========== 强力清场：重置会话状态 ==========
             # 清理内存中的工作流状态，终止所有进行中的操作
-            await _reset_session_state(keep_balance=True)
+            await _reset_session_state(keep_balance=(effective_balance_mode == "keep"))
             
             sess.boot_number = boot_number
             
@@ -197,7 +219,7 @@ async def upload_games(
             state.current_bet_tier = "标准"
             
             # 记录重置日志
-            action_type = "开启新靴" if is_new_boot else "覆盖本靴"
+            action_type = "开启新靴" if effective_mode == "new_boot" else "覆盖本靴"
             if old_status != "空闲":
                 await write_game_log(
                     db, boot_number, 0,

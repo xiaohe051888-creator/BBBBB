@@ -6,6 +6,7 @@ import { useSystemStateQuery } from '../hooks';
 import { QuickKeyInput, type GameResult } from '../components/upload/QuickKeyInput';
 import { BeadGridInput } from '../components/upload/BeadGridInput';
 import { UploadConfirmModal, type UploadConfirmValues } from '../components/upload/UploadConfirmModal';
+import { uploadGameResultsV2 } from '../services/api';
 
 const MAX_GAMES = 72;
 
@@ -28,13 +29,22 @@ const UploadDataPage: React.FC = () => {
     setConfirmOpen(true);
   };
 
-  const handleSubmit = (values: UploadConfirmValues) => {
-    setConfirmOpen(false);
-    message.info(
-      `已选择：${values.action === 'reset_current_boot' ? '重置本靴' : '结束本靴'}，` +
-      `${values.balanceMode === 'keep' ? '保留余额' : '重置余额'}，` +
-      `${values.action === 'new_boot' ? (values.runDeepLearning ? '执行深度学习' : '不执行深度学习') : ''}`
-    );
+  const handleSubmit = async (values: UploadConfirmValues) => {
+    const games = results.map((r, idx) => ({ game_number: idx + 1, result: r }));
+    try {
+      const res = await uploadGameResultsV2({
+        games,
+        mode: values.action,
+        balance_mode: values.balanceMode,
+        run_deep_learning: values.action === 'new_boot' ? values.runDeepLearning : undefined,
+      });
+      setConfirmOpen(false);
+      message.success(res.data?.message || '上传成功');
+      navigate('/dashboard');
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      message.error(err?.message || '上传失败');
+    }
   };
 
   return (
