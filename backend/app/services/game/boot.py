@@ -13,6 +13,7 @@ from .session import get_session, get_session_lock, broadcast_event
 from .state import get_or_create_state
 from .logging import write_game_log
 from app.core.database import async_session
+from app.core.config import settings
 import copy
 
 async def end_boot(
@@ -219,6 +220,66 @@ async def run_deep_learning(
             state.predict_direction = None
             state.predict_confidence = None
             state.current_bet_tier = "标准"
+
+            pending_upload = None
+            async with lock:
+                if sess.deep_learning_status:
+                    pending_upload = sess.deep_learning_status.get("pending_upload")
+                    if pending_upload:
+                        sess.deep_learning_status.pop("pending_upload", None)
+
+            if pending_upload:
+                from sqlalchemy import delete
+                from app.models.schemas import GameRecord, BetRecord, MistakeBook, RoadMap, AIMemory
+                next_boot = boot_number + 1
+
+                await db.execute(delete(GameRecord).where(GameRecord.boot_number == next_boot))
+                await db.execute(delete(BetRecord).where(BetRecord.boot_number == next_boot))
+                await db.execute(delete(MistakeBook).where(MistakeBook.boot_number == next_boot))
+                await db.execute(delete(RoadMap).where(RoadMap.boot_number == next_boot))
+                await db.execute(delete(AIMemory).where(AIMemory.boot_number == next_boot))
+
+                games = pending_upload.get("games") or []
+                uploaded = 0
+                for g in games:
+                    game_number = g.get("game_number")
+                    result_val = g.get("result")
+                    if not game_number or result_val not in ("庄", "闲", "和"):
+                        continue
+                    db.add(GameRecord(
+                        boot_number=next_boot,
+                        game_number=game_number,
+                        result=result_val,
+                        result_time=datetime.now(),
+                    ))
+                    uploaded += 1
+
+                max_game = max((g.get("game_number") or 0) for g in games) if games else 0
+
+                balance_mode = pending_upload.get("balance_mode") or "keep"
+                async with lock:
+                    sess.boot_number = next_boot
+                    sess.next_game_number = max_game + 1
+                    sess.status = "分析中"
+                    if balance_mode == "reset_default":
+                        sess.balance = settings.DEFAULT_BALANCE
+                    sess.consecutive_errors = 0
+                    sess.predict_direction = None
+                    sess.predict_confidence = None
+                    sess.predict_bet_tier = None
+                    sess.predict_bet_amount = None
+                    sess.banker_summary = None
+                    sess.player_summary = None
+                    sess.combined_summary = None
+
+                state.status = "分析中"
+                state.boot_number = next_boot
+                state.game_number = max_game
+                state.balance = sess.balance
+                state.consecutive_errors = 0
+                state.predict_direction = None
+                state.predict_confidence = None
+                state.current_bet_tier = "标准"
             
             # 自动清理历史垃圾数据，防止无限膨胀
             try:
@@ -245,6 +306,46 @@ async def run_deep_learning(
                 logging.getLogger(__name__).warning(f"数据清理任务失败: {clean_err}")
             
             await db.commit()
+
+            if pending_upload:
+                await broadcast_event("state_update", {
+                    "status": "分析中",
+                    "boot_number": next_boot,
+                    "game_number": max_game,
+                    "uploaded": uploaded,
+                })
+
+                from app.services.game.session import add_background_task
+                from app.core.database import async_session as _async_session
+                from app.services.game import run_ai_analysis
+                from app.services.game.session import broadcast_event as _broadcast_event
+
+                async def _trigger_next_boot_analysis():
+                    try:
+                        async with _async_session() as session2:
+                            res2 = await run_ai_analysis(db=session2, boot_number=next_boot)
+                            if res2 and res2.get("success"):
+                                prediction = res2.get("prediction")
+                                if prediction not in ("庄", "闲"):
+                                    prediction = "庄"
+                                from app.services.game.betting import place_bet
+                                await place_bet(
+                                    db=session2,
+                                    game_number=res2["game_number"],
+                                    direction=prediction,
+                                    amount=res2.get("bet_amount", 100),
+                                )
+                                await session2.commit()
+                    except Exception as e2:
+                        import logging
+                        logging.getLogger("uvicorn.error").error(f"下一靴AI分析失败(auto-upload): {e2}", exc_info=True)
+                        try:
+                            await _broadcast_event("state_update", {"status": "错误"})
+                        except Exception:
+                            pass
+
+                task2 = asyncio.create_task(_trigger_next_boot_analysis())
+                add_background_task(task2)
     except Exception as e:
         async with lock:
             sess.deep_learning_status["status"] = "失败"

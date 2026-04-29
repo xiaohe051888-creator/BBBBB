@@ -136,8 +136,6 @@ async def upload_games(
             if effective_balance_mode not in ("keep", "reset_default"):
                 return {"success": False, "error": f"非法 balance_mode: {effective_balance_mode}"}
 
-            effective_run_deep_learning = True if run_deep_learning is None else bool(run_deep_learning)
-
             # 记录重置前的状态（用于日志）
             old_status = sess.status
             sess.boot_number
@@ -148,12 +146,6 @@ async def upload_games(
             existing_boot = result.scalar_one_or_none() or 0
             
             if effective_mode == "new_boot":
-                if effective_run_deep_learning:
-                    try:
-                        from .boot import end_boot
-                        await end_boot()
-                    except Exception as e:
-                        return {"success": False, "error": f"结束本靴/深度学习失败: {str(e)}"}
                 boot_number = existing_boot + 1
                 # 开启新靴，不需要清理上靴数据
                 await _reset_table_data(db, boot_number=None)

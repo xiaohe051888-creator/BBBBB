@@ -22,12 +22,40 @@ async def upload_game_results(req: UploadRequest):
     """
     from app.services.game import upload_games, run_ai_analysis, get_session
     
-    # 检查是否正在深度学习中
     sess = get_session()
     if sess.status == "深度学习中":
         raise HTTPException(403, f"第{sess.deep_learning_status.get('boot_number', '?')}靴深度学习进行中，请等待完成后再上传")
     
     async with async_session() as session:
+        effective_mode = req.mode
+        if effective_mode is None:
+            effective_mode = "new_boot" if req.is_new_boot else "reset_current_boot"
+
+        effective_run_deep_learning = True if req.run_deep_learning is None else bool(req.run_deep_learning)
+
+        if effective_mode == "new_boot" and effective_run_deep_learning:
+            from app.services.game.boot import end_boot
+            result = await end_boot(session)
+            if not result.get("success"):
+                raise HTTPException(400, result.get("error", "结束本靴失败"))
+
+            sess = get_session()
+            if sess.deep_learning_status is None:
+                sess.deep_learning_status = result.copy()
+
+            sess.deep_learning_status["pending_upload"] = {
+                "games": [g.dict() for g in req.games],
+                "balance_mode": req.balance_mode or "keep",
+            }
+            return {
+                "success": True,
+                "uploaded": 0,
+                "boot_number": result.get("boot_number", sess.boot_number),
+                "max_game_number": sess.next_game_number - 1,
+                "next_game_number": sess.next_game_number,
+                "message": "深度学习已启动。完成后将自动开启新靴并写入本次上传数据。",
+            }
+
         upload_result = await upload_games(
             db=session,
             games=[g.dict() for g in req.games],

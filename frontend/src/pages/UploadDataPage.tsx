@@ -41,9 +41,9 @@ const UploadDataPage: React.FC = () => {
       setConfirmOpen(false);
       message.success(res.data?.message || '上传成功');
       navigate('/dashboard');
-    } catch (e: unknown) {
-      const err = e as { message?: string };
-      message.error(err?.message || '上传失败');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      message.error(e?.response?.data?.detail || e?.response?.data?.error || e?.message || '上传失败');
     }
   };
 
