@@ -136,6 +136,8 @@ async def upload_games(
             if effective_balance_mode not in ("keep", "reset_default"):
                 return {"success": False, "error": f"非法 balance_mode: {effective_balance_mode}"}
 
+            effective_run_deep_learning = True if run_deep_learning is None else bool(run_deep_learning)
+
             # 记录重置前的状态（用于日志）
             old_status = sess.status
             sess.boot_number
@@ -144,6 +146,42 @@ async def upload_games(
             stmt = select(GameRecord.boot_number).order_by(GameRecord.boot_number.desc()).limit(1)
             result = await db.execute(stmt)
             existing_boot = result.scalar_one_or_none() or 0
+
+            if effective_mode == "new_boot" and sess.status == "深度学习中":
+                if not effective_run_deep_learning:
+                    return {"success": False, "error": "深度学习进行中，不能跳过深度学习直接开启新靴上传"}
+
+                for g in games:
+                    result_val = g.get("result", "")
+                    if result_val not in ("庄", "闲", "和"):
+                        return {"success": False, "error": f"第 {g.get('game_number')} 局存在非法开奖结果 '{result_val}'，只能是庄、闲、和"}
+
+                max_game = max(g.get("game_number") or 0 for g in games)
+                next_boot = existing_boot + 1
+
+                if not sess.deep_learning_status:
+                    return {"success": False, "error": "深度学习状态异常，无法排队上传"}
+
+                sess.deep_learning_status["pending_upload"] = {
+                    "games": games,
+                    "balance_mode": effective_balance_mode,
+                }
+
+                await db.commit()
+                await broadcast_event("deep_learning_pending_upload", {
+                    "boot_number": next_boot,
+                    "uploaded": len(games),
+                    "max_game_number": max_game,
+                })
+
+                return {
+                    "success": True,
+                    "uploaded": len(games),
+                    "boot_number": next_boot,
+                    "max_game_number": max_game,
+                    "next_game_number": max_game + 1,
+                    "message": "深度学习进行中，已将新靴数据加入队列，完成后自动写入并触发分析",
+                }
             
             if effective_mode == "new_boot":
                 boot_number = existing_boot + 1
