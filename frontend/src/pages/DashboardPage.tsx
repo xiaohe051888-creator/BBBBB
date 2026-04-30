@@ -263,6 +263,15 @@ const DashboardPage: React.FC = () => {
       });
       return;
     }
+    if (systemState?.status !== '等待开奖' || !systemState?.pending_bet) {
+      addIssue({
+        level: 'warning',
+        title: '尚未自动下注',
+        detail: '系统必须先完成自动下注后才允许开奖。请先上传数据并等待自动分析与下注完成。',
+        source: 'system',
+      });
+      return;
+    }
     setRevealResult('');
     setRevealVisible(true);
   };
