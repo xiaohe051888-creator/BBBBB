@@ -13,12 +13,13 @@ from .session import get_session, get_session_lock
 
 async def get_or_create_state(db: AsyncSession) -> SystemState:
     """获取或创建系统状态记录"""
-    stmt = select(SystemState).with_for_update()
+    stmt = select(SystemState).where(SystemState.singleton_key == 1).with_for_update()
     result = await db.execute(stmt)
     state = result.scalar_one_or_none()
     
     if not state:
         state = SystemState(
+            singleton_key=1,
             status="手动模式",
             balance=settings.DEFAULT_BALANCE,
             boot_number=1,
@@ -33,32 +34,34 @@ async def get_or_create_state(db: AsyncSession) -> SystemState:
 
 async def get_current_state() -> Dict[str, Any]:
     """获取当前游戏状态（内存态）"""
-    sess = get_session()
-    return {
-        "status": sess.status,
-        "prediction_mode": sess.prediction_mode,
-        "boot_number": sess.boot_number,
-        "next_game_number": sess.next_game_number,
-        "predict_direction": sess.predict_direction,
-        "predict_confidence": sess.predict_confidence,
-        "predict_bet_tier": sess.predict_bet_tier,
-        "predict_bet_amount": sess.predict_bet_amount,
-        "pending_bet": {
-            "direction": sess.pending_bet_direction,
-            "amount": sess.pending_bet_amount,
-            "tier": sess.pending_bet_tier,
-            "game_number": sess.pending_game_number,
-            "time": sess.pending_bet_time.isoformat() if sess.pending_bet_time else None,
-        } if sess.pending_bet_direction else None,
-        "balance": sess.balance,
-        "consecutive_errors": sess.consecutive_errors,
-        "analysis": {
-            "banker_summary": sess.banker_summary,
-            "player_summary": sess.player_summary,
-            "combined_summary": sess.combined_summary,
-            "time": sess.analysis_time.isoformat() if sess.analysis_time else None,
-        } if sess.banker_summary else None,
-    }
+    lock = get_session_lock()
+    async with lock:
+        sess = get_session()
+        return {
+            "status": sess.status,
+            "prediction_mode": sess.prediction_mode,
+            "boot_number": sess.boot_number,
+            "next_game_number": sess.next_game_number,
+            "predict_direction": sess.predict_direction,
+            "predict_confidence": sess.predict_confidence,
+            "predict_bet_tier": sess.predict_bet_tier,
+            "predict_bet_amount": sess.predict_bet_amount,
+            "pending_bet": {
+                "direction": sess.pending_bet_direction,
+                "amount": sess.pending_bet_amount,
+                "tier": sess.pending_bet_tier,
+                "game_number": sess.pending_game_number,
+                "time": sess.pending_bet_time.isoformat() if sess.pending_bet_time else None,
+            } if sess.pending_bet_direction else None,
+            "balance": sess.balance,
+            "consecutive_errors": sess.consecutive_errors,
+            "analysis": {
+                "banker_summary": sess.banker_summary,
+                "player_summary": sess.player_summary,
+                "combined_summary": sess.combined_summary,
+                "time": sess.analysis_time.isoformat() if sess.analysis_time else None,
+            } if sess.banker_summary else None,
+        }
 
 
 async def sync_balance_from_db(db: AsyncSession):

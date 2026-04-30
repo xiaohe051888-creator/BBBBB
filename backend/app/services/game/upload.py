@@ -49,6 +49,9 @@ async def _reset_session_state(keep_balance: bool = True) -> None:
     """
     重置会话状态 - 清理内存中的工作流状态，强制清场
     """
+    lock = get_session_lock()
+    if not lock.locked():
+        raise RuntimeError("reset_session_state requires session_lock")
     sess = get_session()
     
     # 重置所有状态

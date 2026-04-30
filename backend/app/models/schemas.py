@@ -342,8 +342,12 @@ class AdminUser(Base):
 class SystemState(Base):
     """系统运行状态"""
     __tablename__ = "system_state"
+    __table_args__ = (
+        Index("uq_system_state_singleton_key", "singleton_key", unique=True),
+    )
     
     id = Column(Integer, primary_key=True, autoincrement=True)
+    singleton_key = Column(Integer, nullable=False, server_default="1")
     status = Column(String(20), default="已停止")
     boot_number = Column(Integer, default=0)
     game_number = Column(Integer, default=0)
