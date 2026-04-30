@@ -41,6 +41,7 @@ type LogFilterBarProps = {
   setFilterPriority: (v: string) => void;
   filterTaskId: string;
   setFilterTaskId: (v: string) => void;
+  onCopyTaskId: () => void;
   searchText: string;
   setSearchText: (v: string) => void;
   onReset: () => void;
@@ -54,6 +55,7 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
   setFilterPriority,
   filterTaskId,
   setFilterTaskId,
+  onCopyTaskId,
   searchText,
   setSearchText,
   onReset,
@@ -96,6 +98,9 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
           size="small"
           style={{ width: 220 }}
         />
+        <Button size="small" disabled={!filterTaskId} onClick={onCopyTaskId}>
+          复制任务编号
+        </Button>
         <Input
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
@@ -530,6 +535,21 @@ const LogsPage: React.FC = () => {
     setPage(1);
   };
 
+  const handleCopyTaskId = async () => {
+    if (!filterTaskId) return;
+    try {
+      await navigator.clipboard.writeText(filterTaskId);
+      message.success('任务编号已复制');
+    } catch {
+      message.error('复制失败');
+    }
+  };
+
+  useEffect(() => {
+    if (!filterTaskId) return;
+    queryClient.invalidateQueries({ queryKey: ['logs'] });
+  }, [filterTaskId, queryClient]);
+
   return (
     <div className="page-wrapper">
       {/* 顶部导航 */}
@@ -599,6 +619,7 @@ const LogsPage: React.FC = () => {
             setFilterPriority={(v: string) => { setFilterPriority(v); setPage(1); }}
             filterTaskId={filterTaskId}
             setFilterTaskId={(v: string) => { setFilterTaskId(v); setPage(1); }}
+            onCopyTaskId={handleCopyTaskId}
             searchText={searchText}
             setSearchText={setSearchText}
             onReset={handleResetFilters}
