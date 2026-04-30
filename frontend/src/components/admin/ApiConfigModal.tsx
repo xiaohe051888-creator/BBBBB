@@ -12,11 +12,11 @@ interface ApiConfigModalProps {
 }
 
 const PROVIDERS = [
-  { label: 'DeepSeek (默认推荐)', value: 'deepseek' },
-  { label: 'OpenAI (GPT)', value: 'openai' },
-  { label: 'Anthropic (Claude)', value: 'anthropic' },
+  { label: '深度求索（默认推荐）', value: 'deepseek' },
+  { label: '开放AI平台', value: 'openai' },
+  { label: '克劳德平台', value: 'anthropic' },
   { label: '阿里云 (通义千问)', value: 'aliyun' },
-  { label: '自定义兼容API', value: 'custom' },
+  { label: '自定义兼容接口', value: 'custom' },
 ];
 
 const DEFAULT_MODELS: Record<string, string> = {
@@ -43,12 +43,14 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
   const { message } = App.useApp();
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean; message: string} | null>(null);
+  const [provider, setProvider] = useState<string>('deepseek');
 
   const roleName = role === 'banker' ? '庄模型' : role === 'player' ? '闲模型' : '综合模型';
 
   useEffect(() => {
     if (visible && currentStatus?.models?.[role]) {
       const modelConfig = currentStatus.models[role];
+      setProvider(modelConfig.provider || 'deepseek');
       form.setFieldsValue({
         provider: modelConfig.provider || 'deepseek',
         model: modelConfig.model || 'deepseek-reasoner',
@@ -59,7 +61,25 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
     }
   }, [visible, currentStatus, role, form]);
 
+  const MODEL_OPTIONS: Record<string, { label: string; value: string }[]> = {
+    deepseek: [
+      { label: '推理增强版（推荐）', value: 'deepseek-reasoner' },
+      { label: '通用对话版', value: 'deepseek-chat' },
+    ],
+    openai: [
+      { label: '旗舰版', value: 'gpt-4o' },
+      { label: '轻量版', value: 'gpt-4o-mini' },
+    ],
+    anthropic: [
+      { label: '高质量版', value: 'claude-3-5-sonnet-20240620' },
+    ],
+    aliyun: [
+      { label: '旗舰版', value: 'qwen-max' },
+    ],
+  };
+
   const handleProviderChange = (value: string) => {
+    setProvider(value);
     form.setFieldsValue({
       model: DEFAULT_MODELS[value] || '',
       base_url: DEFAULT_BASE_URLS[value] || '',
@@ -83,7 +103,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
     if (!payload) return;
 
     if (!payload.api_key && !currentStatus?.models?.[role]?.api_key_set) {
-      message.warning('请输入 API Key 进行测试');
+      message.warning('请输入接口密钥进行测试');
       return;
     }
 
@@ -91,8 +111,8 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
     setTestResult(null);
     try {
       await apiService.testApiConnection(payload);
-      setTestResult({ success: true, message: '测试成功！API 连接正常，模型响应符合预期。' });
-      message.success('API 测试成功');
+      setTestResult({ success: true, message: '测试成功！接口连接正常，模型响应符合预期。' });
+      message.success('接口测试成功');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || err.message || '连接失败';
@@ -107,14 +127,14 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
     if (!payload) return;
 
     if (!payload.api_key && !currentStatus?.models?.[role]?.api_key_set) {
-      message.warning('首次配置必须输入 API Key');
+      message.warning('首次配置必须输入接口密钥');
       return;
     }
 
     setSaving(true);
     try {
       await apiService.updateApiConfig(payload);
-      message.success(`${roleName} API 配置保存成功`);
+      message.success(`${roleName}接口配置保存成功`);
       onSuccess();
       onCancel();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -127,7 +147,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
   return (
     <Modal
-      title={`配置 ${roleName} API`}
+      title={`配置${roleName}接口`}
       open={visible}
       onCancel={onCancel}
       footer={[
@@ -146,7 +166,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       mask={{ closable: false }}
     >
       <div style={{ marginBottom: 16, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-        配置专属的大模型 API 密钥。如果留空 API Key，将保留现有的密钥不变。
+        配置专属的大模型接口密钥。如果留空接口密钥，将保留现有的密钥不变。
       </div>
 
       <Form form={form} layout="vertical" requiredMark="optional">
@@ -160,33 +180,38 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
         <Form.Item 
           name="model" 
-          label="模型名称 (Model ID)" 
+          label="模型名称（模型编号）" 
           rules={[{ required: true, message: '请输入模型名称' }]}
         >
-          <Input placeholder="例如: deepseek-reasoner" />
+          {provider === 'custom' ? (
+            <Input placeholder="例如：模型编号" />
+          ) : (
+            <Select options={MODEL_OPTIONS[provider] || []} />
+          )}
         </Form.Item>
 
         <Form.Item 
           name="api_key" 
           label={
             <span>
-              API Key 
+              接口密钥 
               {currentStatus?.models?.[role]?.api_key_set && 
                 <span style={{ marginLeft: 8, color: '#52c41a', fontSize: 12 }}>(已保存过密钥，不修改请留空)</span>
               }
             </span>
           }
-          rules={[{ required: !currentStatus?.models?.[role]?.api_key_set, message: '请输入 API Key' }]}
+          rules={[{ required: !currentStatus?.models?.[role]?.api_key_set, message: '请输入接口密钥' }]}
         >
-          <Input.Password placeholder="sk-..." />
+          <Input.Password placeholder="请输入接口密钥" />
         </Form.Item>
 
         <Form.Item 
           name="base_url" 
-          label="API Base URL (可选)" 
-          tooltip="如果使用代理或自定义兼容接口，请填写完整的 Base URL"
+          label="接口地址（可选）" 
+          tooltip="如果使用代理或自定义兼容接口，请填写完整的接口地址"
+          hidden={provider !== 'custom'}
         >
-          <Input placeholder="例如: https://api.deepseek.com" />
+          <Input placeholder="例如：接口地址" />
         </Form.Item>
       </Form>
 

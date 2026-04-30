@@ -136,7 +136,7 @@ const AdminPage: React.FC = () => {
   const handleModeChange = async (e: any) => {
     const newMode = e.target.value;
 
-    // 如果选择 AI 模式，但尚未配置至少一个大模型 API，则拦截并提示
+    // 如果选择 AI 模式，但尚未配置至少一个大模型接口，则拦截并提示
     if (newMode === 'ai') {
       const isConfigured =
         threeModelStatus?.models?.banker?.api_key_set ||
@@ -144,7 +144,7 @@ const AdminPage: React.FC = () => {
         threeModelStatus?.models?.combined?.api_key_set;
 
       if (!isConfigured) {
-        message.warning('无法切换至 AI 模式：您尚未配置任何 AI 大模型的 API Key。系统将继续使用强规则引擎。');
+        message.warning('无法切换至 AI 模式：您尚未配置任何 AI 大模型的接口密钥。系统将继续使用强规则引擎。');
         return;
       }
     }
@@ -407,7 +407,7 @@ const AdminPage: React.FC = () => {
                         <Card size="small" style={{ borderLeft: '3px solid #ff4d4f', background: 'rgba(255,77,79,0.04)' }}>
                           <div style={{ fontWeight: 700, color: '#ff4d4f', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Banker /> 庄模型</span>
-                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('banker')}>配置 API</Button>
+                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('banker')}>配置接口</Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {threeModelStatus.models?.banker?.provider} · {threeModelStatus.models?.banker?.model}
@@ -425,7 +425,7 @@ const AdminPage: React.FC = () => {
                         <Card size="small" style={{ borderLeft: '3px solid #1890ff', background: 'rgba(24,144,255,0.04)' }}>
                           <div style={{ fontWeight: 700, color: '#1890ff', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Player /> 闲模型</span>
-                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('player')}>配置 API</Button>
+                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('player')}>配置接口</Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {threeModelStatus.models?.player?.provider} · {threeModelStatus.models?.player?.model}
@@ -443,7 +443,7 @@ const AdminPage: React.FC = () => {
                         <Card size="small" style={{ borderLeft: '3px solid #52c41a', background: 'rgba(82,196,26,0.04)' }}>
                           <div style={{ fontWeight: 700, color: '#52c41a', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Brain /> 综合模型</span>
-                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('combined')}>配置 API</Button>
+                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('combined')}>配置接口</Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {threeModelStatus.models?.combined?.provider} · {threeModelStatus.models?.combined?.model}
@@ -578,7 +578,7 @@ const AdminPage: React.FC = () => {
         onConfirm={handleStartLearning}
       />
 
-      {/* API 配置弹窗 */}
+      {/* 接口配置弹窗 */}
       <ApiConfigModal 
         visible={apiConfigVisible}
         onCancel={() => setApiConfigVisible(false)}

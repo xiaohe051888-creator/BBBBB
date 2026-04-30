@@ -193,15 +193,15 @@ const LogsPage: React.FC = () => {
       `"${(l.description || '').replace(/"/g, '""')}"`,
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    downloadFile(csv, `logs_${dayjs().format('YYYYMMDD_HHmmss')}.csv`, 'text/csv;charset=utf-8;');
-    message.success(`已导出 ${filteredLogs.length} 条日志（CSV）`);
+    downloadFile(csv, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.csv`, 'text/csv;charset=utf-8;');
+    message.success(`已导出 ${filteredLogs.length} 条日志（表格）`);
   };
 
   const exportToJSON = () => {
     if (!filteredLogs.length) { message.warning('暂无数据可导出'); return; }
     const json = JSON.stringify(filteredLogs, null, 2);
-    downloadFile(json, `logs_${dayjs().format('YYYYMMDD_HHmmss')}.json`, 'application/json');
-    message.success(`已导出 ${filteredLogs.length} 条日志（JSON）`);
+    downloadFile(json, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.json`, 'application/json');
+    message.success(`已导出 ${filteredLogs.length} 条日志（数据）`);
   };
 
   // 表格列定义 - 自适应布局，避免横向滚动
@@ -230,14 +230,14 @@ const LogsPage: React.FC = () => {
       width: '10%',
       render: (v: string) => (
         <Tag color={PRIORITY_COLORS[v]} style={{ fontSize: 10, fontWeight: 600, padding: '0 4px' }}>
-          {v}
+          {v === 'P0' ? '致命' : v === 'P1' ? '严重' : v === 'P2' ? '警告' : v === 'P3' ? '信息' : '未知'}
         </Tag>
       ),
       filters: [
-        { text: 'P0 致命', value: 'P0' },
-        { text: 'P1 严重', value: 'P1' },
-        { text: 'P2 警告', value: 'P2' },
-        { text: 'P3 信息', value: 'P3' },
+        { text: '致命', value: 'P0' },
+        { text: '严重', value: 'P1' },
+        { text: '警告', value: 'P2' },
+        { text: '信息', value: 'P3' },
       ],
       onFilter: (value, record) => record.priority === value,
     },
@@ -352,11 +352,11 @@ const LogsPage: React.FC = () => {
           >
             刷新
           </Button>
-          <Button icon={<Icons.Download />} size="small" onClick={exportToCSV} title="导出CSV">
-            导出CSV
+          <Button icon={<Icons.Download />} size="small" onClick={exportToCSV} title="导出表格">
+            导出表格
           </Button>
-          <Button icon={<Icons.Download />} size="small" onClick={exportToJSON} title="导出JSON">
-            导出JSON
+          <Button icon={<Icons.Download />} size="small" onClick={exportToJSON} title="导出数据">
+            导出数据
           </Button>
         </div>
       </div>

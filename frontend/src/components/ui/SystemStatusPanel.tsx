@@ -66,8 +66,8 @@ const backendColor = (s: ServiceStatus): string => {
 };
 
 const backendLabel = (s: ServiceStatus, latency: number | null): string => {
-  if (s === 'online') return latency !== null ? `${latency}ms` : '在线';
-  if (s === 'degraded') return `缓慢 ${latency ?? '--'}ms`;
+  if (s === 'online') return latency !== null ? `${latency}毫秒` : '在线';
+  if (s === 'degraded') return `缓慢 ${latency ?? '--'}毫秒`;
   if (s === 'offline') return '离线';
   return '检测中...';
 };
@@ -216,7 +216,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* 快速状态徽章 */}
           <Space size={4}>
-            <Tooltip title={`WebSocket: ${wsLabel(wsStatus)}`}>
+            <Tooltip title={`实时推送：${wsLabel(wsStatus)}`}>
               <span style={{ color: wsColor(wsStatus), fontSize: 12 }}><WsIcon /></span>
             </Tooltip>
             <Tooltip title={`后端: ${backendLabel(backendStatus, backendLatency)}`}>
@@ -243,7 +243,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
             label="实时推送"
             color={wsColor(wsStatus)}
             value={wsLabel(wsStatus)}
-            extra={wsLatency !== null ? `延迟${wsLatency}ms` : undefined}
+            extra={wsLatency !== null ? `延迟${wsLatency}毫秒` : undefined}
             subInfo={wsReconnectCount > 0 ? `已重连${wsReconnectCount}次` : undefined}
             onAction={wsStatus !== 'connected' ? { label: '重连', onClick: onRetryConnection } : undefined}
           />
@@ -254,7 +254,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
             label="后端服务"
             color={backendColor(backendStatus)}
             value={backendStatus === 'offline' ? '离线 ⚠' : backendLabel(backendStatus, backendLatency)}
-            subInfo={backendStatus === 'offline' ? '请确认 python backend/main.py 已启动（端口8000）' : undefined}
+            subInfo={backendStatus === 'offline' ? '请确认后端服务已启动（端口8000）' : undefined}
             onAction={backendStatus === 'offline' ? { label: '重试', onClick: onRetryConnection } : undefined}
           />
 
@@ -296,7 +296,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
             </div>
             {!aiAllOk && (
               <span style={{ fontSize: 10, color: '#faad14', marginTop: 2 }}>
-                ⚠ 未配置的模型需在 backend/.env 中设置 API Key
+                ⚠ 未配置的模型需先设置接口密钥
               </span>
             )}
           </div>
@@ -440,13 +440,13 @@ const StatusTooltip: React.FC<{ diagnostics: SystemDiagnostics; onRetry?: () => 
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-          <span style={{ color: '#8b949e' }}>WebSocket</span>
-          <span style={{ color: wsColor(wsStatus) }}>{wsLabel(wsStatus)}{wsLatency !== null ? ` (${wsLatency}ms)` : ''}</span>
+          <span style={{ color: '#8b949e' }}>实时推送</span>
+          <span style={{ color: wsColor(wsStatus) }}>{wsLabel(wsStatus)}{wsLatency !== null ? `（${wsLatency}毫秒）` : ''}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-          <span style={{ color: '#8b949e' }}>后端API</span>
+          <span style={{ color: '#8b949e' }}>后端接口</span>
           <span style={{ color: backendColor(backendStatus) }}>
-            {backendStatus === 'online' ? `在线 ${backendLatency ?? '--'}ms` : backendStatus === 'offline' ? '离线' : backendStatus}
+            {backendStatus === 'online' ? `在线 ${backendLatency ?? '--'}毫秒` : backendStatus === 'offline' ? '离线' : backendStatus}
           </span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>

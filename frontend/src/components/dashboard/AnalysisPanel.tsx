@@ -95,7 +95,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 ))}
               </div>
               <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 8 }}>
-                正在并行调用 OpenAI · Claude · Gemini
+                正在并行调用三模型服务
               </div>
             </>
           )}
@@ -178,10 +178,10 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
         {/* 庄模型 */}
         <div className="model-block model-block-banker">
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
-            <span className="model-icon-badge" style={{ color: '#ff4d4f', fontWeight: 700 }}>B</span>
+            <span className="model-icon-badge" style={{ color: '#ff4d4f', fontWeight: 700 }}>庄</span>
             <span style={{ fontWeight: 700, fontSize: 13, color: '#ff4d4f' }}>庄模型</span>
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,77,79,0.5)', background: 'rgba(255,77,79,0.08)', padding: '1px 8px', borderRadius: 8 }}>
-              OpenAI GPT-4o mini
+              庄模型接口
             </span>
           </div>
           <p className="analysis-text">{analysis.banker_summary || '暂无庄向分析...'}</p>
@@ -190,10 +190,10 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
         {/* 闲模型 */}
         <div className="model-block model-block-player">
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
-            <span className="model-icon-badge" style={{ color: '#1890ff', fontWeight: 700 }}>P</span>
+            <span className="model-icon-badge" style={{ color: '#1890ff', fontWeight: 700 }}>闲</span>
             <span style={{ fontWeight: 700, fontSize: 13, color: '#1890ff' }}>闲模型</span>
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(24,144,255,0.5)', background: 'rgba(24,144,255,0.08)', padding: '1px 8px', borderRadius: 8 }}>
-              Claude Sonnet 4
+              闲模型接口
             </span>
           </div>
           <p className="analysis-text">{analysis.player_summary || '暂无闲向分析...'}</p>
@@ -205,7 +205,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             <span className="model-icon-badge" style={{ color: '#52c41a', fontWeight: 700 }}>AI</span>
             <span style={{ fontWeight: 700, fontSize: 13, color: '#52c41a' }}>综合模型</span>
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(82,196,26,0.5)', background: 'rgba(82,196,26,0.08)', padding: '1px 8px', borderRadius: 8 }}>
-              Gemini Flash
+              综合模型接口
             </span>
           </div>
           <p className="analysis-text" style={{ fontWeight: 500, fontSize: 14 }}>

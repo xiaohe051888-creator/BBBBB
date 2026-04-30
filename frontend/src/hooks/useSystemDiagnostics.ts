@@ -1,6 +1,6 @@
 /**
  * 系统诊断 Hook
- * 实时监控：WebSocket连接状态、后端服务、AI模型状态、错误告警
+ * 实时监控：实时推送连接状态、后端服务、AI模型状态、错误告警
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as api from '../services/api';
@@ -19,7 +19,7 @@ export interface AIModelStatus {
 }
 
 export interface SystemDiagnostics {
-  // WebSocket
+  // 实时推送
   wsStatus: WsStatus;
   wsLatency: number | null;          // ms
   wsLastMessage: Date | null;
@@ -72,9 +72,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
   const [lastBackendCheck, setLastBackendCheck] = useState<Date | null>(null);
 
   const [aiModels, setAiModels] = useState<AIModelStatus[]>([
-    { name: 'OpenAI GPT-4o', key: 'openai', label: '庄模型', status: 'unknown' },
-    { name: 'Claude Sonnet', key: 'anthropic', label: '闲模型', status: 'unknown' },
-    { name: 'Gemini Flash', key: 'gemini', label: '综合模型', status: 'unknown' },
+    { name: '庄模型接口', key: 'openai', label: '庄模型', status: 'unknown' },
+    { name: '闲模型接口', key: 'anthropic', label: '闲模型', status: 'unknown' },
+    { name: '综合模型接口', key: 'gemini', label: '综合模型', status: 'unknown' },
   ]);
 
   const [activeIssues, setActiveIssues] = useState<SystemIssue[]>([]);
@@ -103,7 +103,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
     setActiveIssues(prev => prev.filter(p => p.source !== source));
   }, []);
 
-  // ====== WebSocket 监控 ======
+  // ====== 实时推送监控 ======
   // 使用ref存储connectWS函数，避免循环依赖问题
   const connectWSRef = useRef<(() => void) | null>(null);
 
@@ -145,7 +145,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         setWsStatus('disconnected');
         addIssue({
           level: 'critical',
-          title: 'WebSocket连接错误',
+          title: '实时推送连接错误',
           detail: '实时推送连接发生错误，数据可能延迟',
           source: 'websocket',
         });
@@ -156,7 +156,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         setWsStatus('reconnecting');
         addIssue({
           level: 'warning',
-          title: 'WebSocket已断线',
+          title: '实时推送已断线',
           detail: '实时推送断线，正在重连（3秒后重试）...',
           source: 'websocket',
         });
@@ -186,7 +186,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         setWsStatus('disconnected');
         addIssue({
           level: 'critical',
-          title: 'WebSocket无法创建',
+          title: '实时推送无法创建',
           detail: '无法建立实时推送连接，请检查后端服务是否运行',
           source: 'websocket',
         });
@@ -245,7 +245,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         addIssue({
           level: 'warning',
           title: '后端响应缓慢',
-          detail: `后端API响应延迟 ${latency}ms，可能影响使用体验`,
+          detail: `后端接口响应延迟 ${latency}毫秒，可能影响使用体验`,
           source: 'backend',
         });
       }
@@ -300,25 +300,25 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
 
         const newModels: AIModelStatus[] = [
           {
-            name: 'OpenAI GPT-4o mini',
+            name: '庄模型接口',
             key: 'openai',
             label: '庄模型',
             status: diag.openai_enabled ? 'ok' : 'unconfigured',
-            message: diag.openai_enabled ? undefined : 'OPENAI_API_KEY 未配置',
+            message: diag.openai_enabled ? undefined : '接口密钥未配置',
           },
           {
-            name: 'Claude Sonnet',
+            name: '闲模型接口',
             key: 'anthropic',
             label: '闲模型',
             status: diag.anthropic_enabled ? 'ok' : 'unconfigured',
-            message: diag.anthropic_enabled ? undefined : 'ANTHROPIC_API_KEY 未配置',
+            message: diag.anthropic_enabled ? undefined : '接口密钥未配置',
           },
           {
-            name: 'Gemini Flash',
+            name: '综合模型接口',
             key: 'gemini',
             label: '综合模型',
             status: diag.gemini_enabled ? 'ok' : 'unconfigured',
-            message: diag.gemini_enabled ? undefined : 'GEMINI_API_KEY 未配置',
+            message: diag.gemini_enabled ? undefined : '接口密钥未配置',
           },
         ];
 
@@ -333,14 +333,14 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
             addIssue({
               level: 'critical',
               title: '所有AI模型均未配置',
-              detail: 'OpenAI / Claude / Gemini API Key 均未配置，无法进行AI分析预测',
+              detail: 'AI模型接口密钥均未配置，无法进行AI分析预测',
               source: 'ai',
             });
           } else if (unconfigured.length > 0) {
             addIssue({
               level: 'warning',
               title: `${unconfigured.length}个AI模型未配置`,
-              detail: unconfigured.map(m => `${m.label}(${m.name}): ${m.message}`).join('；'),
+              detail: unconfigured.map(m => `${m.label}：${m.message}`).join('；'),
               source: 'ai',
             });
           } else {
