@@ -290,25 +290,35 @@ export const useAddLogOptimistically = () => {
   const queryClient = useQueryClient();
 
   return (newLog: LogEntry) => {
-    queryClient.setQueryData(
-      queryKeys.logs(undefined, newLog.task_id || undefined),
-      (oldData: { logs: LogEntry[]; total: number } | undefined) => {
-        if (!oldData) return { logs: [newLog], total: 1 };
-        // 去重检查，利用 log 的 id
-        if (newLog.id && oldData.logs.some(l => l.id === newLog.id)) {
-          return oldData;
-        }
-        
-        // 动态保持当前数组容量上限，不强制缩水，并允许最多缓冲到 500 条
-        const currentLength = oldData.logs.length;
-        const maxLimit = Math.max(currentLength + 1, 500);
+    const taskId = newLog.task_id || undefined;
+    const category = newLog.category || undefined;
 
-        return {
-          logs: [newLog, ...oldData.logs].slice(0, maxLimit),
-          total: oldData.total + 1,
-        };
-      }
-    );
+    const keys = [
+      queryKeys.logs(undefined, undefined),
+      queryKeys.logs(undefined, taskId),
+      queryKeys.logs(category, undefined),
+      queryKeys.logs(category, taskId),
+    ];
+
+    for (const key of keys) {
+      queryClient.setQueryData(
+        key,
+        (oldData: { logs: LogEntry[]; total: number } | undefined) => {
+          if (!oldData) return { logs: [newLog], total: 1 };
+          if (newLog.id && oldData.logs.some(l => l.id === newLog.id)) {
+            return oldData;
+          }
+
+          const currentLength = oldData.logs.length;
+          const maxLimit = Math.max(currentLength + 1, 500);
+
+          return {
+            logs: [newLog, ...oldData.logs].slice(0, maxLimit),
+            total: oldData.total + 1,
+          };
+        }
+      );
+    }
   };
 };
 
