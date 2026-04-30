@@ -39,7 +39,7 @@ export const UploadConfirmModal: React.FC<Props> = ({
     if (!open) return;
     setConfirmReset(false);
     setAction(isDeepLearning ? 'new_boot' : 'reset_current_boot');
-  }, [open]);
+  }, [open, isDeepLearning]);
 
   const onOk = () => {
     if (action === 'reset_current_boot' && !confirmReset) return;

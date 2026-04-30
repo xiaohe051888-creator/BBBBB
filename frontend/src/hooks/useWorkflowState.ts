@@ -214,7 +214,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }, [message]);
+  }, []);
   
   // ====== 状态转换方法 ======
   
@@ -240,7 +240,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
       pendingBet: { direction, amount, tier },
     }));
     setElapsed(0);
-  }, [message]);
+  }, []);
   
   const waitForResult = useCallback(() => {
     const now = Date.now();
@@ -251,7 +251,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
       nextActionDeadline: now + TIMEOUT_CONFIG.waiting_result * 1000,
     }));
     setElapsed(0);
-  }, [message]);
+  }, []);
   
   const revealResult = useCallback(() => {
     const now = Date.now();
@@ -262,7 +262,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
       nextActionDeadline: now + TIMEOUT_CONFIG.revealing * 1000,
     }));
     setElapsed(0);
-  }, [message]);
+  }, []);
   
   const resetWorkflow = useCallback(() => {
     setWorkflowState({
@@ -273,7 +273,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
       pendingBet: null,
     });
     setElapsed(0);
-  }, [message]);
+  }, []);
 
   // 使用ref存储resetWorkflow函数，避免循环依赖
   const resetWorkflowRef = useRef(resetWorkflow);
@@ -292,7 +292,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
         clearTimeout(settlingTimerRef.current);
       }
     };
-  }, [message]);
+  }, []);
 
   const completeSettlement = useCallback(() => {
     const now = Date.now();
@@ -315,7 +315,7 @@ export const useWorkflowState = (options: UseWorkflowStateOptions): UseWorkflowS
         resetWorkflowRef.current();
       }
     }, TIMEOUT_CONFIG.settling * 1000);
-  }, [message]);
+  }, []);
   
   // ====== 智能检测 ======
   

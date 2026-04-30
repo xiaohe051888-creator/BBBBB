@@ -362,11 +362,11 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
 
   const removeAlert = useCallback((id: string) => {
     setAlerts(prev => prev.filter(a => a.id !== id));
-  }, [message]);
+  }, []);
 
   const clearAlerts = useCallback(() => {
     setAlerts([]);
-  }, [message]);
+  }, []);
 
   // 使用ref存储removeAlert，避免循环依赖
   const removeAlertRef = useRef(removeAlert);
@@ -380,10 +380,11 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
 
   // 组件卸载时清理所有自动关闭的定时器
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      Object.values(timersRef.current).forEach(clearTimeout);
+      Object.values(timers).forEach(clearTimeout);
     };
-  }, [message]);
+  }, []);
 
   const addAlert = useCallback((alert: Omit<SmartAlert, 'id'>) => {
     const newAlert: SmartAlert = {
@@ -457,7 +458,7 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
   // 频繁提示用户刷新会造成干扰。
   const [lastSyncTime] = useState(() => Date.now());
   const isDataStale = false;
-  const markSynced = useCallback(() => {}, [message]);
+  const markSynced = useCallback(() => {}, []);
   
   return {
     integrityIssues,

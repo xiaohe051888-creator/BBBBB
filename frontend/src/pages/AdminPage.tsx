@@ -90,7 +90,6 @@ const AdminPage: React.FC = () => {
   const { message } = App.useApp();
   const location = useLocation();
   const navigate = useNavigate();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const token = (location.state as any)?.token || api.getToken();
   
   // 系统诊断（AdminPage使用默认桌号）
@@ -104,15 +103,11 @@ const AdminPage: React.FC = () => {
   }, [token, navigate]);
   
   const [activeTab, setActiveTab] = useState('ai');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [modelVersions, setModelVersions] = useState<any[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [dbRecords, setDbRecords] = useState<any[]>([]);
   const [dbTable, setDbTable] = useState('game_records');
   const [dbPage, setDbPage] = useState(1);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [aiLearningStatus, setAiLearningStatus] = useState<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [threeModelStatus, setThreeModelStatus] = useState<any>(null);
 
   // API配置弹窗
@@ -123,7 +118,6 @@ const AdminPage: React.FC = () => {
   const [changePwdVisible, setChangePwdVisible] = useState(false);
   const [oldPwd, setOldPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mustChange, setMustChange] = useState((location.state as any)?.mustChangePassword || false);
 
   // 预测模式
