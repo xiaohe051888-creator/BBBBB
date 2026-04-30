@@ -80,7 +80,6 @@ async def _reset_session_state(keep_balance: bool = True) -> None:
 async def upload_games(
     db: AsyncSession,
     games: List[Dict[str, Any]],
-    is_new_boot: bool = False,
     mode: Optional[str] = None,
     balance_mode: Optional[str] = None,
     run_deep_learning: Optional[bool] = None,
@@ -127,7 +126,7 @@ async def upload_games(
 
             effective_mode = mode
             if effective_mode is None:
-                effective_mode = "new_boot" if is_new_boot else "reset_current_boot"
+                effective_mode = "reset_current_boot"
 
             if effective_mode not in ("reset_current_boot", "new_boot"):
                 return {"success": False, "error": f"非法 mode: {effective_mode}"}

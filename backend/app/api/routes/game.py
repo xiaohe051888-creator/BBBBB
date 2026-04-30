@@ -24,7 +24,7 @@ async def upload_game_results(req: UploadRequest):
 
     effective_mode = req.mode
     if effective_mode is None:
-        effective_mode = "new_boot" if req.is_new_boot else "reset_current_boot"
+        effective_mode = "reset_current_boot"
 
     effective_run_deep_learning = True if req.run_deep_learning is None else bool(req.run_deep_learning)
 
@@ -44,7 +44,6 @@ async def upload_game_results(req: UploadRequest):
         upload_result = await upload_games(
             db=session,
             games=[g.dict() for g in req.games],
-            is_new_boot=req.is_new_boot,
             mode=effective_mode,
             balance_mode=req.balance_mode,
             run_deep_learning=effective_run_deep_learning,

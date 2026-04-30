@@ -22,7 +22,6 @@ class GameUploadItem(BaseModel):
 class UploadRequest(BaseModel):
     """批量上传请求"""
     games: List[GameUploadItem]
-    is_new_boot: bool = False
     mode: Optional[Literal["reset_current_boot", "new_boot"]] = None
     balance_mode: Optional[Literal["keep", "reset_default"]] = None
     run_deep_learning: Optional[bool] = None
