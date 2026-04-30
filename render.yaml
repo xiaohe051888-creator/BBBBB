@@ -15,8 +15,10 @@ services:
         sync: false
       - key: DEBUG
         value: "false"
+      - key: ENVIRONMENT
+        value: "production"
       - key: CORS_ORIGINS
-        value: "*"
+        sync: false
       - key: ADMIN_DEFAULT_PASSWORD
         sync: false
       - key: OPENAI_API_KEY

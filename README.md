@@ -80,9 +80,10 @@ python backend/scripts/migrate_sqlite_to_postgres.py
 2) 创建数据库：`baccarat-db`（Postgres 15），Render 会自动把连接串注入到后端的 `DATABASE_URL`。
 
 3) 配置后端必须环境变量（在 Render 后端服务的 Environment 中设置）：
+- `ENVIRONMENT`：生产环境必须为 `production`（Render 已在 render.yaml 中默认设置）
 - `JWT_SECRET_KEY`：必须设置为强随机字符串
 - `ADMIN_DEFAULT_PASSWORD`：管理员默认密码（上线建议改成强密码）
-- `CORS_ORIGINS`：允许访问的来源（建议设置为你的前端域名；测试可用 `*`）
+- `CORS_ORIGINS`：允许访问的来源（建议设置为你的前端域名；生产环境不允许 `*`）
 
 4) 配置 AI（可选）：
 - `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY`

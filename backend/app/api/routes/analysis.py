@@ -104,7 +104,31 @@ async def start_ai_learning(
         async def run_learning_task():
             async with async_session() as bg_session:
                 bg_service = AILearningService(bg_session)
-                await bg_service.start_learning(boot_number)
+                try:
+                    await bg_service.start_learning(boot_number)
+                except asyncio.CancelledError:
+                    from app.services.game.logging import write_game_log
+
+                    async def _cleanup_on_cancel() -> None:
+                        await write_game_log(
+                            bg_session,
+                            boot_number,
+                            None,
+                            "LOG-AI-002",
+                            "AI学习",
+                            "取消",
+                            f"AI学习任务已取消（boot_number={boot_number}）",
+                            category="AI事件",
+                            priority="P1",
+                            source_module="AILearningService",
+                        )
+                        await bg_session.commit()
+
+                    try:
+                        await asyncio.shield(_cleanup_on_cancel())
+                    except Exception:
+                        pass
+                    raise
 
         from app.services.game.task_registry import registry
         task_meta = registry.create(

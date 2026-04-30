@@ -352,6 +352,42 @@ async def run_deep_learning(
 
                 task2 = asyncio.create_task(_trigger_next_boot_analysis())
                 add_background_task(task2)
+    except asyncio.CancelledError:
+        async def _cleanup_on_cancel() -> None:
+            async with lock:
+                if sess.deep_learning_status is None:
+                    sess.deep_learning_status = {"boot_number": boot_number}
+                sess.deep_learning_status["status"] = "已取消"
+                sess.deep_learning_status["progress"] = 0
+                sess.deep_learning_status["message"] = "深度学习已取消"
+                sess.status = "等待新靴"
+
+            try:
+                await broadcast_event("deep_learning_cancelled", {
+                    "boot_number": boot_number,
+                    "status": "已取消",
+                    "message": "深度学习已取消，可以手动重新启动或直接开新靴",
+                })
+            except Exception:
+                pass
+
+            async with async_session() as db:
+                state = await get_or_create_state(db)
+                state.status = "等待新靴"
+                await write_game_log(
+                    db, boot_number, None,
+                    "LOG-BOOT-004", "深度学习", "取消",
+                    f"第{boot_number}靴深度学习已取消",
+                    category="AI事件",
+                    priority="P1",
+                )
+                await db.commit()
+
+        try:
+            await asyncio.shield(_cleanup_on_cancel())
+        except Exception:
+            pass
+        raise
     except Exception as e:
         async with lock:
             sess.deep_learning_status["status"] = "失败"

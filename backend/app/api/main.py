@@ -62,6 +62,8 @@ ws_clients: List = []  # WebSocket客户端列表
 async def lifespan(app: FastAPI):
     """应用生命周期"""
     os.makedirs("./data", exist_ok=True)
+    from app.core.security import validate_production_security
+    validate_production_security()
     await init_db()
     
     # 初始化默认管理员

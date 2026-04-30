@@ -11,6 +11,7 @@ class Settings:
     APP_NAME: str = "百家乐分析预测系统"
     APP_VERSION: str = "2.0.0"
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
     # 服务器配置
     HOST: str = os.getenv("HOST", "0.0.0.0")
