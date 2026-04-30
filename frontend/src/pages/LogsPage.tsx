@@ -268,6 +268,14 @@ const LogsPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchText]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const taskId = params.get('task_id') || '';
+    if (!taskId || taskId === filterTaskId) return;
+    const t = setTimeout(() => setFilterTaskId(taskId), 0);
+    return () => clearTimeout(t);
+  }, [location.search, filterTaskId]);
+
   // React Query获取数据（乐观UI：永远不显示loading，数据来了直接渲染）
   const { data: logsData } = useLogsQuery({
     category: filterCategory || undefined,
