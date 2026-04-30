@@ -1,17 +1,12 @@
 import React from 'react';
 
 import type { GameResult } from './QuickKeyInput';
+import { cycleGameResult } from './sequence';
 
 type Props = {
   results: GameResult[];
   onChange: (next: GameResult[]) => void;
   max: number;
-};
-
-const nextValue = (v: GameResult): GameResult | null => {
-  if (v === '庄') return '闲';
-  if (v === '闲') return '和';
-  return null;
 };
 
 export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
@@ -25,14 +20,8 @@ export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
     }
 
     const current = results[index];
-    const next = nextValue(current);
-    if (!next) {
-      onChange(results.slice(0, index));
-      return;
-    }
-
     const updated = results.slice();
-    updated[index] = next;
+    updated[index] = cycleGameResult(current);
     onChange(updated);
   };
 
@@ -53,13 +42,13 @@ export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
         const v = results[idx];
         const bg =
           v === '庄' ? 'rgba(255,77,79,0.18)' :
-          v === '闲' ? 'rgba(24,144,255,0.18)' :
-          v === '和' ? 'rgba(250,173,20,0.18)' :
+          v === '闲' ? 'rgba(22,119,255,0.18)' :
+          v === '和' ? 'rgba(82,196,26,0.18)' :
           'rgba(255,255,255,0.03)';
         const bd =
           v === '庄' ? 'rgba(255,77,79,0.35)' :
-          v === '闲' ? 'rgba(24,144,255,0.35)' :
-          v === '和' ? 'rgba(250,173,20,0.35)' :
+          v === '闲' ? 'rgba(22,119,255,0.35)' :
+          v === '和' ? 'rgba(82,196,26,0.35)' :
           'rgba(255,255,255,0.10)';
 
         return (
