@@ -19,6 +19,7 @@ interface UseWebSocketOptions {
   onAnalysis?: (data: any) => void;
   onGameRevealed?: (data: any) => void;
   onBetPlaced?: (data: any) => void;
+  onReconnect?: () => void;
   reconnectInterval?: number;
 }
 
@@ -42,6 +43,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     onAnalysis,
     onGameRevealed,
     onBetPlaced,
+    onReconnect,
     reconnectInterval = 3000,
   } = options;
 
@@ -60,6 +62,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     onAnalysis,
     onGameRevealed,
     onBetPlaced,
+    onReconnect,
   });
 
   // 更新回调函数 ref
@@ -70,8 +73,9 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
       onAnalysis,
       onGameRevealed,
       onBetPlaced,
+      onReconnect,
     };
-  }, [onStateUpdate, onLog, onAnalysis, onGameRevealed, onBetPlaced]);
+  }, [onStateUpdate, onLog, onAnalysis, onGameRevealed, onBetPlaced, onReconnect]);
 
   const sendMessage = useCallback((message: any) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -95,26 +99,25 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
         wsRef.current = ws;
 
         ws.onopen = () => {
+          const isReconnected = reconnectCountRef.current > 0;
           setConnectionState('open');
           reconnectCountRef.current = 0; // 连接成功，重置重连次数
+          if (isReconnected) callbacksRef.current.onReconnect?.();
 
           // 发送心跳包保活
           if (pingTimerRef.current) clearInterval(pingTimerRef.current);
           pingTimerRef.current = window.setInterval(() => {
             if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ type: 'ping' }));
+              ws.send('ping');
             }
           }, 30000);
         };
 
         ws.onmessage = (event) => {
           // 处理服务端的 pong 响应（可能为文本或 JSON）
-          if (event.data === "pong" || event.data === '{"type":"pong"}') {
-            return;
-          }
-          
           try {
             const message: WebSocketMessage = JSON.parse(event.data);
+            if (message.type === 'pong') return;
             const callbacks = callbacksRef.current;
 
             switch (message.type) {

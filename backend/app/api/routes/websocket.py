@@ -2,6 +2,7 @@
 WebSocket路由
 """
 import asyncio
+import json
 from typing import List, Dict
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from datetime import datetime
@@ -36,6 +37,13 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             if data == "ping":
+                await websocket.send_json({"type": "pong"})
+                continue
+            try:
+                payload = json.loads(data)
+            except Exception:
+                payload = None
+            if isinstance(payload, dict) and payload.get("type") == "ping":
                 await websocket.send_json({"type": "pong"})
     except WebSocketDisconnect:
         # 客户端正常断开连接

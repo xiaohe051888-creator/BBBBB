@@ -186,7 +186,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         if (ws.readyState === WebSocket.OPEN) {
           pingTimeRef.current = Date.now();
           try {
-            ws.send(JSON.stringify({ type: 'ping' }));
+            ws.send('ping');
           } catch {
             // 发送失败，忽略
           }

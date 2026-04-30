@@ -1,169 +1,130 @@
-import json
+import asyncio
 import os
-import time
+import sys
 import unittest
-import urllib.error
-import urllib.request
-import warnings
 
+from pydantic import ValidationError
 
-BASE_URL = os.environ.get("TEST_BASE_URL", "http://localhost:8000")
-
-def _wait_for_server(timeout_s: int = 30) -> None:
-    """等待本地后端启动完成（避免 CI/脚本并发启动导致 Connection refused）"""
-    deadline = time.time() + timeout_s
-    last_err: Exception | None = None
-    while time.time() < deadline:
-        try:
-            # /docs 为 HTML，不解析 JSON，仅判断能否连通即可
-            req = urllib.request.Request(f"{BASE_URL}/docs", method="GET")
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                if resp.status == 200:
-                    return
-            return
-        except Exception as e:  # noqa: BLE001
-            last_err = e
-            time.sleep(0.5)
-
-
-def _get_json(url: str):
-    req = urllib.request.Request(url, method="GET")
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        data = resp.read().decode("utf-8")
-        return json.loads(data)
-
-
-def _post_json(url: str, payload: dict):
-    body = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = resp.read().decode("utf-8")
-            return resp.status, json.loads(data)
-    except urllib.error.HTTPError as e:
-        try:
-            data = e.read().decode("utf-8")
-            return e.code, data
-        finally:
-            e.close()
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 class UploadModesTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):  # noqa: N802
-        _wait_for_server()
-
     def test_reset_current_boot_keep_balance(self):
-        state_before = _get_json(f"{BASE_URL}/api/games/current-state")
-        boot_before = state_before.get("boot_number")
+        async def _run():
+            from app.core.database import init_db, async_session
+            from app.services.game.upload import upload_games
 
-        payload = {
-            "games": [
-                {"game_number": 1, "result": "庄"},
-                {"game_number": 2, "result": "闲"},
-                {"game_number": 3, "result": "和"},
-            ],
-            "mode": "reset_current_boot",
-            "balance_mode": "keep",
-        }
+            await init_db()
 
-        status, body = _post_json(f"{BASE_URL}/api/games/upload", payload)
-        self.assertEqual(status, 200, body)
-        self.assertIsInstance(body, dict)
-        self.assertTrue(body.get("success"), body)
-        if boot_before is not None:
-            self.assertEqual(body.get("boot_number"), boot_before)
+            async with async_session() as s:
+                res1 = await upload_games(
+                    db=s,
+                    games=[{"game_number": 1, "result": "庄"}, {"game_number": 2, "result": "闲"}, {"game_number": 3, "result": "和"}],
+                    mode="reset_current_boot",
+                    balance_mode="keep",
+                    run_deep_learning=False,
+                )
+                await s.commit()
+
+            async with async_session() as s:
+                res2 = await upload_games(
+                    db=s,
+                    games=[{"game_number": 1, "result": "庄"}, {"game_number": 2, "result": "闲"}, {"game_number": 3, "result": "和"}],
+                    mode="reset_current_boot",
+                    balance_mode="keep",
+                    run_deep_learning=False,
+                )
+                await s.commit()
+
+            return res1, res2
+
+        res1, res2 = asyncio.run(_run())
+        self.assertTrue(res1["success"])
+        self.assertTrue(res2["success"])
+        self.assertEqual(res2["boot_number"], res1["boot_number"])
 
     def test_new_boot_skip_deep_learning(self):
-        seed_payload = {
-            "games": [
-                {"game_number": 1, "result": "庄"},
-                {"game_number": 2, "result": "闲"},
-                {"game_number": 3, "result": "和"},
-            ],
-            "mode": "reset_current_boot",
-            "balance_mode": "keep",
-        }
-        seed_status, seed_body = _post_json(f"{BASE_URL}/api/games/upload", seed_payload)
-        self.assertEqual(seed_status, 200, seed_body)
-        self.assertIsInstance(seed_body, dict)
-        self.assertTrue(seed_body.get("success"), seed_body)
+        async def _run():
+            from app.core.database import init_db, async_session
+            from app.services.game.upload import upload_games
+            from app.services.game.state import get_or_create_state
 
-        state_before = _get_json(f"{BASE_URL}/api/games/current-state")
-        boot_before = state_before.get("boot_number")
+            await init_db()
 
-        payload = {
-            "games": [
-                {"game_number": 1, "result": "庄"},
-                {"game_number": 2, "result": "闲"},
-                {"game_number": 3, "result": "和"},
-            ],
-            "mode": "new_boot",
-            "balance_mode": "keep",
-            "run_deep_learning": False,
-        }
+            async with async_session() as s:
+                seed = await upload_games(
+                    db=s,
+                    games=[{"game_number": 1, "result": "庄"}, {"game_number": 2, "result": "闲"}, {"game_number": 3, "result": "和"}],
+                    mode="reset_current_boot",
+                    balance_mode="keep",
+                    run_deep_learning=False,
+                )
+                await s.commit()
 
-        status, body = _post_json(f"{BASE_URL}/api/games/upload", payload)
-        self.assertEqual(status, 200, body)
-        self.assertIsInstance(body, dict)
-        self.assertTrue(body.get("success"), body)
-        if boot_before is not None:
-            self.assertEqual(body.get("boot_number"), boot_before + 1)
+            async with async_session() as s:
+                res = await upload_games(
+                    db=s,
+                    games=[{"game_number": 1, "result": "庄"}, {"game_number": 2, "result": "闲"}, {"game_number": 3, "result": "和"}],
+                    mode="new_boot",
+                    balance_mode="keep",
+                    run_deep_learning=False,
+                )
+                await s.commit()
+                state = await get_or_create_state(s)
+
+            return seed, res, state.status
+
+        seed, res, status = asyncio.run(_run())
+        self.assertTrue(seed["success"])
+        self.assertTrue(res["success"])
+        self.assertEqual(res["boot_number"], seed["boot_number"] + 1)
+        self.assertNotEqual(status, "深度学习中")
 
     def test_game_number_over_72_rejected_by_validation(self):
-        payload = {
-            "games": [
-                {"game_number": 73, "result": "庄"},
-            ],
-            "mode": "reset_current_boot",
-            "balance_mode": "keep",
-        }
+        from app.api.routes.schemas import UploadRequest
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            status, _ = _post_json(f"{BASE_URL}/api/games/upload", payload)
-            self.assertEqual(status, 422)
-            self.assertFalse(any(issubclass(x.category, ResourceWarning) for x in w), w)
+        with self.assertRaises(ValidationError):
+            UploadRequest.model_validate({
+                "games": [{"game_number": 73, "result": "庄"}],
+                "mode": "reset_current_boot",
+                "balance_mode": "keep",
+            })
 
     def test_new_boot_default_no_learning(self):
-        seed_payload = {
-            "games": [
-                {"game_number": 1, "result": "庄"},
-                {"game_number": 2, "result": "闲"},
-                {"game_number": 3, "result": "和"},
-            ],
-            "mode": "reset_current_boot",
-            "balance_mode": "keep",
-        }
-        seed_status, seed_body = _post_json(f"{BASE_URL}/api/games/upload", seed_payload)
-        self.assertEqual(seed_status, 200, seed_body)
-        self.assertIsInstance(seed_body, dict)
-        self.assertTrue(seed_body.get("success"), seed_body)
+        async def _run():
+            from app.core.database import init_db, async_session
+            from app.services.game.upload import upload_games
+            from app.services.game.state import get_or_create_state
 
-        state_before = _get_json(f"{BASE_URL}/api/games/current-state")
-        boot_before = state_before.get("boot_number")
+            await init_db()
 
-        payload = {
-            "games": [
-                {"game_number": 1, "result": "庄"},
-                {"game_number": 2, "result": "闲"},
-                {"game_number": 3, "result": "和"},
-            ],
-            "mode": "new_boot",
-            "balance_mode": "keep",
-        }
+            async with async_session() as s:
+                seed = await upload_games(
+                    db=s,
+                    games=[{"game_number": 1, "result": "庄"}, {"game_number": 2, "result": "闲"}, {"game_number": 3, "result": "和"}],
+                    mode="reset_current_boot",
+                    balance_mode="keep",
+                    run_deep_learning=False,
+                )
+                await s.commit()
 
-        status, body = _post_json(f"{BASE_URL}/api/games/upload", payload)
-        self.assertEqual(status, 200, body)
-        self.assertIsInstance(body, dict)
-        self.assertTrue(body.get("success"), body)
-        if boot_before is not None:
-            self.assertEqual(body.get("boot_number"), boot_before + 1)
+            async with async_session() as s:
+                res = await upload_games(
+                    db=s,
+                    games=[{"game_number": 1, "result": "庄"}, {"game_number": 2, "result": "闲"}, {"game_number": 3, "result": "和"}],
+                    mode="new_boot",
+                    balance_mode="keep",
+                )
+                await s.commit()
+                state = await get_or_create_state(s)
+
+            return seed, res, state.status
+
+        seed, res, status = asyncio.run(_run())
+        self.assertTrue(seed["success"])
+        self.assertTrue(res["success"])
+        self.assertEqual(res["boot_number"], seed["boot_number"] + 1)
+        self.assertNotEqual(status, "深度学习中")
 
 
 if __name__ == "__main__":

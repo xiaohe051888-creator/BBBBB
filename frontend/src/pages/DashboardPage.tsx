@@ -145,6 +145,18 @@ const DashboardPage: React.FC = () => {
     [queryClient]
   );
 
+  const invalidateOnReconnect = useMemo(
+    () => debounce(() => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.systemState() }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis() }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: queryKeys.roads() }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: ['logs'] }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: ['bets'] }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: ['games'] }).catch(console.error);
+    }, 200),
+    [queryClient]
+  );
+
   // 统一使用强化过的 useWebSocket
   useWebSocket({
     onLog: (data) => {
@@ -191,7 +203,10 @@ const DashboardPage: React.FC = () => {
         game_number: data.game_number,
       });
       debouncedInvalidateState();
-    }
+    },
+    onReconnect: () => {
+      invalidateOnReconnect();
+    },
   });
 
   // 页面可见性变化时刷新数据（从上传页面返回时）
