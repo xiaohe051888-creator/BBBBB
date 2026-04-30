@@ -17,7 +17,7 @@ router = APIRouter(
 )
 
 @router.get("/state")
-async def get_system_state(_: dict = Depends(get_current_user)):
+async def get_system_state():
     """获取系统状态"""
     from app.services.game import get_current_state
     
