@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { App } from 'antd';
 import type { GameRecord, BetRecord, SystemState } from '../types/models';
+import { shouldShowDedupe } from '../utils/alertDedupe';
 
 // ====== 类型定义 ======
 
@@ -417,8 +418,26 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
   }, [message]);
 
   // 根据异常模式自动添加提醒
+  const alertDedupeRef = useRef<Record<string, number>>({});
   useEffect(() => {
+    const bootNumber = systemState?.boot_number ?? 'na';
+    const now = Date.now();
+    let cache = alertDedupeRef.current;
+
+    const getCooldownMs = (severity: AbnormalPattern['severity']) => {
+      if (severity === 'info') return 10 * 60 * 1000;
+      if (severity === 'danger') return 10 * 60 * 1000;
+      if (severity === 'warning') return 60 * 1000;
+      return 30 * 1000;
+    };
+
     abnormalPatterns.forEach(pattern => {
+      const key = `${bootNumber}:${pattern.type}:${pattern.message}`;
+      const cooldownMs = pattern.type === 'consecutive' ? 24 * 60 * 60 * 1000 : getCooldownMs(pattern.severity);
+      const r = shouldShowDedupe({ cache, key, now, cooldownMs });
+      cache = r.nextCache;
+      if (!r.show) return;
+
       addAlert({
         type: pattern.severity,
         title: pattern.type === 'consecutive' ? '连续结果警告' :
@@ -430,7 +449,8 @@ export const useSmartDetection = (options: UseSmartDetectionOptions): UseSmartDe
         duration: pattern.severity === 'danger' ? 8000 : 5000,
       });
     });
-  }, [abnormalPatterns, addAlert]);
+    alertDedupeRef.current = cache;
+  }, [abnormalPatterns, addAlert, systemState?.boot_number]);
   
   // ====== 数据同步状态 ======
   // 注意：原有的60秒过期提示已被移除，因为页面有React Query的自动刷新机制，
