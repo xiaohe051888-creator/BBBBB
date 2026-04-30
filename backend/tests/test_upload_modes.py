@@ -1,11 +1,28 @@
 import json
 import os
+import time
 import unittest
 import urllib.error
 import urllib.request
 
 
 BASE_URL = os.environ.get("TEST_BASE_URL", "http://localhost:8000")
+
+def _wait_for_server(timeout_s: int = 30) -> None:
+    """等待本地后端启动完成（避免 CI/脚本并发启动导致 Connection refused）"""
+    deadline = time.time() + timeout_s
+    last_err: Exception | None = None
+    while time.time() < deadline:
+        try:
+            # /docs 为 HTML，不解析 JSON，仅判断能否连通即可
+            req = urllib.request.Request(f"{BASE_URL}/docs", method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    return
+            return
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            time.sleep(0.5)
 
 
 def _get_json(url: str):
@@ -33,6 +50,10 @@ def _post_json(url: str, payload: dict):
 
 
 class UploadModesTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):  # noqa: N802
+        _wait_for_server()
+
     def test_reset_current_boot_keep_balance(self):
         state_before = _get_json(f"{BASE_URL}/api/games/current-state")
         boot_before = state_before.get("boot_number")
