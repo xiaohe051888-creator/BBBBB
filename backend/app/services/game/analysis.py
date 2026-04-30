@@ -32,9 +32,13 @@ async def run_ai_analysis(
         sess = get_session()
         import copy
         sess_backup = copy.deepcopy(sess)
-        sess.status = "分析中"
         
         try:
+            if sess.boot_number != boot_number:
+                return {"success": False, "error": "stale_boot"}
+
+            sess.status = "分析中"
+
             # 获取该靴的所有历史记录
             stmt = select(GameRecord).where(
                 GameRecord.boot_number == boot_number,
@@ -206,6 +210,9 @@ async def run_ai_analysis(
         sess = get_session()
         sess_backup = copy.deepcopy(sess)
         try:
+            if sess.boot_number != boot_number:
+                return {"success": False, "error": "stale_boot"}
+
             # 保存预测结果到会话（适配ThreeModelService返回结构）
             combined_model = analysis_result.get("combined_model", {})
             banker_model = analysis_result.get("banker_model", {})
