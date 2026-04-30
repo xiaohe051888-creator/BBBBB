@@ -135,3 +135,29 @@ bash backend/scripts/pg_backup.sh
 DATABASE_URL="postgresql://用户名:密码@主机:5432/库名" \
 bash backend/scripts/pg_restore.sh ./backups/pg_20260101_120000.dump
 ```
+
+---
+
+## 数据库迁移（Alembic）
+
+项目已内置 Alembic，用于在生产环境中安全演进表结构（避免仅依赖“启动自动建表/自动加字段”带来的不可控风险）。
+
+### 初始化/升级
+
+进入后端目录执行：
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+### 已有数据库如何接入
+
+如果你已经运行过旧版本并且数据库里已有表结构，建议先运行一次：
+
+```bash
+cd backend
+alembic stamp head
+```
+
+随后再用 `alembic upgrade head` 进行后续升级。

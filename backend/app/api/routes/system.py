@@ -262,14 +262,32 @@ async def get_system_diagnostics():
         unconfigured = [v["label"] for k, v in models_status.items() if not v["enabled"]]
         issues.append({"level": "warning", "title": f"{len(unconfigured)}个AI模型未配置", "detail": f"以下模型缺少接口密钥：{'、'.join(unconfigured)}"})
 
-    from app.services.game.task_registry import registry
-    tasks = registry.list(limit=50)
-    running = [t for t in tasks if t.get("status") == "running"]
-    latest_errors = [t for t in tasks if t.get("status") == "failed" and t.get("error")][:5]
+    from sqlalchemy import select
+    from app.models.schemas import BackgroundTask
+    tasks = []
+    try:
+        async with async_session() as s:
+            tasks = (await s.execute(select(BackgroundTask).order_by(BackgroundTask.created_at.desc()).limit(50))).scalars().all()
+    except Exception:
+        tasks = []
+
+    running = [t for t in tasks if getattr(t, "status", None) == "running"]
+    latest_errors = [t for t in tasks if getattr(t, "status", None) == "failed" and getattr(t, "error", None)][:5]
     background_tasks = {
         "running_count": len(running),
-        "running_types": sorted(list({t.get("task_type") for t in running if t.get("task_type")})),
-        "latest_errors": latest_errors,
+        "running_types": sorted(list({getattr(t, "task_type", None) for t in running if getattr(t, "task_type", None)})),
+        "latest_errors": [
+            {
+                "task_id": t.task_id,
+                "task_type": t.task_type,
+                "boot_number": t.boot_number,
+                "status": t.status,
+                "message": t.message,
+                "error": t.error,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+            }
+            for t in latest_errors
+        ],
     }
     
     return {
@@ -295,9 +313,31 @@ async def list_system_tasks(
     limit: int = Query(50, ge=1, le=200),
     _: dict = Depends(get_current_user),
 ):
+    from sqlalchemy import select
+    from app.models.schemas import BackgroundTask
     from app.services.game.task_registry import registry
 
-    return {"tasks": registry.list(limit=limit)}
+    async with async_session() as session:
+        rows = (await session.execute(
+            select(BackgroundTask).order_by(BackgroundTask.created_at.desc()).limit(limit)
+        )).scalars().all()
+
+    mem = {k: v for k, v in registry._tasks.items()}
+    tasks = []
+    for r in rows:
+        m = mem.get(r.task_id)
+        tasks.append({
+            "task_id": r.task_id,
+            "task_type": r.task_type,
+            "boot_number": r.boot_number,
+            "dedupe_key": r.dedupe_key,
+            "created_at": (r.created_at.isoformat() if r.created_at else None),
+            "status": (m.status if m else r.status),
+            "message": (m.message if m else r.message),
+            "error": (m.error if m else r.error),
+        })
+
+    return {"tasks": tasks}
 
 
 @router.post("/tasks/{task_id}/cancel")

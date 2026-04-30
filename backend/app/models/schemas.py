@@ -175,6 +175,28 @@ class SystemLog(Base):
     )
 
 
+# ============ 后台任务记录表 ============
+class BackgroundTask(Base):
+    __tablename__ = "background_tasks"
+
+    task_id = Column(String(36), primary_key=True)
+    task_type = Column(String(50), nullable=False)
+    boot_number = Column(Integer, nullable=True)
+    dedupe_key = Column(String(200), nullable=True)
+    status = Column(String(20), nullable=False, default="running")
+    message = Column(String(200), nullable=False, default="运行中")
+    error = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    finished_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index("idx_bg_task_created_at", "created_at"),
+        Index("idx_bg_task_status", "status"),
+        Index("idx_bg_task_type", "task_type"),
+    )
+
+
 # ============ 错题本表 ============
 class MistakeBook(Base):
     """错题本 - 本靴内生效，不跨靴"""
