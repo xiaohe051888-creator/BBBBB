@@ -144,7 +144,7 @@ export const UploadConfirmModal: React.FC<Props> = ({
         <div>余额：{balanceText}</div>
         {action === 'reset_current_boot' && (
           <div style={{ color: 'rgba(255,255,255,0.75)' }}>
-            将清空本靴：GameRecord / BetRecord / MistakeBook / RoadMap / AIMemory 及相关内存态状态
+            将清空本靴：开奖记录 / 下注记录 / 错题本 / 五路图 / 微学习记忆 及相关运行状态
           </div>
         )}
       </div>
