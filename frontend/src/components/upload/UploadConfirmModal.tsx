@@ -34,10 +34,13 @@ export const UploadConfirmModal: React.FC<Props> = ({
   const [runDeepLearning, setRunDeepLearning] = React.useState(true);
   const [confirmReset, setConfirmReset] = React.useState(false);
   const predictionMode = systemState?.prediction_mode || 'ai';
+  const isDeepLearning = systemState?.status === '深度学习中';
 
   React.useEffect(() => {
     if (!open) return;
     setConfirmReset(false);
+    // 深度学习中：不允许覆盖本靴，默认引导到“开启新靴”
+    setAction(isDeepLearning ? 'new_boot' : 'reset_current_boot');
     setRunDeepLearning(predictionMode === 'ai');
   }, [open]);
 
@@ -114,10 +117,15 @@ export const UploadConfirmModal: React.FC<Props> = ({
               setConfirmReset(false);
             }}
             options={[
-              { label: '重置本靴（覆盖本靴）', value: 'reset_current_boot' },
+              { label: '重置本靴（覆盖本靴）', value: 'reset_current_boot', disabled: isDeepLearning },
               { label: '结束本靴（开启新靴）', value: 'new_boot' },
             ]}
           />
+          {isDeepLearning && (
+            <div style={{ fontSize: 12, color: 'rgba(250,173,20,0.85)' }}>
+              当前处于深度学习中：为避免破坏学习流程，已禁用“重置本靴”，只能选择“结束本靴（开启新靴）”并排队写入。
+            </div>
+          )}
         </div>
 
         {action === 'new_boot' && predictionMode === 'ai' && (

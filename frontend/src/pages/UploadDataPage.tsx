@@ -93,6 +93,23 @@ const UploadDataPage: React.FC = () => {
             录入 {results.length}/{MAX_GAMES} 局
           </div>
         </div>
+
+        {systemState?.status === '深度学习中' && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: '10px 12px',
+              borderRadius: 12,
+              border: '1px solid rgba(250,173,20,0.25)',
+              background: 'rgba(250,173,20,0.10)',
+              color: 'rgba(255,255,255,0.85)',
+              fontSize: 12,
+              lineHeight: 1.6,
+            }}
+          >
+            当前正在深度学习中：如果你此时上传并选择“结束本靴 + 执行深度学习”，系统会把本次数据加入队列，学习完成后自动写入新靴并继续分析。
+          </div>
+        )}
       </Card>
 
       <Card>
