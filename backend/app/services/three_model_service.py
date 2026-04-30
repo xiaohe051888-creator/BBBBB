@@ -355,23 +355,15 @@ class ThreeModelService:
         """
         logging.info(f"[三模型分析] 开始分析第{game_number}局，永不降级模式")
 
-        # 并行执行庄模型和闲模型（带全局超时保护）
-        banker_task = asyncio.create_task(
-            self._banker_model(game_history, road_data, mistake_context)
-        )
-        player_task = asyncio.create_task(
-            self._player_model(game_history, road_data, mistake_context)
-        )
-        
         try:
             banker_result, player_result = await asyncio.wait_for(
-                asyncio.gather(banker_task, player_task),
-                timeout=self.global_timeout
+                asyncio.gather(
+                    self._banker_model(game_history, road_data, mistake_context),
+                    self._player_model(game_history, road_data, mistake_context),
+                ),
+                timeout=self.global_timeout,
             )
         except asyncio.TimeoutError:
-            # 全局超时，取消任务并抛出错误（让上层知道分析未完成）
-            banker_task.cancel()
-            player_task.cancel()
             raise Exception(f"三模型分析超时（>{self.global_timeout}秒），请检查API连接")
         
         # 综合模型汇总（永不降级）

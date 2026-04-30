@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Coroutine, Dict, Optional, Awaitable, Union
 from uuid import uuid4
 from app.services.game.task_context import current_task_id
+from app.core.async_utils import spawn_task
 
 
 @dataclass
@@ -125,7 +126,7 @@ class TaskRegistry:
         if isinstance(coro, asyncio.Task):
             meta.task = coro
             try:
-                asyncio.get_running_loop().create_task(self._persist_create(meta))
+                spawn_task(self._persist_create(meta))
             except RuntimeError:
                 pass
 
@@ -150,7 +151,7 @@ class TaskRegistry:
                         pass
 
                 try:
-                    asyncio.get_running_loop().create_task(_persist())
+                    spawn_task(_persist())
                 except RuntimeError:
                     pass
 
@@ -197,7 +198,7 @@ class TaskRegistry:
             finally:
                 current_task_id.reset(token)
 
-        meta.task = asyncio.create_task(_runner())
+        meta.task = spawn_task(_runner())
 
         def _finalize(_: asyncio.Task) -> None:
             try:

@@ -8,6 +8,7 @@ from datetime import datetime
 from jose import jwt, JWTError
 
 from app.core.config import settings
+from app.core.async_utils import spawn_task
 
 router = APIRouter(tags=["WebSocket"])
 
@@ -75,4 +76,4 @@ async def broadcast_update(event_type: str, data: Dict):
             await client.send_json(message)
         except Exception:
             # 异步清理断开的客户端
-            asyncio.create_task(_remove_client(client))
+            spawn_task(_remove_client(client))

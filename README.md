@@ -161,3 +161,10 @@ alembic stamp head
 ```
 
 随后再用 `alembic upgrade head` 进行后续升级。
+
+---
+
+## 后台任务规范
+
+- 业务后台任务（需要任务列表可见、可追溯、日志自动关联 task_id）：使用 [start_background_task](file:///workspace/backend/app/services/game/session.py) 创建。
+- 非业务 fire-and-forget（例如 WebSocket 客户端清理）：使用 [spawn_task](file:///workspace/backend/app/core/async_utils.py) 创建。

@@ -350,8 +350,8 @@ async def run_deep_learning(
                         except Exception:
                             pass
 
-                task2 = asyncio.create_task(_trigger_next_boot_analysis())
-                add_background_task(task2)
+                from app.services.game.session import start_background_task
+                start_background_task("background", _trigger_next_boot_analysis())
     except asyncio.CancelledError:
         async def _cleanup_on_cancel() -> None:
             async with lock:

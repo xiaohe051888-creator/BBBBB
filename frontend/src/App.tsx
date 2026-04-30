@@ -6,18 +6,18 @@
  * - 启动页：无侧边栏，全屏沉浸式
  * - 功能页：桌面端可折叠侧边栏 + 移动端底部Tab栏 + 顶部状态栏 + 内容区
  */
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ConfigProvider, theme, App as AntApp } from 'antd';
+import { ConfigProvider, theme, App as AntApp, Spin } from 'antd';
 import { QueryClientProvider } from '@tanstack/react-query';
 import zhCN from 'antd/locale/zh_CN';
-import DashboardPage from './pages/DashboardPage';
-import RoadMapPage from './pages/RoadMapPage';
-import BetRecordsPage from './pages/BetRecordsPage';
-import LogsPage from './pages/LogsPage';
-import MistakeBookPage from './pages/MistakeBookPage';
-import AdminPage from './pages/AdminPage';
-import UploadDataPage from './pages/UploadDataPage';
+const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
+const RoadMapPage = React.lazy(() => import('./pages/RoadMapPage'));
+const BetRecordsPage = React.lazy(() => import('./pages/BetRecordsPage'));
+const LogsPage = React.lazy(() => import('./pages/LogsPage'));
+const MistakeBookPage = React.lazy(() => import('./pages/MistakeBookPage'));
+const AdminPage = React.lazy(() => import('./pages/AdminPage'));
+const UploadDataPage = React.lazy(() => import('./pages/UploadDataPage'));
 import { queryClient } from './lib/queryClient';
 import { PageErrorBoundary } from './components/error';
 import './styles/global.css';
@@ -206,6 +206,12 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
+const RouteFallback: React.FC = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+    <Spin />
+  </div>
+);
+
 const App: React.FC = () => {
   return (
     <PageErrorBoundary>
@@ -262,17 +268,19 @@ const App: React.FC = () => {
           <AntApp>
             <BrowserRouter>
               <AppLayout>
-                <Routes>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/dashboard/roadmap" element={<RoadMapPage />} />
-                    <Route path="/dashboard/bets" element={<BetRecordsPage />} />
-                    <Route path="/dashboard/logs" element={<LogsPage />} />
-                    <Route path="/dashboard/mistakes" element={<MistakeBookPage />} />
-                    <Route path="/upload" element={<UploadDataPage />} />
-                    <Route path="/admin" element={<AdminPage />} />
-                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                  </Routes>
+                <Suspense fallback={<RouteFallback />}>
+                  <Routes>
+                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                      <Route path="/dashboard" element={<DashboardPage />} />
+                      <Route path="/dashboard/roadmap" element={<RoadMapPage />} />
+                      <Route path="/dashboard/bets" element={<BetRecordsPage />} />
+                      <Route path="/dashboard/logs" element={<LogsPage />} />
+                      <Route path="/dashboard/mistakes" element={<MistakeBookPage />} />
+                      <Route path="/upload" element={<UploadDataPage />} />
+                      <Route path="/admin" element={<AdminPage />} />
+                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    </Routes>
+                </Suspense>
               </AppLayout>
             </BrowserRouter>
           </AntApp>
