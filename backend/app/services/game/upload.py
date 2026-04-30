@@ -135,6 +135,13 @@ async def upload_games(
             if effective_balance_mode not in ("keep", "reset_default"):
                 return {"success": False, "error": f"非法 balance_mode: {effective_balance_mode}"}
 
+            if effective_mode == "reset_current_boot" and sess.status in ("等待开奖", "分析中", "分析完成"):
+                return {
+                    "success": False,
+                    "error": "illegal_state",
+                    "message": f"当前状态({sess.status})不允许覆盖本靴数据，请先完成当前局流程或开启新靴",
+                }
+
             # 记录重置前的状态（用于日志）
             old_status = sess.status
             sess.boot_number

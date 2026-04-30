@@ -28,10 +28,43 @@ async def reveal_game(
         sess_backup = copy.deepcopy(sess)
         
         try:
-            # 状态机防连击校验：如果当前不是“等待开奖”状态，一律拒绝处理
-            # 必须前置于所有逻辑，防止连点导致重复派发后台分析任务或算力浪费
             if sess.status != "等待开奖":
-                return {"success": False, "error": f"当前状态({sess.status})无法录入开奖结果，请勿重复操作"}
+                if game_number < sess.next_game_number:
+                    stmt_existing = select(GameRecord).where(
+                        GameRecord.boot_number == sess.boot_number,
+                        GameRecord.game_number == game_number,
+                    )
+                    existing_res = await db.execute(stmt_existing)
+                    existing = existing_res.scalar_one_or_none()
+                    if existing and existing.result:
+                        stmt_bet = select(BetRecord).where(
+                            BetRecord.boot_number == sess.boot_number,
+                            BetRecord.game_number == game_number,
+                        ).order_by(BetRecord.id.desc()).limit(1)
+                        bet_res = await db.execute(stmt_bet)
+                        bet = bet_res.scalar_one_or_none()
+
+                        settlement_info = {}
+                        if bet and bet.status != "待开奖":
+                            settlement_info = {
+                                "status": bet.status,
+                                "settlement_amount": float(bet.settlement_amount or 0),
+                                "profit_loss": float(bet.profit_loss or 0),
+                            }
+
+                        return {
+                            "success": True,
+                            "already_revealed": True,
+                            "game_number": game_number,
+                            "result": existing.result,
+                            "predict_direction": existing.predict_direction,
+                            "predict_correct": existing.predict_correct,
+                            "settlement": settlement_info,
+                            "balance": sess.balance,
+                            "next_game_number": sess.next_game_number,
+                        }
+
+                return {"success": False, "error": "illegal_state", "message": f"当前状态({sess.status})无法录入开奖结果"}
 
             # 防跳局校验：只能开当前等待的这一局
             if game_number != sess.next_game_number:
