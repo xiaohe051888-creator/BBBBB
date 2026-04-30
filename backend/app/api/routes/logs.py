@@ -3,7 +3,7 @@
 """
 from typing import Optional
 from fastapi import APIRouter, Query, Depends
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 
 from app.core.database import async_session
 from app.models.schemas import SystemLog
@@ -18,6 +18,7 @@ async def get_logs(
     priority: Optional[str] = Query(None),
     game_number: Optional[int] = Query(None),
     task_id: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     _: dict = Depends(get_current_user),
@@ -34,6 +35,13 @@ async def get_logs(
             query = query.where(SystemLog.game_number == game_number)
         if task_id:
             query = query.where(SystemLog.task_id == task_id)
+        if q:
+            pattern = f"%{q}%"
+            query = query.where(or_(
+                SystemLog.description.ilike(pattern),
+                SystemLog.event_type.ilike(pattern),
+                SystemLog.event_code.ilike(pattern),
+            ))
         
         query = query.order_by(SystemLog.is_pinned.desc(), SystemLog.log_time.desc())
         

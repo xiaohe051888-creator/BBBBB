@@ -314,6 +314,7 @@ export const getLogs = async (params: {
   priority?: string;
   game_number?: number;
   task_id?: string;
+  q?: string;
   page?: number;
   page_size?: number;
 }) => {

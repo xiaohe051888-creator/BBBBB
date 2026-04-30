@@ -285,8 +285,10 @@ const LogsPage: React.FC = () => {
   const { data: logsData } = useLogsQuery({
     category: filterCategory || undefined,
     taskId: filterTaskId || undefined,
-    page: 1,
-    pageSize: 200 // 初始拉取200条以保证筛选和过滤时数据充足
+    priority: filterPriority || undefined,
+    q: debouncedSearchText || undefined,
+    page,
+    pageSize,
   });
 
   // 使用useMemo缓存logs，避免useMemo依赖变化
@@ -363,34 +365,19 @@ const LogsPage: React.FC = () => {
     };
   }, [addLogOptimistically]);
 
-  // 筛选后的数据（客户端筛选）
-  const filteredLogs = useMemo(() => {
-    return logs.filter(l => {
-      if (filterCategory && l.category !== filterCategory) return false;
-      if (filterPriority && l.priority !== filterPriority) return false;
-      if (filterTaskId && l.task_id !== filterTaskId) return false;
-      if (debouncedSearchText && !(
-        l.description.toLowerCase().includes(debouncedSearchText.toLowerCase()) ||
-        l.event_type.includes(debouncedSearchText) ||
-        String(l.game_number).includes(debouncedSearchText)
-      )) return false;
-      return true;
-    });
-  }, [logs, filterCategory, filterPriority, filterTaskId, debouncedSearchText]);
-
   // 统计
   const stats = useMemo(() => {
     const result = {
-      total: filteredLogs.length,
-      pinned: filteredLogs.filter(l => l.is_pinned).length,
-      errors: filteredLogs.filter(l => ['P0', 'P1'].includes(l.priority)).length,
+      total: logsData?.total || 0,
+      pinned: logs.filter(l => l.is_pinned).length,
+      errors: logs.filter(l => ['P0', 'P1'].includes(l.priority)).length,
       byCategory: {} as Record<string, number>,
     };
-    filteredLogs.forEach(l => {
+    logs.forEach(l => {
       result.byCategory[l.category] = (result.byCategory[l.category] || 0) + 1;
     });
     return result;
-  }, [filteredLogs]);
+  }, [logs, logsData]);
 
   const categoryOptions = useMemo(() => {
     return Array.from(new Set(logs.map(l => l.category).filter(Boolean))).sort() as string[];
@@ -409,10 +396,23 @@ const LogsPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const exportToCSV = () => {
-    if (!filteredLogs.length) { message.warning('暂无数据可导出'); return; }
+  const fetchExportLogs = async (): Promise<LogEntry[]> => {
+    const res = await api.getLogs({
+      category: filterCategory || undefined,
+      priority: filterPriority || undefined,
+      task_id: filterTaskId || undefined,
+      q: debouncedSearchText || undefined,
+      page: 1,
+      page_size: 200,
+    });
+    return res.data.data || [];
+  };
+
+  const exportToCSV = async () => {
+    const exportLogs = await fetchExportLogs();
+    if (!exportLogs.length) { message.warning('暂无数据可导出'); return; }
     const headers = ['时间', '局号', '事件编码', '事件类型', '结果', '优先级', '类别', '说明'];
-    const rows = filteredLogs.map(l => [
+    const rows = exportLogs.map(l => [
       l.log_time ? dayjs(l.log_time).format('YYYY-MM-DD HH:mm:ss') : '',
       l.game_number ?? '',
       l.event_code,
@@ -424,14 +424,15 @@ const LogsPage: React.FC = () => {
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     downloadFile(csv, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.csv`, 'text/csv;charset=utf-8;');
-    message.success(`已导出 ${filteredLogs.length} 条日志（表格）`);
+    message.success(`已导出 ${exportLogs.length} 条日志（表格）`);
   };
 
-  const exportToJSON = () => {
-    if (!filteredLogs.length) { message.warning('暂无数据可导出'); return; }
-    const json = JSON.stringify(filteredLogs, null, 2);
+  const exportToJSON = async () => {
+    const exportLogs = await fetchExportLogs();
+    if (!exportLogs.length) { message.warning('暂无数据可导出'); return; }
+    const json = JSON.stringify(exportLogs, null, 2);
     downloadFile(json, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.json`, 'application/json');
-    message.success(`已导出 ${filteredLogs.length} 条日志（数据）`);
+    message.success(`已导出 ${exportLogs.length} 条日志（数据）`);
   };
 
   // 表格列定义 - 自适应布局，避免横向滚动
@@ -463,13 +464,6 @@ const LogsPage: React.FC = () => {
           {v === 'P0' ? '致命' : v === 'P1' ? '严重' : v === 'P2' ? '警告' : v === 'P3' ? '信息' : '未知'}
         </Tag>
       ),
-      filters: [
-        { text: '致命', value: 'P0' },
-        { text: '严重', value: 'P1' },
-        { text: '警告', value: 'P2' },
-        { text: '信息', value: 'P3' },
-      ],
-      onFilter: (value, record) => record.priority === value,
     },
     {
       title: '类别',
@@ -628,14 +622,14 @@ const LogsPage: React.FC = () => {
           {/* 日志表格 - 乐观UI：永远不显示loading，数据来了直接渲染 */}
           <Card size="small">
             <Table
-              dataSource={filteredLogs}
+              dataSource={logs}
               columns={columns}
               rowKey="id"
               size="small"
               pagination={{
                 current: page,
                 pageSize,
-                total: filteredLogs.length,
+                total: logsData?.total || 0,
                 onChange: (p, ps) => { setPage(p); if (ps !== pageSize) setPageSize(ps); },
                 showTotal: (total) => `共 ${total} 条日志`,
                 showSizeChanger: true,
@@ -667,7 +661,7 @@ const LogsPage: React.FC = () => {
           <div style={{ marginBottom: 12 }} />
 
           {/* 实时时间线 */}
-          <LogTimeline logs={filteredLogs} />
+          <LogTimeline logs={logs} />
 
           {/* 类别分布 */}
           <CategoryStats stats={stats.byCategory} />

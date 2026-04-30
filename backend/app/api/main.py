@@ -105,6 +105,8 @@ async def lifespan(app: FastAPI):
     from app.services.game import sync_balance_from_db
     async with async_session() as session:
         await sync_balance_from_db(session)
+        from app.services.game.recovery import recover_on_startup
+        await recover_on_startup(session)
     
     logger.info(f"✅ {settings.APP_NAME} v{settings.APP_VERSION} 启动成功（全托管模式）")
     logger.info(f"   访问地址: http://localhost:{settings.PORT}")

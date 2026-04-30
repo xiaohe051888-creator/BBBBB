@@ -66,24 +66,28 @@ export const useStatsQuery = (options: UseStatsQueryOptions) => {
 interface UseLogsQueryOptions {
   category?: string;
   taskId?: string;
+  priority?: string;
+  q?: string;
   page?: number;
   pageSize?: number;
   enabled?: boolean;
 }
 
 export const useLogsQuery = (options: UseLogsQueryOptions) => {
-  const { category, taskId, page = 1, pageSize = 50, enabled = true } = options;
+  const { category, taskId, priority, q, page = 1, pageSize = 50, enabled = true } = options;
   const queryClient = useQueryClient();
 
   return useQuery<{
     logs: LogEntry[];
     total: number;
   }>({
-    queryKey: queryKeys.logs(category, taskId),
+    queryKey: queryKeys.logs(category, taskId, priority, q, page, pageSize),
     queryFn: async () => {
             const res = await api.getLogs({
                 category: category || undefined,
+        priority: priority || undefined,
         task_id: taskId || undefined,
+        q: q || undefined,
         page,
         page_size: pageSize,
       });
@@ -95,7 +99,7 @@ export const useLogsQuery = (options: UseLogsQueryOptions) => {
     enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-            return queryClient.getQueryData(queryKeys.logs(category, taskId)) || { logs: [], total: 0 };
+            return queryClient.getQueryData(queryKeys.logs(category, taskId, priority, q, page, pageSize)) || { logs: [], total: 0 };
     },
     notifyOnChangeProps: ['data', 'error'],
   });
@@ -290,19 +294,25 @@ export const useAddLogOptimistically = () => {
   const queryClient = useQueryClient();
 
   return (newLog: LogEntry) => {
-    const taskId = newLog.task_id || undefined;
-    const category = newLog.category || undefined;
+    const candidates = queryClient.getQueriesData<{ logs: LogEntry[]; total: number }>({ queryKey: ['logs'] });
 
-    const allKey = queryKeys.logs(undefined, undefined);
-    const keys = [
-      allKey,
-      queryKeys.logs(undefined, taskId),
-      queryKeys.logs(category, undefined),
-      queryKeys.logs(category, taskId),
-    ];
+    for (const [key] of candidates) {
+      const k = key as unknown as (string | number)[];
+      if (k.length < 7) continue;
 
-    for (const key of keys) {
-      if (key !== allKey && queryClient.getQueryData(key) === undefined) continue;
+      const category = String(k[1] || '');
+      const taskId = String(k[2] || '');
+      const priority = String(k[3] || '');
+      const q = String(k[4] || '');
+      const page = Number(k[5] || 1);
+      const pageSize = Number(k[6] || 50);
+
+      if (page !== 1) continue;
+      if (q) continue;
+      if (category && newLog.category !== category) continue;
+      if (taskId && (newLog.task_id || '') !== taskId) continue;
+      if (priority && newLog.priority !== priority) continue;
+
       queryClient.setQueryData(
         key,
         (oldData: { logs: LogEntry[]; total: number } | undefined) => {
@@ -311,9 +321,7 @@ export const useAddLogOptimistically = () => {
             return oldData;
           }
 
-          const currentLength = oldData.logs.length;
-          const maxLimit = Math.max(currentLength + 1, 500);
-
+          const maxLimit = Math.max(pageSize, 1);
           return {
             logs: [newLog, ...oldData.logs].slice(0, maxLimit),
             total: oldData.total + 1,

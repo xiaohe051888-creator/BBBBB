@@ -36,7 +36,7 @@ export const queryKeys = {
   // 统计数据
   stats: () => ['stats'] as const,
   // 日志
-  logs: (category?: string, taskId?: string) => ['logs', category || '', taskId || ''] as const,
+  logs: (category?: string, taskId?: string, priority?: string, q?: string, page: number = 1, pageSize: number = 50) => ['logs', category || '', taskId || '', priority || '', q || '', page, pageSize] as const,
   // 游戏记录
   games: (page: number) => ['games', page] as const,
   // 下注记录

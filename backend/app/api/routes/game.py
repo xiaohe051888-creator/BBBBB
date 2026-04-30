@@ -123,7 +123,7 @@ async def upload_game_results(req: UploadRequest):
                     logging.getLogger(__name__).error(f"清理状态机遇错: {final_e}", exc_info=True)
 
     from app.services.game.session import start_background_task
-    start_background_task("background", _trigger_analysis())
+    start_background_task("analysis", _trigger_analysis())
     
     return {
         "success": True,
@@ -217,7 +217,7 @@ async def reveal_game_route(req: RevealRequest):
                     pass
 
     from app.services.game.session import start_background_task
-    start_background_task("background", _trigger_next_analysis())
+    start_background_task("analysis", _trigger_next_analysis())
     
     return {
         **result,

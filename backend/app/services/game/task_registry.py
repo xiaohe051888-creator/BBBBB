@@ -28,6 +28,7 @@ class TaskRegistry:
 
     async def _persist_create(self, meta: RegisteredTask) -> None:
         from sqlalchemy import select
+        from sqlalchemy.exc import IntegrityError
         from app.core.database import async_session
         from app.models.schemas import BackgroundTask
 
@@ -49,10 +50,21 @@ class TaskRegistry:
                 row.status = meta.status
                 row.message = meta.message
                 row.error = meta.error
-            await db.commit()
+            try:
+                await db.commit()
+            except IntegrityError:
+                await db.rollback()
+                existing = await db.execute(select(BackgroundTask).where(BackgroundTask.task_id == meta.task_id))
+                row = existing.scalar_one_or_none()
+                if row:
+                    row.status = meta.status
+                    row.message = meta.message
+                    row.error = meta.error
+                    await db.commit()
 
     async def _persist_finish(self, meta: RegisteredTask) -> None:
         from sqlalchemy import select, delete
+        from sqlalchemy.exc import IntegrityError
         from app.core.database import async_session
         from app.models.schemas import BackgroundTask
         from datetime import datetime as _dt
@@ -78,7 +90,18 @@ class TaskRegistry:
                 row.error = meta.error
                 row.finished_at = _dt.now()
 
-            await db.commit()
+            try:
+                await db.commit()
+            except IntegrityError:
+                await db.rollback()
+                existing = await db.execute(select(BackgroundTask).where(BackgroundTask.task_id == meta.task_id))
+                row = existing.scalar_one_or_none()
+                if row:
+                    row.status = meta.status
+                    row.message = meta.message
+                    row.error = meta.error
+                    row.finished_at = _dt.now()
+                    await db.commit()
 
             keep = 1000
             ids = (await db.execute(

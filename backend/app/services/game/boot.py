@@ -92,9 +92,8 @@ async def end_boot(
         "message": "正在准备学习数据...",
     })
     
-    # 异步启动深度学习
-    from app.services.game.task_registry import registry
-    registry.create(
+    from app.services.game.session import start_background_task
+    start_background_task(
         "deep_learning",
         run_deep_learning(current_boot),
         boot_number=current_boot,
@@ -351,7 +350,7 @@ async def run_deep_learning(
                             pass
 
                 from app.services.game.session import start_background_task
-                start_background_task("background", _trigger_next_boot_analysis())
+                start_background_task("analysis", _trigger_next_boot_analysis())
     except asyncio.CancelledError:
         async def _cleanup_on_cancel() -> None:
             async with lock:

@@ -52,6 +52,11 @@ _session_lock = None
 _background_tasks = set()
 # WebSocket广播函数（由main.py注入）
 _broadcast_func: Optional[Callable] = None
+_task_semaphores: dict[str, asyncio.Semaphore] = {
+    "analysis": asyncio.Semaphore(1),
+    "deep_learning": asyncio.Semaphore(1),
+    "micro_learning": asyncio.Semaphore(1),
+}
 
 
 def add_background_task(task):
@@ -69,6 +74,19 @@ def start_background_task(
     dedupe_key: Optional[str] = None,
 ):
     from app.services.game.task_registry import registry
+
+    sem = _task_semaphores.get(task_type)
+    if sem:
+        orig = coro
+
+        async def _wrapped():
+            await sem.acquire()
+            try:
+                return await orig
+            finally:
+                sem.release()
+
+        coro = _wrapped()
 
     meta = registry.create(
         task_type=task_type,
