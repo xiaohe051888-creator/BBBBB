@@ -13,6 +13,17 @@ from app.api.routes.schemas import UploadRequest, RevealRequest
 
 router = APIRouter(prefix="/api/games", tags=["游戏"])
 
+def _upload_error_to_http_exception(upload_result: dict) -> HTTPException:
+    if upload_result.get("error") == "illegal_state":
+        return HTTPException(409, upload_result.get("message") or "当前状态不允许该操作")
+    return HTTPException(400, upload_result.get("message") or upload_result.get("error") or "上传失败")
+
+
+def _reveal_error_to_http_exception(reveal_result: dict) -> HTTPException:
+    if reveal_result.get("error") == "illegal_state":
+        return HTTPException(409, reveal_result.get("message") or "当前状态不允许该操作")
+    return HTTPException(400, reveal_result.get("message") or reveal_result.get("error") or "开奖失败")
+
 
 @router.post("/upload")
 async def upload_game_results(req: UploadRequest):
@@ -40,7 +51,7 @@ async def upload_game_results(req: UploadRequest):
         )
     
     if not upload_result["success"]:
-        raise HTTPException(400, upload_result.get("error", "上传失败"))
+        raise _upload_error_to_http_exception(upload_result)
     
     # 异步触发AI分析（不阻塞上传响应）
     async def _trigger_analysis():
@@ -137,7 +148,7 @@ async def reveal_game_route(req: RevealRequest):
         )
     
     if not result["success"]:
-        raise HTTPException(400, result.get("error", "开奖失败"))
+        raise _reveal_error_to_http_exception(result)
     
     # 获取当前靴号，触发下一局AI分析
     sess = get_session()

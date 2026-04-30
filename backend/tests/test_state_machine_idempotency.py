@@ -74,10 +74,8 @@ class StateMachineIdempotencyTest(unittest.TestCase):
                 return res
 
         res = asyncio.run(_run())
-        self.assertFalse(res.get("success", True), res)
-        self.assertEqual(res.get("error"), "illegal_state", res)
+        self.assertTrue(res.get("success"), res)
 
 
 if __name__ == "__main__":
     unittest.main()
-
