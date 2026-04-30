@@ -12,6 +12,7 @@ from app.models.schemas import BetRecord
 from .session import get_session, get_session_lock, broadcast_event
 from .state import get_or_create_state
 from .logging import write_game_log
+from .state_machine import can_place_bet
 import copy
 
 async def place_bet(
@@ -32,9 +33,8 @@ async def place_bet(
         sess_backup = copy.deepcopy(sess)
         
         try:
-            # 状态机防越权与篡改校验：如果当前不是“等待下注”或“分析完成”状态，一律拒绝处理
-            if sess.status not in ("等待下注", "分析完成"):
-                return {"success": False, "error": f"当前状态({sess.status})无法下注，请勿非法操作"}
+            if not can_place_bet(sess.status):
+                return {"success": False, "error": "illegal_state", "message": f"当前状态({sess.status})无法下注"}
 
             if direction not in ("庄", "闲"):
                 return {"success": False, "error": "下注方向只能是庄或闲"}

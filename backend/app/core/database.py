@@ -2,6 +2,9 @@
 数据库模块 - 百家乐分析预测系统
 按靴隔离存储，最多1000局历史滚动
 """
+import atexit
+import asyncio
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import event
@@ -86,8 +89,23 @@ async def init_db():
 
     logger.info("数据库初始化及字段同步完成")
 
+async def close_db() -> None:
+    await engine.dispose()
+
 
 async def get_session() -> AsyncSession:
     """获取数据库会话"""
     async with async_session() as session:
         yield session
+
+
+def _dispose_on_exit() -> None:
+    try:
+        asyncio.run(close_db())
+    except RuntimeError:
+        pass
+    except Exception:
+        pass
+
+
+atexit.register(_dispose_on_exit)

@@ -12,6 +12,7 @@ from app.models.schemas import GameRecord, BetRecord, MistakeBook, RoadMap, AIMe
 from .session import get_session, get_session_lock, broadcast_event
 from .state import get_or_create_state
 from .logging import write_game_log
+from .state_machine import can_reset_current_boot
 import copy
 
 async def _reset_table_data(db: AsyncSession, boot_number: Optional[int] = None) -> None:
@@ -134,6 +135,10 @@ async def upload_games(
             effective_balance_mode = balance_mode or "keep"
             if effective_balance_mode not in ("keep", "reset_default"):
                 return {"success": False, "error": f"非法 balance_mode: {effective_balance_mode}"}
+
+            ok, msg = can_reset_current_boot(sess.status)
+            if not ok:
+                return {"success": False, "error": "illegal_state", "message": msg}
 
             # 记录重置前的状态（用于日志）
             old_status = sess.status

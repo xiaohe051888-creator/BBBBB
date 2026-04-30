@@ -14,15 +14,19 @@ from app.api.routes.schemas import UploadRequest, RevealRequest
 router = APIRouter(prefix="/api/games", tags=["游戏"])
 
 def _upload_error_to_http_exception(upload_result: dict) -> HTTPException:
+    from app.utils.errors import error_message
     if upload_result.get("error") == "illegal_state":
         return HTTPException(409, upload_result.get("message") or "当前状态不允许该操作")
-    return HTTPException(400, upload_result.get("message") or upload_result.get("error") or "上传失败")
+    code = upload_result.get("error")
+    return HTTPException(400, upload_result.get("message") or (error_message(code) if code else "上传失败"))
 
 
 def _reveal_error_to_http_exception(reveal_result: dict) -> HTTPException:
+    from app.utils.errors import error_message
     if reveal_result.get("error") == "illegal_state":
         return HTTPException(409, reveal_result.get("message") or "当前状态不允许该操作")
-    return HTTPException(400, reveal_result.get("message") or reveal_result.get("error") or "开奖失败")
+    code = reveal_result.get("error")
+    return HTTPException(400, reveal_result.get("message") or (error_message(code) if code else "开奖失败"))
 
 
 @router.post("/upload")

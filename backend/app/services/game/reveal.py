@@ -12,6 +12,7 @@ from app.models.schemas import GameRecord, BetRecord, MistakeBook
 from .session import get_session, get_session_lock, broadcast_event
 from .state import get_or_create_state
 from .logging import write_game_log
+from .state_machine import can_reveal
 
 
 async def reveal_game(
@@ -28,7 +29,7 @@ async def reveal_game(
         sess_backup = copy.deepcopy(sess)
         
         try:
-            if sess.status != "等待开奖":
+            if not can_reveal(sess.status):
                 if game_number < sess.next_game_number:
                     stmt_existing = select(GameRecord).where(
                         GameRecord.boot_number == sess.boot_number,

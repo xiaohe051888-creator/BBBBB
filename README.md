@@ -48,6 +48,26 @@
 docker compose up --build -d
 ```
 
+### 方式二补充：使用 Postgres（推荐用于长期运行/云部署）
+
+本项目后端支持通过 `DATABASE_URL` 使用 Postgres。
+
+1) 启动服务（含 Postgres，见 docker-compose.yml）：
+
+```bash
+docker compose up --build -d
+```
+
+2) 本地迁移（SQLite → Postgres，一次性）：
+
+```bash
+SQLITE_URL="sqlite+aiosqlite:///./data/baccarat.db" \\
+POSTGRES_URL="postgresql+asyncpg://baccarat:baccarat@localhost:5432/baccarat" \\
+python backend/scripts/migrate_sqlite_to_postgres.py
+```
+
+迁移脚本会把核心业务表（状态、记录、下注、日志、错题本、五路缓存、记忆库、版本表）迁移到 Postgres。迁移完成后，生产环境只需要设置 `DATABASE_URL` 即可。
+
 ### 方式三：云端 Serverless 部署 (Render)
 项目根目录已包含 `render.yaml` 配置文件，支持在 Render 平台上一键部署双服务：
 - **后端**: Python FastAPI Web Service

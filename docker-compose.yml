@@ -9,6 +9,19 @@
 # ============================================
 
 services:
+  postgres:
+    image: postgres:15
+    container_name: baccarat-postgres
+    environment:
+      - POSTGRES_USER=baccarat
+      - POSTGRES_PASSWORD=baccarat
+      - POSTGRES_DB=baccarat
+    ports:
+      - "5432:5432"
+    volumes:
+      - baccarat-pg:/var/lib/postgresql/data
+    restart: unless-stopped
+
   baccarat-app:
     build:
       context: .
@@ -19,6 +32,8 @@ services:
     environment:
       # --- Debug ---
       - DEBUG=${DEBUG:-false}
+
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://baccarat:baccarat@postgres:5432/baccarat}
       
       # --- Security (Must change in production!) ---
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-in-production}
@@ -46,6 +61,8 @@ services:
     volumes:
       # Data persistence (Database + Logs)
       - baccarat-data:/app/data
+    depends_on:
+      - postgres
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8000/api/system/health"]
@@ -56,4 +73,6 @@ services:
 
 volumes:
   baccarat-data:
+    driver: local
+  baccarat-pg:
     driver: local

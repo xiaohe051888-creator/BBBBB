@@ -46,7 +46,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select, desc
 
 from app.core.config import settings
-from app.core.database import init_db, async_session
+from app.core.database import init_db, async_session, close_db
 from app.models.schemas import AdminUser, SystemLog, BetRecord, MistakeBook
 
 # ============ 导入路由模块 ============
@@ -109,6 +109,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    await close_db()
     logger.info("系统已关闭")
 
 

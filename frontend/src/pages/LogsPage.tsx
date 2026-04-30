@@ -4,10 +4,10 @@
  * 
  * 优化：使用React Query + 乐观UI策略，页面切换无加载转圈
  */
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Button, Card, Table, Tag, Space, Badge, Switch, App,
+  Button, Card, Table, Tag, Space, Badge, Switch, App, Input, Select, Modal, List, Typography, Divider,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -29,12 +29,200 @@ const Icons = {
   FileText: () => <span>📄</span>,
 };
 
-type PlaceholderProps = Record<string, unknown>;
+const priorityLabel = (v: string): string =>
+  v === 'P0' ? '致命' : v === 'P1' ? '严重' : v === 'P2' ? '警告' : v === 'P3' ? '信息' : '未知';
 
-const LogFilterBar: React.FC<PlaceholderProps> = () => null;
-const LogDetailModal: React.FC<PlaceholderProps> = () => null;
-const LogTimeline: React.FC<PlaceholderProps> = () => null;
-const CategoryStats: React.FC<PlaceholderProps> = () => null;
+
+type LogFilterBarProps = {
+  categories: string[];
+  filterCategory: string;
+  setFilterCategory: (v: string) => void;
+  filterPriority: string;
+  setFilterPriority: (v: string) => void;
+  searchText: string;
+  setSearchText: (v: string) => void;
+  onReset: () => void;
+};
+
+const LogFilterBar: React.FC<LogFilterBarProps> = ({
+  categories,
+  filterCategory,
+  setFilterCategory,
+  filterPriority,
+  setFilterPriority,
+  searchText,
+  setSearchText,
+  onReset,
+}) => {
+  const categoryOptions = useMemo(
+    () => [{ label: '全部类别', value: '' }, ...categories.map(c => ({ label: c, value: c }))],
+    [categories]
+  );
+
+  const priorityOptions = [
+    { label: '全部优先级', value: '' },
+    { label: '致命', value: 'P0' },
+    { label: '严重', value: 'P1' },
+    { label: '警告', value: 'P2' },
+    { label: '信息', value: 'P3' },
+  ];
+
+  return (
+    <Card size="small" style={{ marginBottom: 12 }}>
+      <Space wrap>
+        <Select
+          value={filterCategory}
+          onChange={setFilterCategory}
+          options={categoryOptions}
+          style={{ minWidth: 160 }}
+          size="small"
+        />
+        <Select
+          value={filterPriority}
+          onChange={setFilterPriority}
+          options={priorityOptions}
+          style={{ minWidth: 140 }}
+          size="small"
+        />
+        <Input
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="搜索：说明/事件/局号"
+          allowClear
+          size="small"
+          style={{ width: 220 }}
+        />
+        <Button size="small" onClick={onReset}>
+          重置筛选
+        </Button>
+      </Space>
+    </Card>
+  );
+};
+
+type LogDetailModalProps = {
+  open: boolean;
+  log: LogEntry | null;
+  onClose: () => void;
+};
+
+const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) => {
+  const { message } = App.useApp();
+
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      message.success('已复制');
+    } catch {
+      message.error('复制失败');
+    }
+  };
+
+  const detailText = log ? JSON.stringify(log, null, 2) : '';
+
+  return (
+    <Modal
+      title="日志详情"
+      open={open}
+      onCancel={onClose}
+      footer={[
+        <Button key="copy" disabled={!log} onClick={() => copy(detailText)}>
+          复制
+        </Button>,
+        <Button key="close" type="primary" onClick={onClose}>
+          关闭
+        </Button>,
+      ]}
+      width={720}
+    >
+      {log ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Space wrap>
+            <Tag color={PRIORITY_COLORS[log.priority]}>{priorityLabel(log.priority)}</Tag>
+            {log.category ? <Tag>{log.category}</Tag> : null}
+            {log.event_result ? <Tag>{log.event_result}</Tag> : null}
+            {log.is_pinned ? <Tag color="red">置顶</Tag> : null}
+          </Space>
+          <Divider style={{ margin: '8px 0' }} />
+          <Typography.Text type="secondary">说明</Typography.Text>
+          <Typography.Paragraph style={{ marginBottom: 0 }}>
+            {log.description || '-'}
+          </Typography.Paragraph>
+          <Divider style={{ margin: '8px 0' }} />
+          <Typography.Text type="secondary">原始数据</Typography.Text>
+          <pre style={{ margin: 0, maxHeight: 360, overflow: 'auto' }}>
+            {detailText}
+          </pre>
+        </div>
+      ) : (
+        <Typography.Text type="secondary">未选择日志</Typography.Text>
+      )}
+    </Modal>
+  );
+};
+
+type LogTimelineProps = {
+  logs: LogEntry[];
+};
+
+const LogTimeline: React.FC<LogTimelineProps> = ({ logs }) => {
+  const items = useMemo(() => logs.slice(0, 20), [logs]);
+
+  return (
+    <Card size="small" title="最新动态" style={{ marginBottom: 12 }}>
+      <List
+        size="small"
+        dataSource={items}
+        locale={{ emptyText: '暂无数据' }}
+        renderItem={(l) => (
+          <List.Item style={{ padding: '6px 0' }}>
+            <Space size={8} style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Space size={8}>
+                <Tag color={PRIORITY_COLORS[l.priority]} style={{ marginInlineEnd: 0 }}>
+                  {priorityLabel(l.priority)}
+                </Tag>
+                <span style={{ fontSize: 12 }}>{l.event_type || '-'}</span>
+              </Space>
+              <span style={{ fontSize: 11, opacity: 0.65, whiteSpace: 'nowrap' }}>
+                {l.log_time ? dayjs(l.log_time).format('HH:mm:ss') : ''}
+              </span>
+            </Space>
+          </List.Item>
+        )}
+      />
+    </Card>
+  );
+};
+
+type CategoryStatsProps = {
+  stats: Record<string, number>;
+};
+
+const CategoryStats: React.FC<CategoryStatsProps> = ({ stats }) => {
+  const items = useMemo(() => {
+    return Object.entries(stats)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12);
+  }, [stats]);
+
+  return (
+    <Card size="small" title="类别分布">
+      <List
+        size="small"
+        dataSource={items}
+        locale={{ emptyText: '暂无数据' }}
+        renderItem={([k, v]) => (
+          <List.Item style={{ padding: '6px 0' }}>
+            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12 }}>{k || '未分类'}</span>
+              <Tag style={{ marginInlineEnd: 0 }}>{v}</Tag>
+            </Space>
+          </List.Item>
+        )}
+      />
+    </Card>
+  );
+};
 
 const LogsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -85,9 +273,15 @@ const LogsPage: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
 
   // 手动刷新
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['logs'] });
-  };
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(handleRefresh, 15000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, handleRefresh]);
 
   // WebSocket实时推送
   useEffect(() => {
@@ -165,6 +359,10 @@ const LogsPage: React.FC = () => {
     });
     return result;
   }, [filteredLogs]);
+
+  const categoryOptions = useMemo(() => {
+    return Array.from(new Set(logs.map(l => l.category).filter(Boolean))).sort() as string[];
+  }, [logs]);
 
   // ====== 导出功能 ======
   const downloadFile = (content: string, filename: string, mimeType: string) => {
@@ -366,6 +564,7 @@ const LogsPage: React.FC = () => {
         <div className="logs-layout-col-left" style={{ flex: '1 1 500px', minWidth: 0 }}>
           {/* 筛选栏 */}
           <LogFilterBar
+            categories={categoryOptions}
             filterCategory={filterCategory}
             setFilterCategory={(v: string) => { setFilterCategory(v); setPage(1); }}
             filterPriority={filterPriority}
