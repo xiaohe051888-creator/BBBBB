@@ -29,10 +29,12 @@ const Icons = {
   FileText: () => <span>📄</span>,
 };
 
-const LogFilterBar: React.FC<any> = () => null;
-const LogDetailModal: React.FC<any> = () => null;
-const LogTimeline: React.FC<any> = () => null;
-const CategoryStats: React.FC<any> = () => null;
+type PlaceholderProps = Record<string, unknown>;
+
+const LogFilterBar: React.FC<PlaceholderProps> = () => null;
+const LogDetailModal: React.FC<PlaceholderProps> = () => null;
+const LogTimeline: React.FC<PlaceholderProps> = () => null;
+const CategoryStats: React.FC<PlaceholderProps> = () => null;
 
 const LogsPage: React.FC = () => {
   const navigate = useNavigate();

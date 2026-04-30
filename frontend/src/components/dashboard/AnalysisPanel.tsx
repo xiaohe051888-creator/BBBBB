@@ -4,8 +4,7 @@
  * 包含: AI三模型分析展示、分析状态
  */
 import React from 'react';
-import { Tag, Progress, Button } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { Tag, Progress } from 'antd';
 import { RobotOutlined, BulbOutlined, AimOutlined } from '@ant-design/icons';
 import { useSystemStateQuery } from '../../hooks/useQueries';
 
@@ -29,7 +28,6 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   hasGameData,
   aiAnalyzing,
 }) => {
-  const navigate = useNavigate();
   const { data: systemState } = useSystemStateQuery({});
   const isRuleMode = systemState?.prediction_mode === 'rule';
 

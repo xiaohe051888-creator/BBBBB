@@ -81,7 +81,6 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
 
   const wsRef = useRef<WebSocket | null>(null);
   const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const backendCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pingTimeRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isUnmountedRef = useRef(false);

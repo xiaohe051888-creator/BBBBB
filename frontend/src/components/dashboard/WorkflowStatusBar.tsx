@@ -10,7 +10,6 @@ import { useWaitTimer } from '../../hooks/useWaitTimer';
 import {
   ClockCircleOutlined as ClockIcon,
   BulbOutlined as BulbIcon,
-  CloudUploadOutlined as UploadIcon,
   LineChartOutlined as ChartIcon,
   AimOutlined as TargetIcon,
 } from '@ant-design/icons';
