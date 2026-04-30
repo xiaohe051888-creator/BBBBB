@@ -35,6 +35,8 @@ export const UploadConfirmModal: React.FC<Props> = ({
   const [confirmReset, setConfirmReset] = React.useState(false);
   const predictionMode = systemState?.prediction_mode || 'ai';
   const isDeepLearning = systemState?.status === '深度学习中';
+  const actionText = action === 'reset_current_boot' ? '重置本靴（覆盖本靴）' : '结束本靴（开启新靴）';
+  const balanceText = balanceMode === 'keep' ? '保留当前余额' : '重置余额到 20000';
 
   React.useEffect(() => {
     if (!open) return;
@@ -148,6 +150,42 @@ export const UploadConfirmModal: React.FC<Props> = ({
           <Checkbox checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)} disabled={submitting}>
             我已确认将清空本靴数据（不可恢复）
           </Checkbox>
+        )}
+      </div>
+
+      <div style={{ height: 14 }} />
+
+      <div
+        style={{
+          padding: '10px 12px',
+          borderRadius: 12,
+          border: `1px solid ${action === 'reset_current_boot' ? 'rgba(255,77,79,0.25)' : 'rgba(255,255,255,0.10)'}`,
+          background: action === 'reset_current_boot' ? 'rgba(255,77,79,0.08)' : 'rgba(255,255,255,0.03)',
+          color: 'rgba(255,255,255,0.85)',
+          fontSize: 12,
+          lineHeight: 1.7,
+        }}
+      >
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>本次操作摘要</div>
+        <div>动作：{actionText}</div>
+        <div>余额：{balanceText}</div>
+        {action === 'new_boot' && (
+          <div>
+            深度学习：
+            {predictionMode !== 'ai' ? '不可用（规则模式）' : (runDeepLearning ? '执行' : '不执行')}
+          </div>
+        )}
+        {action === 'reset_current_boot' && (
+          <div style={{ color: 'rgba(255,255,255,0.75)' }}>
+            将清空本靴：GameRecord / BetRecord / MistakeBook / RoadMap / AIMemory 及相关内存态状态
+          </div>
+        )}
+        {action === 'new_boot' && predictionMode === 'ai' && runDeepLearning && (
+          <div style={{ color: 'rgba(255,255,255,0.75)' }}>
+            {isDeepLearning
+              ? '当前深度学习进行中：本次数据会加入队列，学习完成后自动写入新靴并触发分析'
+              : '将先触发深度学习，完成后自动写入新靴并触发分析'}
+          </div>
         )}
       </div>
     </Modal>
