@@ -50,22 +50,41 @@ logger = logging.getLogger(__name__)
 
 from sqlalchemy import event, inspect, text
 
-async def init_db():
-    """初始化数据库表并自动执行增量迁移"""
-    async with engine.begin() as conn:
-        if settings.ENVIRONMENT.lower() == "production":
+_migration_validated = False
+_migration_lock = asyncio.Lock()
+
+
+async def ensure_migration_validated() -> None:
+    global _migration_validated
+    if settings.ENVIRONMENT.lower() != "production":
+        return
+    if _migration_validated:
+        return
+    async with _migration_lock:
+        if _migration_validated:
+            return
+        async with engine.begin() as conn:
             def _check(sync_conn):
+                from app.core.migrations import validate_migrations_at_head
+
                 inspector = inspect(sync_conn)
-                required = {"alembic_version", "system_logs", "background_tasks"}
+                required = {"system_logs", "background_tasks"}
                 missing = [t for t in required if not inspector.has_table(t)]
                 if missing:
                     raise RuntimeError("生产环境数据库未完成迁移，请先执行 alembic upgrade head")
+                validate_migrations_at_head(sync_conn)
 
             await conn.run_sync(_check)
-            logger.info("生产环境数据库迁移检查通过")
-            return
+        _migration_validated = True
 
-        # 创建所有不存在的表
+async def init_db():
+    """初始化数据库表并自动执行增量迁移"""
+    if settings.ENVIRONMENT.lower() == "production":
+        await ensure_migration_validated()
+        logger.info("生产环境数据库迁移校验通过")
+        return
+
+    async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         
         # SQLite 增量字段同步 (Auto Migration for missing columns)
@@ -107,6 +126,7 @@ async def close_db() -> None:
 
 async def get_session() -> AsyncSession:
     """获取数据库会话"""
+    await ensure_migration_validated()
     async with async_session() as session:
         yield session
 
