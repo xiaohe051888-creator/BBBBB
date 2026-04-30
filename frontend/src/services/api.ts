@@ -3,6 +3,7 @@
  * 含 JWT 认证拦截器 + WebSocket 认证
  */
 import axios from 'axios';
+import { normalizeBackendDetail } from '../utils/errorMessage';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -55,9 +56,10 @@ api.interceptors.response.use(
     if (error.response?.data?.detail) {
       const detail = error.response.data.detail;
       // 处理 detail 可能是数组的情况（FastAPI 的 Pydantic 验证错误）
-      error.message = Array.isArray(detail) 
+      const message = Array.isArray(detail) 
         ? detail.map(e => e.msg || '验证错误').join(', ') 
         : detail;
+      error.message = normalizeBackendDetail(message) || message;
     } else if (error.response?.status === 403) {
       error.message = '拒绝访问 (403)';
     } else if (error.response?.status === 404) {
@@ -84,10 +86,7 @@ api.interceptors.response.use(
       error.message = '请求超时，请重试';
     }
 
-    // 提取后端返回的具体错误信息并替换掉默认的英文提示
-    if (error.response?.data?.detail) {
-      error.message = error.response.data.detail;
-    } else if (error.response?.status) {
+    if (error.response?.status) {
       const statusMap: Record<number, string> = {
         400: '请求参数错误',
         401: '密码错误或登录已过期',
