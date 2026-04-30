@@ -6,6 +6,74 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.schemas import BackgroundTask
 
 
+async def detect_stuck_state(db: AsyncSession) -> dict:
+    from app.models.schemas import SystemState
+
+    state = (await db.execute(select(SystemState).order_by(SystemState.id.desc()).limit(1))).scalars().first()
+    status = state.status if state else None
+    expected_task_type = None
+    safe_status = None
+
+    if status == "分析中":
+        expected_task_type = "analysis"
+        safe_status = "等待开奖"
+    elif status == "深度学习中":
+        expected_task_type = "deep_learning"
+        safe_status = "等待新靴"
+
+    if not expected_task_type:
+        return {"stuck": False, "status": status, "expected_task_type": None}
+
+    running = (await db.execute(
+        select(BackgroundTask).where(
+            BackgroundTask.status == "running",
+            BackgroundTask.task_type == expected_task_type,
+        )
+    )).scalars().all()
+
+    return {
+        "stuck": len(running) == 0,
+        "status": status,
+        "expected_task_type": expected_task_type,
+        "safe_status": safe_status,
+        "running_count": len(running),
+    }
+
+
+async def repair_stuck_state(db: AsyncSession) -> dict:
+    from app.services.game.state import get_or_create_state
+    from app.services.game.logging import write_game_log
+    from app.services.game.session import get_session
+
+    info = await detect_stuck_state(db)
+    if not info.get("stuck"):
+        return {"repaired": False, "detail": info}
+
+    state = await get_or_create_state(db)
+    old_status = state.status
+    new_status = info.get("safe_status") or old_status
+    state.status = new_status
+
+    mem = get_session()
+    mem.status = new_status
+
+    await write_game_log(
+        db,
+        boot_number=state.boot_number or 0,
+        game_number=state.game_number or 0,
+        event_code="LOG-RECOVER-003",
+        event_type="系统修复",
+        event_result="回落卡住状态",
+        description=f"检测到状态{old_status}卡住（无对应 running 任务），已回落为 {new_status}",
+        category="系统事件",
+        priority="P1",
+        source_module="repair",
+    )
+
+    await db.commit()
+    return {"repaired": True, "from": old_status, "to": new_status}
+
+
 async def recover_on_startup(db: AsyncSession) -> None:
     from app.services.game.state import get_or_create_state
     from app.services.game.logging import write_game_log
@@ -60,4 +128,3 @@ async def recover_on_startup(db: AsyncSession) -> None:
 
     if tasks or new_status != old_status:
         await db.commit()
-

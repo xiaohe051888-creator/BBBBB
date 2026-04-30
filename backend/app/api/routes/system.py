@@ -272,10 +272,27 @@ async def get_system_diagnostics():
         tasks = []
 
     running = [t for t in tasks if getattr(t, "status", None) == "running"]
+    running_by_type: dict[str, int] = {}
+    for t in running:
+        if getattr(t, "task_type", None):
+            running_by_type[t.task_type] = running_by_type.get(t.task_type, 0) + 1
+
+    stuck_signals = []
+    try:
+        async with async_session() as s:
+            from app.services.game.recovery import detect_stuck_state
+            info = await detect_stuck_state(s)
+            if info.get("stuck"):
+                stuck_signals.append(info)
+    except Exception:
+        pass
+
     latest_errors = [t for t in tasks if getattr(t, "status", None) == "failed" and getattr(t, "error", None)][:5]
     background_tasks = {
         "running_count": len(running),
         "running_types": sorted(list({getattr(t, "task_type", None) for t in running if getattr(t, "task_type", None)})),
+        "running_tasks_by_type": running_by_type,
+        "stuck_signals": stuck_signals,
         "latest_errors": [
             {
                 "task_id": t.task_id,
@@ -306,6 +323,15 @@ async def get_system_diagnostics():
         "has_critical_issues": any(i["level"] == "critical" for i in issues),
         "overall_status": "critical" if not db_ok or configured_count == 0 else "warning" if configured_count < 3 else "ok",
     }
+
+
+@router.post("/repair")
+async def repair_system(_: dict = Depends(get_current_user)):
+    async with async_session() as session:
+        from app.services.game.recovery import recover_on_startup, repair_stuck_state
+        await recover_on_startup(session)
+        repaired = await repair_stuck_state(session)
+        return {"success": True, "repaired": repaired}
 
 
 @router.get("/tasks")
