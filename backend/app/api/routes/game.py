@@ -122,10 +122,8 @@ async def upload_game_results(req: UploadRequest):
                     import logging
                     logging.getLogger(__name__).error(f"清理状态机遇错: {final_e}", exc_info=True)
 
-    # 保存对后台任务的强引用以防止GC回收
-    from app.services.game.session import add_background_task
-    task = asyncio.create_task(_trigger_analysis())
-    add_background_task(task)
+    from app.services.game.session import start_background_task
+    start_background_task("background", _trigger_analysis())
     
     return {
         "success": True,
@@ -218,9 +216,8 @@ async def reveal_game_route(req: RevealRequest):
                 except Exception:
                     pass
 
-    from app.services.game.session import add_background_task
-    task = asyncio.create_task(_trigger_next_analysis())
-    add_background_task(task)
+    from app.services.game.session import start_background_task
+    start_background_task("background", _trigger_next_analysis())
     
     return {
         **result,

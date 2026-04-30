@@ -59,12 +59,26 @@ def add_background_task(task):
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
 
-    try:
-        from app.services.game.task_registry import registry
+    return task
 
-        registry.create(task_type="background", coro=task, dedupe_key=None)
-    except Exception:
-        pass
+
+def start_background_task(
+    task_type: str,
+    coro,
+    boot_number: Optional[int] = None,
+    dedupe_key: Optional[str] = None,
+):
+    from app.services.game.task_registry import registry
+
+    meta = registry.create(
+        task_type=task_type,
+        coro=coro,
+        boot_number=boot_number,
+        dedupe_key=dedupe_key,
+    )
+    if meta.task:
+        add_background_task(meta.task)
+    return meta
 
 
 def list_background_tasks(limit: int = 50) -> list[dict]:

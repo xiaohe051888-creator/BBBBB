@@ -124,6 +124,37 @@ class TaskRegistry:
 
         if isinstance(coro, asyncio.Task):
             meta.task = coro
+            try:
+                asyncio.get_running_loop().create_task(self._persist_create(meta))
+            except RuntimeError:
+                pass
+
+            def _done(t: asyncio.Task) -> None:
+                try:
+                    if t.cancelled():
+                        meta.status = "cancelled"
+                        meta.message = "已取消"
+                    else:
+                        t.result()
+                        meta.status = "succeeded"
+                        meta.message = "已完成"
+                except Exception as e:
+                    meta.status = "failed"
+                    meta.message = "执行失败"
+                    meta.error = str(e)[:200]
+
+                async def _persist() -> None:
+                    try:
+                        await self._persist_finish(meta)
+                    except Exception:
+                        pass
+
+                try:
+                    asyncio.get_running_loop().create_task(_persist())
+                except RuntimeError:
+                    pass
+
+            coro.add_done_callback(_done)
             return meta
 
         meta.coro_obj = coro

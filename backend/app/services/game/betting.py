@@ -128,9 +128,8 @@ async def place_bet(
                 import logging
                 logging.getLogger("uvicorn.error").error(f"等待期实时学习失败: {e}", exc_info=True)
 
-        from app.services.game.session import add_background_task
-        task = asyncio.create_task(run_micro_learning())
-        add_background_task(task)
+        from app.services.game.session import start_background_task
+        start_background_task("background", run_micro_learning())
 
     await broadcast_event("bet_placed", {
         "game_number": game_number,

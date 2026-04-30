@@ -10,14 +10,13 @@ class TaskRegistryIntegrationTest(unittest.TestCase):
     def test_add_background_task_registers_in_registry(self):
         async def _run():
             from app.services.game.task_registry import registry
-            from app.services.game.session import add_background_task
+            from app.services.game.session import start_background_task
 
             async def job():
                 await asyncio.sleep(0)
 
-            t = asyncio.create_task(job())
-            add_background_task(t)
-            await t
+            meta = start_background_task("background", job())
+            await meta.task
 
             tasks = registry.list(limit=10)
             return tasks
@@ -28,4 +27,3 @@ class TaskRegistryIntegrationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
