@@ -3,6 +3,7 @@
 """
 import asyncio
 import json
+import hashlib
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
 from typing import Dict, Any, Optional
@@ -11,6 +12,31 @@ from sqlalchemy import select
 
 from app.models.schemas import GameRecord, AIMemory
 from .session import broadcast_event
+
+
+def _build_road_snapshot_summary(boot_number: int, current_game_number: int, road_data: Any) -> str:
+    encoded = jsonable_encoder(road_data)
+
+    def _summarize(points: Any) -> dict:
+        pts = points if isinstance(points, list) else []
+        tail = pts[-10:]
+        digest = hashlib.sha1(json.dumps(pts, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+        return {"point_count": len(pts), "last_points": tail, "digest": digest}
+
+    roads = {}
+    for key in ("big_road", "bead_road", "big_eye", "small_road", "cockroach_road"):
+        v = encoded.get(key, {})
+        if isinstance(v, dict):
+            roads[key] = _summarize(v.get("points"))
+        else:
+            roads[key] = _summarize(None)
+
+    payload = {
+        "boot_number": boot_number,
+        "current_game_number": current_game_number,
+        "roads": roads,
+    }
+    return json.dumps(payload, ensure_ascii=False)
 
 
 async def micro_learning_current_trend(
@@ -69,7 +95,7 @@ async def micro_learning_current_trend(
             actual_result="N/A",
             is_correct=True,
             confidence=1.0,
-            road_snapshot=json.dumps(jsonable_encoder(road_data.get("big_road", [])[-5:]), ensure_ascii=False), # 只存最近特征
+            road_snapshot=_build_road_snapshot_summary(boot_number, current_game_number, road_data),
             error_analysis="实时演练：综合模型提取最新五路形态",
             self_reflection=realtime_strategy_text,  # 存入真实的 AI 大模型回复
             created_at=datetime.now()
