@@ -15,6 +15,7 @@ const UploadDataPage: React.FC = () => {
   const { message } = App.useApp();
   const [results, setResults] = React.useState<GameResult[]>([]);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
   const { data: systemState } = useSystemStateQuery({});
 
   const handleDelete = (index: number) => {
@@ -32,6 +33,7 @@ const UploadDataPage: React.FC = () => {
   const handleSubmit = async (values: UploadConfirmValues) => {
     const games = results.map((r, idx) => ({ game_number: idx + 1, result: r }));
     try {
+      setSubmitting(true);
       const res = await uploadGameResultsV2({
         games,
         mode: values.action,
@@ -49,6 +51,8 @@ const UploadDataPage: React.FC = () => {
     } catch (e: unknown) {
       const err = e as { response?: { data?: { detail?: string; error?: string } }; message?: string };
       message.error(err?.response?.data?.detail || err?.response?.data?.error || err?.message || '上传失败');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -150,6 +154,7 @@ const UploadDataPage: React.FC = () => {
         onSubmit={handleSubmit}
         systemState={systemState}
         gamesCount={results.length}
+        submitting={submitting}
       />
     </div>
   );

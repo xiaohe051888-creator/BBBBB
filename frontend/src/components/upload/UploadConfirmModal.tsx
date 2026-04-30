@@ -18,6 +18,7 @@ type Props = {
   onSubmit: (values: UploadConfirmValues) => void;
   systemState: SystemState | null | undefined;
   gamesCount: number;
+  submitting: boolean;
 };
 
 export const UploadConfirmModal: React.FC<Props> = ({
@@ -26,6 +27,7 @@ export const UploadConfirmModal: React.FC<Props> = ({
   onSubmit,
   systemState,
   gamesCount,
+  submitting,
 }) => {
   const [action, setAction] = React.useState<UploadAction>('reset_current_boot');
   const [balanceMode, setBalanceMode] = React.useState<BalanceMode>('keep');
@@ -55,10 +57,13 @@ export const UploadConfirmModal: React.FC<Props> = ({
   return (
     <Modal
       open={open}
-      onCancel={onCancel}
+      onCancel={() => {
+        if (submitting) return;
+        onCancel();
+      }}
       title="确认上传"
       footer={[
-        <Button key="cancel" onClick={onCancel}>
+        <Button key="cancel" onClick={onCancel} disabled={submitting}>
           取消
         </Button>,
         <Button
@@ -67,6 +72,7 @@ export const UploadConfirmModal: React.FC<Props> = ({
           danger={action === 'reset_current_boot'}
           disabled={action === 'reset_current_boot' && !confirmReset}
           onClick={onOk}
+          loading={submitting}
         >
           {okText}
         </Button>,
@@ -120,12 +126,18 @@ export const UploadConfirmModal: React.FC<Props> = ({
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>执行深度学习（end_boot）</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>关闭后进入快速实验模式</div>
             </div>
-            <Switch checked={runDeepLearning} onChange={setRunDeepLearning} />
+            <Switch checked={runDeepLearning} onChange={setRunDeepLearning} disabled={submitting} />
+          </div>
+        )}
+
+        {action === 'new_boot' && predictionMode !== 'ai' && (
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+            当前为规则模式，深度学习不可用，将直接开启新靴并写入数据
           </div>
         )}
 
         {action === 'reset_current_boot' && (
-          <Checkbox checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)}>
+          <Checkbox checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)} disabled={submitting}>
             我已确认将清空本靴数据（不可恢复）
           </Checkbox>
         )}
