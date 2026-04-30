@@ -98,7 +98,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
         icon: <TargetIcon />,
         iconColor: '#1890ff',
         title: '系统无数据，请先上传本靴历史数据',
-        subtitle: '请前往【上传数据】页面完成录入，系统将自动分析并下注后再允许开奖',
+        subtitle: '请前往【前往上传数据】页面完成录入',
         bgGradient: 'linear-gradient(135deg, rgba(24,144,255,0.15), rgba(24,144,255,0.08))',
         borderColor: 'rgba(24,144,255,0.25)',
       };
