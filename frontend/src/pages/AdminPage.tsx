@@ -231,7 +231,6 @@ const AdminPage: React.FC = () => {
 
   const handleStartLearning = async () => {
     try {
-      // 假设当前需要启动学习（一般从最近一靴开始，这里传 0 表示系统自动判断）
       await api.startAiLearning(0);
       message.success('AI深度学习已启动');
       loadAiLearningStatus();
@@ -475,10 +474,10 @@ const AdminPage: React.FC = () => {
                   <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                     <Row gutter={[12, 12]}>
                       <Col xs={24} sm={8}>
-                        <Statistic title="学习条件" value="200~1000局" suffix="总历史数据" />
+                        <Statistic title="学习条件" value="20~1000局" suffix="历史数据" />
                       </Col>
                       <Col xs={24} sm={8}>
-                        <Statistic title="学习范围" value="分靴学习" suffix="逐靴完成数据库" />
+                        <Statistic title="学习范围" value="全库学习" suffix="最多1000局" />
                       </Col>
                       <Col xs={24} sm={8}>
                         <Statistic 

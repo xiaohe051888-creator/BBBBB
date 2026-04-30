@@ -8,7 +8,7 @@ from app.core.config import settings
 
 class GameUploadItem(BaseModel):
     """单局开奖记录"""
-    game_number: int = Field(..., ge=1, le=80, description="局号必须在 1 到 80 之间")
+    game_number: int = Field(..., ge=1, le=72, description="局号必须在 1 到 72 之间")
     result: str = Field(..., max_length=10)
 
     @field_validator("result")
@@ -38,7 +38,7 @@ class UploadRequest(BaseModel):
 
 class RevealRequest(BaseModel):
     """开奖请求"""
-    game_number: int = Field(..., ge=1, le=80, description="局号必须在 1 到 80 之间")
+    game_number: int = Field(..., ge=1, le=72, description="局号必须在 1 到 72 之间")
     result: str = Field(..., max_length=10)
 
     @field_validator("result")

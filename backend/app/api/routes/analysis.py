@@ -108,9 +108,14 @@ async def start_ai_learning(
 
         asyncio.create_task(run_learning_task())
 
+        if boot_number == 0:
+            msg = "AI学习已启动，正在分析全库历史数据（最多1000局）..."
+        else:
+            msg = f"AI学习已启动，正在分析第{boot_number}靴数据..."
+
         return {
             "status": "started",
-            "message": f"AI学习已启动，正在分析第{boot_number}靴数据...",
+            "message": msg,
         }
 
 

@@ -110,19 +110,32 @@ class AILearningService:
         if self.is_busy():
             return False, f"有学习任务正在执行中: {self._current_task}"
         
-        # 2. 检查最低样本数（所有历史记录总和）
-        stmt = select(func.count()).select_from(
-            select(GameRecord).where(
-                GameRecord.predict_correct.isnot(None),  # 仅有效结算局
-            ).subquery()
-        )
-        result = await self.session.execute(stmt)
-        total_games = result.scalar() or 0
-        
-        if total_games < 200:
-            return False, f"总历史数据不足：当前仅有 {total_games} 局记录，AI 学习需要至少 200 局数据。"
-        if total_games > 1000:
-            return False, f"总历史数据超出上限：当前有 {total_games} 局记录，AI 学习支持最多 1000 局，请先清理或归档历史数据。"
+        if boot_number == 0:
+            stmt = select(func.count()).select_from(
+                select(GameRecord).where(
+                    GameRecord.result.isnot(None),
+                ).subquery()
+            )
+            result = await self.session.execute(stmt)
+            total_games = result.scalar() or 0
+
+            if total_games < 20:
+                return False, f"历史数据不足：当前仅有 {total_games} 局记录，AI 学习需要至少 20 局数据。"
+            if total_games > 1000:
+                return False, f"历史数据超出上限：当前有 {total_games} 局记录，AI 学习支持最多 1000 局，请先清理或归档历史数据。"
+        else:
+            stmt = select(func.count()).select_from(
+                select(GameRecord).where(
+                    GameRecord.predict_correct.isnot(None),
+                ).subquery()
+            )
+            result = await self.session.execute(stmt)
+            total_games = result.scalar() or 0
+
+            if total_games < 200:
+                return False, f"总历史数据不足：当前仅有 {total_games} 局记录，AI 学习需要至少 200 局数据。"
+            if total_games > 1000:
+                return False, f"总历史数据超出上限：当前有 {total_games} 局记录，AI 学习支持最多 1000 局，请先清理或归档历史数据。"
         
         # 3. 检查版本数量限制
         version_stmt = select(func.count()).select_from(
@@ -153,7 +166,7 @@ class AILearningService:
         7. 释放锁
         """
         start_time = datetime.now()
-        task_id = f"boot_{boot_number}"
+        task_id = "global" if boot_number == 0 else f"boot_{boot_number}"
         
         # 步骤1：前置条件检查
         ok, reason = await self.check_preconditions(boot_number)
@@ -167,7 +180,7 @@ class AILearningService:
         
         try:
             # 步骤3：收集训练数据
-            training_data = await self._collect_training_data(boot_number)
+            training_data = await (self._collect_global_training_data() if boot_number == 0 else self._collect_training_data(boot_number))
             
             if not training_data["records"]:
                 return LearningResult(success=False, error="未找到有效的训练数据")
@@ -279,13 +292,63 @@ class AILearningService:
                 "tie_count": sum(1 for r in records if r.result == "和"),
             }
         }
+
+    async def _collect_global_training_data(self) -> Dict[str, Any]:
+        stmt = select(GameRecord).where(
+            GameRecord.result.isnot(None),
+        ).order_by(GameRecord.id.desc()).limit(1000)
+        result = await self.session.execute(stmt)
+        records_desc = result.scalars().all()
+        records = list(reversed(records_desc))
+
+        mistake_stmt = select(MistakeBook).order_by(MistakeBook.id.desc()).limit(200)
+        m_result = await self.session.execute(mistake_stmt)
+        mistakes_desc = m_result.scalars().all()
+        mistakes = list(reversed(mistakes_desc))
+
+        correct = sum(1 for r in records if r.predict_correct is True)
+        wrong = sum(1 for r in records if r.predict_correct is False)
+
+        return {
+            "records": [
+                {
+                    "boot_number": r.boot_number,
+                    "game_number": r.game_number,
+                    "result": r.result,
+                    "predict_direction": r.predict_direction,
+                    "predict_correct": r.predict_correct,
+                    "profit_loss": float(r.profit_loss) if r.profit_loss is not None else 0.0,
+                }
+                for r in records
+            ],
+            "mistakes": [
+                {
+                    "boot_number": m.boot_number,
+                    "game_number": m.game_number,
+                    "error_type": m.error_type,
+                    "actual_result": m.actual_result,
+                }
+                for m in mistakes
+            ],
+            "stats": {
+                "total": len(records),
+                "correct": correct,
+                "wrong": wrong,
+                "banker_wins": sum(1 for r in records if r.result == "庄"),
+                "player_wins": sum(1 for r in records if r.result == "闲"),
+                "tie_count": sum(1 for r in records if r.result == "和"),
+            },
+        }
     
     def _calculate_accuracy(self, records: List[Dict]) -> float:
         """计算当前数据集的预测准确率"""
         if not records:
             return 0.0
-        correct = sum(1 for r in records if r.get("predict_correct"))
-        return correct / len(records) * 100
+        settled = [r for r in records if r.get("predict_correct") is True or r.get("predict_correct") is False]
+        if not settled:
+            return 0.0
+        correct = sum(1 for r in settled if r.get("predict_correct") is True)
+        return correct / len(settled) * 100
     
     async def _call_ai_for_learning(self, training_data: Dict, current_accuracy: float) -> Dict:
         """

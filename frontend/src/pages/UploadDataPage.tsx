@@ -38,7 +38,6 @@ const UploadDataPage: React.FC = () => {
         games,
         mode: values.action,
         balance_mode: values.balanceMode,
-        run_deep_learning: values.action === 'new_boot' ? values.runDeepLearning : undefined,
       });
       setConfirmOpen(false);
       const serverMsg = res.data?.message || '上传成功';

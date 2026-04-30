@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Checkbox, Descriptions, Modal, Radio, Switch } from 'antd';
+import { Button, Checkbox, Descriptions, Modal, Radio } from 'antd';
 
 import type { SystemState } from '../../hooks';
 
@@ -9,7 +9,6 @@ export type BalanceMode = 'keep' | 'reset_default';
 export type UploadConfirmValues = {
   action: UploadAction;
   balanceMode: BalanceMode;
-  runDeepLearning: boolean;
 };
 
 type Props = {
@@ -31,9 +30,7 @@ export const UploadConfirmModal: React.FC<Props> = ({
 }) => {
   const [action, setAction] = React.useState<UploadAction>('reset_current_boot');
   const [balanceMode, setBalanceMode] = React.useState<BalanceMode>('keep');
-  const [runDeepLearning, setRunDeepLearning] = React.useState(true);
   const [confirmReset, setConfirmReset] = React.useState(false);
-  const predictionMode = systemState?.prediction_mode || 'ai';
   const isDeepLearning = systemState?.status === '深度学习中';
   const actionText = action === 'reset_current_boot' ? '重置本靴（覆盖本靴）' : '结束本靴（开启新靴）';
   const balanceText = balanceMode === 'keep' ? '保留当前余额' : '重置余额到 20000';
@@ -41,20 +38,12 @@ export const UploadConfirmModal: React.FC<Props> = ({
   React.useEffect(() => {
     if (!open) return;
     setConfirmReset(false);
-    // 深度学习中：不允许覆盖本靴，默认引导到“开启新靴”
     setAction(isDeepLearning ? 'new_boot' : 'reset_current_boot');
-    setRunDeepLearning(predictionMode === 'ai');
   }, [open]);
-
-  React.useEffect(() => {
-    if (predictionMode !== 'ai') {
-      setRunDeepLearning(false);
-    }
-  }, [predictionMode]);
 
   const onOk = () => {
     if (action === 'reset_current_boot' && !confirmReset) return;
-    onSubmit({ action, balanceMode, runDeepLearning });
+    onSubmit({ action, balanceMode });
   };
 
   const okText = action === 'reset_current_boot' ? '确认覆盖本靴并上传' : '确认结束本靴并上传';
@@ -130,22 +119,6 @@ export const UploadConfirmModal: React.FC<Props> = ({
           )}
         </div>
 
-        {action === 'new_boot' && predictionMode === 'ai' && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'grid', gap: 2 }}>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>执行深度学习（end_boot）</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>关闭后进入快速实验模式</div>
-            </div>
-            <Switch checked={runDeepLearning} onChange={setRunDeepLearning} disabled={submitting} />
-          </div>
-        )}
-
-        {action === 'new_boot' && predictionMode !== 'ai' && (
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
-            当前为规则模式，深度学习不可用，将直接开启新靴并写入数据
-          </div>
-        )}
-
         {action === 'reset_current_boot' && (
           <Checkbox checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)} disabled={submitting}>
             我已确认将清空本靴数据（不可恢复）
@@ -169,22 +142,9 @@ export const UploadConfirmModal: React.FC<Props> = ({
         <div style={{ fontWeight: 700, marginBottom: 6 }}>本次操作摘要</div>
         <div>动作：{actionText}</div>
         <div>余额：{balanceText}</div>
-        {action === 'new_boot' && (
-          <div>
-            深度学习：
-            {predictionMode !== 'ai' ? '不可用（规则模式）' : (runDeepLearning ? '执行' : '不执行')}
-          </div>
-        )}
         {action === 'reset_current_boot' && (
           <div style={{ color: 'rgba(255,255,255,0.75)' }}>
             将清空本靴：GameRecord / BetRecord / MistakeBook / RoadMap / AIMemory 及相关内存态状态
-          </div>
-        )}
-        {action === 'new_boot' && predictionMode === 'ai' && runDeepLearning && (
-          <div style={{ color: 'rgba(255,255,255,0.75)' }}>
-            {isDeepLearning
-              ? '当前深度学习进行中：本次数据会加入队列，学习完成后自动写入新靴并触发分析'
-              : '将先触发深度学习，完成后自动写入新靴并触发分析'}
           </div>
         )}
       </div>

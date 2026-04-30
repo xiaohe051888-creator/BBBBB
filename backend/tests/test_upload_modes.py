@@ -111,6 +111,53 @@ class UploadModesTest(unittest.TestCase):
         if boot_before is not None:
             self.assertEqual(body.get("boot_number"), boot_before + 1)
 
+    def test_game_number_over_72_rejected_by_validation(self):
+        payload = {
+            "games": [
+                {"game_number": 73, "result": "庄"},
+            ],
+            "mode": "reset_current_boot",
+            "balance_mode": "keep",
+        }
+
+        status, _ = _post_json(f"{BASE_URL}/api/games/upload", payload)
+        self.assertEqual(status, 422)
+
+    def test_new_boot_default_no_learning(self):
+        seed_payload = {
+            "games": [
+                {"game_number": 1, "result": "庄"},
+                {"game_number": 2, "result": "闲"},
+                {"game_number": 3, "result": "和"},
+            ],
+            "mode": "reset_current_boot",
+            "balance_mode": "keep",
+        }
+        seed_status, seed_body = _post_json(f"{BASE_URL}/api/games/upload", seed_payload)
+        self.assertEqual(seed_status, 200, seed_body)
+        self.assertIsInstance(seed_body, dict)
+        self.assertTrue(seed_body.get("success"), seed_body)
+
+        state_before = _get_json(f"{BASE_URL}/api/games/current-state")
+        boot_before = state_before.get("boot_number")
+
+        payload = {
+            "games": [
+                {"game_number": 1, "result": "庄"},
+                {"game_number": 2, "result": "闲"},
+                {"game_number": 3, "result": "和"},
+            ],
+            "mode": "new_boot",
+            "balance_mode": "keep",
+        }
+
+        status, body = _post_json(f"{BASE_URL}/api/games/upload", payload)
+        self.assertEqual(status, 200, body)
+        self.assertIsInstance(body, dict)
+        self.assertTrue(body.get("success"), body)
+        if boot_before is not None:
+            self.assertEqual(body.get("boot_number"), boot_before + 1)
+
 
 if __name__ == "__main__":
     unittest.main()
