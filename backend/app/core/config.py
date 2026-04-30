@@ -115,5 +115,12 @@ class Settings:
     MIN_UPLOAD_GAMES: int = 1          # 单次最小上传局数
     DEFAULT_TASK_CONCURRENCY: int = int(os.getenv("DEFAULT_TASK_CONCURRENCY", "5"))
 
+    WATCHDOG_ENABLED: bool = os.getenv("WATCHDOG_ENABLED", "true").lower() in ("1", "true", "yes", "on")
+    WATCHDOG_INTERVAL_SECONDS: int = int(os.getenv("WATCHDOG_INTERVAL_SECONDS", "60"))
+    WATCHDOG_REPAIR_COOLDOWN_SECONDS: int = int(os.getenv("WATCHDOG_REPAIR_COOLDOWN_SECONDS", "300"))
+    WATCHDOG_RUNNING_TASK_THRESHOLD: int = int(os.getenv("WATCHDOG_RUNNING_TASK_THRESHOLD", "20"))
+    WATCHDOG_P1_ERROR_WINDOW_SECONDS: int = int(os.getenv("WATCHDOG_P1_ERROR_WINDOW_SECONDS", "600"))
+    WATCHDOG_P1_ERROR_THRESHOLD: int = int(os.getenv("WATCHDOG_P1_ERROR_THRESHOLD", "1"))
+
 
 settings = Settings()

@@ -90,12 +90,15 @@ async def lifespan(app: FastAPI):
         res_state = await session.execute(stmt_state)
         db_state = res_state.scalar_one_or_none()
         
-        mem_sess = get_session()
-        if db_state:
-            mem_sess.prediction_mode = db_state.prediction_mode or "ai"
-            mem_sess.balance = db_state.balance
-            mem_sess.boot_number = db_state.boot_number
-            mem_sess.next_game_number = db_state.game_number + 1
+        from app.services.game.session import get_session_lock
+        lock = get_session_lock()
+        async with lock:
+            mem_sess = get_session()
+            if db_state:
+                mem_sess.prediction_mode = db_state.prediction_mode or "ai"
+                mem_sess.balance = db_state.balance
+                mem_sess.boot_number = db_state.boot_number
+                mem_sess.next_game_number = db_state.game_number + 1
 
     # 注入广播函数到游戏服务
     from app.services.game import set_broadcast_func
@@ -107,6 +110,18 @@ async def lifespan(app: FastAPI):
         await sync_balance_from_db(session)
         from app.services.game.recovery import recover_on_startup
         await recover_on_startup(session)
+
+    if settings.WATCHDOG_ENABLED:
+        from app.services.game.watchdog import Watchdog
+        from app.core.async_utils import spawn_task
+        wd = Watchdog(
+            interval_seconds=settings.WATCHDOG_INTERVAL_SECONDS,
+            repair_cooldown_seconds=settings.WATCHDOG_REPAIR_COOLDOWN_SECONDS,
+            running_task_threshold=settings.WATCHDOG_RUNNING_TASK_THRESHOLD,
+            p1_error_window_seconds=settings.WATCHDOG_P1_ERROR_WINDOW_SECONDS,
+            p1_error_threshold=settings.WATCHDOG_P1_ERROR_THRESHOLD,
+        )
+        spawn_task(wd.run_forever(), name="watchdog")
     
     logger.info(f"✅ {settings.APP_NAME} v{settings.APP_VERSION} 启动成功（全托管模式）")
     logger.info(f"   访问地址: http://localhost:{settings.PORT}")

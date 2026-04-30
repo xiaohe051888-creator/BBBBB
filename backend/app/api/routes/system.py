@@ -22,7 +22,7 @@ async def get_system_state(_: dict = Depends(get_current_user)):
     from app.services.game import get_current_state
     
     async with async_session() as session:
-        stmt = select(SystemState)
+        stmt = select(SystemState).where(SystemState.singleton_key == 1)
         result = await session.execute(stmt)
         state = result.scalar_one_or_none()
         
