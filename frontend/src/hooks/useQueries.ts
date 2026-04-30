@@ -293,14 +293,16 @@ export const useAddLogOptimistically = () => {
     const taskId = newLog.task_id || undefined;
     const category = newLog.category || undefined;
 
+    const allKey = queryKeys.logs(undefined, undefined);
     const keys = [
-      queryKeys.logs(undefined, undefined),
+      allKey,
       queryKeys.logs(undefined, taskId),
       queryKeys.logs(category, undefined),
       queryKeys.logs(category, taskId),
     ];
 
     for (const key of keys) {
+      if (key !== allKey && queryClient.getQueryData(key) === undefined) continue;
       queryClient.setQueryData(
         key,
         (oldData: { logs: LogEntry[]; total: number } | undefined) => {

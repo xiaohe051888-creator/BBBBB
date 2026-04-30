@@ -22,13 +22,13 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('react')) return 'react-vendor';
-            if (id.includes('antd') || id.includes('@ant-design')) return 'antd-vendor';
+            if (id.includes('@ant-design')) return 'ant-icons';
             if (id.includes('@tanstack') || id.includes('axios')) return 'query-vendor';
             return 'vendor';
           }
