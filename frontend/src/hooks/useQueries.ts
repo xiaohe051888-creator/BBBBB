@@ -65,23 +65,25 @@ export const useStatsQuery = (options: UseStatsQueryOptions) => {
 
 interface UseLogsQueryOptions {
   category?: string;
+  taskId?: string;
   page?: number;
   pageSize?: number;
   enabled?: boolean;
 }
 
 export const useLogsQuery = (options: UseLogsQueryOptions) => {
-  const { category, page = 1, pageSize = 50, enabled = true } = options;
+  const { category, taskId, page = 1, pageSize = 50, enabled = true } = options;
   const queryClient = useQueryClient();
 
   return useQuery<{
     logs: LogEntry[];
     total: number;
   }>({
-    queryKey: queryKeys.logs(category),
+    queryKey: queryKeys.logs(category, taskId),
     queryFn: async () => {
             const res = await api.getLogs({
                 category: category || undefined,
+        task_id: taskId || undefined,
         page,
         page_size: pageSize,
       });
@@ -93,7 +95,7 @@ export const useLogsQuery = (options: UseLogsQueryOptions) => {
     enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-            return queryClient.getQueryData(queryKeys.logs(category)) || { logs: [], total: 0 };
+            return queryClient.getQueryData(queryKeys.logs(category, taskId)) || { logs: [], total: 0 };
     },
     notifyOnChangeProps: ['data', 'error'],
   });
@@ -289,7 +291,7 @@ export const useAddLogOptimistically = () => {
 
   return (newLog: LogEntry) => {
     queryClient.setQueryData(
-      queryKeys.logs(),
+      queryKeys.logs(undefined, newLog.task_id || undefined),
       (oldData: { logs: LogEntry[]; total: number } | undefined) => {
         if (!oldData) return { logs: [newLog], total: 1 };
         // 去重检查，利用 log 的 id

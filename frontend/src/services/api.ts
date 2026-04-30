@@ -313,6 +313,7 @@ export const getLogs = async (params: {
   category?: string;
   priority?: string;
   game_number?: number;
+  task_id?: string;
   page?: number;
   page_size?: number;
 }) => {

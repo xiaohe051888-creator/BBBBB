@@ -59,6 +59,7 @@ export interface LogEntry {
   description: string;
   category: string;
   priority: string;
+  task_id?: string | null;
   is_pinned: boolean;
 }
 

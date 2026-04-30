@@ -5,7 +5,7 @@
  * 优化：使用React Query + 乐观UI策略，页面切换无加载转圈
  */
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Badge, Switch, App, Input, Select, Modal, List, Typography, Divider,
 } from 'antd';
@@ -39,6 +39,8 @@ type LogFilterBarProps = {
   setFilterCategory: (v: string) => void;
   filterPriority: string;
   setFilterPriority: (v: string) => void;
+  filterTaskId: string;
+  setFilterTaskId: (v: string) => void;
   searchText: string;
   setSearchText: (v: string) => void;
   onReset: () => void;
@@ -50,6 +52,8 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
   setFilterCategory,
   filterPriority,
   setFilterPriority,
+  filterTaskId,
+  setFilterTaskId,
   searchText,
   setSearchText,
   onReset,
@@ -83,6 +87,14 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
           options={priorityOptions}
           style={{ minWidth: 140 }}
           size="small"
+        />
+        <Input
+          value={filterTaskId}
+          onChange={(e) => setFilterTaskId(e.target.value)}
+          placeholder="任务编号筛选"
+          allowClear
+          size="small"
+          style={{ width: 220 }}
         />
         <Input
           value={searchText}
@@ -226,6 +238,7 @@ const CategoryStats: React.FC<CategoryStatsProps> = ({ stats }) => {
 
 const LogsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const addLogOptimistically = useAddLogOptimistically();
@@ -240,6 +253,10 @@ const LogsPage: React.FC = () => {
   // 筛选
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [filterPriority, setFilterPriority] = useState<string>('');
+  const [filterTaskId, setFilterTaskId] = useState<string>(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('task_id') || '';
+  });
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
 
@@ -254,6 +271,7 @@ const LogsPage: React.FC = () => {
   // React Query获取数据（乐观UI：永远不显示loading，数据来了直接渲染）
   const { data: logsData } = useLogsQuery({
     category: filterCategory || undefined,
+    taskId: filterTaskId || undefined,
     page: 1,
     pageSize: 200 // 初始拉取200条以保证筛选和过滤时数据充足
   });
@@ -337,6 +355,7 @@ const LogsPage: React.FC = () => {
     return logs.filter(l => {
       if (filterCategory && l.category !== filterCategory) return false;
       if (filterPriority && l.priority !== filterPriority) return false;
+      if (filterTaskId && l.task_id !== filterTaskId) return false;
       if (debouncedSearchText && !(
         l.description.toLowerCase().includes(debouncedSearchText.toLowerCase()) ||
         l.event_type.includes(debouncedSearchText) ||
@@ -344,7 +363,7 @@ const LogsPage: React.FC = () => {
       )) return false;
       return true;
     });
-  }, [logs, filterCategory, filterPriority, debouncedSearchText]);
+  }, [logs, filterCategory, filterPriority, filterTaskId, debouncedSearchText]);
 
   // 统计
   const stats = useMemo(() => {
@@ -498,6 +517,7 @@ const LogsPage: React.FC = () => {
   const handleResetFilters = () => {
     setFilterCategory('');
     setFilterPriority('');
+    setFilterTaskId('');
     setSearchText('');
     setPage(1);
   };
@@ -569,6 +589,8 @@ const LogsPage: React.FC = () => {
             setFilterCategory={(v: string) => { setFilterCategory(v); setPage(1); }}
             filterPriority={filterPriority}
             setFilterPriority={(v: string) => { setFilterPriority(v); setPage(1); }}
+            filterTaskId={filterTaskId}
+            setFilterTaskId={(v: string) => { setFilterTaskId(v); setPage(1); }}
             searchText={searchText}
             setSearchText={setSearchText}
             onReset={handleResetFilters}

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Coroutine, Dict, Optional, Awaitable, Union
 from uuid import uuid4
+from app.services.game.task_context import current_task_id
 
 
 @dataclass
@@ -128,6 +129,7 @@ class TaskRegistry:
         meta.coro_obj = coro
 
         async def _runner():
+            token = current_task_id.set(meta.task_id)
             try:
                 await self._persist_create(meta)
                 meta.coro_obj = None
@@ -161,6 +163,8 @@ class TaskRegistry:
                 meta.coro_obj = None
                 await self._persist_finish(meta)
                 raise
+            finally:
+                current_task_id.reset(token)
 
         meta.task = asyncio.create_task(_runner())
 

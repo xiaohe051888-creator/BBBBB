@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.schemas import SystemLog
 from .session import broadcast_event
+from .task_context import current_task_id
 
 
 async def write_game_log(
@@ -34,6 +35,7 @@ async def write_game_log(
         category=category,
         priority=priority,
         source_module=source_module,
+        task_id=current_task_id.get(),
     )
     session.add(log)
     

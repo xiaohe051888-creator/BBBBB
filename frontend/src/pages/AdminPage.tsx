@@ -605,33 +605,41 @@ const AdminPage: React.FC = () => {
                     },
                     {
                       title: '操作',
-                      width: 110,
+                      width: 170,
                       align: 'center' as const,
                       render: (_: any, record: api.BackgroundTaskItem) => (
-                        <Button
-                          size="small"
-                          danger
-                          disabled={record.status !== 'running'}
-                          onClick={() => {
-                            Modal.confirm({
-                              title: '确认取消任务？',
-                              content: '取消后可能会导致本次学习/分析不完整，请谨慎操作。',
-                              okText: '确认取消',
-                              cancelText: '暂不取消',
-                              onOk: async () => {
-                                try {
-                                  await api.cancelSystemTask(record.task_id);
-                                  message.success('已取消任务');
-                                  loadSystemTasks();
-                                } catch (err: any) {
-                                  message.error(err instanceof Error ? err.message : '取消失败');
-                                }
-                              },
-                            });
-                          }}
-                        >
-                          取消
-                        </Button>
+                        <Space size={8}>
+                          <Button
+                            size="small"
+                            onClick={() => navigate(`/dashboard/logs?task_id=${encodeURIComponent(record.task_id)}`)}
+                          >
+                            查看日志
+                          </Button>
+                          <Button
+                            size="small"
+                            danger
+                            disabled={record.status !== 'running'}
+                            onClick={() => {
+                              Modal.confirm({
+                                title: '确认取消任务？',
+                                content: '取消后可能会导致本次学习/分析不完整，请谨慎操作。',
+                                okText: '确认取消',
+                                cancelText: '暂不取消',
+                                onOk: async () => {
+                                  try {
+                                    await api.cancelSystemTask(record.task_id);
+                                    message.success('已取消任务');
+                                    loadSystemTasks();
+                                  } catch (err: any) {
+                                    message.error(err instanceof Error ? err.message : '取消失败');
+                                  }
+                                },
+                              });
+                            }}
+                          >
+                            取消
+                          </Button>
+                        </Space>
                       ),
                     },
                   ]}

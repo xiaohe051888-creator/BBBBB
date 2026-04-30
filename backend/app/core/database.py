@@ -53,6 +53,18 @@ from sqlalchemy import event, inspect, text
 async def init_db():
     """初始化数据库表并自动执行增量迁移"""
     async with engine.begin() as conn:
+        if settings.ENVIRONMENT.lower() == "production":
+            def _check(sync_conn):
+                inspector = inspect(sync_conn)
+                required = {"alembic_version", "system_logs", "background_tasks"}
+                missing = [t for t in required if not inspector.has_table(t)]
+                if missing:
+                    raise RuntimeError("生产环境数据库未完成迁移，请先执行 alembic upgrade head")
+
+            await conn.run_sync(_check)
+            logger.info("生产环境数据库迁移检查通过")
+            return
+
         # 创建所有不存在的表
         await conn.run_sync(Base.metadata.create_all)
         

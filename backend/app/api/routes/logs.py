@@ -17,6 +17,7 @@ async def get_logs(
     category: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
     game_number: Optional[int] = Query(None),
+    task_id: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     _: dict = Depends(get_current_user),
@@ -31,6 +32,8 @@ async def get_logs(
             query = query.where(SystemLog.priority == priority)
         if game_number:
             query = query.where(SystemLog.game_number == game_number)
+        if task_id:
+            query = query.where(SystemLog.task_id == task_id)
         
         query = query.order_by(SystemLog.is_pinned.desc(), SystemLog.log_time.desc())
         
@@ -59,6 +62,7 @@ async def get_logs(
                     "priority": log.priority,
                     "source_module": log.source_module,
                     "event_key": log.event_key,
+                    "task_id": log.task_id,
                     "is_pinned": log.is_pinned,
                 }
                 for log in logs

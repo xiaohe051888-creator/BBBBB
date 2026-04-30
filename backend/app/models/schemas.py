@@ -163,6 +163,7 @@ class SystemLog(Base):
     priority = Column(String(4), default="P3", comment="优先级")
     source_module = Column(String(50), nullable=True, comment="来源模块")
     event_key = Column(String(200), nullable=True, comment="事件唯一键")
+    task_id = Column(String(36), nullable=True, comment="关联后台任务编号")
     is_pinned = Column(Boolean, default=False, comment="是否置顶")
     retention_tier = Column(String(10), default="hot7", comment="保留层级：hot7/warm30/cold_perm")
     created_at = Column(DateTime, server_default=func.now())
@@ -172,6 +173,7 @@ class SystemLog(Base):
         Index("idx_log_event_code", "event_code"),
         Index("idx_log_category", "category"),
         Index("idx_log_boot_game", "boot_number", "game_number"),
+        Index("idx_log_task_id", "task_id"),
     )
 
 
