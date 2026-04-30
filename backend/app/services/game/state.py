@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.models.schemas import SystemState
-from .session import get_session
+from .session import get_session, get_session_lock
 
 
 async def get_or_create_state(db: AsyncSession) -> SystemState:
@@ -70,18 +70,20 @@ async def sync_balance_from_db(db: AsyncSession):
     state = result.scalar_one_or_none()
     
     if state:
-        sess = get_session()
-        sess.balance = state.balance
-        sess.boot_number = state.boot_number or 1
-        sess.consecutive_errors = state.consecutive_errors or 0
-        if hasattr(state, "prediction_mode") and state.prediction_mode:
-            sess.prediction_mode = state.prediction_mode
-        
-        # 恢复下一局号
-        stmt2 = select(GameRecord.game_number).where(
-            GameRecord.boot_number == sess.boot_number,
-        ).order_by(GameRecord.game_number.desc()).limit(1)
-        r2 = await db.execute(stmt2)
-        max_game = r2.scalar_one_or_none()
-        if max_game:
-            sess.next_game_number = max_game + 1
+        lock = get_session_lock()
+        async with lock:
+            sess = get_session()
+            sess.balance = state.balance
+            sess.boot_number = state.boot_number or 1
+            sess.consecutive_errors = state.consecutive_errors or 0
+            if hasattr(state, "prediction_mode") and state.prediction_mode:
+                sess.prediction_mode = state.prediction_mode
+            
+            # 恢复下一局号
+            stmt2 = select(GameRecord.game_number).where(
+                GameRecord.boot_number == sess.boot_number,
+            ).order_by(GameRecord.game_number.desc()).limit(1)
+            r2 = await db.execute(stmt2)
+            max_game = r2.scalar_one_or_none()
+            if max_game:
+                sess.next_game_number = max_game + 1

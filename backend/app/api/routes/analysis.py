@@ -130,8 +130,8 @@ async def start_ai_learning(
                         pass
                     raise
 
-        from app.services.game.task_registry import registry
-        task_meta = registry.create(
+        from app.services.game.session import start_background_task
+        task_meta = start_background_task(
             task_type="ai_learning",
             coro=run_learning_task(),
             boot_number=boot_number,

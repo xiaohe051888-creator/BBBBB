@@ -43,7 +43,7 @@ async def detect_stuck_state(db: AsyncSession) -> dict:
 async def repair_stuck_state(db: AsyncSession) -> dict:
     from app.services.game.state import get_or_create_state
     from app.services.game.logging import write_game_log
-    from app.services.game.session import get_session
+    from app.services.game.session import get_session, get_session_lock
 
     info = await detect_stuck_state(db)
     if not info.get("stuck"):
@@ -54,8 +54,10 @@ async def repair_stuck_state(db: AsyncSession) -> dict:
     new_status = info.get("safe_status") or old_status
     state.status = new_status
 
-    mem = get_session()
-    mem.status = new_status
+    lock = get_session_lock()
+    async with lock:
+        mem = get_session()
+        mem.status = new_status
 
     await write_game_log(
         db,
@@ -77,7 +79,7 @@ async def repair_stuck_state(db: AsyncSession) -> dict:
 async def recover_on_startup(db: AsyncSession) -> None:
     from app.services.game.state import get_or_create_state
     from app.services.game.logging import write_game_log
-    from app.services.game.session import get_session
+    from app.services.game.session import get_session, get_session_lock
 
     tasks = (await db.execute(select(BackgroundTask).where(BackgroundTask.status == "running"))).scalars().all()
     if tasks:
@@ -111,8 +113,10 @@ async def recover_on_startup(db: AsyncSession) -> None:
 
     if new_status != old_status:
         state.status = new_status
-        mem = get_session()
-        mem.status = new_status
+        lock = get_session_lock()
+        async with lock:
+            mem = get_session()
+            mem.status = new_status
         await write_game_log(
             db,
             boot_number=state.boot_number or 0,

@@ -113,6 +113,7 @@ class Settings:
     # 游戏限制配置
     MAX_UPLOAD_GAMES: int = 72         # 单次最大上传局数
     MIN_UPLOAD_GAMES: int = 1          # 单次最小上传局数
+    DEFAULT_TASK_CONCURRENCY: int = int(os.getenv("DEFAULT_TASK_CONCURRENCY", "5"))
 
 
 settings = Settings()
