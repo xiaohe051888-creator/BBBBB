@@ -142,13 +142,38 @@ export interface SystemDiagnosticsResponse {
   gemini_enabled: boolean;
   db_ok: boolean;
   ws_connections: number;
-  uptime_seconds: number;
-  memory_sessions: string[];
+  current_session?: Record<string, unknown>;
+  background_tasks?: {
+    running_count: number;
+    running_types: string[];
+    latest_errors: Array<Record<string, unknown>>;
+  };
 }
 
 /** 获取系统诊断信息（AI Key配置、DB状态、WS连接数等） */
 export const getSystemDiagnostics = async () => {
   return api.get<SystemDiagnosticsResponse>('/system/diagnostics', { params: { } });
+};
+
+export type BackgroundTaskStatus = 'running' | 'succeeded' | 'failed' | 'cancelled';
+
+export interface BackgroundTaskItem {
+  task_id: string;
+  task_type: string;
+  boot_number: number | null;
+  dedupe_key: string | null;
+  created_at: string;
+  status: BackgroundTaskStatus;
+  message: string;
+  error: string | null;
+}
+
+export const getSystemTasks = async (limit = 50) => {
+  return api.get<{ tasks: BackgroundTaskItem[] }>('/system/tasks', { params: { limit } });
+};
+
+export const cancelSystemTask = async (taskId: string) => {
+  return api.post<{ success: boolean }>(`/system/tasks/${taskId}/cancel`);
 };
 
 // ====== 手动游戏 API ======

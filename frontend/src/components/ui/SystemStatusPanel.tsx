@@ -119,6 +119,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
     aiModels, aiAllOk,
     activeIssues, criticalIssueCount,
     overallHealth,
+    backgroundTasks,
   } = diagnostics;
 
   const hasIssues = activeIssues.length > 0;
@@ -171,6 +172,11 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
           <span style={{ fontSize: 11, color, fontWeight: 600, whiteSpace: 'nowrap' }}>
             {label}
           </span>
+          {backgroundTasks.runningCount > 0 && (
+            <Tag color="processing" style={{ margin: 0, fontSize: 10, padding: '0 6px' }}>
+              运行中 {backgroundTasks.runningCount}
+            </Tag>
+          )}
           {criticalIssueCount > 0 && (
             <Badge count={criticalIssueCount} size="small" style={{ backgroundColor: '#ff4d4f' }} />
           )}
@@ -297,6 +303,35 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
             {!aiAllOk && (
               <span style={{ fontSize: 10, color: '#faad14', marginTop: 2 }}>
                 ⚠ 未配置的模型需先设置接口密钥
+              </span>
+            )}
+          </div>
+
+          {/* 后台任务 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 11, color: '#8b949e', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 12, height: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>⏳</span>
+              后台任务
+            </span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {backgroundTasks.runningCount > 0 ? (
+                <>
+                  <Tag color="processing" style={{ marginInlineEnd: 0, fontSize: 10, padding: '1px 6px', borderRadius: 8 }}>
+                    运行中 {backgroundTasks.runningCount}
+                  </Tag>
+                  {backgroundTasks.runningTypes.map(t => (
+                    <Tag key={t} style={{ marginInlineEnd: 0, fontSize: 10, padding: '1px 6px', borderRadius: 8 }}>
+                      {t}
+                    </Tag>
+                  ))}
+                </>
+              ) : (
+                <Tag style={{ marginInlineEnd: 0, fontSize: 10, padding: '1px 6px', borderRadius: 8 }}>无运行中任务</Tag>
+              )}
+            </div>
+            {backgroundTasks.latestErrors.length > 0 && (
+              <span style={{ fontSize: 10, color: '#ff7875', marginTop: 2 }}>
+                ⚠ 最近有任务失败，请查看管理员后台
               </span>
             )}
           </div>
@@ -432,7 +467,7 @@ const StatusRow: React.FC<StatusRowProps> = ({ icon, label, color, value, extra,
 
 // ====== 子组件：Tooltip内容 ======
 const StatusTooltip: React.FC<{ diagnostics: SystemDiagnostics; onRetry?: () => void }> = ({ diagnostics, onRetry }) => {
-  const { wsStatus, wsLatency, backendStatus, backendLatency, aiModels, activeIssues } = diagnostics;
+  const { wsStatus, wsLatency, backendStatus, backendLatency, aiModels, activeIssues, backgroundTasks } = diagnostics;
 
   return (
     <div style={{ fontSize: 12, color: '#e6edf3' }}>
@@ -457,6 +492,12 @@ const StatusTooltip: React.FC<{ diagnostics: SystemDiagnostics; onRetry?: () => 
                 {m.label.slice(0, 1)}{m.status === 'ok' ? '✓' : '✗'}
               </span>
             ))}
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+          <span style={{ color: '#8b949e' }}>后台任务</span>
+          <span style={{ color: backgroundTasks.runningCount > 0 ? '#58a6ff' : '#8b949e' }}>
+            {backgroundTasks.runningCount > 0 ? `运行中 ${backgroundTasks.runningCount}` : '无'}
           </span>
         </div>
         {activeIssues.length > 0 && (

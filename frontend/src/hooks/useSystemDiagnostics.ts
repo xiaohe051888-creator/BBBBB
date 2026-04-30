@@ -41,6 +41,13 @@ export interface SystemDiagnostics {
 
   // 系统整体健康
   overallHealth: 'healthy' | 'warning' | 'critical' | 'unknown';
+
+  // 后台任务摘要
+  backgroundTasks: {
+    runningCount: number;
+    runningTypes: string[];
+    latestErrors: Array<Record<string, unknown>>;
+  };
 }
 
 export interface SystemIssue {
@@ -78,6 +85,11 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
   ]);
 
   const [activeIssues, setActiveIssues] = useState<SystemIssue[]>([]);
+  const [backgroundTasks, setBackgroundTasks] = useState<SystemDiagnostics['backgroundTasks']>({
+    runningCount: 0,
+    runningTypes: [],
+    latestErrors: [],
+  });
 
   const wsRef = useRef<WebSocket | null>(null);
   const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -326,6 +338,16 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         activeTimeout = setTimeout(() => {
           if (isUnmountedRef.current) return;
           setAiModels(newModels);
+          const bg = diag.background_tasks;
+          if (bg) {
+            setBackgroundTasks({
+              runningCount: bg.running_count || 0,
+              runningTypes: bg.running_types || [],
+              latestErrors: bg.latest_errors || [],
+            });
+          } else {
+            setBackgroundTasks({ runningCount: 0, runningTypes: [], latestErrors: [] });
+          }
 
           // 检查是否有AI模型问题
           const unconfigured = newModels.filter(m => m.status === 'unconfigured');
@@ -403,6 +425,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
     activeIssues,
     criticalIssueCount,
     overallHealth,
+    backgroundTasks,
   };
 
   const dismissIssue = useCallback((id: string) => {

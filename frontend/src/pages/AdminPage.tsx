@@ -4,12 +4,13 @@
  * 移除爬虫相关功能，专注AI模型管理和数据查看
  * 优化：精致图标、自适应布局、中文全站
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Card, Button, Table, Tag, Space, Input, Modal, App,
   Select, Tabs, Empty, Statistic, Row, Col, Radio
 } from 'antd';
+import dayjs from 'dayjs';
 import * as api from '../services/api';
 import { clearToken } from '../services/api';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
@@ -109,6 +110,8 @@ const AdminPage: React.FC = () => {
   const [dbPage, setDbPage] = useState(1);
   const [aiLearningStatus, setAiLearningStatus] = useState<any>(null);
   const [threeModelStatus, setThreeModelStatus] = useState<any>(null);
+  const [systemTasks, setSystemTasks] = useState<api.BackgroundTaskItem[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
 
   // API配置弹窗
   const [apiConfigVisible, setApiConfigVisible] = useState(false);
@@ -221,6 +224,18 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const loadSystemTasks = useCallback(async () => {
+    setTasksLoading(true);
+    try {
+      const res = await api.getSystemTasks(50);
+      setSystemTasks(res.data.tasks || []);
+    } catch {
+      // 加载失败，静默处理
+    } finally {
+      setTasksLoading(false);
+    }
+  }, []);
+
   const [startLearningVisible, setStartLearningVisible] = useState(false);
 
   const handleStartLearning = async () => {
@@ -243,6 +258,13 @@ const AdminPage: React.FC = () => {
     if (activeTab === 'db') loadDbRecords();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, dbTable, dbPage]);
+
+  useEffect(() => {
+    if (activeTab !== 'tasks') return;
+    loadSystemTasks();
+    const timer = setInterval(loadSystemTasks, 3000);
+    return () => clearInterval(timer);
+  }, [activeTab, loadSystemTasks]);
 
   const handleOpenApiConfig = (role: 'banker' | 'player' | 'combined') => {
     setApiConfigRole(role);
@@ -517,6 +539,104 @@ const AdminPage: React.FC = () => {
                   />
                 </Card>
               </div>
+            ),
+          },
+          {
+            key: 'tasks',
+            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Experiment /> 后台任务</span>,
+            children: (
+              <Card title="后台任务" size="small">
+                <Space style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+                  <Button size="small" onClick={loadSystemTasks} loading={tasksLoading}>刷新</Button>
+                </Space>
+                <Table
+                  dataSource={systemTasks}
+                  loading={tasksLoading}
+                  rowKey="task_id"
+                  size="small"
+                  pagination={{ pageSize: 50 }}
+                  scroll={{ x: 'max-content' }}
+                  locale={{ emptyText: <Empty description="暂无后台任务" /> }}
+                  columns={[
+                    { title: '类型', dataIndex: 'task_type', width: 120 },
+                    { title: '靴号', dataIndex: 'boot_number', width: 80, align: 'center' as const, render: (v: number | null) => v ?? '-' },
+                    {
+                      title: '状态',
+                      dataIndex: 'status',
+                      width: 110,
+                      align: 'center' as const,
+                      render: (v: api.BackgroundTaskStatus) => {
+                        if (v === 'running') return <Tag color="blue">运行中</Tag>;
+                        if (v === 'succeeded') return <Tag color="success">已完成</Tag>;
+                        if (v === 'failed') return <Tag color="error">失败</Tag>;
+                        if (v === 'cancelled') return <Tag>已取消</Tag>;
+                        return <Tag>未知</Tag>;
+                      },
+                    },
+                    {
+                      title: '创建时间',
+                      dataIndex: 'created_at',
+                      width: 170,
+                      render: (v: string) => v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-',
+                    },
+                    { title: '消息', dataIndex: 'message', ellipsis: true },
+                    { title: '失败原因', dataIndex: 'error', ellipsis: true, render: (v: string | null) => v || '-' },
+                    {
+                      title: '任务编号',
+                      dataIndex: 'task_id',
+                      width: 160,
+                      render: (v: string) => (
+                        <Button
+                          type="link"
+                          size="small"
+                          style={{ padding: 0 }}
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(v);
+                              message.success('任务编号已复制');
+                            } catch {
+                              message.error('复制失败');
+                            }
+                          }}
+                        >
+                          复制
+                        </Button>
+                      ),
+                    },
+                    {
+                      title: '操作',
+                      width: 110,
+                      align: 'center' as const,
+                      render: (_: any, record: api.BackgroundTaskItem) => (
+                        <Button
+                          size="small"
+                          danger
+                          disabled={record.status !== 'running'}
+                          onClick={() => {
+                            Modal.confirm({
+                              title: '确认取消任务？',
+                              content: '取消后可能会导致本次学习/分析不完整，请谨慎操作。',
+                              okText: '确认取消',
+                              cancelText: '暂不取消',
+                              onOk: async () => {
+                                try {
+                                  await api.cancelSystemTask(record.task_id);
+                                  message.success('已取消任务');
+                                  loadSystemTasks();
+                                } catch (err: any) {
+                                  message.error(err instanceof Error ? err.message : '取消失败');
+                                }
+                              },
+                            });
+                          }}
+                        >
+                          取消
+                        </Button>
+                      ),
+                    },
+                  ]}
+                />
+              </Card>
             ),
           },
           {
