@@ -59,6 +59,19 @@ def add_background_task(task):
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
 
+    try:
+        from app.services.game.task_registry import registry
+
+        registry.create(task_type="background", coro=task, dedupe_key=None)
+    except Exception:
+        pass
+
+
+def list_background_tasks(limit: int = 50) -> list[dict]:
+    from app.services.game.task_registry import registry
+
+    return registry.list(limit=limit)
+
 
 def get_session() -> ManualSession:
     """获取单例会话（不带锁，仅供只读或已加锁环境下使用）"""

@@ -234,19 +234,19 @@ async def get_system_diagnostics():
             "enabled": openai_enabled,
             "label": "庄模型",
             "model": getattr(settings, "OPENAI_MODEL", "gpt-4o-mini"),
-            "issue": None if openai_enabled else "OPENAI_API_KEY 未在 .env 中配置",
+            "issue": None if openai_enabled else "接口密钥未配置",
         },
         "anthropic": {
             "enabled": anthropic_enabled,
             "label": "闲模型",
             "model": getattr(settings, "ANTHROPIC_MODEL", "claude-sonnet-4-5"),
-            "issue": None if anthropic_enabled else "ANTHROPIC_API_KEY 未在 .env 中配置",
+            "issue": None if anthropic_enabled else "接口密钥未配置",
         },
         "gemini": {
             "enabled": gemini_enabled,
             "label": "综合模型",
             "model": getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"),
-            "issue": None if gemini_enabled else "GEMINI_API_KEY 未在 .env 中配置",
+            "issue": None if gemini_enabled else "接口密钥未配置",
         },
     }
     
@@ -255,12 +255,22 @@ async def get_system_diagnostics():
     # 构建告警列表
     issues = []
     if not db_ok:
-        issues.append({"level": "critical", "title": "数据库连接失败", "detail": "SQLite 数据库无法访问，所有数据操作均会失败"})
+        issues.append({"level": "critical", "title": "数据库连接失败", "detail": "数据库无法访问，所有数据操作均会失败"})
     if configured_count == 0:
-        issues.append({"level": "critical", "title": "所有AI模型均未配置", "detail": "请在 backend/.env 文件中配置 OPENAI_API_KEY、ANTHROPIC_API_KEY、GEMINI_API_KEY"})
+        issues.append({"level": "critical", "title": "所有AI模型均未配置", "detail": "请先配置AI模型接口密钥，才能进行AI分析预测"})
     elif configured_count < 3:
         unconfigured = [v["label"] for k, v in models_status.items() if not v["enabled"]]
-        issues.append({"level": "warning", "title": f"{len(unconfigured)}个AI模型未配置", "detail": f"以下模型缺少API Key：{'、'.join(unconfigured)}"})
+        issues.append({"level": "warning", "title": f"{len(unconfigured)}个AI模型未配置", "detail": f"以下模型缺少接口密钥：{'、'.join(unconfigured)}"})
+
+    from app.services.game.task_registry import registry
+    tasks = registry.list(limit=50)
+    running = [t for t in tasks if t.get("status") == "running"]
+    latest_errors = [t for t in tasks if t.get("status") == "failed" and t.get("error")][:5]
+    background_tasks = {
+        "running_count": len(running),
+        "running_types": sorted(list({t.get("task_type") for t in running if t.get("task_type")})),
+        "latest_errors": latest_errors,
+    }
     
     return {
         "backend_version": settings.APP_VERSION,
@@ -273,10 +283,34 @@ async def get_system_diagnostics():
         "db_ok": db_ok,
         "ws_connections": ws_count,
         "current_session": current_session_state,
+        "background_tasks": background_tasks,
         "issues": issues,
         "has_critical_issues": any(i["level"] == "critical" for i in issues),
         "overall_status": "critical" if not db_ok or configured_count == 0 else "warning" if configured_count < 3 else "ok",
     }
+
+
+@router.get("/tasks")
+async def list_system_tasks(
+    limit: int = Query(50, ge=1, le=200),
+    _: dict = Depends(get_current_user),
+):
+    from app.services.game.task_registry import registry
+
+    return {"tasks": registry.list(limit=limit)}
+
+
+@router.post("/tasks/{task_id}/cancel")
+async def cancel_system_task(
+    task_id: str,
+    _: dict = Depends(get_current_user),
+):
+    from app.services.game.task_registry import registry
+
+    ok = registry.cancel(task_id)
+    if not ok:
+        raise HTTPException(400, "任务不存在或已结束")
+    return {"success": True}
 
 
 from pydantic import BaseModel, Field
@@ -349,9 +383,9 @@ async def update_prediction_mode(
     req: PredictionModeRequest,
     _: dict = Depends(get_current_user),
 ):
-    """Update system prediction mode (ai or rule)"""
+    """更新系统预测模式（ai 或 rule）"""
     if req.mode not in ("ai", "rule"):
-        raise HTTPException(400, "Invalid prediction mode")
+        raise HTTPException(400, "非法的预测模式")
     
     async with async_session() as session:
         stmt = select(SystemState).order_by(SystemState.id.desc()).limit(1)

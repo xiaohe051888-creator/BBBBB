@@ -93,10 +93,13 @@ async def end_boot(
     })
     
     # 异步启动深度学习
-    # 保存后台任务强引用，防止被 GC 回收
-    from app.services.game.session import add_background_task
-    task = asyncio.create_task(run_deep_learning(current_boot))
-    add_background_task(task)
+    from app.services.game.task_registry import registry
+    registry.create(
+        "deep_learning",
+        run_deep_learning(current_boot),
+        boot_number=current_boot,
+        dedupe_key=f"deep_learning:{current_boot}",
+    )
     
     return {
         "success": True,

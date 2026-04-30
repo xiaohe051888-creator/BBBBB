@@ -4,6 +4,7 @@ import time
 import unittest
 import urllib.error
 import urllib.request
+import warnings
 
 
 BASE_URL = os.environ.get("TEST_BASE_URL", "http://localhost:8000")
@@ -45,8 +46,11 @@ def _post_json(url: str, payload: dict):
             data = resp.read().decode("utf-8")
             return resp.status, json.loads(data)
     except urllib.error.HTTPError as e:
-        data = e.read().decode("utf-8")
-        return e.code, data
+        try:
+            data = e.read().decode("utf-8")
+            return e.code, data
+        finally:
+            e.close()
 
 
 class UploadModesTest(unittest.TestCase):
@@ -120,8 +124,11 @@ class UploadModesTest(unittest.TestCase):
             "balance_mode": "keep",
         }
 
-        status, _ = _post_json(f"{BASE_URL}/api/games/upload", payload)
-        self.assertEqual(status, 422)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            status, _ = _post_json(f"{BASE_URL}/api/games/upload", payload)
+            self.assertEqual(status, 422)
+            self.assertFalse(any(issubclass(x.category, ResourceWarning) for x in w), w)
 
     def test_new_boot_default_no_learning(self):
         seed_payload = {

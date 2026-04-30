@@ -106,7 +106,13 @@ async def start_ai_learning(
                 bg_service = AILearningService(bg_session)
                 await bg_service.start_learning(boot_number)
 
-        asyncio.create_task(run_learning_task())
+        from app.services.game.task_registry import registry
+        task_meta = registry.create(
+            task_type="ai_learning",
+            coro=run_learning_task(),
+            boot_number=boot_number,
+            dedupe_key=f"ai_learning:{boot_number}",
+        )
 
         if boot_number == 0:
             msg = "AI学习已启动，正在分析全库历史数据（最多1000局）..."
@@ -116,6 +122,7 @@ async def start_ai_learning(
         return {
             "status": "started",
             "message": msg,
+            "task_id": task_meta.task_id,
         }
 
 
