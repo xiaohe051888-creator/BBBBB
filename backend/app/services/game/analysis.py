@@ -221,7 +221,8 @@ async def run_ai_analysis(
             sess.predict_direction = combined_model.get("final_prediction")
             sess.predict_confidence = combined_model.get("confidence", 0.5)
             sess.predict_bet_tier = combined_model.get("bet_tier", "标准")
-            sess.predict_bet_amount = analysis_result.get("bet_amount", 100)
+            from app.services.game.bet_sizing import compute_bet_amount
+            sess.predict_bet_amount = compute_bet_amount(sess.predict_confidence, sess.balance)
             sess.banker_summary = banker_model.get("summary", "")
             sess.player_summary = player_model.get("summary", "")
             sess.combined_summary = combined_model.get("summary", "")

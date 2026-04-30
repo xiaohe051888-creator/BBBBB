@@ -42,6 +42,8 @@ class Settings:
     MAX_BET: int = 10000
     BET_STEP: int = 10
     BASE_AMOUNT: int = 100
+    BET_CONF_THRESHOLD: float = float(os.getenv("BET_CONF_THRESHOLD", "0.60"))
+    BET_EXP_GAMMA: float = float(os.getenv("BET_EXP_GAMMA", "2.0"))
     
     # 自适应下注档位
     CONSERVATIVE_FACTOR: float = 0.5

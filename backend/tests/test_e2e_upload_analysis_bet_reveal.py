@@ -75,9 +75,12 @@ class UploadAnalysisBetRevealE2ETest(unittest.TestCase):
             self.assertTrue(analysis_res["success"])
             prediction = analysis_res["prediction"]
             self.assertIn(prediction, ("庄", "闲"))
+            from app.services.game.bet_sizing import compute_bet_amount
+            expected_amount = compute_bet_amount(analysis_res["confidence"], balance=1000)
+            self.assertEqual(analysis_res["bet_amount"], expected_amount)
 
             async with async_session() as s:
-                bet_res = await place_bet(s, game_number=analysis_res["game_number"], direction=prediction, amount=analysis_res.get("bet_amount", 100))
+                bet_res = await place_bet(s, game_number=analysis_res["game_number"], direction=prediction, amount=analysis_res["bet_amount"])
                 await s.commit()
 
                 bet = (await s.execute(
@@ -90,6 +93,7 @@ class UploadAnalysisBetRevealE2ETest(unittest.TestCase):
             self.assertTrue(bet_res["success"])
             self.assertIsNotNone(bet)
             self.assertEqual(bet.status, "待开奖")
+            self.assertEqual(float(bet.bet_amount), expected_amount)
 
             async with async_session() as s:
                 reveal_res = await reveal_game(s, game_number=analysis_res["game_number"], result="闲" if prediction == "庄" else "庄")
@@ -120,4 +124,3 @@ class UploadAnalysisBetRevealE2ETest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
