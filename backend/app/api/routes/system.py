@@ -274,13 +274,19 @@ async def get_system_diagnostics():
     gemini_enabled = _enabled(settings.GEMINI_API_KEY)
     single_ai_enabled = _enabled(getattr(settings, "SINGLE_AI_API_KEY", ""))
     
-    # 数据库连通性检查
     db_ok = True
+    db_error = None
+    db_game_count = None
+    db_has_state = None
     try:
         async with async_session() as session:
-            await session.execute(select(func.count()).select_from(GameRecord))
-    except Exception:
+            res = await session.execute(select(func.count()).select_from(GameRecord))
+            db_game_count = res.scalar() or 0
+            res = await session.execute(select(SystemState).where(SystemState.singleton_key == 1))
+            db_has_state = bool(res.scalar_one_or_none())
+    except Exception as e:
         db_ok = False
+        db_error = str(e)[:200]
     
     def _readiness(required: list[str], enabled_map: dict[str, bool]) -> dict:
         missing = [k for k in required if not enabled_map.get(k)]
@@ -387,7 +393,16 @@ async def get_system_diagnostics():
     other_modes = [m for m in ("ai", "single_ai", "rule") if m != current_mode]
     issues_current_mode = []
     if not db_ok:
-        issues_current_mode.append({"level": "critical", "title": "数据库连接失败", "detail": "数据库无法访问，所有数据操作均会失败"})
+        issues_current_mode.append({
+            "level": "critical",
+            "title": "数据库访问失败",
+            "detail": f"数据库访问异常：{db_error or '未知错误'}",
+        })
+    else:
+        if db_game_count == 0:
+            issues_current_mode.append({"level": "info", "title": "数据库暂无游戏记录", "detail": "首次启动或尚未上传数据属于正常现象"})
+        if not db_has_state:
+            issues_current_mode.append({"level": "info", "title": "数据库暂无状态记录", "detail": "首次启动或尚未写入状态属于正常现象"})
     if current_missing:
         issues_current_mode.append({
             "level": "critical",
@@ -407,12 +422,12 @@ async def get_system_diagnostics():
     
     issues = issues_current_mode + issues_other_modes
 
-    from sqlalchemy import select
+    from sqlalchemy import select as sa_select
     from app.models.schemas import BackgroundTask
     tasks = []
     try:
         async with async_session() as s:
-            tasks = (await s.execute(select(BackgroundTask).order_by(BackgroundTask.created_at.desc()).limit(50))).scalars().all()
+            tasks = (await s.execute(sa_select(BackgroundTask).order_by(BackgroundTask.created_at.desc()).limit(50))).scalars().all()
     except Exception:
         tasks = []
 
@@ -474,6 +489,9 @@ async def get_system_diagnostics():
         "ai_configured_count": configured_count,
         "models_detail": models_status,
         "db_ok": db_ok,
+        "db_error": db_error,
+        "db_game_count": db_game_count,
+        "db_has_state": db_has_state,
         "ws_connections": ws_count,
         "current_session": current_session_state,
         "background_tasks": background_tasks,

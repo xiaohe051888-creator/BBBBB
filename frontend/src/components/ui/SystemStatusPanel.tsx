@@ -261,7 +261,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
             label="后端服务"
             color={backendColor(backendStatus)}
             value={backendStatus === 'offline' ? '离线 ⚠' : backendLabel(backendStatus, backendLatency)}
-            subInfo={backendStatus === 'offline' ? '请确认后端服务已启动（端口8000）' : undefined}
+            subInfo={backendStatus === 'offline' ? '请确认后端服务已启动' : undefined}
             onAction={backendStatus === 'offline' ? { label: '重试', onClick: onRetryConnection } : undefined}
           />
 

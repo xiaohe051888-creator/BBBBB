@@ -274,7 +274,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
       addIssue({
         level: 'critical',
         title: '后端服务离线',
-        detail: '无法连接后端API（http://localhost:8000），请确认后端服务已启动',
+        detail: '无法连接后端API（/api），请确认后端服务已启动',
         source: 'backend',
       });
     }
@@ -381,9 +381,10 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
           const currentIssues = Array.isArray(diag.issues_current_mode) ? diag.issues_current_mode : [];
           const otherIssues = Array.isArray(diag.issues_other_modes) ? diag.issues_other_modes : [];
           if (currentIssues.length > 0) {
-            const top = currentIssues[0];
+            const severityRank: Record<string, number> = { critical: 3, warning: 2, info: 1 };
+            const top = [...currentIssues].sort((a, b) => (severityRank[b.level] || 0) - (severityRank[a.level] || 0))[0];
             addIssue({
-              level: top.level === 'warning' ? 'warning' : 'critical',
+              level: top.level === 'critical' ? 'critical' : top.level === 'warning' ? 'warning' : 'info',
               title: top.title,
               detail: top.detail,
               source: 'ai_current',
