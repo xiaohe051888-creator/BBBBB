@@ -137,6 +137,21 @@ export const getSystemHealth = async () => {
 
 export interface SystemDiagnosticsResponse {
   backend_version: string;
+  current_mode?: 'ai' | 'single_ai' | 'rule';
+  models?: Array<{
+    key: 'openai' | 'anthropic' | 'gemini' | 'single_ai';
+    label: string;
+    provider: string;
+    model: string | null;
+    enabled: boolean;
+    required_in_modes?: Array<'ai' | 'single_ai' | 'rule'>;
+    required_in_current_mode?: boolean;
+    issue?: string | null;
+  }>;
+  mode_readiness?: Record<string, { required: string[]; configured_count: number; missing: string[]; status: string }>;
+  issues_current_mode?: Array<{ level: 'critical' | 'warning' | 'info'; title: string; detail: string }>;
+  issues_other_modes?: Array<{ level: 'critical' | 'warning' | 'info'; title: string; detail: string }>;
+  overall_status_current_mode?: 'ok' | 'warning' | 'critical';
   openai_enabled: boolean;
   anthropic_enabled: boolean;
   gemini_enabled: boolean;

@@ -112,6 +112,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [showAllIssues, setShowAllIssues] = useState(false);
+  const modeLabel = diagnostics.currentMode === 'single_ai' ? '单AI' : diagnostics.currentMode === 'rule' ? '规则' : diagnostics.currentMode === 'ai' ? '3AI' : '未知';
 
   const {
     wsStatus, wsLatency, wsReconnectCount,
@@ -228,7 +229,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
             <Tooltip title={`后端: ${backendLabel(backendStatus, backendLatency)}`}>
               <span style={{ color: backendColor(backendStatus), fontSize: 12 }}><BackendIcon /></span>
             </Tooltip>
-            <Tooltip title={aiAllOk ? 'AI三模型：全部就绪' : 'AI三模型：部分未配置'}>
+            <Tooltip title={aiAllOk ? `AI配置（${modeLabel}）：就绪` : `AI配置（${modeLabel}）：未就绪`}>
               <span style={{ color: aiAllOk ? '#52c41a' : '#faad14', fontSize: 12 }}><AIIcon /></span>
             </Tooltip>
           </Space>
@@ -267,10 +268,10 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
           {/* AI模型状态 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 11, color: '#8b949e', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <AIIcon /> AI三模型
+              <AIIcon /> AI配置（{modeLabel}）
             </span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {aiModels.map(model => (
+              {(expanded ? aiModels : aiModels.filter(m => m.required !== false)).map(model => (
                 <Tooltip
                   key={model.key}
                   title={model.status === 'unconfigured' ? model.message : `${model.name} 正常`}
@@ -281,28 +282,38 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
                       padding: '1px 6px',
                       borderRadius: 8,
                       cursor: 'default',
-                      background: model.status === 'ok'
+                      background: model.required === false
+                        ? 'rgba(139,148,158,0.06)'
+                        : model.status === 'ok'
                         ? 'rgba(82,196,26,0.1)'
                         : model.status === 'unconfigured'
                           ? 'rgba(255,77,79,0.1)'
                           : 'rgba(139,148,158,0.1)',
-                      borderColor: model.status === 'ok'
+                      borderColor: model.required === false
+                        ? 'rgba(139,148,158,0.16)'
+                        : model.status === 'ok'
                         ? 'rgba(82,196,26,0.3)'
                         : model.status === 'unconfigured'
                           ? 'rgba(255,77,79,0.3)'
                           : 'rgba(139,148,158,0.2)',
-                      color: model.status === 'ok' ? '#95de64' : model.status === 'unconfigured' ? '#ff7875' : '#8b949e',
+                      color: model.required === false
+                        ? '#8b949e'
+                        : model.status === 'ok'
+                          ? '#95de64'
+                          : model.status === 'unconfigured'
+                            ? '#ff7875'
+                            : '#8b949e',
                     }}
                   >
-                    {model.status === 'ok' ? '✓' : model.status === 'unconfigured' ? '✗' : '?'}{' '}
-                    {model.label}
+                    {model.required === false ? 'i' : model.status === 'ok' ? '✓' : model.status === 'unconfigured' ? '✗' : '?'}{' '}
+                    {model.label}{model.required === false ? '（非必需）' : ''}
                   </Tag>
                 </Tooltip>
               ))}
             </div>
             {!aiAllOk && (
               <span style={{ fontSize: 10, color: '#faad14', marginTop: 2 }}>
-                ⚠ 未配置的模型需先设置接口密钥
+                ⚠ 当前模式必需项未就绪，请先设置接口密钥
               </span>
             )}
           </div>
@@ -467,7 +478,9 @@ const StatusRow: React.FC<StatusRowProps> = ({ icon, label, color, value, extra,
 
 // ====== 子组件：Tooltip内容 ======
 const StatusTooltip: React.FC<{ diagnostics: SystemDiagnostics; onRetry?: () => void }> = ({ diagnostics, onRetry }) => {
-  const { wsStatus, wsLatency, backendStatus, backendLatency, aiModels, activeIssues, backgroundTasks } = diagnostics;
+  const { wsStatus, wsLatency, backendStatus, backendLatency, aiModels, activeIssues, backgroundTasks, currentMode } = diagnostics;
+  const modeLabel = currentMode === 'single_ai' ? '单AI' : currentMode === 'rule' ? '规则' : currentMode === 'ai' ? '3AI' : '未知';
+  const required = aiModels.filter(m => m.required !== false);
 
   return (
     <div style={{ fontSize: 12, color: '#e6edf3' }}>
@@ -485,9 +498,9 @@ const StatusTooltip: React.FC<{ diagnostics: SystemDiagnostics; onRetry?: () => 
           </span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-          <span style={{ color: '#8b949e' }}>AI三模型</span>
+          <span style={{ color: '#8b949e' }}>AI配置（{modeLabel}）</span>
           <span>
-            {aiModels.map(m => (
+            {required.map(m => (
               <span key={m.key} style={{ marginLeft: 4, color: m.status === 'ok' ? '#52c41a' : '#ff4d4f' }}>
                 {m.label.slice(0, 1)}{m.status === 'ok' ? '✓' : '✗'}
               </span>

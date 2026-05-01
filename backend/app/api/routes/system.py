@@ -76,25 +76,74 @@ async def get_health_score():
         "session_health": {"score": 0, "max": 10, "issues": []},
     }
     
-    # 1. AI模型健康检查 (40分)
-    openai_ok = bool(settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 20)
-    anthropic_ok = bool(settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 20)
-    gemini_ok = bool(settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 20)
-    
-    if openai_ok:
-        health_details["ai_models"]["score"] += 15
+    from app.services.game import get_current_state
+
+    def _enabled(v: str | None, min_len: int = 10) -> bool:
+        return bool(v and isinstance(v, str) and len(v) > min_len)
+
+    mem = await get_current_state()
+    mode = mem.get("prediction_mode", "ai")
+
+    openai_ok = _enabled(settings.OPENAI_API_KEY)
+    anthropic_ok = _enabled(settings.ANTHROPIC_API_KEY)
+    gemini_ok = _enabled(settings.GEMINI_API_KEY)
+    single_ok = _enabled(getattr(settings, "SINGLE_AI_API_KEY", ""))
+
+    health_details["ai_by_mode"] = {
+        "current_mode": mode,
+        "current_mode_ai": {"score": 0, "max": 40, "issues": []},
+        "other_modes_ai": {"issues_by_mode": {}},
+    }
+
+    def _other_issues() -> dict:
+        return {
+            "ai": [i for i in [
+                None if openai_ok else "OpenAI(庄模型)未配置",
+                None if anthropic_ok else "Anthropic(闲模型)未配置",
+                None if gemini_ok else "Gemini(综合模型)未配置",
+            ] if i],
+            "single_ai": [] if single_ok else ["单AI(DeepSeek)未配置"],
+            "rule": [],
+        }
+
+    other = _other_issues()
+    for k, v in other.items():
+        if k != mode:
+            health_details["ai_by_mode"]["other_modes_ai"]["issues_by_mode"][k] = v
+
+    current_ai = health_details["ai_by_mode"]["current_mode_ai"]
+
+    if mode == "rule":
+        current_ai["score"] = 40
+        health_details["ai_models"]["score"] = 40
+    elif mode == "single_ai":
+        if single_ok:
+            current_ai["score"] = 40
+            health_details["ai_models"]["score"] = 40
+        else:
+            current_ai["issues"].append("单AI(DeepSeek)未配置")
+            health_details["ai_models"]["issues"].append("单AI(DeepSeek)未配置")
     else:
-        health_details["ai_models"]["issues"].append("OpenAI(庄模型)未配置")
-    
-    if anthropic_ok:
-        health_details["ai_models"]["score"] += 15
-    else:
-        health_details["ai_models"]["issues"].append("Anthropic(闲模型)未配置")
-    
-    if gemini_ok:
-        health_details["ai_models"]["score"] += 10
-    else:
-        health_details["ai_models"]["issues"].append("Gemini(综合模型)未配置")
+        if openai_ok:
+            current_ai["score"] += 15
+            health_details["ai_models"]["score"] += 15
+        else:
+            current_ai["issues"].append("OpenAI(庄模型)未配置")
+            health_details["ai_models"]["issues"].append("OpenAI(庄模型)未配置")
+
+        if anthropic_ok:
+            current_ai["score"] += 15
+            health_details["ai_models"]["score"] += 15
+        else:
+            current_ai["issues"].append("Anthropic(闲模型)未配置")
+            health_details["ai_models"]["issues"].append("Anthropic(闲模型)未配置")
+
+        if gemini_ok:
+            current_ai["score"] += 10
+            health_details["ai_models"]["score"] += 10
+        else:
+            current_ai["issues"].append("Gemini(综合模型)未配置")
+            health_details["ai_models"]["issues"].append("Gemini(综合模型)未配置")
     
     # 2. 数据库健康检查 (30分)
     try:
@@ -167,8 +216,9 @@ async def get_health_score():
         health_details["session_health"]["issues"].append(f"获取会话失败: {str(e)[:30]}")
     
     # 计算总分
-    total_score = sum(d["score"] for d in health_details.values())
-    max_score = sum(d["max"] for d in health_details.values())
+    scored_parts = [d for d in health_details.values() if isinstance(d, dict) and "score" in d and "max" in d]
+    total_score = sum(d["score"] for d in scored_parts)
+    max_score = sum(d["max"] for d in scored_parts)
     health_score = int((total_score / max_score) * 100) if max_score > 0 else 0
     
     # 计算模型稳定性
@@ -198,7 +248,12 @@ async def get_health_score():
         "status": status,
         "status_text": status_text,
         "details": health_details,
-        "all_issues": [issue for d in health_details.values() for issue in d["issues"]],
+        "all_issues": [
+            issue
+            for d in health_details.values()
+            if isinstance(d, dict) and isinstance(d.get("issues"), list)
+            for issue in d["issues"]
+        ],
         "timestamp": datetime.utcnow().isoformat(),
     }
 
@@ -208,10 +263,16 @@ async def get_system_diagnostics():
     """
     系统诊断接口 - 返回所有关键系统组件的实时状态
     """
-    # AI模型配置检查
-    openai_enabled = bool(settings.OPENAI_API_KEY)
-    anthropic_enabled = bool(settings.ANTHROPIC_API_KEY)
-    gemini_enabled = bool(settings.GEMINI_API_KEY)
+    current_session_state = await get_current_state()
+    current_mode = current_session_state.get("prediction_mode", "ai")
+
+    def _enabled(v: str | None, min_len: int = 10) -> bool:
+        return bool(v and isinstance(v, str) and len(v) > min_len)
+
+    openai_enabled = _enabled(settings.OPENAI_API_KEY)
+    anthropic_enabled = _enabled(settings.ANTHROPIC_API_KEY)
+    gemini_enabled = _enabled(settings.GEMINI_API_KEY)
+    single_ai_enabled = _enabled(getattr(settings, "SINGLE_AI_API_KEY", ""))
     
     # 数据库连通性检查
     db_ok = True
@@ -221,14 +282,77 @@ async def get_system_diagnostics():
     except Exception:
         db_ok = False
     
-    # 内存会话状态
-    current_session_state = await get_current_state()
+    def _readiness(required: list[str], enabled_map: dict[str, bool]) -> dict:
+        missing = [k for k in required if not enabled_map.get(k)]
+        configured_count = len(required) - len(missing)
+        if not required:
+            status = "ok"
+        else:
+            status = "ok" if len(missing) == 0 else "critical"
+        return {
+            "required": required,
+            "configured_count": configured_count,
+            "missing": missing,
+            "status": status,
+        }
+
+    enabled_map = {
+        "openai": openai_enabled,
+        "anthropic": anthropic_enabled,
+        "gemini": gemini_enabled,
+        "single_ai": single_ai_enabled,
+    }
+
+    mode_readiness = {
+        "ai": _readiness(["openai", "anthropic", "gemini"], enabled_map),
+        "single_ai": _readiness(["single_ai"], enabled_map),
+        "rule": _readiness([], enabled_map),
+    }
+
+    models = [
+        {
+            "key": "openai",
+            "label": "庄模型",
+            "provider": "openai",
+            "model": getattr(settings, "OPENAI_MODEL", "gpt-4o-mini"),
+            "enabled": openai_enabled,
+            "required_in_modes": ["ai"],
+        },
+        {
+            "key": "anthropic",
+            "label": "闲模型",
+            "provider": "anthropic",
+            "model": getattr(settings, "ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+            "enabled": anthropic_enabled,
+            "required_in_modes": ["ai"],
+        },
+        {
+            "key": "gemini",
+            "label": "综合模型",
+            "provider": "gemini",
+            "model": getattr(settings, "GEMINI_MODEL", "gemini-1.5-flash"),
+            "enabled": gemini_enabled,
+            "required_in_modes": ["ai"],
+        },
+        {
+            "key": "single_ai",
+            "label": "单AI",
+            "provider": "deepseek",
+            "model": getattr(settings, "SINGLE_AI_MODEL", "deepseek-v4-pro"),
+            "enabled": single_ai_enabled,
+            "required_in_modes": ["single_ai"],
+        },
+    ]
+
+    for m in models:
+        m["required_in_current_mode"] = current_mode in (m.get("required_in_modes") or [])
+        m["issue"] = None if m["enabled"] else "接口密钥未配置"
     
     # WebSocket连接数（从websocket模块获取）
     from app.api.routes.websocket import ws_clients
     ws_count = len(ws_clients)
     
-    # 收集AI模型详细状态
+    # 收集AI模型详细状态（兼容旧字段）
     models_status = {
         "openai": {
             "enabled": openai_enabled,
@@ -248,19 +372,40 @@ async def get_system_diagnostics():
             "model": getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"),
             "issue": None if gemini_enabled else "接口密钥未配置",
         },
+        "single_ai": {
+            "enabled": single_ai_enabled,
+            "label": "单AI",
+            "model": getattr(settings, "SINGLE_AI_MODEL", "deepseek-v4-pro"),
+            "issue": None if single_ai_enabled else "接口密钥未配置",
+        },
     }
     
     configured_count = sum([openai_enabled, anthropic_enabled, gemini_enabled])
-    
-    # 构建告警列表
-    issues = []
+
+    current_required = mode_readiness.get(current_mode, mode_readiness["ai"]).get("required", [])
+    current_missing = mode_readiness.get(current_mode, mode_readiness["ai"]).get("missing", [])
+    other_modes = [m for m in ("ai", "single_ai", "rule") if m != current_mode]
+    issues_current_mode = []
     if not db_ok:
-        issues.append({"level": "critical", "title": "数据库连接失败", "detail": "数据库无法访问，所有数据操作均会失败"})
-    if configured_count == 0:
-        issues.append({"level": "critical", "title": "所有AI模型均未配置", "detail": "请先配置AI模型接口密钥，才能进行AI分析预测"})
-    elif configured_count < 3:
-        unconfigured = [v["label"] for k, v in models_status.items() if not v["enabled"]]
-        issues.append({"level": "warning", "title": f"{len(unconfigured)}个AI模型未配置", "detail": f"以下模型缺少接口密钥：{'、'.join(unconfigured)}"})
+        issues_current_mode.append({"level": "critical", "title": "数据库连接失败", "detail": "数据库无法访问，所有数据操作均会失败"})
+    if current_missing:
+        issues_current_mode.append({
+            "level": "critical",
+            "title": "当前模式AI未就绪",
+            "detail": f"当前模式({current_mode})缺少必要配置：{'、'.join(current_missing)}",
+        })
+
+    issues_other_modes = []
+    for om in other_modes:
+        missing = mode_readiness.get(om, {}).get("missing", [])
+        if missing:
+            issues_other_modes.append({
+                "level": "info",
+                "title": f"其它模式({om})未就绪",
+                "detail": f"缺少配置：{'、'.join(missing)}（不影响当前模式）",
+            })
+    
+    issues = issues_current_mode + issues_other_modes
 
     from sqlalchemy import select
     from app.models.schemas import BackgroundTask
@@ -307,9 +452,22 @@ async def get_system_diagnostics():
         ],
     }
     
+    overall_status_current_mode = (
+        "critical"
+        if any(i["level"] == "critical" for i in issues_current_mode)
+        else "warning" if any(i["level"] == "warning" for i in issues_current_mode)
+        else "ok"
+    )
+
     return {
         "backend_version": settings.APP_VERSION,
         "timestamp": datetime.now().isoformat(),
+        "current_mode": current_mode,
+        "models": models,
+        "mode_readiness": mode_readiness,
+        "issues_current_mode": issues_current_mode,
+        "issues_other_modes": issues_other_modes,
+        "overall_status_current_mode": overall_status_current_mode,
         "openai_enabled": openai_enabled,
         "anthropic_enabled": anthropic_enabled,
         "gemini_enabled": gemini_enabled,
@@ -321,7 +479,7 @@ async def get_system_diagnostics():
         "background_tasks": background_tasks,
         "issues": issues,
         "has_critical_issues": any(i["level"] == "critical" for i in issues),
-        "overall_status": "critical" if not db_ok or configured_count == 0 else "warning" if configured_count < 3 else "ok",
+        "overall_status": overall_status_current_mode,
     }
 
 

@@ -12,10 +12,13 @@ export type WsStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecti
 
 export interface AIModelStatus {
   name: string;
-  key: 'openai' | 'anthropic' | 'gemini';
+  key: 'openai' | 'anthropic' | 'gemini' | 'single_ai';
   label: string;
   status: 'ok' | 'error' | 'unconfigured' | 'unknown';
   message?: string;
+  required?: boolean;
+  provider?: string;
+  model?: string | null;
 }
 
 export interface SystemDiagnostics {
@@ -34,6 +37,8 @@ export interface SystemDiagnostics {
   aiModels: AIModelStatus[];
   aiAnyOk: boolean;
   aiAllOk: boolean;
+  currentMode?: 'ai' | 'single_ai' | 'rule';
+  modeReadiness?: Record<string, { required: string[]; configured_count: number; missing: string[]; status: string }>;
 
   // 当前活跃问题
   activeIssues: SystemIssue[];
@@ -56,7 +61,7 @@ export interface SystemIssue {
   title: string;
   detail: string;
   time: Date;
-  source: 'websocket' | 'backend' | 'ai' | 'data' | 'system';
+  source: 'websocket' | 'backend' | 'ai_current' | 'ai_other' | 'data' | 'system';
 }
 
 interface UseSystemDiagnosticsOptions {
@@ -83,6 +88,8 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
     { name: '闲模型接口', key: 'anthropic', label: '闲模型', status: 'unknown' },
     { name: '综合模型接口', key: 'gemini', label: '综合模型', status: 'unknown' },
   ]);
+  const [currentMode, setCurrentMode] = useState<SystemDiagnostics['currentMode']>(undefined);
+  const [modeReadiness, setModeReadiness] = useState<SystemDiagnostics['modeReadiness']>(undefined);
 
   const [activeIssues, setActiveIssues] = useState<SystemIssue[]>([]);
   const [backgroundTasks, setBackgroundTasks] = useState<SystemDiagnostics['backgroundTasks']>({
@@ -310,33 +317,55 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         const diag = res.data;
         if (!diag) return;
 
-        const newModels: AIModelStatus[] = [
-          {
-            name: '庄模型接口',
-            key: 'openai',
-            label: '庄模型',
-            status: diag.openai_enabled ? 'ok' : 'unconfigured',
-            message: diag.openai_enabled ? undefined : '接口密钥未配置',
-          },
-          {
-            name: '闲模型接口',
-            key: 'anthropic',
-            label: '闲模型',
-            status: diag.anthropic_enabled ? 'ok' : 'unconfigured',
-            message: diag.anthropic_enabled ? undefined : '接口密钥未配置',
-          },
-          {
-            name: '综合模型接口',
-            key: 'gemini',
-            label: '综合模型',
-            status: diag.gemini_enabled ? 'ok' : 'unconfigured',
-            message: diag.gemini_enabled ? undefined : '接口密钥未配置',
-          },
-        ];
+        const newModels: AIModelStatus[] = Array.isArray(diag.models) && diag.models.length > 0
+          ? diag.models.map((m) => ({
+            name: `${m.label}接口`,
+            key: m.key,
+            label: m.label,
+            status: m.enabled ? 'ok' : 'unconfigured',
+            message: m.enabled ? undefined : (m.issue || '接口密钥未配置'),
+            required: !!m.required_in_current_mode,
+            provider: m.provider,
+            model: m.model ?? null,
+          }))
+          : [
+            {
+              name: '庄模型接口',
+              key: 'openai',
+              label: '庄模型',
+              status: diag.openai_enabled ? 'ok' : 'unconfigured',
+              message: diag.openai_enabled ? undefined : '接口密钥未配置',
+              required: true,
+              provider: 'openai',
+              model: null,
+            },
+            {
+              name: '闲模型接口',
+              key: 'anthropic',
+              label: '闲模型',
+              status: diag.anthropic_enabled ? 'ok' : 'unconfigured',
+              message: diag.anthropic_enabled ? undefined : '接口密钥未配置',
+              required: true,
+              provider: 'anthropic',
+              model: null,
+            },
+            {
+              name: '综合模型接口',
+              key: 'gemini',
+              label: '综合模型',
+              status: diag.gemini_enabled ? 'ok' : 'unconfigured',
+              message: diag.gemini_enabled ? undefined : '接口密钥未配置',
+              required: true,
+              provider: 'gemini',
+              model: null,
+            },
+          ];
 
         // 使用setTimeout避免同步setState
         activeTimeout = setTimeout(() => {
           if (isUnmountedRef.current) return;
+          setCurrentMode(diag.current_mode);
+          setModeReadiness(diag.mode_readiness);
           setAiModels(newModels);
           const bg = diag.background_tasks;
           if (bg) {
@@ -349,24 +378,29 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
             setBackgroundTasks({ runningCount: 0, runningTypes: [], latestErrors: [] });
           }
 
-          // 检查是否有AI模型问题
-          const unconfigured = newModels.filter(m => m.status === 'unconfigured');
-          if (unconfigured.length === 3) {
+          const currentIssues = Array.isArray(diag.issues_current_mode) ? diag.issues_current_mode : [];
+          const otherIssues = Array.isArray(diag.issues_other_modes) ? diag.issues_other_modes : [];
+          if (currentIssues.length > 0) {
+            const top = currentIssues[0];
             addIssue({
-              level: 'critical',
-              title: '所有AI模型均未配置',
-              detail: 'AI模型接口密钥均未配置，无法进行AI分析预测',
-              source: 'ai',
-            });
-          } else if (unconfigured.length > 0) {
-            addIssue({
-              level: 'warning',
-              title: `${unconfigured.length}个AI模型未配置`,
-              detail: unconfigured.map(m => `${m.label}：${m.message}`).join('；'),
-              source: 'ai',
+              level: top.level === 'warning' ? 'warning' : 'critical',
+              title: top.title,
+              detail: top.detail,
+              source: 'ai_current',
             });
           } else {
-            removeIssueBySource('ai');
+            removeIssueBySource('ai_current');
+          }
+
+          if (otherIssues.length > 0) {
+            addIssue({
+              level: 'info',
+              title: otherIssues[0].title,
+              detail: otherIssues[0].detail,
+              source: 'ai_other',
+            });
+          } else {
+            removeIssueBySource('ai_other');
           }
         }, 0);
 
@@ -397,8 +431,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
   }, [enabled, addIssue, removeIssueBySource]);
 
   // ====== 计算衍生状态 ======
-  const aiAnyOk = aiModels.some(m => m.status === 'ok');
-  const aiAllOk = aiModels.every(m => m.status === 'ok');
+  const requiredModels = aiModels.filter(m => m.required !== false);
+  const aiAnyOk = requiredModels.some(m => m.status === 'ok');
+  const aiAllOk = requiredModels.length > 0 ? requiredModels.every(m => m.status === 'ok') : true;
   const criticalIssueCount = activeIssues.filter(i => i.level === 'critical').length;
 
   const overallHealth: SystemDiagnostics['overallHealth'] = (() => {
@@ -422,6 +457,8 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
     aiModels,
     aiAnyOk,
     aiAllOk,
+    currentMode,
+    modeReadiness,
     activeIssues,
     criticalIssueCount,
     overallHealth,
