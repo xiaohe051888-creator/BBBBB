@@ -180,7 +180,9 @@ async def update_api_config(
     req: ApiConfigPayload,
     _: dict = Depends(get_current_user),
 ):
-    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), ".env")
+    from app.core.env_migration import get_env_paths
+
+    env_path, _ = get_env_paths()
     
     # Map role to settings keys
     role_map = {

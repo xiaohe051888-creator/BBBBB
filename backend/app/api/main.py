@@ -31,12 +31,18 @@ logger = logging.getLogger(__name__)
 
 # ========== 加载环境变量（支持直接启动uvicorn时也能读取.env） ==========
 from dotenv import load_dotenv
-env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
+from app.core.env_migration import get_env_paths, merge_legacy_env
+
+env_path, legacy_path = get_env_paths()
+merge_info = merge_legacy_env(legacy_path, env_path)
 if os.path.exists(env_path):
     load_dotenv(env_path, override=True)
     logger.info(f"✅ [api/main.py] 已加载环境变量: {env_path}")
 else:
     logger.warning(f"⚠️  [api/main.py] 环境变量文件不存在: {env_path}")
+
+if merge_info.get("migrated"):
+    logger.warning("⚠️  [api/main.py] 检测到历史错误位置的.env，已合并到正确位置（未输出密钥内容）")
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse

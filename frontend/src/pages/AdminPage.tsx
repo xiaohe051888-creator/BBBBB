@@ -143,12 +143,12 @@ const AdminPage: React.FC = () => {
     // 如果选择 AI 模式，但尚未配置至少一个大模型接口，则拦截并提示
     if (newMode === 'ai') {
       const isConfigured =
-        threeModelStatus?.models?.banker?.api_key_set ||
-        threeModelStatus?.models?.player?.api_key_set ||
-        threeModelStatus?.models?.combined?.api_key_set;
+        !!threeModelStatus?.models?.banker?.api_key_set &&
+        !!threeModelStatus?.models?.player?.api_key_set &&
+        !!threeModelStatus?.models?.combined?.api_key_set;
 
       if (!isConfigured) {
-        message.warning('无法切换至 AI 模式：您尚未配置任何 AI 大模型的接口密钥。系统将继续使用强规则引擎。');
+        message.warning('无法切换至 3AI 模式：需同时配置 庄模型(OpenAI)、闲模型(Claude)、综合模型(Gemini) 三项接口密钥。');
         return;
       }
     }
