@@ -24,7 +24,7 @@ async def get_or_create_state(db: AsyncSession) -> SystemState:
             balance=settings.DEFAULT_BALANCE,
             boot_number=1,
             game_number=0,
-            prediction_mode="ai",
+            prediction_mode="rule",
         )
         db.add(state)
         await db.flush()

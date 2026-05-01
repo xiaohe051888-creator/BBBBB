@@ -18,8 +18,7 @@ class Settings:
     PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
     
     # 安全配置
-    import secrets
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", secrets.token_hex(32))
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "")
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_HOURS: int = 24
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173")
@@ -27,7 +26,9 @@ class Settings:
     # 数据库配置 (支持通过环境变量注入 PostgreSQL/MySQL 等，默认本地 SQLite)
     @property
     def DATABASE_URL(self) -> str:
-        _db_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./data/baccarat.db")
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        default_sqlite = f"sqlite+aiosqlite:///{os.path.join(backend_dir, 'data', 'baccarat.db')}"
+        _db_url = os.getenv("DATABASE_URL") or default_sqlite
         if _db_url.startswith("postgres://"):
             return _db_url.replace("postgres://", "postgresql+asyncpg://")
         elif _db_url.startswith("postgresql://") and "asyncpg" not in _db_url:

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 # ========== 加载环境变量（支持直接启动uvicorn时也能读取.env） ==========
 from dotenv import load_dotenv
-from app.core.env_migration import get_env_paths, merge_legacy_env
+from app.core.env_migration import get_env_paths, merge_legacy_env, ensure_env_key
 
 env_path, legacy_path = get_env_paths()
 merge_info = merge_legacy_env(legacy_path, env_path)
@@ -43,6 +43,9 @@ else:
 
 if merge_info.get("migrated"):
     logger.warning("⚠️  [api/main.py] 检测到历史错误位置的.env，已合并到正确位置（未输出密钥内容）")
+
+if ensure_env_key(env_path, "JWT_SECRET_KEY"):
+    logger.warning("⚠️  [api/main.py] JWT_SECRET_KEY 未配置，已自动生成并写入.env（未输出密钥内容）")
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
@@ -101,10 +104,38 @@ async def lifespan(app: FastAPI):
         async with lock:
             mem_sess = get_session()
             if db_state:
-                mem_sess.prediction_mode = db_state.prediction_mode or "ai"
+                mem_sess.prediction_mode = db_state.prediction_mode or "rule"
                 mem_sess.balance = db_state.balance
                 mem_sess.boot_number = db_state.boot_number
                 mem_sess.next_game_number = db_state.game_number + 1
+
+    def _enabled(v: str | None, min_len: int = 10) -> bool:
+        return bool(v and isinstance(v, str) and len(v) > min_len)
+
+    async with async_session() as session:
+        stmt_state = select(SystemState).where(SystemState.singleton_key == 1)
+        res_state = await session.execute(stmt_state)
+        state = res_state.scalar_one_or_none()
+        current_mode = getattr(state, "prediction_mode", None) or "rule"
+
+        if current_mode == "ai":
+            ok = _enabled(settings.OPENAI_API_KEY) and _enabled(settings.ANTHROPIC_API_KEY) and _enabled(settings.GEMINI_API_KEY)
+            if not ok:
+                current_mode = "rule"
+        elif current_mode == "single_ai":
+            ok = _enabled(getattr(settings, "SINGLE_AI_API_KEY", ""))
+            if not ok:
+                current_mode = "rule"
+
+        if state and state.prediction_mode != current_mode:
+            state.prediction_mode = current_mode
+            await session.commit()
+
+        from app.services.game.session import get_session_lock
+        lock = get_session_lock()
+        async with lock:
+            mem_sess = get_session()
+            mem_sess.prediction_mode = current_mode
 
     # 注入广播函数到游戏服务
     from app.services.game import set_broadcast_func

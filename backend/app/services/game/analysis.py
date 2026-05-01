@@ -94,36 +94,25 @@ async def run_ai_analysis(
             if prediction_mode == "ai":
                 from app.core.config import settings
                 api_configured = bool(
-                    (settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10) or
-                    (settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10) or
+                    (settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10) and
+                    (settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10) and
                     (settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10)
                 )
                 if not api_configured:
-                    # 自动降级为规则引擎
-                    prediction_mode = "rule"
-                    sess.prediction_mode = "rule"
+                    sess.status = sess_backup.status
                     state = await get_or_create_state(db)
-                    state.prediction_mode = "rule"
+                    state.status = sess.status
                     await db.commit()
-                    sess._api_configured_checked = False
-                    import logging
-                    logging.getLogger(__name__).warning("未配置AI大模型API Key，系统已自动降级为强规则引擎模式！")
-                else:
-                    sess._api_configured_checked = True
+                    return {"success": False, "error": "无法执行3AI分析：庄/闲/综合模型接口密钥未配置，请先配置密钥或切换到规则模式"}
             elif prediction_mode == "single_ai":
                 from app.core.config import settings
                 api_configured = bool(settings.SINGLE_AI_API_KEY and len(settings.SINGLE_AI_API_KEY) > 10)
                 if not api_configured:
-                    prediction_mode = "rule"
-                    sess.prediction_mode = "rule"
+                    sess.status = sess_backup.status
                     state = await get_or_create_state(db)
-                    state.prediction_mode = "rule"
+                    state.status = sess.status
                     await db.commit()
-                    sess._api_configured_checked = False
-                    import logging
-                    logging.getLogger(__name__).warning("未配置单AI模式API Key，系统已自动降级为强规则引擎模式！")
-                else:
-                    sess._api_configured_checked = True
+                    return {"success": False, "error": "无法执行单AI分析：单AI接口密钥未配置，请先配置密钥或切换到规则模式"}
 
             # 获取AI记忆库 (提取最新生成的实时微学习策略经验)
             from app.models.schemas import AIMemory
@@ -164,7 +153,7 @@ async def run_ai_analysis(
             selector = SmartModelSelector(db)
             current_version = await selector.get_current_version(prediction_mode)
             prompt_template = current_version.prompt_template if current_version else None
-            api_configured_checked = getattr(sess, '_api_configured_checked', True)
+            api_configured_checked = True
 
         except Exception as e:
             await db.rollback()
@@ -186,7 +175,7 @@ async def run_ai_analysis(
                 "final_prediction": rule_res["predict"],
                 "confidence": rule_res["confidence"],
                 "bet_tier": rule_res["tier"],
-                "summary": ("⚠️ 【系统提示】：未检测到有效的 AI 大模型 API Key 配置，系统已自动为您降级并启用【强规则引擎模式】。\n\n" if not api_configured_checked else "") + "【强规则引擎模式】\n" + rule_res["combined_summary"],
+                "summary": "【强规则引擎模式】\n" + rule_res["combined_summary"],
                 "reasoning_points": rule_res.get("reasoning_points", []),
                 "reasoning_detail": rule_res.get("reasoning_detail", ""),
             },
@@ -214,8 +203,8 @@ async def run_ai_analysis(
                     "final_prediction": "观望",
                     "confidence": 0.0,
                     "bet_tier": "保守",
-                    "summary": f"系统异常，单AI降级: {str(e)}",
-                    "reasoning_points": ["系统异常触发降级输出"],
+                    "summary": f"系统异常，单AI回退安全输出: {str(e)}",
+                    "reasoning_points": ["系统异常触发回退输出"],
                     "reasoning_detail": f"单AI分析发生异常，无法完成推理，已输出安全结果。错误摘要：{str(e)[:200]}",
                 },
                 "banker_model": {"summary": "分析失败"},
@@ -239,14 +228,14 @@ async def run_ai_analysis(
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"AI分析发生致命异常: {e}", exc_info=True)
-            # 触发降级为安全的错误回退结构，防止死锁卡死在“分析中”
+            # 触发安全回退结构，防止死锁卡死在“分析中”
             analysis_result = {
                 "combined_model": {
                     "final_prediction": "观望", 
                     "confidence": 0.0, 
                     "bet_tier": "保守", 
-                    "summary": f"系统异常，AI降级: {str(e)}",
-                    "reasoning_points": ["系统异常触发降级输出"],
+                    "summary": f"系统异常，AI回退安全输出: {str(e)}",
+                    "reasoning_points": ["系统异常触发回退输出"],
                     "reasoning_detail": f"3AI分析发生异常，无法完成推理，已输出安全结果。错误摘要：{str(e)[:200]}",
                 },
                 "banker_model": {"summary": "分析失败"},

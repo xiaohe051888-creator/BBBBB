@@ -1,5 +1,6 @@
 import os
-from typing import Dict, Tuple
+import secrets
+from typing import Callable, Dict, Tuple
 
 
 KEY_WHITELIST = {
@@ -15,6 +16,7 @@ KEY_WHITELIST = {
     "SINGLE_AI_API_KEY",
     "SINGLE_AI_MODEL",
     "SINGLE_AI_API_BASE",
+    "JWT_SECRET_KEY",
 }
 
 
@@ -100,3 +102,35 @@ def merge_legacy_env(legacy_path: str, env_path: str) -> Dict[str, object]:
 
     return {"migrated": True, "reason": "merged", "merged_keys": merged_keys}
 
+
+def ensure_env_key(env_path: str, key: str, generator: Callable[[], str] | None = None) -> bool:
+    existing = os.environ.get(key)
+    if existing:
+        return False
+
+    if generator is None:
+        def _gen() -> str:
+            return secrets.token_hex(32)
+        generator = _gen
+
+    value = generator()
+    os.environ[key] = value
+
+    env_content = ""
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                env_content = f.read()
+        except Exception:
+            env_content = ""
+
+    env_map = _parse_env(env_content)
+    if env_map.get(key):
+        return False
+
+    lines = env_content.splitlines() if env_content else []
+    lines.append(f"{key}={value}")
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines).rstrip() + "\n")
+
+    return True

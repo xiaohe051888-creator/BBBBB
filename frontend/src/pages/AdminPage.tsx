@@ -125,7 +125,7 @@ const AdminPage: React.FC = () => {
   const [mustChange, setMustChange] = useState((location.state as any)?.mustChangePassword || false);
 
   // 预测模式
-  const [predictionMode, setPredictionMode] = useState<'ai' | 'single_ai' | 'rule'>('ai');
+  const [predictionMode, setPredictionMode] = useState<'ai' | 'single_ai' | 'rule'>('rule');
   const [updatingMode, setUpdatingMode] = useState(false);
   const [modePickerVisible, setModePickerVisible] = useState(false);
   const [balanceAmount, setBalanceAmount] = useState<string>('');

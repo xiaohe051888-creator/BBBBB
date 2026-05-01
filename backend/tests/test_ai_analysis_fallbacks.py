@@ -108,11 +108,10 @@ class AiAnalysisFallbacksTest(unittest.TestCase):
                 settings.OPENAI_API_KEY, settings.ANTHROPIC_API_KEY, settings.GEMINI_API_KEY = old
 
         res, mode = asyncio.run(_run())
-        self.assertTrue(res["success"])
-        self.assertEqual(mode, "rule")
-        self.assertIn(res["prediction"], ("庄", "闲"))
+        self.assertFalse(res["success"])
+        self.assertEqual(mode, "ai")
+        self.assertIn("接口密钥", res.get("error", ""))
 
 
 if __name__ == "__main__":
     unittest.main()
-

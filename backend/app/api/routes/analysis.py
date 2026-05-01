@@ -22,7 +22,7 @@ async def get_latest_analysis():
     if mem.get("analysis"):
         analysis = mem["analysis"]
         return {
-            "prediction_mode": mem.get("prediction_mode", "ai"),
+            "prediction_mode": mem.get("prediction_mode", "rule"),
             "engine": analysis.get("engine"),
             "banker_model": {
                 "summary": analysis.get("banker_summary"),

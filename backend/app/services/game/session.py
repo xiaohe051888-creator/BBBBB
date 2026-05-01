@@ -15,7 +15,7 @@ class ManualSession:
     boot_number: int = 1
     next_game_number: int = 1           # 下一局的局号（等待开奖的局号）
     status: str = "空闲"               # 空闲/分析中/等待开奖/分析完成/深度学习中/等待新靴
-    prediction_mode: str = "ai"        # 'ai' | 'single_ai' | 'rule'
+    prediction_mode: str = "rule"      # 'ai' | 'single_ai' | 'rule'
 
     # 预测结果
     predict_direction: Optional[str] = None

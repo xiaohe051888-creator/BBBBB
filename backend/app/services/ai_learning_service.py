@@ -120,11 +120,11 @@ class AILearningService:
         else:
             api_configured = bool(
                 (settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10)
-                or (settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10)
-                or (settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10)
+                and (settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10)
+                and (settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10)
             )
             if not api_configured:
-                return False, "未配置3AI模式接口密钥，无法启动深度学习"
+                return False, "未配置完整3AI模式接口密钥（庄/闲/综合），无法启动深度学习"
 
         if boot_number == 0:
             stmt = select(func.count()).select_from(

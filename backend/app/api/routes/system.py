@@ -35,7 +35,7 @@ async def get_system_state():
                 "boot_number": mem_state["boot_number"],
                 "game_number": mem_state["next_game_number"] - 1,
                 "balance": mem_state["balance"],
-                "prediction_mode": mem_state.get("prediction_mode", "ai"),
+                "prediction_mode": mem_state.get("prediction_mode", "rule"),
                 "predict_direction": mem_state["predict_direction"],
                 "predict_confidence": mem_state["predict_confidence"],
                 "current_bet_tier": mem_state["predict_bet_tier"],
@@ -50,7 +50,7 @@ async def get_system_state():
             "boot_number": state.boot_number,
             "game_number": state.game_number,
             "current_game_result": state.current_game_result,
-            "prediction_mode": getattr(state, "prediction_mode", mem_state.get("prediction_mode", "ai")),
+            "prediction_mode": getattr(state, "prediction_mode", mem_state.get("prediction_mode", "rule")),
             "predict_direction": mem_state["predict_direction"] or state.predict_direction,
             "predict_confidence": mem_state["predict_confidence"] or state.predict_confidence,
             "current_model_version": state.current_model_version,
@@ -82,7 +82,7 @@ async def get_health_score():
         return bool(v and isinstance(v, str) and len(v) > min_len)
 
     mem = await get_current_state()
-    mode = mem.get("prediction_mode", "ai")
+    mode = mem.get("prediction_mode", "rule")
 
     openai_ok = _enabled(settings.OPENAI_API_KEY)
     anthropic_ok = _enabled(settings.ANTHROPIC_API_KEY)
@@ -267,7 +267,7 @@ async def get_system_diagnostics():
     系统诊断接口 - 返回所有关键系统组件的实时状态
     """
     current_session_state = await get_current_state()
-    current_mode = current_session_state.get("prediction_mode", "ai")
+    current_mode = current_session_state.get("prediction_mode", "rule")
 
     def _mode_label(v: str) -> str:
         return "3AI" if v == "ai" else "单AI" if v == "single_ai" else "规则" if v == "rule" else v
@@ -634,6 +634,18 @@ async def update_prediction_mode(
     """更新系统预测模式"""
     if req.mode not in ("ai", "single_ai", "rule"):
         raise HTTPException(400, "非法的预测模式")
+
+    def _enabled(v: str | None, min_len: int = 10) -> bool:
+        return bool(v and isinstance(v, str) and len(v) > min_len)
+
+    if req.mode == "ai":
+        ok = _enabled(settings.OPENAI_API_KEY) and _enabled(settings.ANTHROPIC_API_KEY) and _enabled(settings.GEMINI_API_KEY)
+        if not ok:
+            raise HTTPException(400, "无法切换至3AI模式：需同时配置 庄模型(OpenAI)、闲模型(Claude)、综合模型(Gemini) 三项接口密钥")
+    elif req.mode == "single_ai":
+        ok = _enabled(getattr(settings, "SINGLE_AI_API_KEY", ""))
+        if not ok:
+            raise HTTPException(400, "无法切换至单AI模式：请先配置 单AI(DeepSeek) 接口密钥")
     
     async with async_session() as session:
         from app.services.game.state import get_or_create_state
