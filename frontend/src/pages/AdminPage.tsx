@@ -4,7 +4,7 @@
  * 移除爬虫相关功能，专注AI模型管理和数据查看
  * 优化：精致图标、自适应布局、中文全站
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Card, Button, Table, Tag, Space, Input, Modal, App,
@@ -105,6 +105,7 @@ const AdminPage: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState('ai');
   const [modelVersions, setModelVersions] = useState<any[]>([]);
+  const [modelVersionModeFilter, setModelVersionModeFilter] = useState<'all' | 'ai' | 'single_ai'>('all');
   const [dbRecords, setDbRecords] = useState<any[]>([]);
   const [dbTable, setDbTable] = useState('game_records');
   const [dbPage, setDbPage] = useState(1);
@@ -203,6 +204,11 @@ const AdminPage: React.FC = () => {
       // 加载失败，静默处理
     }
   };
+
+  const filteredModelVersions = useMemo(() => {
+    if (modelVersionModeFilter === 'all') return modelVersions;
+    return modelVersions.filter(v => v?.prediction_mode === modelVersionModeFilter);
+  }, [modelVersions, modelVersionModeFilter]);
 
   const loadDbRecords = async () => {
     try {
@@ -598,8 +604,22 @@ const AdminPage: React.FC = () => {
 
                 {/* 模型版本列表 */}
                 <Card title="模型版本管理" size="small">
+                  <Space style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.65)' }}>模式筛选</span>
+                    <Select
+                      value={modelVersionModeFilter}
+                      onChange={setModelVersionModeFilter}
+                      style={{ width: 160 }}
+                      options={[
+                        { label: '全部', value: 'all' },
+                        { label: '3AI', value: 'ai' },
+                        { label: '单AI', value: 'single_ai' },
+                      ]}
+                      size="small"
+                    />
+                  </Space>
                   <Table
-                    dataSource={modelVersions}
+                    dataSource={filteredModelVersions}
                     columns={[
                       { title: '版本号', dataIndex: 'version', width: '12%' },
                       { title: '模式', dataIndex: 'prediction_mode', width: '10%', align: 'center' as const, render: (v: string) => v === 'single_ai' ? <Tag color="green">单AI</Tag> : <Tag color="purple">3AI</Tag> },

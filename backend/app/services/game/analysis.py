@@ -128,7 +128,8 @@ async def run_ai_analysis(
             from app.models.schemas import AIMemory
             stmt_memory = select(AIMemory).where(
                 AIMemory.boot_number == boot_number,
-                AIMemory.error_type == "实时推演策略"
+                AIMemory.error_type == "实时推演策略",
+                AIMemory.prediction_mode == prediction_mode,
             ).order_by(AIMemory.created_at.desc()).limit(1)
             memory_result = await db.execute(stmt_memory)
             latest_memory = memory_result.scalar_one_or_none()

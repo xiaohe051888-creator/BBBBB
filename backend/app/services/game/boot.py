@@ -6,9 +6,9 @@ from datetime import datetime
 from typing import Dict, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
-from app.models.schemas import GameRecord
+from app.models.schemas import GameRecord, MistakeBook, AIMemory
 from .session import get_session, get_session_lock, broadcast_event
 from .state import get_or_create_state
 from .logging import write_game_log
@@ -36,7 +36,13 @@ async def end_boot(
                 }
             
             current_boot = sess.boot_number
-            next_boot = current_boot + 1
+            stmt = select(GameRecord.boot_number).order_by(GameRecord.boot_number.desc()).limit(1)
+            result = await db.execute(stmt)
+            existing_boot = result.scalar_one_or_none() or 0
+            next_boot = max(current_boot, existing_boot) + 1
+
+            await db.execute(delete(MistakeBook))
+            await db.execute(delete(AIMemory))
 
             sess.boot_number = next_boot
             sess.next_game_number = 1
