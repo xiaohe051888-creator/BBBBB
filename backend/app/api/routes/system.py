@@ -383,7 +383,7 @@ from pydantic import BaseModel, Field
 from typing import Literal
 
 class PredictionModeRequest(BaseModel):
-    mode: Literal["ai", "rule"] = Field(..., description="预测模式：ai 或 rule")
+    mode: Literal["ai", "single_ai", "rule"] = Field(..., description="预测模式：ai | single_ai | rule")
 
 class BalanceAdjustmentRequest(BaseModel):
     action: Literal["add", "sub"] = Field(..., description="操作类型：add(充值) 或 sub(扣除)")
@@ -449,8 +449,8 @@ async def update_prediction_mode(
     req: PredictionModeRequest,
     _: dict = Depends(get_current_user),
 ):
-    """更新系统预测模式（ai 或 rule）"""
-    if req.mode not in ("ai", "rule"):
+    """更新系统预测模式"""
+    if req.mode not in ("ai", "single_ai", "rule"):
         raise HTTPException(400, "非法的预测模式")
     
     async with async_session() as session:

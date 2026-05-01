@@ -24,6 +24,7 @@ async def run_ai_analysis(
         {"success": True, "predict": "庄"/"闲", "confidence": 0.72, "bet_amount": 100, "tier": "标准"}
     """
     from app.services.three_model_service import ThreeModelService
+    from app.services.single_model_service import SingleModelService
     from app.services.road_engine import UnifiedRoadEngine
     from app.services.smart_model_selector import SmartModelSelector
     
@@ -108,6 +109,20 @@ async def run_ai_analysis(
                     logging.getLogger(__name__).warning("未配置AI大模型API Key，系统已自动降级为强规则引擎模式！")
                 else:
                     sess._api_configured_checked = True
+            elif prediction_mode == "single_ai":
+                from app.core.config import settings
+                api_configured = bool(settings.SINGLE_AI_API_KEY and len(settings.SINGLE_AI_API_KEY) > 10)
+                if not api_configured:
+                    prediction_mode = "rule"
+                    sess.prediction_mode = "rule"
+                    state = await get_or_create_state(db)
+                    state.prediction_mode = "rule"
+                    await db.commit()
+                    sess._api_configured_checked = False
+                    import logging
+                    logging.getLogger(__name__).warning("未配置单AI模式API Key，系统已自动降级为强规则引擎模式！")
+                else:
+                    sess._api_configured_checked = True
 
             # 获取AI记忆库 (提取最新生成的实时微学习策略经验)
             from app.models.schemas import AIMemory
@@ -175,6 +190,32 @@ async def run_ai_analysis(
             "player_model": {"summary": rule_res["player_summary"]},
             "bet_amount": rule_res.get("bet_amount", 100)
         }
+    elif prediction_mode == "single_ai":
+        try:
+            ai_service = SingleModelService()
+            analysis_result = await ai_service.analyze(
+                game_number=next_game_number,
+                boot_number=boot_number,
+                game_history=game_history,
+                road_data=road_data,
+                mistake_context=mistake_context,
+                consecutive_errors=consecutive_errors,
+                prompt_template=prompt_template,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"单AI分析发生致命异常: {e}", exc_info=True)
+            analysis_result = {
+                "combined_model": {
+                    "final_prediction": "观望",
+                    "confidence": 0.0,
+                    "bet_tier": "保守",
+                    "summary": f"系统异常，单AI降级: {str(e)}"
+                },
+                "banker_model": {"summary": "分析失败"},
+                "player_model": {"summary": "分析失败"},
+                "bet_amount": 0
+            }
     else:
         # 调用AI三模型服务
         try:

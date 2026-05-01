@@ -155,9 +155,16 @@ async def get_three_model_status(_: dict = Depends(get_current_user)):
             "api_key_set": bool(settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10),
             "role": "综合分析并给出最终预测",
         },
+        "single": {
+            "name": f"Deep V4 PRO (单AI模式)",
+            "provider": "deepseek",
+            "model": settings.SINGLE_AI_MODEL,
+            "api_key_set": bool(settings.SINGLE_AI_API_KEY and len(settings.SINGLE_AI_API_KEY) > 10),
+            "role": "单模型直接给出庄/闲预测",
+        },
     }
     
-    all_keys_set = all(m["api_key_set"] for m in models_config.values())
+    all_keys_set = all(m["api_key_set"] for k, m in models_config.items() if k in ("banker", "player", "combined"))
 
     return {
         "status": "ready" if all_keys_set else "incomplete",
@@ -179,6 +186,7 @@ async def update_api_config(
         "banker": ("OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_API_BASE"),
         "player": ("ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "ANTHROPIC_API_BASE"),
         "combined": ("GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_API_BASE"),
+        "single": ("SINGLE_AI_API_KEY", "SINGLE_AI_MODEL", "SINGLE_AI_API_BASE"),
     }
     
     if req.role not in role_map:

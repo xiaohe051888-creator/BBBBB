@@ -66,6 +66,11 @@ class Settings:
     OPENAI_API_BASE: Optional[str] = os.getenv("OPENAI_API_BASE")  # OpenAI API地址
     ANTHROPIC_API_BASE: Optional[str] = os.getenv("ANTHROPIC_API_BASE")  # Anthropic API地址
     GEMINI_API_BASE: Optional[str] = os.getenv("GEMINI_API_BASE")  # Gemini API地址
+
+    # 单AI模式（Deep V4 PRO）
+    SINGLE_AI_API_KEY: Optional[str] = os.getenv("SINGLE_AI_API_KEY", "")
+    SINGLE_AI_MODEL: str = os.getenv("SINGLE_AI_MODEL", "deep-v4-pro")
+    SINGLE_AI_API_BASE: Optional[str] = os.getenv("SINGLE_AI_API_BASE")
     
     # API代理配置
     OFOX_API_BASE: Optional[str] = os.getenv("OFOX_API_BASE")  # ofox.ai代理API地址

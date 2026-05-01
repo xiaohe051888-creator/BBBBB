@@ -115,7 +115,7 @@ const AdminPage: React.FC = () => {
 
   // API配置弹窗
   const [apiConfigVisible, setApiConfigVisible] = useState(false);
-  const [apiConfigRole, setApiConfigRole] = useState<'banker' | 'player' | 'combined'>('banker');
+  const [apiConfigRole, setApiConfigRole] = useState<'banker' | 'player' | 'combined' | 'single'>('banker');
 
   // 修改密码弹窗
   const [changePwdVisible, setChangePwdVisible] = useState(false);
@@ -124,8 +124,9 @@ const AdminPage: React.FC = () => {
   const [mustChange, setMustChange] = useState((location.state as any)?.mustChangePassword || false);
 
   // 预测模式
-  const [predictionMode, setPredictionMode] = useState<'ai' | 'rule'>('ai');
+  const [predictionMode, setPredictionMode] = useState<'ai' | 'single_ai' | 'rule'>('ai');
   const [updatingMode, setUpdatingMode] = useState(false);
+  const [modePickerVisible, setModePickerVisible] = useState(false);
   const [balanceAmount, setBalanceAmount] = useState<string>('');
   const [adjustingBalance, setAdjustingBalance] = useState(false);
   const { data: systemState } = useSystemStateQuery({});
@@ -136,8 +137,7 @@ const AdminPage: React.FC = () => {
     }
   }, [systemState?.prediction_mode]);
 
-  const handleModeChange = async (e: any) => {
-    const newMode = e.target.value;
+  const applyModeChange = async (newMode: 'ai' | 'single_ai' | 'rule') => {
 
     // 如果选择 AI 模式，但尚未配置至少一个大模型接口，则拦截并提示
     if (newMode === 'ai') {
@@ -151,12 +151,19 @@ const AdminPage: React.FC = () => {
         return;
       }
     }
+    if (newMode === 'single_ai') {
+      const isConfigured = threeModelStatus?.models?.single?.api_key_set;
+      if (!isConfigured) {
+        message.warning('无法切换至 单AI 模式：您尚未配置 Deep V4 PRO 的接口密钥。');
+        return;
+      }
+    }
 
     setUpdatingMode(true);
     try {
       await api.updatePredictionMode(newMode);
       setPredictionMode(newMode);
-      message.success(`已切换至 ${newMode === 'ai' ? '3个AI大模型' : '强规则引擎'} 预测模式`);
+      message.success(`已切换至 ${newMode === 'ai' ? '3AI模式' : newMode === 'single_ai' ? '单AI模式' : '规则引擎模式'} `);
     } catch (error: any) {
       message.error(`切换模式失败: ${error?.response?.data?.detail || error.message}`);
     } finally {
@@ -266,7 +273,7 @@ const AdminPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [activeTab, loadSystemTasks]);
 
-  const handleOpenApiConfig = (role: 'banker' | 'player' | 'combined') => {
+  const handleOpenApiConfig = (role: 'banker' | 'player' | 'combined' | 'single') => {
     setApiConfigRole(role);
     setApiConfigVisible(true);
   };
@@ -335,57 +342,119 @@ const AdminPage: React.FC = () => {
                   <div style={{ marginBottom: 16, color: 'rgba(255,255,255,0.6)' }}>
                     选择系统的分析预测大脑。同一时间仅能激活一种模式。
                   </div>
-                  <Radio.Group 
-                    value={predictionMode} 
-                    onChange={handleModeChange}
-                    disabled={updatingMode}
-                    style={{ width: '100%' }}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.7)' }}>当前模式</div>
+                      <Tag color={predictionMode === 'ai' ? 'purple' : predictionMode === 'single_ai' ? 'green' : 'blue'}>
+                        {predictionMode === 'ai' ? '3AI模式' : predictionMode === 'single_ai' ? '单AI模式' : '规则引擎模式'}
+                      </Tag>
+                    </div>
+                    <Button type="primary" onClick={() => setModePickerVisible(true)} loading={updatingMode}>
+                      选择模式
+                    </Button>
+                  </div>
+
+                  <Modal
+                    open={modePickerVisible}
+                    onCancel={() => setModePickerVisible(false)}
+                    title="选择模式"
+                    footer={null}
+                    width={720}
+                    style={{ maxWidth: 'calc(100vw - 32px)' }}
+                    mask={{ closable: false }}
                   >
-                    <Row gutter={[16, 16]}>
-                      <Col xs={24} sm={12}>
-                        <Radio.Button
-                          value="ai"
-                          style={{
-                            width: '100%', height: 'auto', padding: '16px',
-                            textAlign: 'left', borderRadius: 8,
-                            borderColor: predictionMode === 'ai' ? '#722ed1' : 'rgba(255,255,255,0.2)',
-                            background: predictionMode === 'ai' ? 'rgba(114,46,209,0.1)' : 'transparent',
-                            opacity: (threeModelStatus && !threeModelStatus?.models?.banker?.api_key_set && !threeModelStatus?.models?.player?.api_key_set && !threeModelStatus?.models?.combined?.api_key_set) ? 0.6 : 1
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                            <Icons.Brain /> <span style={{ fontSize: 16, fontWeight: 'bold' }}>3个AI大模型预测</span>
-                            {predictionMode === 'ai' && <Tag color="purple" style={{ marginLeft: 'auto' }}>当前激活</Tag>}
-                            {(threeModelStatus && !threeModelStatus?.models?.banker?.api_key_set && !threeModelStatus?.models?.player?.api_key_set && !threeModelStatus?.models?.combined?.api_key_set) && (
-                              <Tag color="error" style={{ marginLeft: 'auto' }}>未配置API</Tag>
-                            )}
+                    <div style={{ display: 'grid', gap: 12 }}>
+                      <Card size="small">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'grid', gap: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <Icons.Brain />
+                              <div style={{ fontWeight: 800 }}>3AI模式（3个大模型）</div>
+                              {predictionMode === 'ai' && <Tag color="purple">当前</Tag>}
+                              {(!threeModelStatus?.models?.banker?.api_key_set && !threeModelStatus?.models?.player?.api_key_set && !threeModelStatus?.models?.combined?.api_key_set) && (
+                                <Tag color="error">未配置API</Tag>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                              三个模型分工协作，等待开奖期间进行微学习。
+                            </div>
+                            <Space wrap>
+                              <Button size="small" onClick={() => handleOpenApiConfig('banker')}>配置/测试庄模型</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('player')}>配置/测试闲模型</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('combined')}>配置/测试综合模型</Button>
+                            </Space>
                           </div>
-                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', whiteSpace: 'normal' }}>
-                            通过三个独立的 AI 大模型（庄模型、闲模型、综合模型）交叉论证，融合历史血迹与等待期微学习经验，进行高维度深度分析。
+                          <Button
+                            type="primary"
+                            disabled={predictionMode === 'ai'}
+                            loading={updatingMode}
+                            onClick={async () => {
+                              await applyModeChange('ai');
+                              setModePickerVisible(false);
+                            }}
+                          >
+                            启用
+                          </Button>
+                        </div>
+                      </Card>
+
+                      <Card size="small">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'grid', gap: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <Icons.Robot />
+                              <div style={{ fontWeight: 800 }}>单AI模式（Deep V4 PRO）</div>
+                              {predictionMode === 'single_ai' && <Tag color="green">当前</Tag>}
+                              {!threeModelStatus?.models?.single?.api_key_set && <Tag color="error">未配置API</Tag>}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                              单模型直接给出庄/闲预测，不启用微学习。
+                            </div>
+                            <Space wrap>
+                              <Button size="small" onClick={() => handleOpenApiConfig('single')}>配置/测试 Deep V4 PRO</Button>
+                            </Space>
                           </div>
-                        </Radio.Button>
-                      </Col>
-                      <Col xs={24} sm={12}>
-                        <Radio.Button 
-                          value="rule" 
-                          style={{ 
-                            width: '100%', height: 'auto', padding: '16px', 
-                            textAlign: 'left', borderRadius: 8,
-                            borderColor: predictionMode === 'rule' ? '#1890ff' : 'rgba(255,255,255,0.2)',
-                            background: predictionMode === 'rule' ? 'rgba(24,144,255,0.1)' : 'transparent'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                            <Icons.Trend /> <span style={{ fontSize: 16, fontWeight: 'bold' }}>强规则引擎预测</span>
-                            {predictionMode === 'rule' && <Tag color="blue" style={{ marginLeft: 'auto' }}>当前激活</Tag>}
+                          <Button
+                            type="primary"
+                            disabled={predictionMode === 'single_ai'}
+                            loading={updatingMode}
+                            onClick={async () => {
+                              await applyModeChange('single_ai');
+                              setModePickerVisible(false);
+                            }}
+                          >
+                            启用
+                          </Button>
+                        </div>
+                      </Card>
+
+                      <Card size="small">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'grid', gap: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <Icons.Trend />
+                              <div style={{ fontWeight: 800 }}>规则引擎模式</div>
+                              {predictionMode === 'rule' && <Tag color="blue">当前</Tag>}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                              纯规则预测，不需要配置任何大模型接口。
+                            </div>
                           </div>
-                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', whiteSpace: 'normal' }}>
-                            联网强化后的量化规则引擎。基于多路共振、长龙跟随、单跳震荡等严格的数学模型与走势图特征，进行毫秒级果断决策。
-                          </div>
-                        </Radio.Button>
-                      </Col>
-                    </Row>
-                  </Radio.Group>
+                          <Button
+                            type="primary"
+                            disabled={predictionMode === 'rule'}
+                            loading={updatingMode}
+                            onClick={async () => {
+                              await applyModeChange('rule');
+                              setModePickerVisible(false);
+                            }}
+                          >
+                            启用
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+                  </Modal>
                 </Card>
 
                 {/* 资金与余额管理 */}

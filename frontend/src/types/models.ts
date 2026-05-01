@@ -18,7 +18,7 @@ export interface SystemState {
     time: string | null;
   } | null;
   next_game_number: number;
-  prediction_mode?: 'ai' | 'rule';
+  prediction_mode?: 'ai' | 'single_ai' | 'rule';
 }
 
 export interface GameRecord {

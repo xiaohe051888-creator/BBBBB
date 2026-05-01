@@ -354,7 +354,7 @@ class SystemState(Base):
     current_game_result = Column(String(4), nullable=True, comment="当前局结果")
     predict_direction = Column(String(4), nullable=True, comment="预测方向")
     predict_confidence = Column(Float, nullable=True, comment="置信度")
-    prediction_mode = Column(String(20), default="ai", comment="预测模式：ai / rule")
+    prediction_mode = Column(String(20), default="ai", comment="预测模式：ai / single_ai / rule")
     current_model_version = Column(String(20), nullable=True)
     current_bet_tier = Column(String(10), default="标准")
     balance = Column(Numeric(10, 2), default=20000.0)

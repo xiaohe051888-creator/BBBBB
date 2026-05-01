@@ -7,7 +7,7 @@ interface ApiConfigModalProps {
   visible: boolean;
   onCancel: () => void;
   onSuccess: () => void;
-  role: 'banker' | 'player' | 'combined';
+  role: 'banker' | 'player' | 'combined' | 'single';
   currentStatus: ThreeModelStatus | null;
 }
 
@@ -45,7 +45,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
   const [testResult, setTestResult] = useState<{success: boolean; message: string} | null>(null);
   const [provider, setProvider] = useState<string>('deepseek');
 
-  const roleName = role === 'banker' ? '庄模型' : role === 'player' ? '闲模型' : '综合模型';
+  const roleName = role === 'banker' ? '庄模型' : role === 'player' ? '闲模型' : role === 'combined' ? '综合模型' : '单AI模式';
 
   useEffect(() => {
     if (visible && currentStatus?.models?.[role]) {
@@ -53,7 +53,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       setProvider(modelConfig.provider || 'deepseek');
       form.setFieldsValue({
         provider: modelConfig.provider || 'deepseek',
-        model: modelConfig.model || 'deepseek-reasoner',
+        model: modelConfig.model || (role === 'single' ? 'deep-v4-pro' : 'deepseek-reasoner'),
         api_key: '', // 不回显API Key
         base_url: modelConfig.base_url || '',
       });
@@ -63,6 +63,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
   const MODEL_OPTIONS: Record<string, { label: string; value: string }[]> = {
     deepseek: [
+      { label: 'Deep V4 PRO（推荐）', value: 'deep-v4-pro' },
       { label: '推理增强版（推荐）', value: 'deepseek-reasoner' },
       { label: '通用对话版', value: 'deepseek-chat' },
     ],
@@ -81,7 +82,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
   const handleProviderChange = (value: string) => {
     setProvider(value);
     form.setFieldsValue({
-      model: DEFAULT_MODELS[value] || '',
+      model: role === 'single' && value === 'deepseek' ? 'deep-v4-pro' : DEFAULT_MODELS[value] || '',
       base_url: DEFAULT_BASE_URLS[value] || '',
     });
   };
@@ -209,7 +210,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
           name="base_url" 
           label="接口地址（可选）" 
           tooltip="如果使用代理或自定义兼容接口，请填写完整的接口地址"
-          hidden={provider !== 'custom'}
+          hidden={provider !== 'custom' && role !== 'single'}
         >
           <Input placeholder="例如：接口地址" />
         </Form.Item>

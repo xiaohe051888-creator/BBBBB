@@ -472,13 +472,14 @@ export interface ThreeModelStatus {
     banker: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
     player: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
     combined: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
+    single: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
   };
   smart_router_enabled: boolean;
   fallback_policy: string;
 }
 
 export interface ApiConfigPayload {
-  role: 'banker' | 'player' | 'combined';
+  role: 'banker' | 'player' | 'combined' | 'single';
   provider: string;
   model: string;
   api_key: string;
@@ -500,7 +501,7 @@ export const testApiConnection = async (payload: ApiConfigPayload) => {
   return api.post('/admin/api-config/test', payload);
 };
 
-export const updatePredictionMode = async (mode: 'ai' | 'rule') => {
+export const updatePredictionMode = async (mode: 'ai' | 'single_ai' | 'rule') => {
   return api.post('/system/prediction-mode', { mode });
 };
 
