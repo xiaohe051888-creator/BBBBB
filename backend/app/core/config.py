@@ -71,6 +71,7 @@ class Settings:
     SINGLE_AI_API_KEY: Optional[str] = os.getenv("SINGLE_AI_API_KEY", "")
     SINGLE_AI_MODEL: str = os.getenv("SINGLE_AI_MODEL", "deepseek-v4-pro")
     SINGLE_AI_API_BASE: Optional[str] = os.getenv("SINGLE_AI_API_BASE")
+    SINGLE_AI_THINKING: str = os.getenv("SINGLE_AI_THINKING", "enabled")
     
     # API代理配置
     OFOX_API_BASE: Optional[str] = os.getenv("OFOX_API_BASE")  # ofox.ai代理API地址

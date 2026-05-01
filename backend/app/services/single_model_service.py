@@ -139,6 +139,12 @@ class SingleModelService:
             "max_tokens": 900,
             "temperature": 0.2,
         }
+        base = base_url.lower()
+        model = (settings.SINGLE_AI_MODEL or "").lower()
+        if "deepseek" in base or model.startswith("deepseek-"):
+            thinking = getattr(settings, "SINGLE_AI_THINKING", "enabled")
+            if thinking in ("enabled", "disabled"):
+                payload["thinking"] = {"type": thinking}
 
         timeout = aiohttp.ClientTimeout(total=30.0)
         last_error: Exception | None = None
@@ -185,6 +191,12 @@ class SingleModelService:
             "max_tokens": 700,
             "temperature": 0.2,
         }
+        base = base_url.lower()
+        model = (settings.SINGLE_AI_MODEL or "").lower()
+        if "deepseek" in base or model.startswith("deepseek-"):
+            thinking = getattr(settings, "SINGLE_AI_THINKING", "enabled")
+            if thinking in ("enabled", "disabled"):
+                payload["thinking"] = {"type": thinking}
 
         timeout = aiohttp.ClientTimeout(total=30.0)
         last_error: Exception | None = None
