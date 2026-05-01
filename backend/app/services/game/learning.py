@@ -171,8 +171,8 @@ async def micro_learning_previous_game(
         
         ai_learning = AILearningService(db)
         selector = SmartModelSelector(db)
-        
-        current_version = await selector.get_current_version()
+        prediction_mode = prev_game.prediction_mode or "ai"
+        current_version = await selector.get_current_version(prediction_mode)
         road_engine = UnifiedRoadEngine()
         road_data = await road_engine.get_all_roads(boot_number)
         
@@ -181,7 +181,7 @@ async def micro_learning_previous_game(
         learning_result = await ai_learning.micro_learning(
             boot_number=boot_number,
             game_number=prev_game_number,
-            version_id=current_version.version_id if current_version else "default",
+            version_id=current_version.version if current_version else "default",
             prediction=prev_game.predict_direction or "",
             actual_result=prev_game.result,
             is_correct=is_correct,
@@ -189,6 +189,7 @@ async def micro_learning_previous_game(
             road_data=road_data,
             banker_evidence={"summary": "", "confidence": 0.5},
             player_evidence={"summary": "", "confidence": 0.5},
+            prediction_mode=prediction_mode,
         )
         
         if not learning_result.get("success"):

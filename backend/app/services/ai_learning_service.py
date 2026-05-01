@@ -109,13 +109,22 @@ class AILearningService:
         # 1. 检查任务锁
         if self.is_busy():
             return False, f"有学习任务正在执行中: {self._current_task}"
-
-        from app.core.config import settings
-        if not (settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10):
-            return False, "未配置深度学习引擎接口密钥（Claude），无法启动深度学习"
         
         if prediction_mode not in ("ai", "single_ai"):
             return False, "当前模式不支持深度学习"
+
+        from app.core.config import settings
+        if prediction_mode == "single_ai":
+            if not (settings.SINGLE_AI_API_KEY and len(settings.SINGLE_AI_API_KEY) > 10):
+                return False, "未配置单AI模式接口密钥，无法启动深度学习"
+        else:
+            api_configured = bool(
+                (settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10)
+                or (settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10)
+                or (settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10)
+            )
+            if not api_configured:
+                return False, "未配置3AI模式接口密钥，无法启动深度学习"
 
         if boot_number == 0:
             stmt = select(func.count()).select_from(
@@ -201,7 +210,7 @@ class AILearningService:
             accuracy_before = self._calculate_accuracy(training_data["records"])
             
             # 步骤4：调用AI进行深度学习
-            ai_analysis = await self._call_ai_for_learning(training_data, accuracy_before)
+            ai_analysis = await self._call_ai_for_learning(training_data, accuracy_before, prediction_mode)
             
             # 步骤5：创建新版本
             version = await self._create_model_version(
@@ -373,7 +382,7 @@ class AILearningService:
         correct = sum(1 for r in settled if r.get("predict_correct") is True)
         return correct / len(settled) * 100
     
-    async def _call_ai_for_learning(self, training_data: Dict, current_accuracy: float) -> Dict:
+    async def _call_ai_for_learning(self, training_data: Dict, current_accuracy: float, prediction_mode: str) -> Dict:
         """
         调用 Claude API 进行深度学习分析
         
@@ -413,60 +422,58 @@ class AILearningService:
         
 请直接输出JSON，不要添加任何其他文字。"""
         
-        # 调用 Claude API
         try:
-            import httpx
-            
-            api_key = settings.ANTHROPIC_API_KEY
-            if not api_key:
-                # MOCK RESPONSE
-                return {
-                    "boot_number": "mock",
-                    "learning_type": "boot",
-                    "timestamp": datetime.now().isoformat(),
-                    "total_games": len(training_data.get("records", [])),
-                    "prediction_accuracy": "0.8",
-                    "error_patterns": [],
-                    "success_patterns": [],
-                    "strategy_adjustments": [],
-                    "version_update": {"new_version": "v1.0.1", "changes": []}
-                }
-            
-            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-                response = await client.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={
-                        "x-api-key": api_key,
-                        "anthropic-version": "2023-06-01",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": settings.ANTHROPIC_MODEL,
-                        "max_tokens": 2000,
-                        "messages": [{"role": "user", "content": prompt}],
-                    }
-                )
-                response.raise_for_status()
-                
-                data = response.json()
-                content = data["content"][0]["text"]
-                
-                # 解析AI返回的JSON
-                try:
-                    # 提取JSON部分
-                    json_match = re.search(r'\{[\s\S]*\}', content)
-                    if json_match:
-                        analysis = json.loads(json_match.group())
-                        return analysis
-                except json.JSONDecodeError:
-                    pass
-                
-                # JSON解析失败时返回原始文本
-                return {"raw_response": content}
+            content = await self._call_llm(prompt, prediction_mode)
+
+            try:
+                json_match = re.search(r"\{[\s\S]*\}", content)
+                if json_match:
+                    analysis = json.loads(json_match.group())
+                    return analysis
+            except json.JSONDecodeError:
+                pass
+
+            return {"raw_response": content}
                 
         except Exception as e:
-            logger.error(f"[AI学习] Claude API调用失败: {e}")
+            logger.error(f"[AI学习] 深度学习引擎调用失败: {e}")
             raise
+
+    async def _call_llm(self, prompt: str, prediction_mode: str) -> str:
+        if prediction_mode == "single_ai":
+            from app.services.single_model_service import SingleModelService
+            svc = SingleModelService()
+            return await svc._call_raw(prompt)
+
+        from app.core.config import settings
+        from app.services.three_model_service import AnthropicClient, OpenAIClient, GeminiClient
+
+        if settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10:
+            client = AnthropicClient(
+                api_key=settings.ANTHROPIC_API_KEY,
+                model=getattr(settings, "ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022"),
+                base_url=getattr(settings, "ANTHROPIC_API_BASE", None),
+            )
+            return await client.call(prompt)
+
+        if settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10:
+            client = OpenAIClient(
+                api_key=settings.OPENAI_API_KEY,
+                model=getattr(settings, "OPENAI_MODEL", "gpt-4o-mini"),
+                base_url=getattr(settings, "OPENAI_API_BASE", None) or "https://api.openai.com/v1/chat/completions",
+            )
+            return await client.call(prompt)
+
+        if settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10:
+            base_url = getattr(settings, "GEMINI_API_BASE", None)
+            client = GeminiClient(
+                api_key=settings.GEMINI_API_KEY,
+                model=getattr(settings, "GEMINI_MODEL", "gemini-1.5-flash"),
+                base_url=base_url,
+            )
+            return await client.call(prompt)
+
+        raise RuntimeError("未配置3AI模式接口密钥，无法启动深度学习")
     
     async def _create_model_version(
         self,
@@ -939,6 +946,7 @@ class AILearningService:
         road_data: Dict,
         banker_evidence: Dict,
         player_evidence: Dict,
+        prediction_mode: str = "ai",
     ) -> Dict:
         """
         局级微学习 - 每局结算后自动触发
@@ -954,12 +962,14 @@ class AILearningService:
                 error_analysis = await self._analyze_error_deep(
                     boot_number, game_number,
                     prediction, actual_result,
-                    banker_evidence, player_evidence, road_data
+                    banker_evidence, player_evidence, road_data,
+                    prediction_mode=prediction_mode,
                 )
                 
                 # 2. 自我反思
                 self_reflection = await self._self_reflection(
-                    prediction, actual_result, error_analysis, road_data
+                    prediction, actual_result, error_analysis, road_data,
+                    prediction_mode=prediction_mode,
                 )
             
             # 3. 记录到AI记忆
@@ -967,6 +977,7 @@ class AILearningService:
                 boot_number=boot_number,
                 game_number=game_number,
                 version_id=version_id,
+                prediction_mode=prediction_mode if prediction_mode in ("ai", "single_ai") else None,
                 prediction=prediction,
                 actual_result=actual_result,
                 is_correct=is_correct,
@@ -1020,6 +1031,7 @@ class AILearningService:
         banker_evidence: Dict,
         player_evidence: Dict,
         road_data: Dict,
+        prediction_mode: str = "ai",
     ) -> Dict:
         """
         深度错误分析 - 5维度
@@ -1064,43 +1076,11 @@ class AILearningService:
 - 其他：不属于以上类别"""
 
         try:
-            import httpx
-            
-            api_key = settings.ANTHROPIC_API_KEY
-            if not api_key:
-                return {
-                    "error_pattern": "mock",
-                    "root_cause": "mock cause",
-                    "adjustment_suggestion": "mock suggestion",
-                    "confidence_penalty": 0.1
-                }
-
-            
-            async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
-                response = await client.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={
-                        "x-api-key": api_key,
-                        "anthropic-version": "2023-06-01",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": getattr(settings, 'ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022'),
-                        "max_tokens": 1000,
-                        "messages": [{"role": "user", "content": prompt}],
-                    }
-                )
-                response.raise_for_status()
-                
-                data = response.json()
-                content = data["content"][0]["text"]
-                
-                # 提取JSON
-                json_match = re.search(r'\{[\s\S]*\}', content)
-                if json_match:
-                    return json.loads(json_match.group())
-                
-                raise ValueError(f"AI返回格式错误，无法解析JSON: {content[:200]}")
+            content = await self._call_llm(prompt, prediction_mode)
+            json_match = re.search(r"\{[\s\S]*\}", content)
+            if json_match:
+                return json.loads(json_match.group())
+            raise ValueError(f"AI返回格式错误，无法解析JSON: {content[:200]}")
                 
         except Exception as e:
             logger.error(f"[错误分析] 失败: {e}")
@@ -1112,6 +1092,7 @@ class AILearningService:
         actual_result: str,
         error_analysis: Dict,
         road_data: Dict,
+        prediction_mode: str = "ai",
     ) -> Dict:
         """
         AI自我反思
@@ -1141,42 +1122,11 @@ class AILearningService:
 }}"""
 
         try:
-            import httpx
-            
-            api_key = settings.ANTHROPIC_API_KEY
-            if not api_key:
-                return {
-                    "self_reflection": "mock reflection",
-                    "strategy_improvement": "mock improvement",
-                    "learning_point": "mock point"
-                }
-
-            
-            async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
-                response = await client.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={
-                        "x-api-key": api_key,
-                        "anthropic-version": "2023-06-01",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": getattr(settings, 'ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022'),
-                        "max_tokens": 800,
-                        "messages": [{"role": "user", "content": prompt}],
-                    }
-                )
-                response.raise_for_status()
-                
-                data = response.json()
-                content = data["content"][0]["text"]
-                
-                # 提取JSON
-                json_match = re.search(r'\{[\s\S]*\}', content)
-                if json_match:
-                    return json.loads(json_match.group())
-                
-                raise ValueError(f"AI返回格式错误，无法解析JSON: {content[:200]}")
+            content = await self._call_llm(prompt, prediction_mode)
+            json_match = re.search(r"\{[\s\S]*\}", content)
+            if json_match:
+                return json.loads(json_match.group())
+            raise ValueError(f"AI返回格式错误，无法解析JSON: {content[:200]}")
                 
         except Exception as e:
             logger.error(f"[自我反思] 失败: {e}")
