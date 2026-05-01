@@ -2,10 +2,7 @@ import asyncio
 import os
 import sys
 import unittest
-from types import SimpleNamespace
 from uuid import uuid4
-
-from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -51,7 +48,7 @@ class EndBootDeepLearningE2ETest(unittest.TestCase):
             from sqlalchemy import select
             from app.core.database import init_db, async_session
             from app.models.schemas import SystemLog, SystemState
-            from app.services.game.boot import end_boot, run_deep_learning
+            from app.services.game.boot import end_boot
 
             await init_db()
             boot = self._new_boot_number()
@@ -63,23 +60,14 @@ class EndBootDeepLearningE2ETest(unittest.TestCase):
 
             self.assertTrue(res["success"])
 
-            class _FakeService:
-                def __init__(self, db):
-                    self.db = db
-
-                async def start_learning(self, boot_number: int, prediction_mode: str = "ai"):
-                    return SimpleNamespace(success=True, version="v-test", error=None)
-
-            with patch("app.services.ai_learning_service.AILearningService", _FakeService):
-                await run_deep_learning(boot, "ai")
-
             async with async_session() as s:
                 state = (await s.execute(select(SystemState).order_by(SystemState.id.desc()).limit(1))).scalars().first()
-                logs = (await s.execute(select(SystemLog).where(SystemLog.event_code == "LOG-BOOT-002"))).scalars().all()
-                return state.status if state else None, len(logs)
+                logs = (await s.execute(select(SystemLog).where(SystemLog.event_code == "LOG-BOOT-001"))).scalars().all()
+                return (state.boot_number if state else None), (state.status if state else None), len(logs)
 
-        status, log_count = asyncio.run(_run())
-        self.assertEqual(status, "等待新靴")
+        boot_number, status, log_count = asyncio.run(_run())
+        self.assertIsNotNone(boot_number)
+        self.assertEqual(status, "空闲")
         self.assertGreaterEqual(log_count, 1)
 
 

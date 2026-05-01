@@ -212,3 +212,71 @@ async def micro_learning_previous_game(
             "status": "失败",
             "error": str(e),
         })
+
+
+async def micro_learning_after_reveal(
+    db: AsyncSession,
+    boot_number: int,
+    game_number: int,
+    prediction_mode: str,
+    prediction: str,
+    actual_result: str,
+    confidence: float,
+) -> None:
+    if prediction_mode not in ("ai", "single_ai"):
+        return
+    if actual_result == "和":
+        return
+    if prediction not in ("庄", "闲"):
+        return
+
+    from app.core.config import settings
+    if prediction_mode == "single_ai":
+        if not (settings.SINGLE_AI_API_KEY and len(settings.SINGLE_AI_API_KEY) > 10):
+            return
+    else:
+        api_configured = bool(
+            (settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10)
+            or (settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10)
+            or (settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10)
+        )
+        if not api_configured:
+            return
+
+    from app.models.schemas import AIMemory
+    stmt2 = select(AIMemory).where(
+        AIMemory.boot_number == boot_number,
+        AIMemory.game_number == game_number,
+        AIMemory.prediction_mode == prediction_mode,
+    )
+    result2 = await db.execute(stmt2)
+    if result2.scalar_one_or_none():
+        return
+
+    from app.services.ai_learning_service import AILearningService
+    from app.services.smart_model_selector import SmartModelSelector
+    from app.services.road_engine import UnifiedRoadEngine
+
+    selector = SmartModelSelector(db)
+    current_version = await selector.get_current_version(prediction_mode)
+    version_id = current_version.version if current_version else "default"
+
+    road_engine = UnifiedRoadEngine()
+    road_data = await road_engine.get_all_roads(boot_number)
+
+    is_correct = prediction == actual_result
+
+    ai_learning = AILearningService(db)
+    await ai_learning.micro_learning(
+        boot_number=boot_number,
+        game_number=game_number,
+        version_id=version_id,
+        prediction=prediction,
+        actual_result=actual_result,
+        is_correct=is_correct,
+        confidence=confidence,
+        road_data=road_data,
+        banker_evidence={"summary": "", "confidence": 0.5},
+        player_evidence={"summary": "", "confidence": 0.5},
+        prediction_mode=prediction_mode,
+    )

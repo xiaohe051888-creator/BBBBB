@@ -230,14 +230,10 @@ async def end_current_boot(
 
 ):
     """
-    结束本靴 - 触发深度学习，完成后才能开始新靴
+    结束本靴 - 开始新靴（深度学习仅由管理员手动触发）
     """
     from app.services.game import end_boot, get_session
 
-    sess = get_session()
-    if sess.prediction_mode not in ("ai", "single_ai"):
-        raise HTTPException(400, "规则引擎模式下不需要深度学习")
-    
     async with async_session() as session:
         result = await end_boot(
             db=session,

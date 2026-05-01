@@ -20,7 +20,7 @@ async def end_boot(
     db: AsyncSession,
 ) -> Dict[str, Any]:
     """
-    结束本靴 - 触发深度学习，完成后才能开始新靴
+    结束本靴 - 仅切换到新靴（深度学习仅由管理员手动触发）
     """
     lock = get_session_lock()
     async with lock:
@@ -28,9 +28,6 @@ async def end_boot(
         sess_backup = copy.deepcopy(sess)
         
         try:
-            if sess.prediction_mode not in ("ai", "single_ai"):
-                return {"success": False, "error": "规则引擎模式下不需要深度学习"}
-
             # 检查是否有待开奖注单
             if sess.pending_bet_direction is not None:
                 return {
@@ -39,40 +36,35 @@ async def end_boot(
                 }
             
             current_boot = sess.boot_number
-            
-            # 检查是否有足够数据用于学习
-            stmt = select(GameRecord).where(
-                GameRecord.boot_number == current_boot,
-                GameRecord.result.isnot(None),
-            )
-            result = await db.execute(stmt)
-            games = result.scalars().all()
-            
-            if len(games) < 5:
-                return {
-                    "success": False,
-                    "error": f"本靴只有{len(games)}局有效记录，至少需要5局才能进行深度学习",
-                }
-            
-            # 设置状态为深度学习中
-            sess.status = "深度学习中"
-            sess.deep_learning_status = {
-                "boot_number": current_boot,
-                "prediction_mode": sess.prediction_mode,
-                "status": "启动中",
-                "progress": 0,
-                "message": "正在准备学习数据...",
-                "start_time": datetime.now().isoformat(),
-            }
+            next_boot = current_boot + 1
+
+            sess.boot_number = next_boot
+            sess.next_game_number = 1
+            sess.status = "空闲"
+            sess.deep_learning_status = None
+            sess.consecutive_errors = 0
+            sess.predict_direction = None
+            sess.predict_confidence = None
+            sess.predict_bet_tier = None
+            sess.predict_bet_amount = None
+            sess.banker_summary = None
+            sess.player_summary = None
+            sess.combined_summary = None
             
             # 更新系统状态
             state = await get_or_create_state(db)
-            state.status = "深度学习中"
+            state.status = "空闲"
+            state.boot_number = next_boot
+            state.game_number = 0
+            state.consecutive_errors = 0
+            state.predict_direction = None
+            state.predict_confidence = None
+            state.current_bet_tier = "标准"
             
             await write_game_log(
                 db, current_boot, None,
-                "LOG-BOOT-001", "结束本靴", "启动深度学习",
-                f"第{current_boot}靴结束，共{len(games)}局，启动深度学习",
+                "LOG-BOOT-001", "结束本靴", "开始新靴",
+                f"第{current_boot}靴结束，开始第{next_boot}靴",
                 category="系统事件",
                 priority="P1",
             )
@@ -83,32 +75,18 @@ async def end_boot(
             import app.services.game.session as session_module
             session_module._session = sess_backup
             raise e
-    
-    # 广播深度学习启动
-    await broadcast_event("deep_learning_started", {
-        "boot_number": current_boot,
-        "game_count": len(games),
-        "prediction_mode": sess.prediction_mode,
-        "status": "启动中",
-        "progress": 0,
-        "message": "正在准备学习数据...",
+
+    await broadcast_event("state_update", {
+        "status": "空闲",
+        "boot_number": next_boot,
+        "game_number": 0,
     })
-    
-    from app.services.game.session import start_background_task
-    prediction_mode = sess.prediction_mode
-    start_background_task(
-        "deep_learning",
-        run_deep_learning(current_boot, prediction_mode),
-        boot_number=current_boot,
-        dedupe_key=f"deep_learning:{current_boot}",
-    )
-    
+
     return {
         "success": True,
-        "boot_number": current_boot,
-        "game_count": len(games),
-        "status": "深度学习中",
-        "message": f"第{current_boot}靴深度学习已启动，请等待完成...",
+        "boot_number": next_boot,
+        "status": "空闲",
+        "message": f"已开始第{next_boot}靴",
     }
 
 
