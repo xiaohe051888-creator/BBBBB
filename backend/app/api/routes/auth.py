@@ -180,7 +180,7 @@ async def update_api_config(
     req: ApiConfigPayload,
     _: dict = Depends(get_current_user),
 ):
-    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), ".env")
     
     # Map role to settings keys
     role_map = {
