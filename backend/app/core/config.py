@@ -15,7 +15,7 @@ class Settings:
     
     # 服务器配置
     HOST: str = os.getenv("HOST", "0.0.0.0")
-    PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
+    PORT: int = int(os.getenv("BACKEND_PORT", "8001"))
     
     # 安全配置
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "")

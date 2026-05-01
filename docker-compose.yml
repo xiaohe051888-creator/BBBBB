@@ -28,7 +28,7 @@ services:
       dockerfile: Dockerfile
     container_name: baccarat-app
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_PORT:-8001}:8001"
     environment:
       # --- Debug ---
       - DEBUG=${DEBUG:-false}
@@ -65,7 +65,7 @@ services:
       - postgres
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/system/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8001/api/system/health"]
       interval: 30s
       timeout: 10s
       retries: 3

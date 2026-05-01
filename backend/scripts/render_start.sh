@@ -18,5 +18,4 @@ if ! alembic upgrade head; then
 fi
 
 echo "[启动] 2/2 启动后端服务..."
-exec uvicorn app.api.main:app --host 0.0.0.0 --port "${PORT:-8000}"
-
+exec uvicorn app.api.main:app --host 0.0.0.0 --port "${PORT:-8001}"

@@ -41,9 +41,10 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     DEBUG=false \
     HOST=0.0.0.0 \
-    PORT=8000
+    PORT=8001 \
+    BACKEND_PORT=8001
 
-EXPOSE 8000
+EXPOSE 8001
 
 # Use tini as PID 1 to ensure proper signal handling
 ENTRYPOINT ["tini", "--"]
