@@ -305,7 +305,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
                             : '#8b949e',
                     }}
                   >
-                    {model.required === false ? 'i' : model.status === 'ok' ? '✓' : model.status === 'unconfigured' ? '✗' : '?'}{' '}
+                    {model.required === false ? '提示' : model.status === 'ok' ? '✓' : model.status === 'unconfigured' ? '✗' : '?'}{' '}
                     {model.label}{model.required === false ? '（非必需）' : ''}
                   </Tag>
                 </Tooltip>

@@ -89,6 +89,9 @@ async def get_health_score():
     gemini_ok = _enabled(settings.GEMINI_API_KEY)
     single_ok = _enabled(getattr(settings, "SINGLE_AI_API_KEY", ""))
 
+    def _mode_label(v: str) -> str:
+        return "3AI" if v == "ai" else "单AI" if v == "single_ai" else "规则" if v == "rule" else v
+
     health_details["ai_by_mode"] = {
         "current_mode": mode,
         "current_mode_ai": {"score": 0, "max": 40, "issues": []},
@@ -98,18 +101,18 @@ async def get_health_score():
     def _other_issues() -> dict:
         return {
             "ai": [i for i in [
-                None if openai_ok else "OpenAI(庄模型)未配置",
-                None if anthropic_ok else "Anthropic(闲模型)未配置",
-                None if gemini_ok else "Gemini(综合模型)未配置",
+                None if openai_ok else "庄模型接口未配置",
+                None if anthropic_ok else "闲模型接口未配置",
+                None if gemini_ok else "综合模型接口未配置",
             ] if i],
-            "single_ai": [] if single_ok else ["单AI(DeepSeek)未配置"],
+            "single_ai": [] if single_ok else ["单AI接口未配置"],
             "rule": [],
         }
 
     other = _other_issues()
     for k, v in other.items():
         if k != mode:
-            health_details["ai_by_mode"]["other_modes_ai"]["issues_by_mode"][k] = v
+            health_details["ai_by_mode"]["other_modes_ai"]["issues_by_mode"][_mode_label(k)] = v
 
     current_ai = health_details["ai_by_mode"]["current_mode_ai"]
 
@@ -121,29 +124,29 @@ async def get_health_score():
             current_ai["score"] = 40
             health_details["ai_models"]["score"] = 40
         else:
-            current_ai["issues"].append("单AI(DeepSeek)未配置")
-            health_details["ai_models"]["issues"].append("单AI(DeepSeek)未配置")
+            current_ai["issues"].append("单AI接口未配置")
+            health_details["ai_models"]["issues"].append("单AI接口未配置")
     else:
         if openai_ok:
             current_ai["score"] += 15
             health_details["ai_models"]["score"] += 15
         else:
-            current_ai["issues"].append("OpenAI(庄模型)未配置")
-            health_details["ai_models"]["issues"].append("OpenAI(庄模型)未配置")
+            current_ai["issues"].append("庄模型接口未配置")
+            health_details["ai_models"]["issues"].append("庄模型接口未配置")
 
         if anthropic_ok:
             current_ai["score"] += 15
             health_details["ai_models"]["score"] += 15
         else:
-            current_ai["issues"].append("Anthropic(闲模型)未配置")
-            health_details["ai_models"]["issues"].append("Anthropic(闲模型)未配置")
+            current_ai["issues"].append("闲模型接口未配置")
+            health_details["ai_models"]["issues"].append("闲模型接口未配置")
 
         if gemini_ok:
             current_ai["score"] += 10
             health_details["ai_models"]["score"] += 10
         else:
-            current_ai["issues"].append("Gemini(综合模型)未配置")
-            health_details["ai_models"]["issues"].append("Gemini(综合模型)未配置")
+            current_ai["issues"].append("综合模型接口未配置")
+            health_details["ai_models"]["issues"].append("综合模型接口未配置")
     
     # 2. 数据库健康检查 (30分)
     try:
@@ -265,6 +268,9 @@ async def get_system_diagnostics():
     """
     current_session_state = await get_current_state()
     current_mode = current_session_state.get("prediction_mode", "ai")
+
+    def _mode_label(v: str) -> str:
+        return "3AI" if v == "ai" else "单AI" if v == "single_ai" else "规则" if v == "rule" else v
 
     def _enabled(v: str | None, min_len: int = 10) -> bool:
         return bool(v and isinstance(v, str) and len(v) > min_len)
@@ -396,7 +402,7 @@ async def get_system_diagnostics():
         issues_current_mode.append({
             "level": "critical",
             "title": "数据库访问失败",
-            "detail": f"数据库访问异常：{db_error or '未知错误'}",
+            "detail": "数据库无法访问，所有数据操作均会失败",
         })
     else:
         if db_game_count == 0:
@@ -407,7 +413,7 @@ async def get_system_diagnostics():
         issues_current_mode.append({
             "level": "critical",
             "title": "当前模式AI未就绪",
-            "detail": f"当前模式({current_mode})缺少必要配置：{'、'.join(current_missing)}",
+            "detail": f"当前模式({_mode_label(current_mode)})缺少必要配置：{'、'.join(current_missing)}",
         })
 
     issues_other_modes = []
@@ -416,7 +422,7 @@ async def get_system_diagnostics():
         if missing:
             issues_other_modes.append({
                 "level": "info",
-                "title": f"其它模式({om})未就绪",
+                "title": f"其它模式({_mode_label(om)})未就绪",
                 "detail": f"缺少配置：{'、'.join(missing)}（不影响当前模式）",
             })
     
