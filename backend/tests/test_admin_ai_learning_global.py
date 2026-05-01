@@ -13,6 +13,7 @@ class AdminLearningGlobalTest(unittest.TestCase):
             from app.core.database import init_db, async_session
             from app.services.game.upload import upload_games
             from app.api.routes.analysis import start_ai_learning
+            from app.core import config as config_module
 
             await init_db()
 
@@ -27,10 +28,11 @@ class AdminLearningGlobalTest(unittest.TestCase):
                 await s.commit()
             self.assertTrue(seed["success"])
 
-            async def _noop(self, boot_number: int):
+            async def _noop(self, boot_number: int, prediction_mode: str = "ai"):
                 return None
 
             with patch("app.services.ai_learning_service.AILearningService.start_learning", _noop):
+                config_module.settings.ANTHROPIC_API_KEY = "x" * 20
                 res = await start_ai_learning(boot_number=0, _={"sub": "admin"})
                 from app.services.game.task_registry import registry
                 meta = registry._tasks.get(res["task_id"])

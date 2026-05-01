@@ -160,7 +160,7 @@ async def run_ai_analysis(
             
             # 获取当前版本（用于学习）
             selector = SmartModelSelector(db)
-            current_version = await selector.get_current_version()
+            current_version = await selector.get_current_version(prediction_mode)
             prompt_template = current_version.prompt_template if current_version else None
             api_configured_checked = getattr(sess, '_api_configured_checked', True)
 

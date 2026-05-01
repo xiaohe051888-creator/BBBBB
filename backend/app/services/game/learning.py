@@ -43,6 +43,7 @@ async def micro_learning_current_trend(
     db: AsyncSession,
     boot_number: int,
     current_game_number: int,
+    prediction_mode: str = "ai",
 ):
     """
     等待期实时微学习 - 综合模型根据本靴现有走势图进行微学习，实时改进自我提升
@@ -54,17 +55,18 @@ async def micro_learning_current_trend(
         await broadcast_event("micro_learning", {
             "game_number": current_game_number,
             "status": "进行中",
-            "message": "综合模型正在根据本靴现有走势图进行微学习和自我提升...",
+            "message": "AI正在根据本靴现有走势图进行微学习和自我提升...",
         })
 
         from app.services.smart_model_selector import SmartModelSelector
         from app.services.road_engine import UnifiedRoadEngine
         from app.services.three_model_service import ThreeModelService
+        from app.services.single_model_service import SingleModelService
         from app.models.schemas import GameRecord
         import json
 
         selector = SmartModelSelector(db)
-        current_version = await selector.get_current_version()
+        current_version = await selector.get_current_version(prediction_mode)
         road_engine = UnifiedRoadEngine()
         road_data = await road_engine.get_all_roads(boot_number)
 
@@ -79,24 +81,32 @@ async def micro_learning_current_trend(
 
         # 触发综合模型的等待期自我演练
         # 我们调用真实的 ThreeModelService API 来生成策略
-        ai_service = ThreeModelService()
-        realtime_strategy_text = await ai_service.realtime_strategy_learning(
-            game_history=game_history,
-            road_data=road_data,
-        )
+        if prediction_mode == "single_ai":
+            ai_service = SingleModelService()
+            realtime_strategy_text = await ai_service.realtime_strategy_learning(
+                game_history=game_history,
+                road_data=road_data,
+            )
+        else:
+            ai_service = ThreeModelService()
+            realtime_strategy_text = await ai_service.realtime_strategy_learning(
+                game_history=game_history,
+                road_data=road_data,
+            )
 
         # 将真实推演经验写入 AIMemory，作为实时提升的知识库
         memory = AIMemory(
             boot_number=boot_number,
             game_number=current_game_number,
-            version_id=current_version.version_id if current_version else "realtime_v1",
+            version_id=current_version.version if current_version else "realtime_v1",
+            prediction_mode=prediction_mode if prediction_mode in ("ai", "single_ai") else None,
             error_type="实时推演策略",
             prediction="N/A",
             actual_result="N/A",
             is_correct=True,
             confidence=1.0,
             road_snapshot=_build_road_snapshot_summary(boot_number, current_game_number, road_data),
-            error_analysis="实时演练：综合模型提取最新五路形态",
+            error_analysis="实时演练：提取最新五路形态",
             self_reflection=realtime_strategy_text,  # 存入真实的 AI 大模型回复
             created_at=datetime.now()
         )

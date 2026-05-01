@@ -8,23 +8,31 @@ import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import event
+from sqlalchemy.pool import NullPool
 from app.core.config import settings
 
 # 配置连接池参数，优化高并发性能
 # 注意：SQLite 不支持传统的 pool_size 等参数，但 SQLAlchemy 允许传入，对其它 DB 有效。
 # 为保证使用 SQLite 时的全自动托管高并发读写，必须通过 event 开启 WAL 模式。
-connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+connect_args = {"check_same_thread": False} if is_sqlite else {}
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    connect_args=connect_args,
-    pool_size=10,           # 连接池大小
-    max_overflow=20,        # 最大溢出连接数
-    pool_pre_ping=True,     # 连接前ping检测，避免使用已断开的连接
-    pool_recycle=3600,      # 连接回收时间（1小时）
-    pool_timeout=30,        # 获取连接超时时间
-)
+engine_kwargs = {
+    "echo": settings.DEBUG,
+    "connect_args": connect_args,
+}
+if is_sqlite:
+    engine_kwargs["poolclass"] = NullPool
+else:
+    engine_kwargs.update({
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
+        "pool_timeout": 30,
+    })
+
+engine = create_async_engine(settings.DATABASE_URL, **engine_kwargs)
 
 # SQLite 性能优化：启用 WAL (Write-Ahead Logging) 和 外键约束
 @event.listens_for(engine.sync_engine, "connect")
@@ -116,6 +124,19 @@ async def init_db():
                                     logger.info(f"Auto-Migrate: Added column '{column.name}' to table '{table_name}'")
                                 except Exception as e:
                                     logger.warning(f"Auto-Migrate failed for {table_name}.{column.name}: {e}")
+
+                try:
+                    sync_conn.execute(text("UPDATE model_versions SET prediction_mode = 'ai' WHERE prediction_mode IS NULL OR prediction_mode = ''"))
+                except Exception:
+                    pass
+                try:
+                    sync_conn.execute(text("UPDATE game_records SET prediction_mode = 'ai' WHERE prediction_mode IS NULL AND predict_direction IS NOT NULL"))
+                except Exception:
+                    pass
+                try:
+                    sync_conn.execute(text("UPDATE mistake_book SET prediction_mode = 'ai' WHERE prediction_mode IS NULL"))
+                except Exception:
+                    pass
 
             await conn.run_sync(sync_columns)
 

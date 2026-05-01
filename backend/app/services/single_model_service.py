@@ -18,14 +18,25 @@ class SingleModelService:
         consecutive_errors: int,
         prompt_template: Optional[str] = None,
     ) -> Dict[str, Any]:
-        prompt = prompt_template or self._build_prompt(
-            game_number=game_number,
-            boot_number=boot_number,
-            game_history=game_history,
-            road_data=road_data,
-            mistake_context=mistake_context,
-            consecutive_errors=consecutive_errors,
-        )
+        if prompt_template:
+            prompt = self._build_prompt_with_template(
+                prompt_template=prompt_template,
+                game_number=game_number,
+                boot_number=boot_number,
+                game_history=game_history,
+                road_data=road_data,
+                mistake_context=mistake_context,
+                consecutive_errors=consecutive_errors,
+            )
+        else:
+            prompt = self._build_prompt(
+                game_number=game_number,
+                boot_number=boot_number,
+                game_history=game_history,
+                road_data=road_data,
+                mistake_context=mistake_context,
+                consecutive_errors=consecutive_errors,
+            )
 
         text = await self._call_model(prompt)
         parsed = self._parse_model_json(text)
@@ -42,6 +53,24 @@ class SingleModelService:
             "banker_model": {"summary": ""},
             "player_model": {"summary": ""},
         }
+
+    async def realtime_strategy_learning(
+        self,
+        game_history: list[dict[str, Any]],
+        road_data: dict[str, Any],
+        consecutive_errors: int = 0,
+    ) -> str:
+        encoded_road_data = jsonable_encoder(road_data)
+        prompt = (
+            "你是百家乐分析系统的【策略提炼专家】。当前玩家已经下注，正在等待开奖。\n"
+            "请利用等待时间，深度审视当前的五路结构，输出 100-200 字的高度浓缩策略总结。\n"
+            "必须包含：当前主要处于什么形态（如长龙、单跳、齐脚等）、哪几路正在发生共振、下一局决策最该警惕的陷阱。\n"
+            "不要寒暄，不要分点编号，直接输出策略文本。\n"
+            f"历史: {json.dumps(game_history, ensure_ascii=False)}\n"
+            f"五路: {json.dumps(encoded_road_data, ensure_ascii=False)}\n"
+            f"连续失准: {consecutive_errors}\n"
+        )
+        return await self._call_raw(prompt)
 
     def _build_prompt(
         self,
@@ -65,6 +94,29 @@ class SingleModelService:
             f"五路: {json.dumps(encoded_road_data, ensure_ascii=False)}\n"
             f"错题: {json.dumps(encoded_mistakes, ensure_ascii=False)}\n"
         )
+
+    def _build_prompt_with_template(
+        self,
+        prompt_template: str,
+        game_number: int,
+        boot_number: int,
+        game_history: list[dict[str, Any]],
+        road_data: dict[str, Any],
+        mistake_context: list[dict[str, Any]],
+        consecutive_errors: int,
+    ) -> str:
+        encoded_road_data = jsonable_encoder(road_data)
+        encoded_mistakes = jsonable_encoder(mistake_context)
+        rendered = (
+            prompt_template
+            .replace("{{BOOT_NUMBER}}", str(boot_number))
+            .replace("{{GAME_NUMBER}}", str(game_number))
+            .replace("{{CONSECUTIVE_ERRORS}}", str(consecutive_errors))
+            .replace("{{GAME_HISTORY}}", json.dumps(game_history, ensure_ascii=False))
+            .replace("{{ROAD_DATA}}", json.dumps(encoded_road_data, ensure_ascii=False))
+            .replace("{{MISTAKE_CONTEXT}}", json.dumps(encoded_mistakes, ensure_ascii=False))
+        )
+        return rendered
 
     async def _call_model(self, prompt: str) -> str:
         if not settings.SINGLE_AI_API_KEY:
@@ -120,6 +172,45 @@ class SingleModelService:
             },
             ensure_ascii=False,
         )
+
+    async def _call_raw(self, prompt: str) -> str:
+        if not settings.SINGLE_AI_API_KEY:
+            return "单AI模式未配置接口密钥，无法提取实时策略。"
+
+        base_url = settings.SINGLE_AI_API_BASE or "https://api.deepseek.com/v1"
+        url = f"{base_url.rstrip('/')}/chat/completions"
+        payload = {
+            "model": settings.SINGLE_AI_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 700,
+            "temperature": 0.2,
+        }
+
+        timeout = aiohttp.ClientTimeout(total=30.0)
+        last_error: Exception | None = None
+        for attempt in range(5):
+            try:
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.post(
+                        url,
+                        headers={
+                            "Authorization": f"Bearer {settings.SINGLE_AI_API_KEY}",
+                            "Content-Type": "application/json",
+                        },
+                        json=payload,
+                    ) as response:
+                        if response.status == 429 or response.status >= 500:
+                            raise Exception(f"upstream error: {response.status}")
+                        if response.status != 200:
+                            raise Exception(f"upstream error: {response.status} {await response.text()}")
+                        data = await response.json()
+                        text = data["choices"][0]["message"]["content"]
+                        return text.replace("```", "").strip()
+            except Exception as e:
+                last_error = e
+                await asyncio.sleep(min(1.0 * (2**attempt), 10.0))
+
+        return f"未能成功提取实时策略：{str(last_error)[:200]}"
 
     def _parse_model_json(self, text: str) -> Dict[str, Any]:
         try:

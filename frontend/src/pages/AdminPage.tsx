@@ -246,8 +246,12 @@ const AdminPage: React.FC = () => {
   const [startLearningVisible, setStartLearningVisible] = useState(false);
 
   const handleStartLearning = async () => {
+    if (predictionMode !== 'ai' && predictionMode !== 'single_ai') {
+      message.warning('规则引擎模式下不需要深度学习');
+      return;
+    }
     try {
-      await api.startAiLearning(0);
+      await api.startAiLearning(0, predictionMode);
       message.success('AI深度学习已启动');
       loadAiLearningStatus();
     } catch (err: any) {
@@ -408,7 +412,7 @@ const AdminPage: React.FC = () => {
                               {!threeModelStatus?.models?.single?.api_key_set && <Tag color="error">未配置API</Tag>}
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
-                              单模型直接给出庄/闲预测，不启用微学习。
+                              单模型直接给出庄/闲预测，等待开奖期间也会进行微学习。
                             </div>
                             <Space wrap>
                               <Button size="small" onClick={() => handleOpenApiConfig('single')}>配置/测试 Deep V4 PRO</Button>
@@ -576,7 +580,13 @@ const AdminPage: React.FC = () => {
                       <Button 
                         type="primary" 
                         icon={<Icons.AI />} 
-                        onClick={() => setStartLearningVisible(true)}
+                        onClick={() => {
+                          if (predictionMode !== 'ai' && predictionMode !== 'single_ai') {
+                            message.warning('规则引擎模式下不需要深度学习');
+                            return;
+                          }
+                          setStartLearningVisible(true);
+                        }}
                         loading={aiLearningStatus?.is_learning}
                         style={{ background: 'linear-gradient(135deg, #722ed1, #531dab)', border: 'none', width: '100%', maxWidth: 300, height: 40 }}
                       >
@@ -592,6 +602,7 @@ const AdminPage: React.FC = () => {
                     dataSource={modelVersions}
                     columns={[
                       { title: '版本号', dataIndex: 'version', width: '12%' },
+                      { title: '模式', dataIndex: 'prediction_mode', width: '10%', align: 'center' as const, render: (v: string) => v === 'single_ai' ? <Tag color="green">单AI</Tag> : <Tag color="purple">3AI</Tag> },
                       { title: '创建时间', dataIndex: 'created_at', width: '18%', render: (v: string) => v ? new Date(v).toLocaleString() : '-' },
                       { title: '样本数', dataIndex: 'training_sample_count', width: '10%', align: 'center' as const },
                       { title: '学习前准确率', dataIndex: 'accuracy_before', width: '12%', align: 'center' as const, render: (v: number) => v ? `${(v*100).toFixed(1)}%` : '-' },
@@ -773,6 +784,7 @@ const AdminPage: React.FC = () => {
         visible={startLearningVisible}
         onClose={() => setStartLearningVisible(false)}
         onConfirm={handleStartLearning}
+        modeLabel={predictionMode === 'ai' ? '3AI模式' : '单AI模式（Deep V4 PRO）'}
       />
 
       {/* 接口配置弹窗 */}

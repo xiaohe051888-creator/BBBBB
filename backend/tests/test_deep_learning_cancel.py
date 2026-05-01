@@ -27,7 +27,7 @@ class DeepLearningCancelTest(unittest.TestCase):
                 state.boot_number = 1
                 await db.commit()
 
-            t = asyncio.create_task(run_deep_learning(1))
+            t = asyncio.create_task(run_deep_learning(1, "ai"))
             await asyncio.sleep(0.05)
             t.cancel()
             try:
@@ -54,4 +54,3 @@ class DeepLearningCancelTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -28,7 +28,7 @@ async def end_boot(
         sess_backup = copy.deepcopy(sess)
         
         try:
-            if sess.prediction_mode != "ai":
+            if sess.prediction_mode not in ("ai", "single_ai"):
                 return {"success": False, "error": "规则引擎模式下不需要深度学习"}
 
             # 检查是否有待开奖注单
@@ -58,6 +58,7 @@ async def end_boot(
             sess.status = "深度学习中"
             sess.deep_learning_status = {
                 "boot_number": current_boot,
+                "prediction_mode": sess.prediction_mode,
                 "status": "启动中",
                 "progress": 0,
                 "message": "正在准备学习数据...",
@@ -87,15 +88,17 @@ async def end_boot(
     await broadcast_event("deep_learning_started", {
         "boot_number": current_boot,
         "game_count": len(games),
+        "prediction_mode": sess.prediction_mode,
         "status": "启动中",
         "progress": 0,
         "message": "正在准备学习数据...",
     })
     
     from app.services.game.session import start_background_task
+    prediction_mode = sess.prediction_mode
     start_background_task(
         "deep_learning",
-        run_deep_learning(current_boot),
+        run_deep_learning(current_boot, prediction_mode),
         boot_number=current_boot,
         dedupe_key=f"deep_learning:{current_boot}",
     )
@@ -111,6 +114,7 @@ async def end_boot(
 
 async def run_deep_learning(
     boot_number: int,
+    prediction_mode: str,
 ):
     """
     执行深度学习 - 带进度推送
@@ -168,7 +172,7 @@ async def run_deep_learning(
             })
             
             # 调用真正的AI深度学习
-            result = await ai_learning.start_learning(boot_number)
+            result = await ai_learning.start_learning(boot_number, prediction_mode=prediction_mode)
             
             if not result.success:
                 raise Exception(result.error or "深度学习失败")

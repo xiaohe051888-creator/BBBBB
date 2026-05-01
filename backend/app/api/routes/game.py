@@ -235,7 +235,7 @@ async def end_current_boot(
     from app.services.game import end_boot, get_session
 
     sess = get_session()
-    if sess.prediction_mode != "ai":
+    if sess.prediction_mode not in ("ai", "single_ai"):
         raise HTTPException(400, "规则引擎模式下不需要深度学习")
     
     async with async_session() as session:

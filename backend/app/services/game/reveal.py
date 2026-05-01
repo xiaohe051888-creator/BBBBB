@@ -115,6 +115,7 @@ async def reveal_game(
             
             game_record.predict_direction = sess.predict_direction
             game_record.predict_correct = predict_correct
+            game_record.prediction_mode = sess.prediction_mode
             
             # 结算注单
             settlement_info = await _settle_bet(db, game_number, result, sess)
@@ -286,11 +287,11 @@ async def _settle_bet(
             sess.consecutive_errors = 0
         else:
             sess.consecutive_errors += 1
-            # 仅当预测模式为 'ai' 时才将错误记录存入 AI 的错题本，避免污染模型记忆
-            if sess.consecutive_errors >= 1 and sess.prediction_mode == "ai":
+            if sess.consecutive_errors >= 1 and sess.prediction_mode in ("ai", "single_ai"):
                 mistake = MistakeBook(
                     boot_number=sess.boot_number,
                     game_number=game_number,
+                    prediction_mode=sess.prediction_mode,
                     error_id=f"ERR-B{sess.boot_number}G{game_number}",
                     error_type="趋势误判",
                     predict_direction=sess.predict_direction or "",

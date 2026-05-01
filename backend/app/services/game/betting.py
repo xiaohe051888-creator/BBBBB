@@ -115,15 +115,14 @@ async def place_bet(
             session_module._session = sess_backup
             raise e
     
-    # 仅在 AI 模式下触发本局的实时微学习（利用等待开奖的时间，综合模型提前复盘走势）
-    if sess.prediction_mode == "ai":
+    if sess.prediction_mode in ("ai", "single_ai"):
         from .learning import micro_learning_current_trend
         from app.core.database import async_session
 
         async def run_micro_learning():
             try:
                 async with async_session() as new_db:
-                    await micro_learning_current_trend(new_db, sess.boot_number, game_number)
+                    await micro_learning_current_trend(new_db, sess.boot_number, game_number, prediction_mode=sess.prediction_mode)
             except Exception as e:
                 import logging
                 logging.getLogger("uvicorn.error").error(f"等待期实时学习失败: {e}", exc_info=True)

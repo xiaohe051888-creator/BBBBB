@@ -67,11 +67,11 @@ class EndBootDeepLearningE2ETest(unittest.TestCase):
                 def __init__(self, db):
                     self.db = db
 
-                async def start_learning(self, boot_number: int):
+                async def start_learning(self, boot_number: int, prediction_mode: str = "ai"):
                     return SimpleNamespace(success=True, version="v-test", error=None)
 
             with patch("app.services.ai_learning_service.AILearningService", _FakeService):
-                await run_deep_learning(boot)
+                await run_deep_learning(boot, "ai")
 
             async with async_session() as s:
                 state = (await s.execute(select(SystemState).order_by(SystemState.id.desc()).limit(1))).scalars().first()
@@ -85,4 +85,3 @@ class EndBootDeepLearningE2ETest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

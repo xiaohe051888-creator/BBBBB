@@ -84,10 +84,19 @@ async def get_latest_analysis():
 @router.post("/admin/ai-learning/start")
 async def start_ai_learning(
     boot_number: int = Query(...),
+    mode: str | None = Query(None),
     _: dict = Depends(get_current_user),
 ):
     """启动AI学习任务（需认证）"""
     from app.services.ai_learning_service import AILearningService
+    from app.services.game.session import get_session
+
+    if mode is not None and not isinstance(mode, str):
+        mode = None
+    if mode is None:
+        mode = get_session().prediction_mode
+    if mode not in ("ai", "single_ai"):
+        raise HTTPException(400, "当前模式不支持深度学习")
 
     async with async_session() as session:
         service = AILearningService(session)
@@ -96,7 +105,7 @@ async def start_ai_learning(
         if status["is_learning"]:
             raise HTTPException(400, f"学习任务正在执行中: {status['current_task']}")
             
-        ok, reason = await service.check_preconditions(boot_number)
+        ok, reason = await service.check_preconditions(boot_number, prediction_mode=mode)
         if not ok:
             raise HTTPException(400, reason)
 
@@ -105,7 +114,7 @@ async def start_ai_learning(
             async with async_session() as bg_session:
                 bg_service = AILearningService(bg_session)
                 try:
-                    await bg_service.start_learning(boot_number)
+                    await bg_service.start_learning(boot_number, prediction_mode=mode)
                 except asyncio.CancelledError:
                     from app.services.game.logging import write_game_log
 
@@ -135,13 +144,13 @@ async def start_ai_learning(
             task_type="ai_learning",
             coro=run_learning_task(),
             boot_number=boot_number,
-            dedupe_key=f"ai_learning:{boot_number}",
+            dedupe_key=f"ai_learning:{mode}:{boot_number}",
         )
 
         if boot_number == 0:
-            msg = "AI学习已启动，正在分析全库历史数据（最多1000局）..."
+            msg = "深度学习已启动，正在分析全库历史数据（最多1000局）..."
         else:
-            msg = f"AI学习已启动，正在分析第{boot_number}靴数据..."
+            msg = f"深度学习已启动，正在分析第{boot_number}靴数据..."
 
         return {
             "status": "started",

@@ -104,6 +104,7 @@ async def get_model_versions(_: dict = Depends(get_current_user)):
             "data": [
                 {
                     "version": v.version,
+                    "prediction_mode": v.prediction_mode,
                     "created_at": v.created_at.isoformat() if v.created_at else None,
                     "training_range": v.training_range,
                     "training_sample_count": v.training_sample_count,

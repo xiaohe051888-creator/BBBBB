@@ -279,7 +279,7 @@ class SmartModelSelector:
             state.current_model_version = result["selected_version"]
         await self.session.commit()
     
-    async def get_current_version(self) -> Optional[ModelVersion]:
+    async def get_current_version(self, prediction_mode: str = "ai") -> Optional[ModelVersion]:
         """
         获取当前使用的模型版本
         
@@ -288,7 +288,8 @@ class SmartModelSelector:
         # 首先尝试获取标记为激活的版本
         stmt = select(ModelVersion).where(
             ModelVersion.is_active == True,
-            ModelVersion.is_eliminated is False
+            ModelVersion.is_eliminated is False,
+            ModelVersion.prediction_mode == prediction_mode,
         ).order_by(desc(ModelVersion.created_at))
         
         result = await self.session.execute(stmt)
@@ -299,7 +300,8 @@ class SmartModelSelector:
         
         # 如果没有激活的版本，返回最新的非淘汰版本
         stmt2 = select(ModelVersion).where(
-            ModelVersion.is_eliminated is False
+            ModelVersion.is_eliminated is False,
+            ModelVersion.prediction_mode == prediction_mode,
         ).order_by(desc(ModelVersion.created_at))
         
         result2 = await self.session.execute(stmt2)

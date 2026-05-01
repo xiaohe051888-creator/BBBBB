@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from fastapi.encoders import jsonable_encoder
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, update
 
 from app.core.config import settings
 from app.models.schemas import (
@@ -100,7 +100,7 @@ class AILearningService:
         cls._current_task = None
         logger.info("[AI学习] 任务锁已释放")
     
-    async def check_preconditions(self, boot_number: int) -> tuple[bool, str]:
+    async def check_preconditions(self, boot_number: int, prediction_mode: str = "ai") -> tuple[bool, str]:
         """
         检查学习前置条件
         
@@ -109,7 +109,14 @@ class AILearningService:
         # 1. 检查任务锁
         if self.is_busy():
             return False, f"有学习任务正在执行中: {self._current_task}"
+
+        from app.core.config import settings
+        if not (settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10):
+            return False, "未配置深度学习引擎接口密钥（Claude），无法启动深度学习"
         
+        if prediction_mode not in ("ai", "single_ai"):
+            return False, "当前模式不支持深度学习"
+
         if boot_number == 0:
             stmt = select(func.count()).select_from(
                 select(GameRecord).where(
@@ -126,7 +133,8 @@ class AILearningService:
         else:
             stmt = select(func.count()).select_from(
                 select(GameRecord).where(
-                    GameRecord.predict_correct.isnot(None),
+                    GameRecord.boot_number == boot_number,
+                    GameRecord.result.isnot(None),
                 ).subquery()
             )
             result = await self.session.execute(stmt)
@@ -139,7 +147,10 @@ class AILearningService:
         
         # 3. 检查版本数量限制
         version_stmt = select(func.count()).select_from(
-            select(ModelVersion).where(ModelVersion.is_eliminated is False).subquery()
+            select(ModelVersion).where(
+                ModelVersion.is_eliminated is False,
+                ModelVersion.prediction_mode == prediction_mode,
+            ).subquery()
         )
         ver_result = await self.session.execute(version_stmt)
         active_versions = ver_result.scalar() or 0
@@ -152,6 +163,7 @@ class AILearningService:
     async def start_learning(
         self,
         boot_number: int,
+        prediction_mode: str = "ai",
     ) -> LearningResult:
         """
         启动AI学习任务
@@ -166,10 +178,10 @@ class AILearningService:
         7. 释放锁
         """
         start_time = datetime.now()
-        task_id = "global" if boot_number == 0 else f"boot_{boot_number}"
+        task_id = f"{prediction_mode}:global" if boot_number == 0 else f"{prediction_mode}:boot_{boot_number}"
         
         # 步骤1：前置条件检查
-        ok, reason = await self.check_preconditions(boot_number)
+        ok, reason = await self.check_preconditions(boot_number, prediction_mode)
         if not ok:
             return LearningResult(success=False, error=reason)
         
@@ -180,7 +192,7 @@ class AILearningService:
         
         try:
             # 步骤3：收集训练数据
-            training_data = await (self._collect_global_training_data() if boot_number == 0 else self._collect_training_data(boot_number))
+            training_data = await (self._collect_global_training_data(prediction_mode) if boot_number == 0 else self._collect_training_data(boot_number, prediction_mode))
             
             if not training_data["records"]:
                 return LearningResult(success=False, error="未找到有效的训练数据")
@@ -197,6 +209,7 @@ class AILearningService:
                 training_data=training_data,
                 ai_analysis=ai_analysis,
                 accuracy_before=accuracy_before,
+                prediction_mode=prediction_mode,
             )
             
             # 步骤6：检查是否需淘汰旧版本
@@ -245,12 +258,13 @@ class AILearningService:
         finally:
             self.release_lock()
     
-    async def _collect_training_data(self, boot_number: int) -> Dict[str, Any]:
+    async def _collect_training_data(self, boot_number: int, prediction_mode: str) -> Dict[str, Any]:
         """收集指定靴号的训练数据"""
         # 获取所有开奖记录（包括和局，和局的 predict_correct 可能为 None）
         stmt = select(GameRecord).where(
             GameRecord.boot_number == boot_number,
             GameRecord.result.isnot(None),
+            ((GameRecord.predict_direction.is_(None)) | (GameRecord.prediction_mode == prediction_mode)),
         ).order_by(GameRecord.game_number)
 
         result = await self.session.execute(stmt)
@@ -259,11 +273,16 @@ class AILearningService:
         # 获取错题本记录
         mistake_stmt = select(MistakeBook).where(
             MistakeBook.boot_number == boot_number,
+            MistakeBook.prediction_mode == prediction_mode,
         ).order_by(MistakeBook.game_number)
         
         m_result = await self.session.execute(mistake_stmt)
         mistakes = m_result.scalars().all()
         
+        settled = [r for r in records if r.predict_correct is True or r.predict_correct is False]
+        correct = sum(1 for r in settled if r.predict_correct is True)
+        wrong = sum(1 for r in settled if r.predict_correct is False)
+
         return {
             "records": [
                 {
@@ -284,30 +303,34 @@ class AILearningService:
                 for m in mistakes
             ],
             "stats": {
-                "total": len(records),
-                "correct": sum(1 for r in records if r.predict_correct),
-                "wrong": sum(1 for r in records if not r.predict_correct),
+                "total": len(settled),
+                "correct": correct,
+                "wrong": wrong,
                 "banker_wins": sum(1 for r in records if r.result == "庄"),
                 "player_wins": sum(1 for r in records if r.result == "闲"),
                 "tie_count": sum(1 for r in records if r.result == "和"),
             }
         }
 
-    async def _collect_global_training_data(self) -> Dict[str, Any]:
+    async def _collect_global_training_data(self, prediction_mode: str) -> Dict[str, Any]:
         stmt = select(GameRecord).where(
             GameRecord.result.isnot(None),
+            ((GameRecord.predict_direction.is_(None)) | (GameRecord.prediction_mode == prediction_mode)),
         ).order_by(GameRecord.id.desc()).limit(1000)
         result = await self.session.execute(stmt)
         records_desc = result.scalars().all()
         records = list(reversed(records_desc))
 
-        mistake_stmt = select(MistakeBook).order_by(MistakeBook.id.desc()).limit(200)
+        mistake_stmt = select(MistakeBook).where(
+            MistakeBook.prediction_mode == prediction_mode,
+        ).order_by(MistakeBook.id.desc()).limit(200)
         m_result = await self.session.execute(mistake_stmt)
         mistakes_desc = m_result.scalars().all()
         mistakes = list(reversed(mistakes_desc))
 
-        correct = sum(1 for r in records if r.predict_correct is True)
-        wrong = sum(1 for r in records if r.predict_correct is False)
+        settled = [r for r in records if r.predict_correct is True or r.predict_correct is False]
+        correct = sum(1 for r in settled if r.predict_correct is True)
+        wrong = sum(1 for r in settled if r.predict_correct is False)
 
         return {
             "records": [
@@ -331,7 +354,7 @@ class AILearningService:
                 for m in mistakes
             ],
             "stats": {
-                "total": len(records),
+                "total": len(settled),
                 "correct": correct,
                 "wrong": wrong,
                 "banker_wins": sum(1 for r in records if r.result == "庄"),
@@ -451,20 +474,23 @@ class AILearningService:
         training_data: Dict,
         ai_analysis: Dict,
         accuracy_before: float,
+        prediction_mode: str,
     ) -> ModelVersion:
         """创建新模型版本"""
         
         # 版本号规则：v日期序号
         date_str = datetime.now().strftime("%Y%m%d")
+        mode_tag = "ai" if prediction_mode == "ai" else "single"
         
         # 获取当天已有的版本数量
         stmt = select(func.count(ModelVersion)).where(
-            ModelVersion.version.like(f"{date_str}%")
+            ModelVersion.version.like(f"{mode_tag}-v{date_str}-%"),
+            ModelVersion.prediction_mode == prediction_mode,
         )
         result = await self.session.execute(stmt)
         count = result.scalar() or 0
         
-        version_name = f"v{date_str}-{count + 1}"
+        version_name = f"{mode_tag}-v{date_str}-{count + 1}"
         
         # 提取关键变化摘要
         adjustments = ai_analysis.get("strategy_adjustments", [])
@@ -472,17 +498,24 @@ class AILearningService:
             f"{adj.get('change', '')}" for adj in adjustments[:3]
         ]) if adjustments else ai_analysis.get("key_insight", "策略优化")
         
-        # 生成优化后的提示词模板（基于AI学习结果）
-        prompt_template = self._generate_optimized_prompt_template(ai_analysis, key_changes)
+        prompt_template = self._generate_optimized_prompt_template(ai_analysis, key_changes, prediction_mode)
         
         # 构建三级记忆内容
         short_term, medium_term, long_term = await self._build_tiered_memory(
-            boot_number, ai_analysis, training_data
+            boot_number, ai_analysis, training_data, prediction_mode
         )
         
+        await self.session.execute(
+            update(ModelVersion).where(
+                ModelVersion.is_active == True,
+                ModelVersion.prediction_mode == prediction_mode,
+            ).values(is_active=False)
+        )
+
         # 创建版本记录
         version = ModelVersion(
             version=version_name,
+            prediction_mode=prediction_mode,
             created_at=datetime.now(),
             training_range=f"Boot#{boot_number} ({len(training_data['records'])} samples)",
             training_sample_count=len(training_data["records"]),
@@ -508,6 +541,7 @@ class AILearningService:
         current_boot: int,
         ai_analysis: Dict,
         training_data: Dict,
+        prediction_mode: str,
     ) -> tuple[str, str, str]:
         """
         构建三级记忆
@@ -534,6 +568,7 @@ class AILearningService:
             GameRecord.boot_number >= current_boot - 4,
             GameRecord.boot_number <= current_boot,
             GameRecord.predict_correct.isnot(None),
+            GameRecord.prediction_mode == prediction_mode,
         )
         result = await self.session.execute(recent_boots_stmt)
         recent_records = result.scalars().all()
@@ -568,7 +603,8 @@ class AILearningService:
         # 3. 长期记忆：所有历史的深层规律
         all_time_stmt = select(func.count()).select_from(
             select(GameRecord).where(
-                GameRecord.predict_correct.isnot(None)
+                GameRecord.predict_correct.isnot(None),
+                GameRecord.prediction_mode == prediction_mode,
             ).subquery()
         )
         result = await self.session.execute(all_time_stmt)
@@ -576,14 +612,16 @@ class AILearningService:
         
         # 获取所有历史版本的平均准确率
         version_stmt = select(func.avg(ModelVersion.overall_accuracy)).where(
-            ModelVersion.overall_accuracy.isnot(None)
+            ModelVersion.overall_accuracy.isnot(None),
+            ModelVersion.prediction_mode == prediction_mode,
         )
         result = await self.session.execute(version_stmt)
         avg_accuracy = result.scalar() or 0
         
         # 统计最常见的错误维度
         error_dim_stmt = select(AIMemory.error_dimension, func.count()).where(
-            AIMemory.error_dimension.isnot(None)
+            AIMemory.error_dimension.isnot(None),
+            AIMemory.prediction_mode == prediction_mode,
         ).group_by(AIMemory.error_dimension).order_by(desc(func.count())).limit(3)
         result = await self.session.execute(error_dim_stmt)
         top_errors = result.all()
@@ -599,7 +637,7 @@ class AILearningService:
         
         return short_term, medium_term, long_term
 
-    def _generate_optimized_prompt_template(self, ai_analysis: Dict, key_changes: str) -> str:
+    def _generate_optimized_prompt_template(self, ai_analysis: Dict, key_changes: str, prediction_mode: str) -> str:
         """
         基于AI学习结果生成优化后的提示词模板
         
@@ -610,6 +648,29 @@ class AILearningService:
         confidence_threshold = ai_analysis.get("confidence_threshold_recommendation", "保持默认")
         key_insight = ai_analysis.get("key_insight", "")
         
+        if prediction_mode == "single_ai":
+            template = f"""你是百家乐分析预测引擎（单AI模式 - 学习优化版）。你必须基于全量历史局与全量五路走势做出下一局庄/闲预测。
+
+【学习优化内容 - 基于深度学习生成】
+- 本版本关键优化：{key_changes}
+- 发现的模式规律：{pattern_summary}
+- 错误模式总结：{error_patterns}
+- 核心洞察：{key_insight}
+- 置信度阈值建议：{confidence_threshold}
+
+【硬性输出要求】
+你必须只输出严格 JSON（不要任何额外文字），字段如下：
+{{"final_prediction":"庄或闲","confidence":0-1,"bet_tier":"保守/标准/激进","summary":"一句话摘要"}}
+
+【输入数据】
+靴号：{{BOOT_NUMBER}}
+局号：{{GAME_NUMBER}}
+连续失准：{{CONSECUTIVE_ERRORS}}
+历史：{{GAME_HISTORY}}
+五路：{{ROAD_DATA}}
+错题：{{MISTAKE_CONTEXT}}"""
+            return template
+
         # 构建优化后的提示词模板
         template = f"""你是百家乐分析系统的【综合决策模型 - 学习优化版】。你是最终的决策者，负责融合庄模型和闲模型的证据，结合历史错误分析，输出最终预测。
 

@@ -6,12 +6,14 @@ interface StartLearningModalProps {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => Promise<void>;
+  modeLabel?: string;
 }
 
 export const StartLearningModal: React.FC<StartLearningModalProps> = ({
   visible,
   onClose,
   onConfirm,
+  modeLabel,
 }) => {
   const [loading, setLoading] = useState(false);
 
@@ -68,6 +70,11 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>
           确认开始 AI 深度学习
         </h2>
+        {modeLabel && (
+          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
+            当前模式：{modeLabel}
+          </div>
+        )}
         <p style={{ margin: '12px 0 0', color: 'rgba(255,255,255,0.65)', fontSize: 14, lineHeight: 1.6 }}>
           管理员操作：启动 AI 模型训练过程<br />
           系统将对收集的历史数据进行特征提取和模型迭代

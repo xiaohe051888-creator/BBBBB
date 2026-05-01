@@ -80,6 +80,7 @@ class GameRecord(Base):
     boot_number = Column(Integer, nullable=False, comment="靴号")
     game_number = Column(Integer, nullable=False, comment="局号")
     result = Column(String(4), nullable=False, comment="开奖结果：庄/闲/和")
+    prediction_mode = Column(String(20), nullable=True, comment="预测模式：ai/single_ai/rule")
     predict_direction = Column(String(4), nullable=True, comment="预测方向：庄/闲")
     predict_correct = Column(Boolean, nullable=True, comment="预测是否正确")
     error_id = Column(String(20), nullable=True, comment="错误编号")
@@ -207,6 +208,7 @@ class MistakeBook(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     boot_number = Column(Integer, nullable=False)
     game_number = Column(Integer, nullable=False)
+    prediction_mode = Column(String(20), nullable=True, comment="预测模式：ai/single_ai")
     error_id = Column(String(20), nullable=False, comment="错误编号")
     error_type = Column(String(20), nullable=False, comment="错误类型")
     predict_direction = Column(String(4), nullable=False, comment="预测方向")
@@ -233,6 +235,7 @@ class ModelVersion(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     version = Column(String(30), unique=True, nullable=False, comment="版本号")
+    prediction_mode = Column(String(20), nullable=False, default="ai", server_default="ai", comment="版本所属模式：ai/single_ai")
     created_at = Column(DateTime, server_default=func.now(), comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间")
     
@@ -296,6 +299,7 @@ class AIMemory(Base):
     boot_number = Column(Integer, nullable=False, comment="靴号")
     game_number = Column(Integer, nullable=False, comment="局号")
     version_id = Column(String(30), nullable=True, comment="使用的模型版本")
+    prediction_mode = Column(String(20), nullable=True, comment="预测模式：ai/single_ai")
     
     # 预测信息
     prediction = Column(String(10), nullable=True, comment="预测结果")

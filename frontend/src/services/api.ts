@@ -452,9 +452,9 @@ export interface AILearningStatus {
 }
 
 /** 启动AI学习（需管理员认证） */
-export const startAiLearning = async (bootNumber: number) => {
+export const startAiLearning = async (bootNumber: number, mode: 'ai' | 'single_ai') => {
   return api.post('/admin/ai-learning/start', null, {
-    params: { boot_number: bootNumber },
+    params: { boot_number: bootNumber, mode },
   });
 };
 
