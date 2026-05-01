@@ -2,7 +2,7 @@
 认证相关路由
 """
 import bcrypt as _bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy import select, desc
 
@@ -55,7 +55,7 @@ async def admin_login(req: LoginRequest):
         await session.commit()
         
         token = jwt.encode(
-            {"sub": admin.username, "exp": datetime.utcnow() + timedelta(hours=settings.JWT_EXPIRE_HOURS)},
+            {"sub": admin.username, "exp": datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.JWT_EXPIRE_HOURS)},
             settings.JWT_SECRET_KEY,
             algorithm=settings.JWT_ALGORITHM,
         )

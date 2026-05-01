@@ -70,7 +70,7 @@ ws_clients: List = []  # WebSocket客户端列表
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期"""
-    os.makedirs("./data", exist_ok=True)
+    os.makedirs(os.path.join(os.path.dirname(env_path), "data"), exist_ok=True)
     from app.core.security import validate_production_security
     validate_production_security()
     await init_db()

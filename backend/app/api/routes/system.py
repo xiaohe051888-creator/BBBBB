@@ -3,7 +3,7 @@
 """
 from fastapi import APIRouter, Query, HTTPException, Depends
 from sqlalchemy import select, func, desc
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 from app.core.database import async_session
 from app.models.schemas import GameRecord, BetRecord, SystemLog, SystemState
@@ -192,7 +192,7 @@ async def get_health_score():
             
             stmt = select(func.count()).select_from(SystemLog).where(
                 SystemLog.priority == "high",
-                SystemLog.created_at > datetime.utcnow() - timedelta(hours=1)
+                SystemLog.created_at > (datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=1))
             )
             result = await session.execute(stmt)
             error_count = result.scalar() or 0
@@ -257,7 +257,7 @@ async def get_health_score():
             if isinstance(d, dict) and isinstance(d.get("issues"), list)
             for issue in d["issues"]
         ],
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).replace(tzinfo=None).isoformat(),
     }
 
 
