@@ -157,7 +157,14 @@ def _dispose_on_exit() -> None:
     try:
         asyncio.run(close_db())
     except RuntimeError:
-        pass
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(close_db())
+            loop.close()
+            asyncio.set_event_loop(None)
+        except Exception:
+            pass
     except Exception:
         pass
 
