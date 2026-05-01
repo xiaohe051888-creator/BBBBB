@@ -32,13 +32,17 @@ class AdminLearningGlobalTest(unittest.TestCase):
                 return None
 
             with patch("app.services.ai_learning_service.AILearningService.start_learning", _noop):
+                prev = config_module.settings.ANTHROPIC_API_KEY
                 config_module.settings.ANTHROPIC_API_KEY = "x" * 20
-                res = await start_ai_learning(boot_number=0, _={"sub": "admin"})
-                from app.services.game.task_registry import registry
-                meta = registry._tasks.get(res["task_id"])
-                if meta and meta.task:
-                    await meta.task
-                return res
+                try:
+                    res = await start_ai_learning(boot_number=0, _={"sub": "admin"})
+                    from app.services.game.task_registry import registry
+                    meta = registry._tasks.get(res["task_id"])
+                    if meta and meta.task:
+                        await meta.task
+                    return res
+                finally:
+                    config_module.settings.ANTHROPIC_API_KEY = prev
 
         res = asyncio.run(_run())
         self.assertEqual(res["status"], "started")
