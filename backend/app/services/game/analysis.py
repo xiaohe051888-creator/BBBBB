@@ -27,6 +27,7 @@ async def run_ai_analysis(
     from app.services.single_model_service import SingleModelService
     from app.services.road_engine import UnifiedRoadEngine
     from app.services.smart_model_selector import SmartModelSelector
+    from app.services.game.reasoning_format import format_reasoning_detail
     
     lock = get_session_lock()
     async with lock:
@@ -252,6 +253,19 @@ async def run_ai_analysis(
                 "player_model": {"summary": "分析失败"},
                 "bet_amount": 0
             }
+
+    banker_summary_for_format = (analysis_result.get("banker_model") or {}).get("summary") or ""
+    player_summary_for_format = (analysis_result.get("player_model") or {}).get("summary") or ""
+    combined_model_for_format = analysis_result.get("combined_model") or {}
+    rp2, rd2 = format_reasoning_detail(
+        mode=prediction_mode,
+        combined_model=combined_model_for_format,
+        banker_summary=banker_summary_for_format,
+        player_summary=player_summary_for_format,
+    )
+    combined_model_for_format["reasoning_points"] = rp2
+    combined_model_for_format["reasoning_detail"] = rd2
+    analysis_result["combined_model"] = combined_model_for_format
 
     # ================== 重新加锁更新状态 ==================
     async with lock:
