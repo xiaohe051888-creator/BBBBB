@@ -22,6 +22,8 @@ async def get_latest_analysis():
     if mem.get("analysis"):
         analysis = mem["analysis"]
         return {
+            "prediction_mode": mem.get("prediction_mode", "ai"),
+            "engine": analysis.get("engine"),
             "banker_model": {
                 "summary": analysis.get("banker_summary"),
                 "time": analysis.get("time"),
@@ -35,6 +37,8 @@ async def get_latest_analysis():
                 "confidence": mem.get("predict_confidence"),
                 "bet_tier": mem.get("predict_bet_tier"),
                 "prediction": mem.get("predict_direction"),
+                "reasoning_points": analysis.get("combined_reasoning_points") or [],
+                "reasoning_detail": analysis.get("combined_reasoning_detail"),
                 "time": analysis.get("time"),
             },
             "has_data": True,
@@ -62,6 +66,8 @@ async def get_latest_analysis():
         state = state_result.scalar_one_or_none()
         
         return {
+            "prediction_mode": getattr(state, "prediction_mode", None),
+            "engine": None,
             "banker_model": {
                 "summary": banker_log.description if banker_log else None,
                 "time": banker_log.log_time.isoformat() if banker_log else None,
@@ -75,6 +81,8 @@ async def get_latest_analysis():
                 "confidence": (state.predict_confidence if state else None),
                 "bet_tier": (state.current_bet_tier if state else None),
                 "prediction": (state.predict_direction if state else None),
+                "reasoning_points": [],
+                "reasoning_detail": None,
                 "time": combined_log.log_time.isoformat() if combined_log else None,
             },
             "has_data": bool(combined_log),

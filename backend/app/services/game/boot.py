@@ -56,6 +56,9 @@ async def end_boot(
             sess.banker_summary = None
             sess.player_summary = None
             sess.combined_summary = None
+            sess.combined_reasoning_points = None
+            sess.combined_reasoning_detail = None
+            sess.analysis_engine = None
             
             # 更新系统状态
             state = await get_or_create_state(db)
@@ -192,6 +195,9 @@ async def run_deep_learning(
                 sess.banker_summary = None
                 sess.player_summary = None
                 sess.combined_summary = None
+                sess.combined_reasoning_points = None
+                sess.combined_reasoning_detail = None
+                sess.analysis_engine = None
             
             await broadcast_event("deep_learning_completed", {
                 "boot_number": boot_number,
@@ -264,6 +270,9 @@ async def run_deep_learning(
                     sess.banker_summary = None
                     sess.player_summary = None
                     sess.combined_summary = None
+                    sess.combined_reasoning_points = None
+                    sess.combined_reasoning_detail = None
+                    sess.analysis_engine = None
 
                 state.status = "分析中"
                 state.boot_number = next_boot

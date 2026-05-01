@@ -417,9 +417,11 @@ export const createWebSocket = (): WebSocket => {
 // ====== AI模型分析 ======
 
 export interface LatestAnalysis {
+  prediction_mode?: 'ai' | 'single_ai' | 'rule';
+  engine?: { provider?: string; model?: string; banker?: string | null; player?: string | null; combined?: string | null } | null;
   banker_model: { summary: string | null; time: string | null };
   player_model: { summary: string | null; time: string | null };
-  combined_model: { summary: string | null; confidence: number | null; bet_tier: string | null; prediction: string | null; time: string | null };
+  combined_model: { summary: string | null; confidence: number | null; bet_tier: string | null; prediction: string | null; reasoning_points?: string[]; reasoning_detail?: string | null; time: string | null };
   has_data: boolean;
 }
 

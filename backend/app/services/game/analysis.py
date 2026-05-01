@@ -186,6 +186,8 @@ async def run_ai_analysis(
                 "confidence": rule_res["confidence"],
                 "bet_tier": rule_res["tier"],
                 "summary": ("⚠️ 【系统提示】：未检测到有效的 AI 大模型 API Key 配置，系统已自动为您降级并启用【强规则引擎模式】。\n\n" if not api_configured_checked else "") + "【强规则引擎模式】\n" + rule_res["combined_summary"],
+                "reasoning_points": rule_res.get("reasoning_points", []),
+                "reasoning_detail": rule_res.get("reasoning_detail", ""),
             },
             "banker_model": {"summary": rule_res["banker_summary"]},
             "player_model": {"summary": rule_res["player_summary"]},
@@ -211,7 +213,9 @@ async def run_ai_analysis(
                     "final_prediction": "观望",
                     "confidence": 0.0,
                     "bet_tier": "保守",
-                    "summary": f"系统异常，单AI降级: {str(e)}"
+                    "summary": f"系统异常，单AI降级: {str(e)}",
+                    "reasoning_points": ["系统异常触发降级输出"],
+                    "reasoning_detail": f"单AI分析发生异常，无法完成推理，已输出安全结果。错误摘要：{str(e)[:200]}",
                 },
                 "banker_model": {"summary": "分析失败"},
                 "player_model": {"summary": "分析失败"},
@@ -240,7 +244,9 @@ async def run_ai_analysis(
                     "final_prediction": "观望", 
                     "confidence": 0.0, 
                     "bet_tier": "保守", 
-                    "summary": f"系统异常，AI降级: {str(e)}"
+                    "summary": f"系统异常，AI降级: {str(e)}",
+                    "reasoning_points": ["系统异常触发降级输出"],
+                    "reasoning_detail": f"3AI分析发生异常，无法完成推理，已输出安全结果。错误摘要：{str(e)[:200]}",
                 },
                 "banker_model": {"summary": "分析失败"},
                 "player_model": {"summary": "分析失败"},
@@ -268,6 +274,21 @@ async def run_ai_analysis(
             sess.banker_summary = banker_model.get("summary", "")
             sess.player_summary = player_model.get("summary", "")
             sess.combined_summary = combined_model.get("summary", "")
+            rp = combined_model.get("reasoning_points")
+            sess.combined_reasoning_points = rp if isinstance(rp, list) else []
+            sess.combined_reasoning_detail = combined_model.get("reasoning_detail") or None
+            from app.core.config import settings
+            if prediction_mode == "single_ai":
+                sess.analysis_engine = {"provider": "deepseek", "model": settings.SINGLE_AI_MODEL}
+            elif prediction_mode == "rule":
+                sess.analysis_engine = {"provider": "rule", "model": "baccarat-rule-engine"}
+            else:
+                sess.analysis_engine = {
+                    "provider": "3ai",
+                    "banker": getattr(settings, "OPENAI_MODEL", None),
+                    "player": getattr(settings, "ANTHROPIC_MODEL", None),
+                    "combined": getattr(settings, "GEMINI_MODEL", None),
+                }
             sess.analysis_time = datetime.now()
             
             # 更新系统状态

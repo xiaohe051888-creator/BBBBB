@@ -226,6 +226,10 @@ export const useAnalysisQuery = (options: UseAnalysisQueryOptions) => {
           bet_tier: res.data.combined_model?.bet_tier || '标准',
           prediction: res.data.combined_model?.prediction || null,
           bet_amount: null,
+          prediction_mode: res.data.prediction_mode,
+          engine: res.data.engine || null,
+          reasoning_points: res.data.combined_model?.reasoning_points || [],
+          reasoning_detail: res.data.combined_model?.reasoning_detail || null,
         };
       }
       return null;

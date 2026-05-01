@@ -38,6 +38,9 @@ class ManualSession:
     banker_summary: Optional[str] = None
     player_summary: Optional[str] = None
     combined_summary: Optional[str] = None
+    combined_reasoning_points: Optional[list[str]] = None
+    combined_reasoning_detail: Optional[str] = None
+    analysis_engine: Optional[Dict] = None
     analysis_time: Optional[datetime] = None
     
     # 深度学习状态

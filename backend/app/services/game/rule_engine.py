@@ -196,6 +196,17 @@ class BaccaratRuleEngine:
         combined_reason = banker_reasons if prediction == "庄" else player_reasons
         combined_summary = f"因为 {', '.join(combined_reason)}，并且{', '.join(combined_reasons) if combined_reasons else '当前处于规律期'}，所以最终预测为【{prediction}】。" if combined_reason else f"因为当前盘面处于无序状态，缺乏明显规律，所以系统根据经验补偿机制给出了偏向【{prediction}】的预测。"
 
+        reasoning_points = []
+        if combined_reasons:
+            reasoning_points.extend(combined_reasons)
+        reasoning_points.extend(combined_reason[:6])
+        reasoning_points = [p for p in reasoning_points if p][:6]
+        reasoning_detail = (
+            f"当前推演模式为强规则引擎。核心依据：{'; '.join(combined_reason) if combined_reason else '未形成明显单一规律'}。"
+            f"{' 风险提示：' + '; '.join(combined_reasons) + '。' if combined_reasons else ' 风险提示：当前处于规律期但仍需警惕突然断路。'}"
+            f"最终由于庄分={banker_score}、闲分={player_score}，所以给出【{prediction}】方向，建议档位为【{tier}】。"
+        )
+
         return {
             "predict": prediction,
             "confidence": round(confidence / 100.0, 2),
@@ -203,7 +214,9 @@ class BaccaratRuleEngine:
             "tier": tier,
             "banker_summary": banker_summary,
             "player_summary": player_summary,
-            "combined_summary": combined_summary
+            "combined_summary": combined_summary,
+            "reasoning_points": reasoning_points,
+            "reasoning_detail": reasoning_detail,
         }
 
     def _extract_points(self, road_obj):

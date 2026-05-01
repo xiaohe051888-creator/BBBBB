@@ -46,6 +46,8 @@ class SingleModelService:
             "confidence": float(parsed.get("confidence") or 0.0),
             "bet_tier": parsed.get("bet_tier") or "标准",
             "summary": parsed.get("summary") or "",
+            "reasoning_points": parsed.get("reasoning_points") if isinstance(parsed.get("reasoning_points"), list) else [],
+            "reasoning_detail": parsed.get("reasoning_detail") or parsed.get("summary") or "",
         }
 
         return {
@@ -86,7 +88,7 @@ class SingleModelService:
         return (
             "你是百家乐分析预测引擎。请基于当前靴的全量历史局与全量五路走势图，预测下一局庄/闲。\n"
             "输出必须是严格 JSON（不要任何额外文字），字段如下：\n"
-            '{"final_prediction":"庄或闲","confidence":0-1,"bet_tier":"保守/标准/激进","summary":"一句话摘要"}\n'
+            '{"final_prediction":"庄或闲","confidence":0-1,"bet_tier":"保守/标准/激进","summary":"一句话摘要","reasoning_points":["要点1","要点2"],"reasoning_detail":"更详细的解释版推理"}\n'
             f"靴号: {boot_number}\n"
             f"局号: {game_number}\n"
             f"连续失准: {consecutive_errors}\n"
@@ -126,6 +128,8 @@ class SingleModelService:
                     "confidence": 0.5,
                     "bet_tier": "标准",
                     "summary": "单AI模式未配置接口密钥，返回模拟结果",
+                    "reasoning_points": ["单AI模式未配置接口密钥，当前为模拟输出"],
+                    "reasoning_detail": "单AI模式未配置接口密钥，因此无法调用模型进行推理。本次展示为模拟结果，仅用于流程联调。",
                 },
                 ensure_ascii=False,
             )
@@ -175,6 +179,8 @@ class SingleModelService:
                 "confidence": 0.0,
                 "bet_tier": "保守",
                 "summary": f"单AI模式调用失败: {str(last_error)[:200]}",
+                "reasoning_points": ["上游接口调用失败，已触发安全降级输出"],
+                "reasoning_detail": f"单AI模式调用上游接口失败，因此无法获得完整推理结果。错误摘要：{str(last_error)[:200]}",
             },
             ensure_ascii=False,
         )

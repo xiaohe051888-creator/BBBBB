@@ -79,4 +79,8 @@ export interface AnalysisData {
   bet_tier: string;
   prediction: string | null;
   bet_amount: number | null;
+  prediction_mode?: 'ai' | 'single_ai' | 'rule';
+  engine?: { provider?: string; model?: string; banker?: string | null; player?: string | null; combined?: string | null } | null;
+  reasoning_points?: string[];
+  reasoning_detail?: string | null;
 }

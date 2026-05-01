@@ -728,7 +728,9 @@ class ThreeModelService:
     "final_prediction": "庄或闲（只能选一个）",
     "confidence": 0.0到1.0之间的数字,
     "bet_tier": "保守/标准/进取",
-    "summary": "证据对比显示{{结论}}，血迹分析显示{{分析}}，当前处于{{规律判断}}，{{应变策略}}，所以按{{档位}}预测{{庄/闲}}"
+    "summary": "证据对比显示{{结论}}，血迹分析显示{{分析}}，当前处于{{规律判断}}，{{应变策略}}，所以按{{档位}}预测{{庄/闲}}",
+    "reasoning_points": ["关键依据要点1","关键依据要点2","风险点1"],
+    "reasoning_detail": "更详细的解释版推理（200-600字），说明为什么选庄/闲、当前五路形态与血迹风险、以及档位原因"
 }}
 
 【输出规范】
@@ -827,6 +829,12 @@ class ThreeModelService:
         elif bet_tier == "标准" and "标准策略" not in summary:
             summary = summary.replace("下局预测", "按标准策略下局预测")
         
+        reasoning_points = data.get("reasoning_points", []) if isinstance(data.get("reasoning_points", []), list) else []
+        if not reasoning_points:
+            candidate = [data.get("evidence_comparison", ""), data.get("bloodstain_analysis", ""), data.get("pattern_assessment", ""), data.get("adaptation_strategy", "")]
+            reasoning_points = [c for c in candidate if c][:6]
+        reasoning_detail = data.get("reasoning_detail") or summary
+
         return {
             "model_type": "综合模型",
             "summary": summary,
@@ -835,6 +843,8 @@ class ThreeModelService:
             "final_prediction": data.get("final_prediction", "庄"),
             "confidence": float(data.get("confidence", 0.5)),
             "bet_tier": bet_tier,
+            "reasoning_points": reasoning_points,
+            "reasoning_detail": reasoning_detail,
             "is_complete": True,  # 永不返回False
         }
     

@@ -59,8 +59,11 @@ async def get_current_state() -> Dict[str, Any]:
                 "banker_summary": sess.banker_summary,
                 "player_summary": sess.player_summary,
                 "combined_summary": sess.combined_summary,
+                "combined_reasoning_points": sess.combined_reasoning_points,
+                "combined_reasoning_detail": sess.combined_reasoning_detail,
+                "engine": sess.analysis_engine,
                 "time": sess.analysis_time.isoformat() if sess.analysis_time else None,
-            } if sess.banker_summary else None,
+            } if sess.combined_summary else None,
         }
 
 
