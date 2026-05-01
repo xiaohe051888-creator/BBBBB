@@ -53,7 +53,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       setProvider(modelConfig.provider || 'deepseek');
       form.setFieldsValue({
         provider: modelConfig.provider || 'deepseek',
-        model: modelConfig.model || (role === 'single' ? 'deep-v4-pro' : 'deepseek-reasoner'),
+        model: modelConfig.model || (role === 'single' ? 'deepseek-v4-pro' : 'deepseek-reasoner'),
         api_key: '', // 不回显API Key
         base_url: modelConfig.base_url || '',
       });
@@ -63,7 +63,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
   const MODEL_OPTIONS: Record<string, { label: string; value: string }[]> = {
     deepseek: [
-      { label: 'Deep V4 PRO（推荐）', value: 'deep-v4-pro' },
+      { label: 'DeepSeek V4 Pro（推荐）', value: 'deepseek-v4-pro' },
       { label: '推理增强版（推荐）', value: 'deepseek-reasoner' },
       { label: '通用对话版', value: 'deepseek-chat' },
     ],
@@ -82,7 +82,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
   const handleProviderChange = (value: string) => {
     setProvider(value);
     form.setFieldsValue({
-      model: role === 'single' && value === 'deepseek' ? 'deep-v4-pro' : DEFAULT_MODELS[value] || '',
+      model: role === 'single' && value === 'deepseek' ? 'deepseek-v4-pro' : DEFAULT_MODELS[value] || '',
       base_url: DEFAULT_BASE_URLS[value] || '',
     });
   };

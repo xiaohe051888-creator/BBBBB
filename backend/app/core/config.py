@@ -67,9 +67,9 @@ class Settings:
     ANTHROPIC_API_BASE: Optional[str] = os.getenv("ANTHROPIC_API_BASE")  # Anthropic API地址
     GEMINI_API_BASE: Optional[str] = os.getenv("GEMINI_API_BASE")  # Gemini API地址
 
-    # 单AI模式（Deep V4 PRO）
+    # 单AI模式（DeepSeek V4 Pro）
     SINGLE_AI_API_KEY: Optional[str] = os.getenv("SINGLE_AI_API_KEY", "")
-    SINGLE_AI_MODEL: str = os.getenv("SINGLE_AI_MODEL", "deep-v4-pro")
+    SINGLE_AI_MODEL: str = os.getenv("SINGLE_AI_MODEL", "deepseek-v4-pro")
     SINGLE_AI_API_BASE: Optional[str] = os.getenv("SINGLE_AI_API_BASE")
     
     # API代理配置

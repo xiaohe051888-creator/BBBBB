@@ -157,7 +157,7 @@ async def get_three_model_status(_: dict = Depends(get_current_user)):
             "role": "综合分析并给出最终预测",
         },
         "single": {
-            "name": f"Deep V4 PRO (单AI模式)",
+            "name": f"DeepSeek V4 Pro (单AI模式)",
             "provider": "deepseek",
             "model": settings.SINGLE_AI_MODEL,
             "api_key_set": bool(settings.SINGLE_AI_API_KEY and len(settings.SINGLE_AI_API_KEY) > 10),

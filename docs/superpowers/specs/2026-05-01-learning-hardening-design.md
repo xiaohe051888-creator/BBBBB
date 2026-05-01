@@ -114,7 +114,7 @@
 
 调用策略：
 
-- `single_ai`：深度学习引擎调用走单AI接口（Deep V4 PRO）。
+- `single_ai`：深度学习引擎调用走单AI接口（DeepSeek V4 Pro）。
 - `ai`：按优先级选择可用引擎：
   1. Anthropic（若已配置）
   2. OpenAI（若已配置）
@@ -136,7 +136,7 @@
   - 全部 / 3AI / 单AI
 - “启动深度学习”弹窗展示当前模式：
   - `ai`：3AI模式
-  - `single_ai`：单AI模式（Deep V4 PRO）
+  - `single_ai`：单AI模式（DeepSeek V4 Pro）
   - `rule`：提示不支持并阻止打开弹窗
 
 ### 4）测试计划

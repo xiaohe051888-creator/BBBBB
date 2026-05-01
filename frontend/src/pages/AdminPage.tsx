@@ -154,7 +154,7 @@ const AdminPage: React.FC = () => {
     if (newMode === 'single_ai') {
       const isConfigured = threeModelStatus?.models?.single?.api_key_set;
       if (!isConfigured) {
-        message.warning('无法切换至 单AI 模式：您尚未配置 Deep V4 PRO 的接口密钥。');
+        message.warning('无法切换至 单AI 模式：您尚未配置 DeepSeek V4 Pro 的接口密钥。');
         return;
       }
     }
@@ -407,7 +407,7 @@ const AdminPage: React.FC = () => {
                           <div style={{ display: 'grid', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Icons.Robot />
-                              <div style={{ fontWeight: 800 }}>单AI模式（Deep V4 PRO）</div>
+                              <div style={{ fontWeight: 800 }}>单AI模式（DeepSeek V4 Pro）</div>
                               {predictionMode === 'single_ai' && <Tag color="green">当前</Tag>}
                               {!threeModelStatus?.models?.single?.api_key_set && <Tag color="error">未配置API</Tag>}
                             </div>
@@ -415,7 +415,7 @@ const AdminPage: React.FC = () => {
                               单模型直接给出庄/闲预测，等待开奖期间也会进行微学习。
                             </div>
                             <Space wrap>
-                              <Button size="small" onClick={() => handleOpenApiConfig('single')}>配置/测试 Deep V4 PRO</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('single')}>配置/测试 DeepSeek V4 Pro</Button>
                             </Space>
                           </div>
                           <Button
@@ -784,7 +784,7 @@ const AdminPage: React.FC = () => {
         visible={startLearningVisible}
         onClose={() => setStartLearningVisible(false)}
         onConfirm={handleStartLearning}
-        modeLabel={predictionMode === 'ai' ? '3AI模式' : '单AI模式（Deep V4 PRO）'}
+        modeLabel={predictionMode === 'ai' ? '3AI模式' : '单AI模式（DeepSeek V4 Pro）'}
       />
 
       {/* 接口配置弹窗 */}
