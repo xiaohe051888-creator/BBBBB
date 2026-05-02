@@ -122,7 +122,6 @@ const AdminPage: React.FC = () => {
   const [changePwdVisible, setChangePwdVisible] = useState(false);
   const [oldPwd, setOldPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
-  const [mustChange, setMustChange] = useState((location.state as any)?.mustChangePassword || false);
 
   // 预测模式
   const [predictionMode, setPredictionMode] = useState<'ai' | 'single_ai' | 'rule'>('rule');
@@ -191,11 +190,6 @@ const AdminPage: React.FC = () => {
     }
   };
   
-  // 强制修改密码
-  useEffect(() => {
-    if (mustChange) setChangePwdVisible(true);
-  }, [mustChange]);
-
   const loadModelVersions = async () => {
     try {
       const res = await api.getModelVersions();
@@ -297,7 +291,6 @@ const AdminPage: React.FC = () => {
       await api.changePassword(oldPwd, newPwd);
       message.success('密码修改成功');
       setChangePwdVisible(false);
-      setMustChange(false);
     } catch (err: any) {
       const errorMsg = err instanceof Error ? err.message : '修改失败';
       message.error(errorMsg);
@@ -784,15 +777,13 @@ const AdminPage: React.FC = () => {
       <Modal
         title="修改默认密码"
         open={changePwdVisible}
-        closable={!mustChange}
-        mask={{ closable: !mustChange }}
-        onCancel={() => !mustChange && setChangePwdVisible(false)}
+        closable
+        mask={{ closable: true }}
+        onCancel={() => setChangePwdVisible(false)}
         onOk={handleChangePassword}
         okText="保存新密码"
-        cancelText={mustChange ? null : '取消'}
-        cancelButtonProps={mustChange ? { style: { display: 'none' } } : {}}
+        cancelText="取消"
       >
-        {mustChange && <div style={{ color: '#faad14', marginBottom: 16 }}>安全提示：您正在使用默认密码登录，请修改为新密码。</div>}
         <Space orientation="vertical" style={{ width: '100%' }}>
           <Input.Password placeholder="当前密码" value={oldPwd} onChange={e => setOldPwd(e.target.value)} />
           <Input.Password placeholder="新密码" value={newPwd} onChange={e => setNewPwd(e.target.value)} />

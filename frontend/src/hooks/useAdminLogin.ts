@@ -65,15 +65,10 @@ export const useAdminLogin = (
     setLoading(true);
     try {
       const res = await api.adminLogin(password);
-      const { must_change_password, token } = res.data;
+      const { token } = res.data;
       api.setToken(token);
 
-      if (must_change_password) {
-        message.warning('首次登录请修改默认密码');
-        navigate('/admin', { state: { mustChangePassword: true, token } });
-      } else {
-        navigate('/mode', { state: { token } });
-      }
+      navigate('/mode', { state: { token } });
 
       setVisible(false);
       setPassword('');
