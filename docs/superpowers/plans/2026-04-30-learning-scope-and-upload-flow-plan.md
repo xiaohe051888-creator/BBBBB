@@ -143,7 +143,7 @@ import time
 import unittest
 import urllib.request
 
-BASE_URL = os.environ.get("TEST_BASE_URL", "http://localhost:8000")
+BASE_URL = os.environ.get("TEST_BASE_URL", "http://localhost:8001")
 
 def _post_json(url: str, payload: dict | None, headers: dict | None = None):
     body = b"" if payload is None else json.dumps(payload).encode("utf-8")
@@ -253,4 +253,3 @@ Run:
 进入管理员后台 → “启动深度学习”：
 - 后端返回“分析全库历史数据（最多1000局）”
 - 学习状态变为学习中（可从 `/api/admin/ai-learning/status` 或 UI 观察）
-

@@ -27,7 +27,9 @@ class Settings:
     @property
     def DATABASE_URL(self) -> str:
         backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        default_sqlite = f"sqlite+aiosqlite:///{os.path.join(backend_dir, 'data', 'baccarat.db')}"
+        data_dir = os.path.join(backend_dir, "data")
+        os.makedirs(data_dir, exist_ok=True)
+        default_sqlite = f"sqlite+aiosqlite:///{os.path.join(data_dir, 'baccarat.db')}"
         _db_url = os.getenv("DATABASE_URL") or default_sqlite
         if _db_url.startswith("postgres://"):
             return _db_url.replace("postgres://", "postgresql+asyncpg://")

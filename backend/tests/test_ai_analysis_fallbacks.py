@@ -49,6 +49,7 @@ class AiAnalysisFallbacksTest(unittest.TestCase):
             from app.services.game.session import get_session
             from app.core.database import async_session
             from app.services.game.state import get_or_create_state
+            import logging
 
             await init_db()
             boot = self._new_boot_number()
@@ -63,6 +64,7 @@ class AiAnalysisFallbacksTest(unittest.TestCase):
                 raise RuntimeError("boom")
 
             try:
+                logging.disable(logging.CRITICAL)
                 with patch("app.services.three_model_service.ThreeModelService.analyze", _boom):
                     async with async_session() as s:
                         res = await run_ai_analysis(s, boot_number=boot)
@@ -73,6 +75,7 @@ class AiAnalysisFallbacksTest(unittest.TestCase):
                     state = await get_or_create_state(s)
                 return res, sess.status, state.status
             finally:
+                logging.disable(logging.NOTSET)
                 settings.OPENAI_API_KEY, settings.ANTHROPIC_API_KEY, settings.GEMINI_API_KEY = old
 
         res, mem_status, db_status = asyncio.run(_run())

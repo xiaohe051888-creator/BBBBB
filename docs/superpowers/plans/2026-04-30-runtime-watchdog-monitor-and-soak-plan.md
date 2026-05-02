@@ -83,7 +83,7 @@ check_once 内部：
 - [ ] **Step 1: monitor.py**
 
 参数：
-- BASE_URL（默认 http://localhost:8000）
+- BASE_URL（默认 http://localhost:8001）
 - ADMIN_PASSWORD（可选，存在时允许触发 repair）
 
 行为：
@@ -113,4 +113,3 @@ Run:
 ```bash
 python -m unittest discover -s backend/tests -p 'test_*.py' -v
 ```
-

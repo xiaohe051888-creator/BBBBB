@@ -286,6 +286,8 @@ async def get_database_records(
                 val = getattr(r, column.name)
                 if hasattr(val, "isoformat"):
                     val = val.isoformat()
+                if column.name == "prediction_mode" and not val:
+                    val = "rule"
                 row[column.name] = val
             data.append(row)
         

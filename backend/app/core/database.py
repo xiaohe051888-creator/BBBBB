@@ -125,19 +125,6 @@ async def init_db():
                                 except Exception as e:
                                     logger.warning(f"Auto-Migrate failed for {table_name}.{column.name}: {e}")
 
-                try:
-                    sync_conn.execute(text("UPDATE model_versions SET prediction_mode = 'ai' WHERE prediction_mode IS NULL OR prediction_mode = ''"))
-                except Exception:
-                    pass
-                try:
-                    sync_conn.execute(text("UPDATE game_records SET prediction_mode = 'ai' WHERE prediction_mode IS NULL AND predict_direction IS NOT NULL"))
-                except Exception:
-                    pass
-                try:
-                    sync_conn.execute(text("UPDATE mistake_book SET prediction_mode = 'ai' WHERE prediction_mode IS NULL"))
-                except Exception:
-                    pass
-
             await conn.run_sync(sync_columns)
 
     logger.info("数据库初始化及字段同步完成")

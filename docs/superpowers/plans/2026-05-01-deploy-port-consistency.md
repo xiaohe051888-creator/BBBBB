@@ -27,7 +27,7 @@
 **Files:**
 - Modify: [config.py](file:///workspace/backend/app/core/config.py#L16-L20)
 
-- [ ] 将 `BACKEND_PORT` 默认值从 8000 改为 8001（仍允许通过环境变量覆盖）。
+- [ ] 将 `BACKEND_PORT` 默认值设置为 8001（仍允许通过环境变量覆盖）。
 
 ---
 
@@ -36,7 +36,7 @@
 **Files:**
 - Modify: [vite.config.ts](file:///workspace/frontend/vite.config.ts#L9-L22)
 
-- [ ] 将 `/api` 与 `/ws` 的 target 从 `localhost:8000` 改为 `localhost:8001`。
+- [ ] 将 `/api` 与 `/ws` 的 target 设置为 `localhost:8001`。
 
 ---
 
@@ -46,7 +46,7 @@
 - Modify: [start-all.sh](file:///workspace/start-all.sh#L17-L20)
 - Modify: [stop-all.sh](file:///workspace/stop-all.sh#L16-L19)
 
-- [ ] 将脚本里的 `BACKEND_PORT=8000` 改为 `BACKEND_PORT=8001`。
+- [ ] 将脚本里的 `BACKEND_PORT` 默认值改为 8001。
 
 ---
 
@@ -55,7 +55,7 @@
 **Files:**
 - Modify: [render_start.sh](file:///workspace/backend/scripts/render_start.sh#L20-L21)
 
-- [ ] 将 `${PORT:-8000}` 改为 `${PORT:-8001}`。
+- [ ] 将 `${PORT:-...}` 的默认端口改为 8001。
 
 ---
 
@@ -64,9 +64,9 @@
 **Files:**
 - Modify: [docker-compose.yml](file:///workspace/docker-compose.yml#L25-L73)
 
-- [ ] `ports` 从 `"${BACKEND_PORT:-8000}:8000"` 改为 `"${BACKEND_PORT:-8001}:8001"`
-- [ ] `healthcheck` URL 从 `localhost:8000` 改为 `localhost:8001`
-- [ ] 若容器启动命令硬编码 8000，需要同步调整（Dockerfile/entrypoint）。
+- [ ] `ports` 默认映射与容器内端口统一为 8001
+- [ ] `healthcheck` URL 指向 `localhost:8001`
+- [ ] 若容器启动命令硬编码端口，需要同步调整（Dockerfile/entrypoint）。
 
 ---
 
@@ -93,4 +93,3 @@ curl -sS -o /dev/null -w "%{http_code}\n" http://localhost:8001/api/system/healt
 ```
 
 Expected: 200 / 200
-
