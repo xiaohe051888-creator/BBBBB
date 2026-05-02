@@ -8,7 +8,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Card, Button, Table, Tag, Space, Input, Modal, App,
-  Select, Tabs, Empty, Statistic, Row, Col, Radio
+  Select, Tabs, Empty, Statistic, Row, Col
 } from 'antd';
 import dayjs from 'dayjs';
 import * as api from '../services/api';
@@ -247,12 +247,16 @@ const AdminPage: React.FC = () => {
 
   const loadMaintenanceStats = useCallback(async () => {
     setMaintenanceLoading(true);
+    const timeoutId = window.setTimeout(() => {
+      setMaintenanceLoading(false);
+    }, 10000);
     try {
       const res = await api.adminMaintenanceStats();
       setMaintenanceStats(res.data);
     } catch (err: any) {
       message.error(err instanceof Error ? err.message : '加载维护统计失败');
     } finally {
+      window.clearTimeout(timeoutId);
       setMaintenanceLoading(false);
     }
   }, [message]);

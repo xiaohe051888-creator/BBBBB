@@ -28,6 +28,7 @@ interface WorkflowStatusBarProps {
       game_number: number;
     } | null;
     next_game_number?: number;
+    prediction_mode?: 'ai' | 'single_ai' | 'rule';
   } | null;
   onOpenReveal: () => void;
 }
@@ -84,7 +85,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
     }
 
     if (systemState?.status === '分析中' && !hasPendingBet) {
-      const mode = (systemState as any)?.prediction_mode;
+      const mode = systemState?.prediction_mode;
       return {
         icon: <BulbIcon />,
         iconColor: '#1890ff',

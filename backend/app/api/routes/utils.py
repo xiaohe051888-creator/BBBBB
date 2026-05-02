@@ -21,12 +21,7 @@ def extract_token(request: Request, query_token: Optional[str] = None) -> str:
     raise HTTPException(401, "缺少认证凭证（需要Bearer Token或token参数）")
 
 
-async def get_current_user(
-    request: Request,
-    token: Optional[str] = Query(None, alias="token"),
-) -> dict:
-    """验证JWT token，支持Header Bearer和Query参数双模式"""
-    raw_token = extract_token(request, token)
+def decode_token(raw_token: str) -> dict:
     try:
         payload = jwt.decode(
             raw_token,
@@ -36,6 +31,16 @@ async def get_current_user(
         username: str = payload.get("sub")
         if username is None:
             raise HTTPException(401, "无效的认证凭证")
-        return {"username": username}
+        return payload
     except JWTError:
         raise HTTPException(401, "无效或已过期的认证凭证")
+
+
+async def get_current_user(
+    request: Request,
+    token: Optional[str] = Query(None, alias="token"),
+) -> dict:
+    """验证JWT token，支持Header Bearer和Query参数双模式"""
+    raw_token = extract_token(request, token)
+    payload = decode_token(raw_token)
+    return {"username": payload.get("sub")}

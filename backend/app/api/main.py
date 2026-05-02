@@ -66,8 +66,6 @@ from app.api.routes import system as system_routes
 
 
 # ============ 全局状态 ============
-ws_clients: List = []  # WebSocket客户端列表
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -299,11 +297,11 @@ async def get_database_records(
 
 
 # ============ WebSocket路由 ============
-from app.api.routes.websocket import router as ws_router, broadcast_update
+from app.api.routes.websocket import router as ws_router, broadcast_update, ws_clients as route_ws_clients
 app.include_router(ws_router)
 
 # 将ws_clients暴露给其他模块
-app.state.ws_clients = ws_clients
+app.state.ws_clients = route_ws_clients
 
 
 # ============ 导出广播函数（供其他模块使用） ============

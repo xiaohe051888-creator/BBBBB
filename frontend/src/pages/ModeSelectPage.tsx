@@ -1,24 +1,38 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, App, Button, Card, Space, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import * as api from '../services/api';
 
 type Mode = 'ai' | 'single_ai' | 'rule';
+type ModelEntry = Partial<api.ThreeModelStatus['models']['banker']>;
 
 const ModeSelectPage: React.FC = () => {
   const navigate = useNavigate();
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
-  const [threeModelStatus, setThreeModelStatus] = useState<any>(null);
+  const [threeModelStatus, setThreeModelStatus] = useState<api.ThreeModelStatus | null>(null);
 
   const reloadStatus = async () => {
     setStatusLoading(true);
     try {
       const res = await api.getThreeModelStatus();
       setThreeModelStatus(res.data);
-    } catch (err: any) {
-      message.error(err?.response?.data?.detail || err?.message || '加载模型状态失败');
+    } catch (err: unknown) {
+      const backendDetail =
+        axios.isAxiosError(err) &&
+        err.response &&
+        typeof err.response.data === 'object' &&
+        err.response.data &&
+        'detail' in err.response.data
+          ? (err.response.data as { detail?: unknown }).detail
+          : undefined;
+      const msg =
+        (typeof backendDetail === 'string' && backendDetail) ||
+        (err instanceof Error ? err.message : '') ||
+        '加载模型状态失败';
+      message.error(msg);
     } finally {
       setStatusLoading(false);
     }
@@ -34,16 +48,16 @@ const ModeSelectPage: React.FC = () => {
   }, []);
 
   const readiness = useMemo(() => {
-    const models = threeModelStatus?.models || {};
-    const banker = models.banker;
-    const player = models.player;
-    const combined = models.combined;
-    const single = models.single;
+    const models = threeModelStatus?.models;
+    const banker = models?.banker;
+    const player = models?.player;
+    const combined = models?.combined;
+    const single = models?.single;
 
     const missing3Ai: string[] = [];
     const missingSingle: string[] = [];
 
-    const check = (m: any, label: string, out: string[]) => {
+    const check = (m: ModelEntry | undefined, label: string, out: string[]) => {
       if (!m?.api_key_set) out.push(`${label}未配置`);
       else if (!m?.last_test_ok) out.push(`${label}未测试通过`);
     };
@@ -68,8 +82,20 @@ const ModeSelectPage: React.FC = () => {
       localStorage.setItem('mode_selected', '1');
       message.success('模式已启用');
       navigate('/dashboard', { replace: true });
-    } catch (err: any) {
-      message.error(err?.response?.data?.detail || err?.message || '切换模式失败');
+    } catch (err: unknown) {
+      const backendDetail =
+        axios.isAxiosError(err) &&
+        err.response &&
+        typeof err.response.data === 'object' &&
+        err.response.data &&
+        'detail' in err.response.data
+          ? (err.response.data as { detail?: unknown }).detail
+          : undefined;
+      const msg =
+        (typeof backendDetail === 'string' && backendDetail) ||
+        (err instanceof Error ? err.message : '') ||
+        '切换模式失败';
+      message.error(msg);
       await reloadStatus();
     } finally {
       setLoading(false);
@@ -140,4 +166,3 @@ const ModeSelectPage: React.FC = () => {
 };
 
 export default ModeSelectPage;
-

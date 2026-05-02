@@ -4,13 +4,13 @@ WebSocket路由
 import asyncio
 import json
 from typing import List, Dict
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import JSONResponse
 from datetime import datetime
-from jose import jwt, JWTError
 
 from app.core.config import settings
 from app.core.async_utils import spawn_task
+from app.api.routes.utils import decode_token
 
 router = APIRouter(tags=["WebSocket"])
 
@@ -33,11 +33,8 @@ async def websocket_endpoint(websocket: WebSocket):
         return
 
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        if not payload.get("sub"):
-            await websocket.close(code=4401, reason="无效的认证凭证")
-            return
-    except (JWTError, Exception):
+        decode_token(token)
+    except (HTTPException, Exception):
         await websocket.close(code=4401, reason="无效的认证凭证")
         return
     
