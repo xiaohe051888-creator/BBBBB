@@ -61,7 +61,7 @@ from app.core.database import init_db, async_session, close_db
 from app.models.schemas import AdminUser, SystemLog, BetRecord, MistakeBook
 
 # ============ 导入路由模块 ============
-from app.api.routes import game, bet, logs, stats, analysis
+from app.api.routes import game, bet, logs, stats, analysis, maintenance
 from app.api.routes import system as system_routes
 
 
@@ -245,6 +245,9 @@ app.include_router(stats.router)
 
 # AI分析路由
 app.include_router(analysis.router)
+
+# 系统维护路由（管理员）
+app.include_router(maintenance.router)
 
 
 # ============ 管理员路由（需要合并的） ============

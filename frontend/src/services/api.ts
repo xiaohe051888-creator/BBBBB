@@ -356,6 +356,69 @@ export const changePassword = async (oldPassword: string, newPassword: string) =
   return api.post('/admin/change-password', { old_password: oldPassword, new_password: newPassword });
 };
 
+export interface AdminMaintenanceStatsResponse {
+  counts: {
+    system_logs_total: number;
+    system_logs_pinned: number;
+    system_logs_p1: number;
+    system_logs_p2: number;
+    system_logs_p3: number;
+    game_records_total: number;
+    bet_records_total: number;
+  };
+  config: {
+    RETENTION_ENABLED: boolean;
+    RETENTION_INTERVAL_SECONDS: number;
+    LOG_RETENTION_HOT: number;
+    LOG_RETENTION_WARM: number;
+    MAX_HISTORY_RECORDS: number;
+  };
+  sqlite_size_bytes: number | null;
+  last_manual_retention_at: string | null;
+}
+
+export interface AdminMaintenanceAlertItem {
+  id: number;
+  log_time: string | null;
+  boot_number: number | null;
+  game_number: number | null;
+  event_code: string;
+  event_type: string;
+  event_result: string;
+  description: string;
+  category: string;
+  priority: string;
+  source_module: string | null;
+  task_id: string | null;
+}
+
+export interface AdminMaintenanceAlertsResponse {
+  count: number;
+  data: AdminMaintenanceAlertItem[];
+}
+
+export interface AdminMaintenanceRetentionRunResponse {
+  deleted: {
+    deleted_p3: number;
+    deleted_p2: number;
+    deleted_game_records: number;
+    deleted_bet_records: number;
+  };
+  elapsed_ms: number;
+}
+
+export const adminMaintenanceStats = async () => {
+  return api.get<AdminMaintenanceStatsResponse>('/admin/maintenance/stats');
+};
+
+export const adminMaintenanceAlerts = async (hours: number = 24, limit: number = 20) => {
+  return api.get<AdminMaintenanceAlertsResponse>('/admin/maintenance/alerts', { params: { hours, limit } });
+};
+
+export const adminMaintenanceRunRetention = async () => {
+  return api.post<AdminMaintenanceRetentionRunResponse>('/admin/maintenance/retention/run');
+};
+
 export const getModelVersions = async () => {
   return api.get('/admin/model-versions');
 };

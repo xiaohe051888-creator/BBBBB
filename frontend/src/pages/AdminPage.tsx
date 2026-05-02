@@ -109,6 +109,8 @@ const AdminPage: React.FC = () => {
   const [dbRecords, setDbRecords] = useState<any[]>([]);
   const [dbTable, setDbTable] = useState('game_records');
   const [dbPage, setDbPage] = useState(1);
+  const [maintenanceStats, setMaintenanceStats] = useState<api.AdminMaintenanceStatsResponse | null>(null);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
   const [aiLearningStatus, setAiLearningStatus] = useState<any>(null);
   const [threeModelStatus, setThreeModelStatus] = useState<any>(null);
   const [systemTasks, setSystemTasks] = useState<api.BackgroundTaskItem[]>([]);
@@ -243,6 +245,36 @@ const AdminPage: React.FC = () => {
     }
   }, []);
 
+  const loadMaintenanceStats = useCallback(async () => {
+    setMaintenanceLoading(true);
+    try {
+      const res = await api.adminMaintenanceStats();
+      setMaintenanceStats(res.data);
+    } catch (err: any) {
+      message.error(err instanceof Error ? err.message : '加载维护统计失败');
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  }, [message]);
+
+  const runRetentionNow = useCallback(async () => {
+    Modal.confirm({
+      title: '确认立即执行清理？',
+      content: '将按配置清理超期日志并裁剪历史数据（保留最近N条）。',
+      okText: '确认执行',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await api.adminMaintenanceRunRetention();
+          message.success(`清理完成：P3-${res.data.deleted.deleted_p3}、P2-${res.data.deleted.deleted_p2}、局-${res.data.deleted.deleted_game_records}、注-${res.data.deleted.deleted_bet_records}（${res.data.elapsed_ms}ms）`);
+          loadMaintenanceStats();
+        } catch (err: any) {
+          message.error(err instanceof Error ? err.message : '清理失败');
+        }
+      },
+    });
+  }, [loadMaintenanceStats, message]);
+
   const [startLearningVisible, setStartLearningVisible] = useState(false);
 
   const handleStartLearning = async () => {
@@ -266,7 +298,10 @@ const AdminPage: React.FC = () => {
       loadAiLearningStatus();
       loadThreeModelStatus();
     }
-    if (activeTab === 'db') loadDbRecords();
+    if (activeTab === 'db') {
+      loadDbRecords();
+      loadMaintenanceStats();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, dbTable, dbPage]);
 
@@ -744,30 +779,86 @@ const AdminPage: React.FC = () => {
             key: 'db',
             label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Database /> 数据库存储</span>,
             children: (
-              <Card title="数据库记录查看" size="small">
-                <Space style={{ marginBottom: 16, flexWrap: 'wrap' }}>
-                  <span>选择表：</span>
-                  <Select
-                    value={dbTable}
-                    onChange={(v) => { setDbTable(v); setDbPage(1); }}
-                    style={{ width: 160, maxWidth: '100%' }}
-                    options={[
-                      { label: '开奖记录', value: 'game_records' },
-                      { label: '下注记录', value: 'bet_records' },
-                      { label: '系统日志', value: 'system_logs' },
-                      { label: '错题本', value: 'mistake_book' },
-                    ]}
-                  />
-                </Space>
-                <Table
-                  dataSource={dbRecords}
-                  columns={tableColumns}
-                  rowKey="id"
+              <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                <Card
+                  title="维护与清理"
                   size="small"
-                  scroll={{ x: 'max-content' }}
-                  pagination={{ current: dbPage, pageSize: 50, onChange: setDbPage, total: 1000 }}
-                />
-              </Card>
+                  extra={
+                    <Space size={8}>
+                      <Button size="small" loading={maintenanceLoading} onClick={loadMaintenanceStats}>刷新统计</Button>
+                      <Button size="small" danger onClick={runRetentionNow}>立即清理</Button>
+                    </Space>
+                  }
+                >
+                  <Row gutter={[12, 12]}>
+                    <Col xs={24} sm={12} md={8}>
+                      <Statistic
+                        title="数据库大小（SQLite）"
+                        value={
+                          maintenanceStats?.sqlite_size_bytes
+                            ? `${(maintenanceStats.sqlite_size_bytes / 1024 / 1024).toFixed(2)} MB`
+                            : '不可用'
+                        }
+                      />
+                    </Col>
+                    <Col xs={24} sm={12} md={8}>
+                      <Statistic title="开奖记录" value={maintenanceStats?.counts.game_records_total ?? '-'} />
+                    </Col>
+                    <Col xs={24} sm={12} md={8}>
+                      <Statistic title="下注记录" value={maintenanceStats?.counts.bet_records_total ?? '-'} />
+                    </Col>
+                    <Col xs={24} sm={12} md={8}>
+                      <Statistic title="日志总量" value={maintenanceStats?.counts.system_logs_total ?? '-'} />
+                    </Col>
+                    <Col xs={24} sm={12} md={8}>
+                      <Statistic title="P1 / P2 / P3" value={`${maintenanceStats?.counts.system_logs_p1 ?? '-'} / ${maintenanceStats?.counts.system_logs_p2 ?? '-'} / ${maintenanceStats?.counts.system_logs_p3 ?? '-'}`} />
+                    </Col>
+                    <Col xs={24} sm={12} md={8}>
+                      <Statistic title="置顶日志" value={maintenanceStats?.counts.system_logs_pinned ?? '-'} />
+                    </Col>
+                  </Row>
+
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <Space size={8} wrap>
+                      <Tag color={maintenanceStats?.config.RETENTION_ENABLED ? 'green' : 'default'}>
+                        自动清理 {maintenanceStats?.config.RETENTION_ENABLED ? '开启' : '关闭'}
+                      </Tag>
+                      <Tag color="blue">P3保留 {maintenanceStats?.config.LOG_RETENTION_HOT ?? '-'} 天</Tag>
+                      <Tag color="gold">P2保留 {maintenanceStats?.config.LOG_RETENTION_WARM ?? '-'} 天</Tag>
+                      <Tag color="purple">历史上限 {maintenanceStats?.config.MAX_HISTORY_RECORDS ?? '-'} 条</Tag>
+                      <Tag color="default">间隔 {maintenanceStats?.config.RETENTION_INTERVAL_SECONDS ?? '-'} 秒</Tag>
+                      <Tag color="default">
+                        最近手动清理 {maintenanceStats?.last_manual_retention_at ? dayjs(maintenanceStats.last_manual_retention_at).format('YYYY-MM-DD HH:mm:ss') : '无'}
+                      </Tag>
+                    </Space>
+                  </div>
+                </Card>
+
+                <Card title="数据库记录查看" size="small">
+                  <Space style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                    <span>选择表：</span>
+                    <Select
+                      value={dbTable}
+                      onChange={(v) => { setDbTable(v); setDbPage(1); }}
+                      style={{ width: 160, maxWidth: '100%' }}
+                      options={[
+                        { label: '开奖记录', value: 'game_records' },
+                        { label: '下注记录', value: 'bet_records' },
+                        { label: '系统日志', value: 'system_logs' },
+                        { label: '错题本', value: 'mistake_book' },
+                      ]}
+                    />
+                  </Space>
+                  <Table
+                    dataSource={dbRecords}
+                    columns={tableColumns}
+                    rowKey="id"
+                    size="small"
+                    scroll={{ x: 'max-content' }}
+                    pagination={{ current: dbPage, pageSize: 50, onChange: setDbPage, total: 1000 }}
+                  />
+                </Card>
+              </Space>
             ),
           },
         ]}

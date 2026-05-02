@@ -16,6 +16,7 @@ import { GameTable, BetTable, LogTable } from '../components/tables';
 import { LearningStatusPanel } from '../components/learning';
 import { SmartAlerts } from '../components/ui';
 import { debounce } from 'lodash';
+import { AdminAlertsBar } from '../components/dashboard/AdminAlertsBar';
 import {
   useAdminLogin,
   useSmartDetection,
@@ -335,6 +336,8 @@ const DashboardPage: React.FC = () => {
         systemState={systemState ?? null}
         onOpenReveal={handleOpenReveal}
       />
+
+      <AdminAlertsBar />
 
       {/* 主体内容 */}
       <div className="dashboard-main-grid" style={{ padding: 16, display: 'flex', gap: 16, flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
