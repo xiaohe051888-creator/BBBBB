@@ -15,6 +15,7 @@ import { useLogsQuery, type LogEntry, useAddLogOptimistically, useWebSocket } fr
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { SystemStatusPanel } from '../components/ui/SystemStatusPanel';
 import { PRIORITY_COLORS } from '../utils/constants';
+import { copyText } from '../utils/clipboard';
 import { useQueryClient } from '@tanstack/react-query';
 import * as api from '../services/api';
 
@@ -127,10 +128,10 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
   const { message } = App.useApp();
 
   const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
+    const ok = await copyText(text);
+    if (ok) {
       message.success('已复制');
-    } catch {
+    } else {
       message.error('复制失败');
     }
   };
@@ -484,10 +485,10 @@ const LogsPage: React.FC = () => {
 
   const handleCopyTaskId = async () => {
     if (!filterTaskId) return;
-    try {
-      await navigator.clipboard.writeText(filterTaskId);
+    const ok = await copyText(filterTaskId);
+    if (ok) {
       message.success('任务编号已复制');
-    } catch {
+    } else {
       message.error('复制失败');
     }
   };

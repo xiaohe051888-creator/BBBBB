@@ -1,13 +1,12 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
+import { describe, expect, it } from 'vitest';
+import { normalizeBackendDetail } from './errorMessage';
 
-import { normalizeBackendDetail } from './errorMessage.ts';
+describe('normalizeBackendDetail', () => {
+  it('maps illegal_state to Chinese', () => {
+    expect(normalizeBackendDetail('illegal_state')).toBe('当前状态不允许该操作，请刷新后重试');
+  });
 
-test('normalizeBackendDetail maps illegal_state to Chinese', () => {
-  assert.equal(normalizeBackendDetail('illegal_state'), '当前状态不允许该操作，请刷新后重试');
+  it('returns null for non-string', () => {
+    expect(normalizeBackendDetail({})).toBe(null);
+  });
 });
-
-test('normalizeBackendDetail returns null for non-string', () => {
-  assert.equal(normalizeBackendDetail({}), null);
-});
-

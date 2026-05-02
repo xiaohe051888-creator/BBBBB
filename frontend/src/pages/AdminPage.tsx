@@ -13,6 +13,7 @@ import {
 import dayjs from 'dayjs';
 import * as api from '../services/api';
 import { clearToken } from '../services/api';
+import { copyText } from '../utils/clipboard';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { useSystemStateQuery } from '../hooks/useQueries';
 import { StartLearningModal } from '../components/dashboard/StartLearningModal';
@@ -733,10 +734,10 @@ const AdminPage: React.FC = () => {
                           size="small"
                           style={{ padding: 0 }}
                           onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(v);
+                            const ok = await copyText(v);
+                            if (ok) {
                               message.success('任务编号已复制');
-                            } catch {
+                            } else {
                               message.error('复制失败');
                             }
                           }}
