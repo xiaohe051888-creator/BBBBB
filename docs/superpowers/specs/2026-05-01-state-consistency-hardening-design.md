@@ -8,7 +8,7 @@
 1. **JWT_SECRET_KEY 默认每次启动随机生成**  
    导致服务重启后历史 token 全失效，表现为“刚登录/刚配置，刷新后又要重新登录”。
 
-2. **SQLite 默认使用相对路径**（`sqlite+aiosqlite:///./data/baccarat.db`）  
+2. **SQLite 默认使用相对路径**（旧默认：`sqlite+aiosqlite:///./data/baccarat.db`）  
    启动工作目录变化时可能读到不同的数据库文件，表现为“数据没了/状态没了”。
 
 3. **模式降级逻辑与 UI/诊断/门禁不一致**  

@@ -81,10 +81,10 @@ Expected: FAIL（settings 无 DATABASE_URL 或不读取 env）
 
 - [ ] **Step 3: 最小实现（config + database 引擎选择）**
 
-在 `/workspace/backend/app/core/config.py` 增加 `DATABASE_URL` 配置项，默认仍可回退到 SQLite 文件：
+在 `/workspace/backend/app/core/config.py` 增加 `DATABASE_URL` 配置项，默认仍可回退到 SQLite 文件（建议使用绝对路径以避免工作目录变化造成读错库）：
 
 ```python
-DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./data/baccarat.db")
+DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///<ABS_BACKEND_DIR>/data/baccarat.db")
 ```
 
 在 `/workspace/backend/app/core/database.py` 中使用 `settings.DATABASE_URL` 创建 async engine，并保留 `init_db()`，同时新增 `close_db()`：
@@ -411,4 +411,3 @@ git commit -m "feat(frontend): complete logs page filters and detail modal"
 - 覆盖检查：设计稿的 Postgres 化、状态机集中化、错误口径统一、日志页补齐均有对应任务。
 - 占位扫描：本计划未包含 TBD/TODO；每个任务包含明确文件与命令。
 - 类型一致性：后端测试均使用 unittest；前端构建与 lint 作为验收。
-

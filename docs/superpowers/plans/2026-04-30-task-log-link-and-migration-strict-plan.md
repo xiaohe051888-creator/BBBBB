@@ -201,6 +201,5 @@ Create `backend/tests/test_migration_strict_mode.py`：
 Run: `python -m unittest discover -s backend/tests -p 'test_*.py' -v`  
 Expected: PASS
 
-Run: `DATABASE_URL=sqlite+aiosqlite:///./data/alembic_strict_test.db alembic -c alembic.ini upgrade head`  
+Run: `DATABASE_URL=sqlite+aiosqlite:///<ABS_BACKEND_DIR>/data/alembic_strict_test.db alembic -c alembic.ini upgrade head`
 Expected: PASS
-

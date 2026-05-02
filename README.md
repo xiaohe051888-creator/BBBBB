@@ -61,7 +61,7 @@ docker compose up --build -d
 2) 本地迁移（SQLite → Postgres，一次性）：
 
 ```bash
-SQLITE_URL="sqlite+aiosqlite:///./data/baccarat.db" \\
+SQLITE_URL="sqlite+aiosqlite:///${PWD}/backend/data/baccarat.db" \\
 POSTGRES_URL="postgresql+asyncpg://baccarat:baccarat@localhost:5432/baccarat" \\
 python backend/scripts/migrate_sqlite_to_postgres.py
 ```

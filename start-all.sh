@@ -144,7 +144,11 @@ start_backend() {
     
     # 检查依赖
     print_info "检查 Python 依赖..."
-    pip install -q -r requirements.txt 2>/dev/null || true
+    if ! pip install -q -r requirements.txt; then
+        print_error "后端依赖安装失败，请检查 pip/网络后重试"
+        cd ..
+        return 1
+    fi
     
     # 启动后端
     print_info "启动后端服务 (端口: $BACKEND_PORT)..."
@@ -157,7 +161,7 @@ start_backend() {
     print_info "等待后端服务启动..."
     local count=0
     while [ $count -lt 30 ]; do
-        if curl -s http://localhost:$BACKEND_PORT/health > /dev/null 2>&1 || \
+        if curl -s http://localhost:$BACKEND_PORT/api/system/health > /dev/null 2>&1 || \
            curl -s http://localhost:$BACKEND_PORT/docs > /dev/null 2>&1; then
             print_success "后端服务启动成功 (PID: $backend_pid)"
             cd ..
@@ -215,7 +219,7 @@ final_check() {
     local all_ok=true
     
     # 检查后端
-    if curl -s http://localhost:$BACKEND_PORT/health > /dev/null 2>&1 || \
+    if curl -s http://localhost:$BACKEND_PORT/api/system/health > /dev/null 2>&1 || \
        curl -s http://localhost:$BACKEND_PORT/docs > /dev/null 2>&1; then
         print_success "后端服务运行正常 - http://localhost:$BACKEND_PORT"
         print_info "API文档: http://localhost:$BACKEND_PORT/docs"
