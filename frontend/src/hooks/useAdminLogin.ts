@@ -72,7 +72,7 @@ export const useAdminLogin = (
         message.warning('首次登录请修改默认密码');
         navigate('/admin', { state: { mustChangePassword: true, token } });
       } else {
-        navigate('/admin', { state: { token } });
+        navigate('/mode', { state: { token } });
       }
 
       setVisible(false);

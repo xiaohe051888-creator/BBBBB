@@ -165,7 +165,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <Space size={8} wrap className="mobile-action-group">
             <Button
               icon={<CloudUploadOutlined />}
-              onClick={() => navigate('/upload')}
+              onClick={() => {
+                if (!isLoggedIn) {
+                  onOpenLogin();
+                  return;
+                }
+                navigate('/upload');
+              }}
               title="上传数据"
               style={{
                 height: 38,

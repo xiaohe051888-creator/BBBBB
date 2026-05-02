@@ -7,10 +7,11 @@ from sqlalchemy import select, func, desc
 from datetime import datetime, timedelta, UTC
 
 from app.core.database import async_session
-from app.models.schemas import GameRecord, BetRecord, SystemLog, SystemState
+from app.models.schemas import GameRecord, BetRecord, SystemLog, SystemState, AiModelConfig
 from app.core.config import settings
 from app.services.game import get_current_state, get_session
 from app.api.routes.utils import get_current_user
+from app.services.ai_config_status import compute_config_hash
 
 router = APIRouter(
     prefix="/api/system", 
@@ -641,6 +642,48 @@ async def update_prediction_mode(
     def _enabled(v: str | None, min_len: int = 10) -> bool:
         return bool(v and isinstance(v, str) and len(v) > min_len)
 
+    role_map = {
+        "banker": ("OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_API_BASE"),
+        "player": ("ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "ANTHROPIC_API_BASE"),
+        "combined": ("GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_API_BASE"),
+        "single": ("SINGLE_AI_API_KEY", "SINGLE_AI_MODEL", "SINGLE_AI_API_BASE"),
+    }
+
+    def _get_setting(key: str) -> str:
+        return getattr(settings, key, "") or ""
+
+    async def _require_test_ok(session) -> None:
+        if req.mode == "rule":
+            return
+
+        need_roles = ("banker", "player", "combined") if req.mode == "ai" else ("single",)
+        rows = (await session.execute(select(AiModelConfig).where(AiModelConfig.role.in_(need_roles)))).scalars().all()
+        by_role = {r.role: r for r in rows if getattr(r, "role", None)}
+
+        labels = {
+            "banker": "庄模型(OpenAI)",
+            "player": "闲模型(Claude)",
+            "combined": "综合模型(Gemini)",
+            "single": "单AI(DeepSeek)",
+        }
+
+        missing = []
+        for role in need_roles:
+            row = by_role.get(role)
+            if row is None:
+                missing.append(labels[role])
+                continue
+            k_key, m_key, b_key = role_map[role]
+            current_hash = compute_config_hash(row.provider, _get_setting(m_key), _get_setting(k_key), _get_setting(b_key) or None)
+            ok = bool(row.last_test_ok and row.last_test_config_hash == current_hash)
+            if not ok:
+                missing.append(labels[role])
+
+        if missing:
+            if req.mode == "ai":
+                raise HTTPException(409, f"无法切换至3AI模式：请先配置并测试通过：{'、'.join(missing)}")
+            raise HTTPException(409, f"无法切换至单AI模式：请先配置并测试通过：{'、'.join(missing)}")
+
     if req.mode == "ai":
         ok = _enabled(settings.OPENAI_API_KEY) and _enabled(settings.ANTHROPIC_API_KEY) and _enabled(settings.GEMINI_API_KEY)
         if not ok:
@@ -651,6 +694,7 @@ async def update_prediction_mode(
             raise HTTPException(400, "无法切换至单AI模式：请先配置 单AI(DeepSeek) 接口密钥")
     
     async with async_session() as session:
+        await _require_test_ok(session)
         from app.services.game.state import get_or_create_state
         state = await get_or_create_state(session)
         state.prediction_mode = req.mode

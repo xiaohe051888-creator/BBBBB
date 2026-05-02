@@ -396,7 +396,7 @@ const AdminPage: React.FC = () => {
                           </div>
                           <Button
                             type="primary"
-                            disabled={predictionMode === 'ai' || !threeModelStatus?.all_api_keys_configured}
+                            disabled={predictionMode === 'ai' || !threeModelStatus?.ai_ready_for_enable}
                             loading={updatingMode}
                             onClick={async () => {
                               await applyModeChange('ai');
@@ -426,7 +426,7 @@ const AdminPage: React.FC = () => {
                           </div>
                           <Button
                             type="primary"
-                            disabled={predictionMode === 'single_ai' || !threeModelStatus?.models?.single?.api_key_set}
+                            disabled={predictionMode === 'single_ai' || !threeModelStatus?.single_ai_ready_for_enable}
                             loading={updatingMode}
                             onClick={async () => {
                               await applyModeChange('single_ai');

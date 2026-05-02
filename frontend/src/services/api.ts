@@ -19,12 +19,14 @@ export const getToken = (): string | null => {
 /** 保存token */
 export const setToken = (token: string): void => {
   localStorage.setItem(TOKEN_KEY, token);
+  localStorage.removeItem('mode_selected');
   window.dispatchEvent(new Event('auth_token_changed'));
 };
 
 /** 清除token（登出） */
 export const clearToken = (): void => {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem('mode_selected');
   window.dispatchEvent(new Event('auth_token_changed'));
 };
 
@@ -487,11 +489,13 @@ export const getAiLearningStatus = async () => {
 export interface ThreeModelStatus {
   status: 'ready' | 'incomplete';
   all_api_keys_configured: boolean;
+  ai_ready_for_enable?: boolean;
+  single_ai_ready_for_enable?: boolean;
   models: {
-    banker: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
-    player: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
-    combined: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
-    single: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string };
+    banker: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string; last_test_ok?: boolean; last_test_at?: string | null; last_test_error?: string | null };
+    player: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string; last_test_ok?: boolean; last_test_at?: string | null; last_test_error?: string | null };
+    combined: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string; last_test_ok?: boolean; last_test_at?: string | null; last_test_error?: string | null };
+    single: { name: string; provider: string; model: string; api_key_set: boolean; role: string; base_url?: string; last_test_ok?: boolean; last_test_at?: string | null; last_test_error?: string | null };
   };
   smart_router_enabled: boolean;
   fallback_policy: string;

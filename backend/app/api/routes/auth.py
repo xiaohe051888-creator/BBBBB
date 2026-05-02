@@ -7,10 +7,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy import select, desc
 
 from app.core.database import async_session
-from app.models.schemas import AdminUser, ModelVersion
+from app.models.schemas import AdminUser, ModelVersion, AiModelConfig
 from app.core.config import settings
 from jose import jwt
 import os
+from app.services.ai_config_status import compute_config_hash
 
 from app.api.routes.schemas import LoginRequest, ChangePasswordRequest, ApiConfigPayload
 from app.api.routes.utils import get_current_user
@@ -134,42 +135,75 @@ async def get_model_versions(_: dict = Depends(get_current_user)):
 @router.get("/three-model-status")
 async def get_three_model_status(_: dict = Depends(get_current_user)):
     """获取三模型配置和状态（需认证）"""
+    role_map = {
+        "banker": ("OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_API_BASE"),
+        "player": ("ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "ANTHROPIC_API_BASE"),
+        "combined": ("GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_API_BASE"),
+        "single": ("SINGLE_AI_API_KEY", "SINGLE_AI_MODEL", "SINGLE_AI_API_BASE"),
+    }
+
+    async with async_session() as session:
+        rows = (await session.execute(select(AiModelConfig))).scalars().all()
+        by_role = {r.role: r for r in rows if getattr(r, "role", None)}
+
+    def _enabled(v: str | None, min_len: int = 10) -> bool:
+        return bool(v and isinstance(v, str) and len(v) > min_len)
+
+    def _get_setting(key: str) -> str:
+        return getattr(settings, key, "") or ""
+
+    def _current_hash(role: str, provider: str) -> str:
+        k_key, m_key, b_key = role_map[role]
+        return compute_config_hash(provider, _get_setting(m_key), _get_setting(k_key), _get_setting(b_key) or None)
+
     models_config = {
         "banker": {
             "name": "OpenAI GPT-4o mini (庄模型)",
-            "provider": "openai",
+            "provider": (by_role.get("banker").provider if by_role.get("banker") else "openai"),
             "model": settings.OPENAI_MODEL,
             "api_key_set": bool(settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10),
             "role": "收集庄向证据链",
         },
         "player": {
             "name": f"Anthropic {settings.ANTHROPIC_MODEL} (闲模型)",
-            "provider": "anthropic",
+            "provider": (by_role.get("player").provider if by_role.get("player") else "anthropic"),
             "model": settings.ANTHROPIC_MODEL,
             "api_key_set": bool(settings.ANTHROPIC_API_KEY and len(settings.ANTHROPIC_API_KEY) > 10),
             "role": "收集闲向证据链",
         },
         "combined": {
             "name": f"Google {settings.GEMINI_MODEL} (综合模型)",
-            "provider": "google",
+            "provider": (by_role.get("combined").provider if by_role.get("combined") else "google"),
             "model": settings.GEMINI_MODEL,
             "api_key_set": bool(settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10),
             "role": "综合分析并给出最终预测",
         },
         "single": {
             "name": f"DeepSeek V4 Pro (单AI模式)",
-            "provider": "deepseek",
+            "provider": (by_role.get("single").provider if by_role.get("single") else "deepseek"),
             "model": settings.SINGLE_AI_MODEL,
             "api_key_set": bool(settings.SINGLE_AI_API_KEY and len(settings.SINGLE_AI_API_KEY) > 10),
             "role": "单模型直接给出庄/闲预测",
         },
     }
-    
+
+    for role, m in models_config.items():
+        row = by_role.get(role)
+        current_hash = _current_hash(role, m["provider"])
+        last_ok = bool(row and row.last_test_ok and row.last_test_config_hash == current_hash)
+        m["last_test_ok"] = last_ok
+        m["last_test_at"] = row.last_test_at.isoformat() if row and row.last_test_at else None
+        m["last_test_error"] = row.last_test_error if row and row.last_test_error else None
+
     all_keys_set = all(m["api_key_set"] for k, m in models_config.items() if k in ("banker", "player", "combined"))
+    ai_ready_for_enable = all(models_config[k]["api_key_set"] and models_config[k]["last_test_ok"] for k in ("banker", "player", "combined"))
+    single_ai_ready_for_enable = bool(models_config["single"]["api_key_set"] and models_config["single"]["last_test_ok"])
 
     return {
         "status": "ready" if all_keys_set else "incomplete",
         "all_api_keys_configured": all_keys_set,
+        "ai_ready_for_enable": ai_ready_for_enable,
+        "single_ai_ready_for_enable": single_ai_ready_for_enable,
         "models": models_config,
         "smart_router_enabled": True,
         "fallback_policy": "永不降级（铁律：必须满血3模型）",
@@ -234,6 +268,36 @@ async def update_api_config(
     with open(env_path, "w", encoding="utf-8") as f:
         f.write(env_content)
 
+    new_hash = compute_config_hash(req.provider, req.model, req.api_key, req.base_url)
+    async with async_session() as session:
+        existing = await session.get(AiModelConfig, req.role)
+        if existing is None:
+            session.add(
+                AiModelConfig(
+                    role=req.role,
+                    provider=req.provider,
+                    model=req.model,
+                    base_url=req.base_url,
+                    config_hash=new_hash,
+                    last_test_ok=False,
+                    last_test_at=None,
+                    last_test_error=None,
+                    last_test_config_hash=None,
+                )
+            )
+        else:
+            changed = existing.config_hash != new_hash
+            existing.provider = req.provider
+            existing.model = req.model
+            existing.base_url = req.base_url
+            existing.config_hash = new_hash
+            if changed:
+                existing.last_test_ok = False
+                existing.last_test_at = None
+                existing.last_test_error = None
+                existing.last_test_config_hash = None
+        await session.commit()
+
     return {"status": "success", "message": f"{req.role} model updated"}
 
 @router.post("/api-config/test")
@@ -241,6 +305,8 @@ async def test_api_config(
     req: ApiConfigPayload,
     _: dict = Depends(get_current_user),
 ):
+    test_ok = False
+    message = ""
     try:
         # Default models for testing based on provider
         if req.provider == "openai":
@@ -256,7 +322,8 @@ async def test_api_config(
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=5
             )
-            return {"success": True, "message": "OpenAI connection successful"}
+            test_ok = True
+            message = "OpenAI connection successful"
             
         elif req.provider == "anthropic":
             from anthropic import AsyncAnthropic
@@ -271,14 +338,16 @@ async def test_api_config(
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=5
             )
-            return {"success": True, "message": "Anthropic connection successful"}
+            test_ok = True
+            message = "Anthropic connection successful"
             
         elif req.provider == "google":
             import google.generativeai as genai
             genai.configure(api_key=req.api_key)
             model = genai.GenerativeModel(req.model)
             model.generate_content("Hello")
-            return {"success": True, "message": "Gemini connection successful"}
+            test_ok = True
+            message = "Gemini connection successful"
             
         elif req.provider == "deepseek":
             from openai import AsyncOpenAI
@@ -293,10 +362,43 @@ async def test_api_config(
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=5
             )
-            return {"success": True, "message": "Deepseek connection successful"}
+            test_ok = True
+            message = "Deepseek connection successful"
             
         else:
-            return {"success": False, "message": f"Unknown provider: {req.provider}"}
+            test_ok = False
+            message = f"Unknown provider: {req.provider}"
             
     except Exception as e:
-        return {"success": False, "message": str(e)}
+        test_ok = False
+        message = str(e)
+
+    cfg_hash = compute_config_hash(req.provider, req.model, req.api_key, req.base_url)
+    async with async_session() as session:
+        row = await session.get(AiModelConfig, req.role)
+        if row is None:
+            row = AiModelConfig(
+                role=req.role,
+                provider=req.provider,
+                model=req.model,
+                base_url=req.base_url,
+                config_hash=cfg_hash,
+                last_test_ok=False,
+                last_test_at=None,
+                last_test_error=None,
+                last_test_config_hash=None,
+            )
+            session.add(row)
+        else:
+            row.provider = req.provider
+            row.model = req.model
+            row.base_url = req.base_url
+            row.config_hash = cfg_hash
+
+        row.last_test_ok = bool(test_ok)
+        row.last_test_at = datetime.now(UTC).replace(tzinfo=None)
+        row.last_test_error = None if test_ok else (message[:500] if message else "测试失败")
+        row.last_test_config_hash = cfg_hash if test_ok else None
+        await session.commit()
+
+    return {"success": bool(test_ok), "message": message}

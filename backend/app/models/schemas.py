@@ -342,6 +342,26 @@ class AdminUser(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
+class AiModelConfig(Base):
+    __tablename__ = "ai_model_configs"
+
+    role = Column(String(20), primary_key=True)
+    provider = Column(String(50), nullable=False)
+    model = Column(String(100), nullable=False)
+    base_url = Column(String(200), nullable=True)
+    config_hash = Column(String(64), nullable=False)
+    last_test_ok = Column(Boolean, default=False, nullable=False)
+    last_test_at = Column(DateTime, nullable=True)
+    last_test_error = Column(Text, nullable=True)
+    last_test_config_hash = Column(String(64), nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    __table_args__ = (
+        Index("idx_ai_model_configs_updated_at", "updated_at"),
+    )
+
+
 # ============ 系统运行状态表 ============
 class SystemState(Base):
     """系统运行状态"""

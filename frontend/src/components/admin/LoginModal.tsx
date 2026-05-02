@@ -3,6 +3,7 @@
  */
 import React, { useState } from 'react';
 import { Modal, Input, App } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import * as api from '../../services/api';
 
 interface LoginModalProps {
@@ -34,6 +35,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { message } = App.useApp();
+  const navigate = useNavigate();
 
   const handleLogin = async () => {
     if (!password) {
@@ -49,6 +51,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
       }
       message.success('登录成功');
       onSuccess();
+      if (res.data?.must_change_password) {
+        navigate('/admin', { replace: true, state: { mustChangePassword: true, token: res.data.token } });
+      } else {
+        navigate('/mode', { replace: true });
+      }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       // 兼容 FastAPI 返回的 {"detail": "错误原因"} 格式，否则前端提示永远是 undefined
