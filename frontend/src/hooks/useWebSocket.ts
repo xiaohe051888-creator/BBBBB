@@ -1,17 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/**
- * WebSocket 连接管理 Hook
- * 统一管理 WebSocket 连接、重连和消息处理
- */
 import { useEffect, useRef, useCallback, useState } from 'react';
-import * as api from '../services/api';
-
-interface WebSocketMessage {
-  type: string;
-  
-  data: Record<string, unknown>;
-  timestamp?: string;
-}
+import { wsBus, type WsConnectionState } from '../services/wsBus';
 
 interface UseWebSocketOptions {
   onStateUpdate?: (data: any) => void;
@@ -44,17 +33,9 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     onGameRevealed,
     onBetPlaced,
     onReconnect,
-    reconnectInterval = 3000,
   } = options;
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const reconnectCountRef = useRef(0); // 记录重连次数，用于指数退避
-  const isUnmountedRef = useRef(false);
-  // 使用 state 触发重连
-  const [reconnectTrigger, setReconnectTrigger] = useState(0);
-  const [connectionState, setConnectionState] = useState<'connecting' | 'open' | 'closing' | 'closed'>('closed');
+  const [connectionState, setConnectionState] = useState<WsConnectionState>('closed');
   // 使用 ref 存储回调函数，避免闭包问题
   const callbacksRef = useRef({
     onStateUpdate,
@@ -64,6 +45,9 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     onBetPlaced,
     onReconnect,
   });
+
+  const hasOpenedRef = useRef(false);
+  const hadDisconnectRef = useRef(false);
 
   // 更新回调函数 ref
   useEffect(() => {
@@ -78,153 +62,40 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
   }, [onStateUpdate, onLog, onAnalysis, onGameRevealed, onBetPlaced, onReconnect]);
 
   const sendMessage = useCallback((message: any) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
-    }
+    wsBus.send(message);
   }, []);
 
-  // 建立连接 - 在 useEffect 中定义 connect 避免渲染时访问 ref
   useEffect(() => {
-    isUnmountedRef.current = false;
-    // 使用setTimeout避免同步setState
-    const stateTimer = setTimeout(() => {
-      setConnectionState(api.getToken() ? 'connecting' : 'closed');
-    }, 0);
+    const unsubs: Array<() => void> = [];
 
-    const connect = () => {
-      if (isUnmountedRef.current) return;
-      if (!api.getToken()) {
-        setConnectionState('closed');
+    unsubs.push(wsBus.subscribeMeta((meta) => {
+      setConnectionState(meta.connectionState);
+      if (meta.connectionState === 'open') {
+        if (hadDisconnectRef.current) {
+          hadDisconnectRef.current = false;
+          callbacksRef.current.onReconnect?.();
+        }
+        hasOpenedRef.current = true;
         return;
       }
-
-      try {
-        const ws = api.createWebSocket();
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          const isReconnected = reconnectCountRef.current > 0;
-          setConnectionState('open');
-          reconnectCountRef.current = 0; // 连接成功，重置重连次数
-          if (isReconnected) callbacksRef.current.onReconnect?.();
-
-          // 发送心跳包保活
-          if (pingTimerRef.current) clearInterval(pingTimerRef.current);
-          pingTimerRef.current = window.setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send('ping');
-            }
-          }, 30000);
-        };
-
-        ws.onmessage = (event) => {
-          // 处理服务端的 pong 响应（可能为文本或 JSON）
-          try {
-            const message: WebSocketMessage = JSON.parse(event.data);
-            if (message.type === 'pong') return;
-            const callbacks = callbacksRef.current;
-
-            switch (message.type) {
-              case 'state_update':
-                callbacks.onStateUpdate?.(message.data);
-                break;
-              case 'log':
-                callbacks.onLog?.(message.data);
-                break;
-              case 'ai_analysis':
-                callbacks.onAnalysis?.(message.data);
-                break;
-              case 'game_revealed':
-                callbacks.onGameRevealed?.(message.data);
-                break;
-              case 'bet_placed':
-                callbacks.onBetPlaced?.(message.data);
-                break;
-              default:
-                // 未知消息类型，静默处理
-                break;
-            }
-          } catch (err) {
-            console.error('[WebSocket] 消息解析错误:', err);
-          }
-        };
-
-        ws.onerror = (err) => {
-          console.error('[WebSocket] 连接错误:', err);
-        };
-
-        ws.onclose = () => {
-          setConnectionState('closed');
-          if (!isUnmountedRef.current) {
-            if (!api.getToken()) return;
-            // 指数退避策略：3s, 6s, 12s, 24s... 最大 30 秒
-            const backoffDelay = Math.min(reconnectInterval * Math.pow(2, reconnectCountRef.current), 30000);
-            reconnectCountRef.current += 1;
-            
-            reconnectTimerRef.current = setTimeout(() => {
-              setReconnectTrigger(prev => prev + 1);
-            }, backoffDelay);
-          }
-        };
-      } catch {
-        setConnectionState('closed');
-        if (!isUnmountedRef.current) {
-          if (!api.getToken()) return;
-          const backoffDelay = Math.min(reconnectInterval * Math.pow(2, reconnectCountRef.current), 30000);
-          reconnectCountRef.current += 1;
-          
-          reconnectTimerRef.current = setTimeout(() => {
-            setReconnectTrigger(prev => prev + 1);
-          }, backoffDelay);
-        }
+      if (meta.connectionState === 'closed') {
+        if (hasOpenedRef.current) hadDisconnectRef.current = true;
       }
-    };
+    }));
 
-    connect();
-
-    const onTokenChanged = () => {
-      if (isUnmountedRef.current) return;
-      reconnectCountRef.current = 0;
-      setReconnectTrigger(prev => prev + 1);
-    };
-    window.addEventListener('auth_token_changed', onTokenChanged);
+    if (onStateUpdate) unsubs.push(wsBus.subscribe('state_update', (data) => callbacksRef.current.onStateUpdate?.(data as any)));
+    if (onLog) unsubs.push(wsBus.subscribe('log', (data) => callbacksRef.current.onLog?.(data as any)));
+    if (onAnalysis) unsubs.push(wsBus.subscribe('ai_analysis', (data) => callbacksRef.current.onAnalysis?.(data as any)));
+    if (onGameRevealed) unsubs.push(wsBus.subscribe('game_revealed', (data) => callbacksRef.current.onGameRevealed?.(data as any)));
+    if (onBetPlaced) unsubs.push(wsBus.subscribe('bet_placed', (data) => callbacksRef.current.onBetPlaced?.(data as any)));
 
     return () => {
-          clearTimeout(stateTimer);
-          window.removeEventListener('auth_token_changed', onTokenChanged);
-          if (pingTimerRef.current) {
-            clearInterval(pingTimerRef.current);
-            pingTimerRef.current = null;
-          }
-          isUnmountedRef.current = true;
-          if (reconnectTimerRef.current) {
-            clearTimeout(reconnectTimerRef.current);
-          }
-          if (wsRef.current) {
-            const ws = wsRef.current;
-            ws.onclose = null;
-            ws.onerror = null;
-            ws.onmessage = null;
-            if (ws.readyState === WebSocket.CONNECTING) {
-              // 避免 React 18 StrictMode 快速卸载时直接 close 导致的浏览器 console warning
-              ws.onopen = () => ws.close();
-            } else {
-              ws.close();
-            }
-            wsRef.current = null;
-          }
-        };
-  }, [reconnectInterval, reconnectTrigger]);
+      unsubs.forEach((fn) => fn());
+    };
+  }, [onStateUpdate, onLog, onAnalysis, onGameRevealed, onBetPlaced]);
 
   const reconnect = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-    }
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
-    // 触发 useEffect 重新执行
-    setReconnectTrigger(prev => prev + 1);
+    wsBus.reconnectNow();
   }, []);
 
   return {

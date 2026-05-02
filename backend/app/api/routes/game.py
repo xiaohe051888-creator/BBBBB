@@ -104,6 +104,7 @@ async def upload_game_results(req: UploadRequest, _: dict = Depends(get_current_
                         "LOG-SYS-ERR", "AI分析报错", "失败",
                         f"上传触发分析时发生系统错误: {str(e)}", priority="P1"
                     )
+                    await log_session.commit()
                 await broadcast_event("state_update", {"status": "错误"})
             except Exception as inner_e:
                 import logging

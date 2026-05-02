@@ -1,10 +1,13 @@
 import asyncio
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Coroutine, Dict, Optional, Awaitable, Union
 from uuid import uuid4
 from app.services.game.task_context import current_task_id
 from app.core.async_utils import spawn_task
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -171,7 +174,7 @@ class TaskRegistry:
                     try:
                         await self._persist_finish(meta)
                     except Exception:
-                        pass
+                        logger.exception("持久化任务完成状态失败: task_id=%s task_type=%s", meta.task_id, meta.task_type)
 
                 try:
                     spawn_task(_persist())
@@ -204,7 +207,7 @@ class TaskRegistry:
                 try:
                     await asyncio.shield(self._persist_finish(meta))
                 except Exception:
-                    pass
+                    logger.exception("持久化任务取消状态失败: task_id=%s task_type=%s", meta.task_id, meta.task_type)
                 raise
             except Exception as e:
                 meta.status = "failed"

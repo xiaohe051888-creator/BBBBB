@@ -3,7 +3,7 @@
 """
 from typing import Optional
 from fastapi import APIRouter, Query, Depends
-from sqlalchemy import select, func
+from sqlalchemy import asc, desc, select, func
 
 from app.core.database import async_session
 from app.models.schemas import BetRecord
@@ -28,12 +28,23 @@ async def get_bet_records(
         
         if boot_number is not None:
             query = query.where(BetRecord.boot_number == boot_number)
+        if status:
+            query = query.where(BetRecord.status == status)
+
+        sort_map = {
+            "bet_time": BetRecord.bet_time,
+            "game_number": BetRecord.game_number,
+            "bet_amount": BetRecord.bet_amount,
+            "profit_loss": BetRecord.profit_loss,
+        }
+        sort_col = sort_map.get(sort_by, BetRecord.bet_time)
+        sort_expr = desc(sort_col) if sort_order == "desc" else asc(sort_col)
         
         count_query = select(func.count()).select_from(query.subquery())
         total_result = await session.execute(count_query)
         total = total_result.scalar() or 0
         
-        query = query.order_by(BetRecord.game_number.desc()).offset((page - 1) * page_size).limit(page_size)
+        query = query.order_by(sort_expr, BetRecord.id.desc()).offset((page - 1) * page_size).limit(page_size)
         result = await session.execute(query)
         records = result.scalars().all()
         

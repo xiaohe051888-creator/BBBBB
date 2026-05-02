@@ -4,14 +4,14 @@
  * 
  * 优化：使用React Query + 乐观UI策略，页面切换无加载转圈
  */
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Badge, Switch, App, Input, Select, Modal, List, Typography, Divider,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useLogsQuery, type LogEntry, useAddLogOptimistically } from '../hooks';
+import { useLogsQuery, type LogEntry, useAddLogOptimistically, useWebSocket } from '../hooks';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { SystemStatusPanel } from '../components/ui/SystemStatusPanel';
 import { PRIORITY_COLORS } from '../utils/constants';
@@ -250,6 +250,11 @@ const LogsPage: React.FC = () => {
 
   // 系统实时诊断
   const { diagnostics, dismissIssue, retryConnection } = useSystemDiagnostics({});
+  useWebSocket({
+    onLog: (data) => {
+      addLogOptimistically(data);
+    },
+  });
 
   // 分页
   const [page, setPage] = useState(1);
@@ -302,9 +307,6 @@ const LogsPage: React.FC = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
 
-  // WebSocket实时推送
-  const wsRef = useRef<WebSocket | null>(null);
-
   // 手动刷新
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['logs'] });
@@ -315,55 +317,6 @@ const LogsPage: React.FC = () => {
     const timer = setInterval(handleRefresh, 15000);
     return () => clearInterval(timer);
   }, [autoRefresh, handleRefresh]);
-
-  // WebSocket实时推送
-  useEffect(() => {
-    
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let isUnmounted = false;
-
-    const connectWS = () => {
-      if (isUnmounted) return;
-      try {
-        const ws = api.createWebSocket();
-        wsRef.current = ws;
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'log') {
-              // 乐观更新：立即将新日志添加到缓存
-              addLogOptimistically(data.data);
-            }
-          } catch {
-            // WebSocket消息解析错误，忽略
-          }
-        };
-
-        ws.onclose = () => {
-          if (!isUnmounted) {
-            reconnectTimer = setTimeout(connectWS, 3000);
-          }
-        };
-      } catch {
-        if (!isUnmounted) {
-          reconnectTimer = setTimeout(connectWS, 5000);
-        }
-      }
-    };
-
-    connectWS();
-
-    return () => {
-      isUnmounted = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (wsRef.current) {
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [addLogOptimistically]);
 
   // 统计
   const stats = useMemo(() => {

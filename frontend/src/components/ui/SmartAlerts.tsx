@@ -36,17 +36,17 @@ export const SmartAlerts: React.FC<SmartAlertsProps> = ({
           style={{ marginBottom: 12 }}
         />
       ))}
-      {integrityIssues?.map((issue, index) => (
+      {integrityIssues?.map((issue) => (
         <Alert
-          key={`integrity-${index}`}
+          key={`integrity-${issue.type}-${issue.gameNumber ?? ''}-${issue.message}`}
           title={issue.message}
           type={issue.severity}
           showIcon
         />
       ))}
-      {abnormalPatterns?.map((pattern, index) => (
+      {abnormalPatterns?.map((pattern) => (
         <Alert
-          key={`pattern-${index}`}
+          key={`pattern-${pattern.type}-${pattern.timestamp}`}
           title={pattern.message}
           type={pattern.severity === 'danger' ? 'error' : pattern.severity}
           showIcon

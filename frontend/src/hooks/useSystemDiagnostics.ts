@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as api from '../services/api';
+import { wsBus } from '../services/wsBus';
 
 // ====== 类型定义 ======
 
@@ -98,10 +99,6 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
     latestErrors: [],
   });
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pingTimeRef = useRef<number | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isUnmountedRef = useRef(false);
 
   // ====== 辅助：添加活跃问题 ======
@@ -122,129 +119,63 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
     setActiveIssues(prev => prev.filter(p => p.source !== source));
   }, []);
 
-  // ====== 实时推送监控 ======
-  // 使用ref存储connectWS函数，避免循环依赖问题
-  const connectWSRef = useRef<(() => void) | null>(null);
-
-  const connectWS = useCallback(() => {
-    if (isUnmountedRef.current) return;
+  useEffect(() => {
     if (!enabled) return;
+    isUnmountedRef.current = false;
 
-    setWsStatus('connecting');
+    const unsub = wsBus.subscribeMeta((meta) => {
+      if (isUnmountedRef.current) return;
 
-    try {
-      const ws = api.createWebSocket();
-      wsRef.current = ws;
+      const token = api.getToken();
+      if (!token) {
+        setWsStatus('disconnected');
+        setWsLatency(null);
+        setWsLastMessage(null);
+        setWsReconnectCount(0);
+        removeIssueBySource('websocket');
+        return;
+      }
 
-      ws.onopen = () => {
-        if (isUnmountedRef.current) return;
+      setWsLatency(meta.latencyMs);
+      setWsLastMessage(meta.lastMessageAt);
+      setWsReconnectCount(meta.reconnectCount);
+
+      if (meta.connectionState === 'open') {
         setWsStatus('connected');
         removeIssueBySource('websocket');
-      };
+        return;
+      }
 
-      ws.onmessage = (event) => {
-        if (isUnmountedRef.current) return;
-        setWsLastMessage(new Date());
-
-        // 处理pong消息（计算延迟）
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'pong' && pingTimeRef.current !== null) {
-            const latency = Date.now() - pingTimeRef.current;
-            setWsLatency(latency);
-            pingTimeRef.current = null;
-          }
-        } catch {
-          // 非JSON消息，忽略
-        }
-      };
-
-      ws.onerror = () => {
-        if (isUnmountedRef.current) return;
-        setWsStatus('disconnected');
-        addIssue({
-          level: 'critical',
-          title: '实时推送连接错误',
-          detail: '实时推送连接发生错误，数据可能延迟',
-          source: 'websocket',
-        });
-      };
-
-      ws.onclose = () => {
-        if (isUnmountedRef.current) return;
+      if (meta.reconnecting) {
         setWsStatus('reconnecting');
         addIssue({
           level: 'warning',
           title: '实时推送已断线',
-          detail: '实时推送断线，正在重连（3秒后重试）...',
+          detail: '实时推送断线，正在重连...',
           source: 'websocket',
         });
-        setWsReconnectCount(c => c + 1);
-        reconnectTimerRef.current = setTimeout(() => {
-          if (!isUnmountedRef.current && connectWSRef.current) {
-            connectWSRef.current();
-          }
-        }, 3000);
-      };
-
-      // 定时ping（每10秒）
-      if (pingTimerRef.current) clearInterval(pingTimerRef.current);
-      pingTimerRef.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          pingTimeRef.current = Date.now();
-          try {
-            ws.send('ping');
-          } catch {
-            // 发送失败，忽略
-          }
-        }
-      }, 10000);
-
-    } catch {
-      if (!isUnmountedRef.current) {
-        setWsStatus('disconnected');
-        addIssue({
-          level: 'critical',
-          title: '实时推送无法创建',
-          detail: '无法建立实时推送连接，请检查后端服务是否运行',
-          source: 'websocket',
-        });
-        reconnectTimerRef.current = setTimeout(() => {
-          if (!isUnmountedRef.current && connectWSRef.current) {
-            connectWSRef.current();
-          }
-        }, 5000);
+        return;
       }
-    }
-  }, [enabled, addIssue, removeIssueBySource]);
 
-  // 使用useEffect更新ref，避免在渲染期间修改
-  useEffect(() => {
-    connectWSRef.current = connectWS;
-  }, [connectWS]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    isUnmountedRef.current = false;
-    // 使用setTimeout避免在渲染期间同步调用
-    const timer = setTimeout(() => {
-      if (connectWSRef.current) {
-        connectWSRef.current();
+      if (meta.connectionState === 'connecting') {
+        setWsStatus('connecting');
+        return;
       }
-    }, 0);
+
+      setWsStatus('disconnected');
+      addIssue({
+        level: 'critical',
+        title: '实时推送连接错误',
+        detail: '无法建立实时推送连接，请检查后端服务是否运行',
+        source: 'websocket',
+      });
+    });
 
     return () => {
       isUnmountedRef.current = true;
-      clearTimeout(timer);
-      if (pingTimerRef.current) clearInterval(pingTimerRef.current);
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      if (wsRef.current) {
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-        wsRef.current = null;
-      }
+      unsub();
     };
-  }, [enabled]);
+  }, [enabled, addIssue, removeIssueBySource]);
 
   // ====== 后端健康检查（每15秒） ======
   const checkBackend = useCallback(async () => {
@@ -471,13 +402,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
   }, []);
 
   const retryConnection = useCallback(() => {
-    if (wsRef.current) {
-      wsRef.current.onclose = null;
-      wsRef.current.close();
-    }
-    connectWS();
+    wsBus.reconnectNow();
     checkBackend();
-  }, [connectWS, checkBackend]);
+  }, [checkBackend]);
 
   return { diagnostics, dismissIssue, retryConnection, addIssue };
 };

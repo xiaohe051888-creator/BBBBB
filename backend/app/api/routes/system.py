@@ -357,9 +357,8 @@ async def get_system_diagnostics():
         m["required_in_current_mode"] = current_mode in (m.get("required_in_modes") or [])
         m["issue"] = None if m["enabled"] else "接口密钥未配置"
     
-    # WebSocket连接数（从websocket模块获取）
-    from app.api.routes.websocket import ws_clients
-    ws_count = len(ws_clients)
+    from app.api.routes.websocket import get_ws_client_count
+    ws_count = await get_ws_client_count()
     
     # 收集AI模型详细状态（兼容旧字段）
     models_status = {

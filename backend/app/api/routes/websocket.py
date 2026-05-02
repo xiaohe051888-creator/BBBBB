@@ -75,6 +75,11 @@ async def _remove_client(client: WebSocket):
             ws_clients.remove(client)
 
 
+async def get_ws_client_count() -> int:
+    async with ws_clients_lock:
+        return len(ws_clients)
+
+
 async def broadcast_update(event_type: str, data: Dict):
     """广播更新到WebSocket客户端"""
     message = {
@@ -87,10 +92,10 @@ async def broadcast_update(event_type: str, data: Dict):
     async with ws_clients_lock:
         active_clients = ws_clients.copy()
     
-    # 广播到所有活跃客户端
-    for client in active_clients:
-        try:
-            await client.send_json(message)
-        except Exception:
-            # 异步清理断开的客户端
+    async def _send_one(client: WebSocket):
+        await asyncio.wait_for(client.send_json(message), timeout=1.5)
+
+    results = await asyncio.gather(*[_send_one(c) for c in active_clients], return_exceptions=True)
+    for client, res in zip(active_clients, results):
+        if isinstance(res, Exception):
             spawn_task(_remove_client(client))

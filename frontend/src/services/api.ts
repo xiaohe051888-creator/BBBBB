@@ -51,38 +51,33 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // 忽略 401 报错，不向控制台抛出异常或全局拦截，交给调用方处理
-    if (error.response?.status === 401) {
-      clearToken();
-      return Promise.reject(error);
-    }
-    // 优先提取后端返回的详细错误信息 (FastAPI 默认在 detail 字段中)
-    if (error.response?.data?.detail) {
-      const detail = error.response.data.detail;
-      // 处理 detail 可能是数组的情况（FastAPI 的 Pydantic 验证错误）
-      const message = Array.isArray(detail) 
-        ? detail.map(e => e.msg || '验证错误').join(', ') 
+    const status = error.response?.status;
+    const detail = error.response?.data?.detail;
+    const hasDetail = !!detail;
+    const requestUrl = String(error.config?.url || '');
+    const isLoginRequest = requestUrl.includes('/admin/login');
+
+    if (hasDetail) {
+      const message = Array.isArray(detail)
+        ? detail.map((e: { msg?: string }) => e.msg || '验证错误').join(', ')
         : detail;
       error.message = normalizeBackendDetail(message) || message;
-    } else if (error.response?.status === 403) {
+    } else if (status === 403) {
       error.message = '拒绝访问 (403)';
-    } else if (error.response?.status === 404) {
+    } else if (status === 404) {
       error.message = '请求的资源不存在 (404)';
-    } else if (error.response?.status === 500) {
+    } else if (status === 500) {
       error.message = '服务器内部错误 (500)';
     }
 
-    if (error.response?.status === 401) {
+    if (status === 401 && !isLoginRequest) {
       clearToken();
-      // 只在非登录页面且非首页（上传页弹窗）时跳转，防止弹窗显示错误信息前被强制刷新
       const currentPath = window.location.pathname;
       if (!currentPath.includes('/login') && !currentPath.includes('/start') && currentPath !== '/') {
-        console.warn('认证失败(401)，请重新登录');
         window.location.href = '/?session_expired=true';
       }
     }
-    
-    // 处理网络连接错误 (axios 内部默认英文信息)
+
     if (error.message === 'Network Error') {
       error.message = '网络连接失败，请检查后端服务是否正常运行';
     }
@@ -90,7 +85,7 @@ api.interceptors.response.use(
       error.message = '请求超时，请重试';
     }
 
-    if (error.response?.status) {
+    if (status && !hasDetail) {
       const statusMap: Record<number, string> = {
         400: '请求参数错误',
         401: '密码错误或登录已过期',
@@ -101,12 +96,13 @@ api.interceptors.response.use(
         503: '服务不可用',
         504: '网关超时',
       };
-      error.message = statusMap[error.response.status] || `请求失败 (${error.response.status})`;
+      error.message = statusMap[status] || `请求失败 (${status})`;
     }
 
     return Promise.reject(error);
   },
 );
+
 
 // ====== 系统状态 ======
 
@@ -131,7 +127,7 @@ export interface HealthScoreResponse {
 }
 
 export const getHealthScore = async (): Promise<HealthScoreResponse> => {
-  return api.get('/system/health', { params: { } });
+  return (await api.get<HealthScoreResponse>('/system/health', { params: { } })).data;
 };
 
 /** 后端健康检查（轻量ping） */

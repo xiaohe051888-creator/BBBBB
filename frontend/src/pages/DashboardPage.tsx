@@ -191,11 +191,19 @@ const DashboardPage: React.FC = () => {
       debouncedInvalidateState();
     },
     onGameRevealed: (data) => {
-      if (data?.settlement_info) {
+      if (data?.game_number && data?.result) {
+        const settlement = data?.settlement;
         addGameOptimistically({
-          game_number: data.settlement_info.game_number,
-          result: data.settlement_info.result,
-        } as any);
+          game_number: data.game_number,
+          result: data.result,
+          result_time: new Date().toISOString(),
+          predict_direction: data?.predict_direction ?? null,
+          predict_correct: data?.predict_correct ?? null,
+          error_id: null,
+          settlement_status: settlement?.status ?? null,
+          profit_loss: typeof settlement?.profit_loss === 'number' ? settlement.profit_loss : 0,
+          balance_after: typeof data?.balance === 'number' ? data.balance : 0,
+        });
       }
       debouncedInvalidateGames();
       debouncedInvalidateState();
