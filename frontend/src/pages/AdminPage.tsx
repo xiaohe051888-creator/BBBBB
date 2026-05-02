@@ -258,9 +258,19 @@ const AdminPage: React.FC = () => {
   }, [message]);
 
   const runRetentionNow = useCallback(async () => {
+    const cfg = maintenanceStats?.config;
     Modal.confirm({
       title: '确认立即执行清理？',
-      content: '将按配置清理超期日志并裁剪历史数据（保留最近N条）。',
+      content: cfg ? (
+        <div>
+          <div>将按当前配置清理超期日志并裁剪历史数据（保留最近N条）。</div>
+          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.65)' }}>
+            P3保留 {cfg.LOG_RETENTION_HOT} 天，P2保留 {cfg.LOG_RETENTION_WARM} 天，历史上限 {cfg.MAX_HISTORY_RECORDS} 条
+          </div>
+        </div>
+      ) : (
+        '将按配置清理超期日志并裁剪历史数据（保留最近N条）。'
+      ),
       okText: '确认执行',
       cancelText: '取消',
       onOk: async () => {
@@ -273,7 +283,7 @@ const AdminPage: React.FC = () => {
         }
       },
     });
-  }, [loadMaintenanceStats, message]);
+  }, [loadMaintenanceStats, maintenanceStats?.config, message]);
 
   const [startLearningVisible, setStartLearningVisible] = useState(false);
 
@@ -820,8 +830,8 @@ const AdminPage: React.FC = () => {
 
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                     <Space size={8} wrap>
-                      <Tag color={maintenanceStats?.config.RETENTION_ENABLED ? 'green' : 'default'}>
-                        自动清理 {maintenanceStats?.config.RETENTION_ENABLED ? '开启' : '关闭'}
+                      <Tag color={maintenanceStats ? (maintenanceStats.config.RETENTION_ENABLED ? 'green' : 'default') : 'default'}>
+                        自动清理 {maintenanceStats ? (maintenanceStats.config.RETENTION_ENABLED ? '开启' : '关闭') : '加载中'}
                       </Tag>
                       <Tag color="blue">P3保留 {maintenanceStats?.config.LOG_RETENTION_HOT ?? '-'} 天</Tag>
                       <Tag color="gold">P2保留 {maintenanceStats?.config.LOG_RETENTION_WARM ?? '-'} 天</Tag>

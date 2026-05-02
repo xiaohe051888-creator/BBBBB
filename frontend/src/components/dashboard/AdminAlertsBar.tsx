@@ -33,6 +33,11 @@ export const AdminAlertsBar: React.FC = () => {
 
   const items = useMemo(() => data?.data || [], [data]);
   const count = data?.count || 0;
+  const logsUrl = useCallback((q?: string) => {
+    const base = '/dashboard/logs?priority=P1';
+    if (!q) return base;
+    return `${base}&q=${encodeURIComponent(q)}`;
+  }, []);
 
   if (!isLoggedIn || count <= 0) return null;
 
@@ -56,7 +61,7 @@ export const AdminAlertsBar: React.FC = () => {
         <Space size={8} wrap>
           <Button size="small" loading={loading} onClick={fetchAlerts}>刷新</Button>
           <Button size="small" onClick={() => setExpanded(v => !v)}>{expanded ? '收起' : '展开'}</Button>
-          <Button size="small" type="primary" danger onClick={() => navigate('/dashboard/logs?priority=P1')}>查看全部</Button>
+          <Button size="small" type="primary" danger onClick={() => navigate(logsUrl())}>查看全部</Button>
         </Space>
       </div>
 
@@ -72,7 +77,7 @@ export const AdminAlertsBar: React.FC = () => {
                 padding: '8px 10px',
                 cursor: 'pointer',
               }}
-              onClick={() => navigate('/dashboard/logs?priority=P1')}
+              onClick={() => navigate(logsUrl(it.event_code))}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ color: '#ffd6e7', fontSize: 12, fontWeight: 600 }}>
@@ -92,4 +97,3 @@ export const AdminAlertsBar: React.FC = () => {
     </div>
   );
 };
-

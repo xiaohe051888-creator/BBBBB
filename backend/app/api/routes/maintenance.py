@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
+from sqlalchemy.engine.url import make_url
 
 from app.api.routes.utils import get_current_user
 from app.core.config import settings
@@ -17,16 +18,22 @@ router = APIRouter(prefix="/api/admin/maintenance", tags=["系统维护"])
 
 
 def _sqlite_db_size_bytes() -> int | None:
-    url = settings.DATABASE_URL
-    if not url.startswith("sqlite"):
+    try:
+        u = make_url(settings.DATABASE_URL)
+    except Exception:
         return None
-    if "///" not in url:
+
+    if not (u.drivername or "").startswith("sqlite"):
         return None
-    path = url.split("///", 1)[1].split("?", 1)[0]
-    if not path:
+
+    path = u.database
+    if not path or path == ":memory:":
         return None
+
     if not os.path.isabs(path):
-        path = os.path.abspath(os.path.join(os.getcwd(), path))
+        backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        path = os.path.abspath(os.path.join(backend_dir, path))
+
     try:
         return int(os.path.getsize(path))
     except Exception:
@@ -143,4 +150,3 @@ async def maintenance_retention_run(_: dict = Depends(get_current_user)):
         },
         "elapsed_ms": elapsed_ms,
     }
-
