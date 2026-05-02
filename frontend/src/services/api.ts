@@ -19,11 +19,13 @@ export const getToken = (): string | null => {
 /** 保存token */
 export const setToken = (token: string): void => {
   localStorage.setItem(TOKEN_KEY, token);
+  window.dispatchEvent(new Event('auth_token_changed'));
 };
 
 /** 清除token（登出） */
 export const clearToken = (): void => {
   localStorage.removeItem(TOKEN_KEY);
+  window.dispatchEvent(new Event('auth_token_changed'));
 };
 
 // ============ Axios 实例 ============

@@ -88,11 +88,15 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     isUnmountedRef.current = false;
     // 使用setTimeout避免同步setState
     const stateTimer = setTimeout(() => {
-      setConnectionState('connecting');
+      setConnectionState(api.getToken() ? 'connecting' : 'closed');
     }, 0);
 
     const connect = () => {
       if (isUnmountedRef.current) return;
+      if (!api.getToken()) {
+        setConnectionState('closed');
+        return;
+      }
 
       try {
         const ws = api.createWebSocket();
@@ -152,6 +156,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
         ws.onclose = () => {
           setConnectionState('closed');
           if (!isUnmountedRef.current) {
+            if (!api.getToken()) return;
             // 指数退避策略：3s, 6s, 12s, 24s... 最大 30 秒
             const backoffDelay = Math.min(reconnectInterval * Math.pow(2, reconnectCountRef.current), 30000);
             reconnectCountRef.current += 1;
@@ -164,6 +169,7 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
       } catch {
         setConnectionState('closed');
         if (!isUnmountedRef.current) {
+          if (!api.getToken()) return;
           const backoffDelay = Math.min(reconnectInterval * Math.pow(2, reconnectCountRef.current), 30000);
           reconnectCountRef.current += 1;
           
@@ -176,8 +182,16 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
 
     connect();
 
+    const onTokenChanged = () => {
+      if (isUnmountedRef.current) return;
+      reconnectCountRef.current = 0;
+      setReconnectTrigger(prev => prev + 1);
+    };
+    window.addEventListener('auth_token_changed', onTokenChanged);
+
     return () => {
           clearTimeout(stateTimer);
+          window.removeEventListener('auth_token_changed', onTokenChanged);
           if (pingTimerRef.current) {
             clearInterval(pingTimerRef.current);
             pingTimerRef.current = null;

@@ -195,8 +195,7 @@ async def global_exception_handler(request: Request, exc: Exception):
             "error": "Internal Server Error",
             "detail": str(exc) if settings.DEBUG else "系统内部发生错误，请查看后台日志",
             "path": request.url.path
-        },
-        headers={"Access-Control-Allow-Origin": "*"}
+        }
     )
 
 # CORS配置
@@ -211,7 +210,7 @@ _cors_origins = _parse_cors_origins()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )

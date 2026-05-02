@@ -2,16 +2,19 @@
 游戏相关路由
 """
 import asyncio
+import logging
 from typing import Optional
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 
 from app.core.database import async_session
 from app.models.schemas import GameRecord
 from sqlalchemy import select, func
 
 from app.api.routes.schemas import UploadRequest, RevealRequest
+from app.api.routes.utils import get_current_user
 
 router = APIRouter(prefix="/api/games", tags=["游戏"])
+logger = logging.getLogger(__name__)
 
 def _upload_error_to_http_exception(upload_result: dict) -> HTTPException:
     from app.utils.errors import error_message
@@ -30,7 +33,7 @@ def _reveal_error_to_http_exception(reveal_result: dict) -> HTTPException:
 
 
 @router.post("/upload")
-async def upload_game_results(req: UploadRequest):
+async def upload_game_results(req: UploadRequest, _: dict = Depends(get_current_user)):
     """
     手动上传批量开奖记录（最多72局）
     上传后自动计算五路走势图，触发AI分析预测下一局
@@ -123,7 +126,12 @@ async def upload_game_results(req: UploadRequest):
                     logging.getLogger(__name__).error(f"清理状态机遇错: {final_e}", exc_info=True)
 
     from app.services.game.session import start_background_task
-    start_background_task("analysis", _trigger_analysis())
+    start_background_task(
+        "analysis",
+        _trigger_analysis(),
+        boot_number=upload_result["boot_number"],
+        dedupe_key=f"analysis:{upload_result['boot_number']}",
+    )
     
     return {
         "success": True,
@@ -136,7 +144,7 @@ async def upload_game_results(req: UploadRequest):
 
 
 @router.post("/reveal")
-async def reveal_game_route(req: RevealRequest):
+async def reveal_game_route(req: RevealRequest, _: dict = Depends(get_current_user)):
     """
     开奖 - 输入开奖结果，结算注单，走势图更新，触发下一局AI分析
     """
@@ -200,7 +208,7 @@ async def reveal_game_route(req: RevealRequest):
                     await log_session.commit()
                 await broadcast_event("state_update", {"status": "等待开奖"})
             except Exception:
-                pass
+                logger.exception("写入 AI 分析异常日志/广播失败(reveal)")
         finally:
             from app.services.game.session import get_session, broadcast_event
             sess = get_session()
@@ -214,10 +222,15 @@ async def reveal_game_route(req: RevealRequest):
                         await final_session.commit()
                     await broadcast_event("state_update", {"status": "等待开奖"})
                 except Exception:
-                    pass
+                    logger.exception("同步最终状态/广播失败(reveal)")
 
     from app.services.game.session import start_background_task
-    start_background_task("analysis", _trigger_next_analysis())
+    start_background_task(
+        "analysis",
+        _trigger_next_analysis(),
+        boot_number=boot_number,
+        dedupe_key=f"analysis:{boot_number}",
+    )
     
     return {
         **result,

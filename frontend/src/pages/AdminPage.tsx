@@ -396,14 +396,14 @@ const AdminPage: React.FC = () => {
                           </div>
                           <Button
                             type="primary"
-                            disabled={predictionMode === 'ai'}
+                            disabled={predictionMode === 'ai' || !threeModelStatus?.all_api_keys_configured}
                             loading={updatingMode}
                             onClick={async () => {
                               await applyModeChange('ai');
                               setModePickerVisible(false);
                             }}
                           >
-                            启用
+                            启用 3AI 模式
                           </Button>
                         </div>
                       </Card>
@@ -426,14 +426,14 @@ const AdminPage: React.FC = () => {
                           </div>
                           <Button
                             type="primary"
-                            disabled={predictionMode === 'single_ai'}
+                            disabled={predictionMode === 'single_ai' || !threeModelStatus?.models?.single?.api_key_set}
                             loading={updatingMode}
                             onClick={async () => {
                               await applyModeChange('single_ai');
                               setModePickerVisible(false);
                             }}
                           >
-                            启用
+                            启用 单AI 模式
                           </Button>
                         </div>
                       </Card>
@@ -459,7 +459,7 @@ const AdminPage: React.FC = () => {
                               setModePickerVisible(false);
                             }}
                           >
-                            启用
+                            启用 规则模式
                           </Button>
                         </div>
                       </Card>

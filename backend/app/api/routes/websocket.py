@@ -22,12 +22,18 @@ ws_clients_lock = asyncio.Lock()
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket 实时推送"""
     token = websocket.query_params.get("token")
-    if token:
-        try:
-            jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        except (JWTError, Exception):
-            await websocket.close(code=4001, reason="无效的认证凭证")
+    if not token:
+        await websocket.close(code=4401, reason="缺少认证凭证")
+        return
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        if not payload.get("sub"):
+            await websocket.close(code=4401, reason="无效的认证凭证")
             return
+    except (JWTError, Exception):
+        await websocket.close(code=4401, reason="无效的认证凭证")
+        return
     
     await websocket.accept()
     async with ws_clients_lock:

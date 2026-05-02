@@ -1,6 +1,7 @@
 """
 系统状态路由
 """
+import logging
 from fastapi import APIRouter, Query, HTTPException, Depends
 from sqlalchemy import select, func, desc
 from datetime import datetime, timedelta, UTC
@@ -15,6 +16,7 @@ router = APIRouter(
     prefix="/api/system", 
     tags=["系统状态"]
 )
+logger = logging.getLogger(__name__)
 
 @router.get("/state")
 async def get_system_state():
@@ -435,6 +437,7 @@ async def get_system_diagnostics():
         async with async_session() as s:
             tasks = (await s.execute(sa_select(BackgroundTask).order_by(BackgroundTask.created_at.desc()).limit(50))).scalars().all()
     except Exception:
+        logger.exception("读取 BackgroundTask 列表失败")
         tasks = []
 
     running = [t for t in tasks if getattr(t, "status", None) == "running"]
@@ -451,7 +454,7 @@ async def get_system_diagnostics():
             if info.get("stuck"):
                 stuck_signals.append(info)
     except Exception:
-        pass
+        logger.exception("detect_stuck_state 执行失败")
 
     latest_errors = [t for t in tasks if getattr(t, "status", None) == "failed" and getattr(t, "error", None)][:5]
     background_tasks = {
