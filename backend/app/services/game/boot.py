@@ -75,7 +75,7 @@ async def end_boot(
                 "LOG-BOOT-001", "结束本靴", "开始新靴",
                 f"第{current_boot}靴结束，开始第{next_boot}靴",
                 category="系统事件",
-                priority="P1",
+                priority="P2",
             )
             
             await db.commit()
@@ -211,7 +211,7 @@ async def run_deep_learning(
                 "LOG-BOOT-002", "深度学习", "完成",
                 f"第{boot_number}靴深度学习完成",
                 category="AI事件",
-                priority="P1",
+                priority="P2",
             )
             
             state = await get_or_create_state(db)
@@ -375,7 +375,7 @@ async def run_deep_learning(
                     "LOG-BOOT-004", "深度学习", "取消",
                     f"第{boot_number}靴深度学习已取消",
                     category="AI事件",
-                    priority="P1",
+                    priority="P2",
                 )
                 await db.commit()
 

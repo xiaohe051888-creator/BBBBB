@@ -226,7 +226,7 @@ async def upload_games(
                     db, boot_number, 0,
                     "LOG-SYS-003", "系统重置", "成功",
                     f"上传数据触发强力清场：原状态[{old_status}]已终止，执行[{action_type}]",
-                    priority="P1",
+                    priority="P2",
                 )
             
             await write_game_log(

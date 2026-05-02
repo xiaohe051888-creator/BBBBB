@@ -269,7 +269,7 @@ async def _settle_bet(
             "LOG-STL-001", "结算", settle["status"],
             f"第{game_number}局开{result}，注单结算：{settle['reason']}，盈亏{settle['profit_loss']:+.0f}，余额{sess.balance:.0f}",
             category="资金事件",
-            priority="P2" if (sess.predict_direction and sess.predict_direction == result) else "P1",
+            priority="P2",
         )
 
         # 清除待开奖信息

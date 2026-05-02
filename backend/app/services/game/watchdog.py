@@ -63,7 +63,7 @@ class Watchdog:
                         event_result="AutoRepair",
                         description=f"自动修复卡住状态：{old_status} → {state_after.status}",
                         category="系统事件",
-                        priority="P1",
+                        priority="P2",
                         source_module="watchdog",
                     )
                     await db.commit()
@@ -101,7 +101,7 @@ class Watchdog:
                     event_result="Alert",
                     description=f"最近{self.p1_error_window_seconds}s P1错误告警：count={p1_count}",
                     category="系统事件",
-                    priority="P1",
+                    priority="P2",
                     source_module="watchdog",
                 )
                 await db.commit()

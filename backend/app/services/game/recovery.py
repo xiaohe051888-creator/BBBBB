@@ -8,6 +8,7 @@ from app.models.schemas import BackgroundTask
 
 async def detect_stuck_state(db: AsyncSession) -> dict:
     from app.models.schemas import SystemState
+    from app.services.game.session import list_background_tasks
 
     state = (await db.execute(select(SystemState).order_by(SystemState.id.desc()).limit(1))).scalars().first()
     status = state.status if state else None
@@ -24,6 +25,13 @@ async def detect_stuck_state(db: AsyncSession) -> dict:
     if not expected_task_type:
         return {"stuck": False, "status": status, "expected_task_type": None}
 
+    mem_tasks = list_background_tasks(limit=200)
+    mem_running = [
+        t
+        for t in mem_tasks
+        if t.get("status") == "running" and t.get("task_type") == expected_task_type
+    ]
+
     running = (await db.execute(
         select(BackgroundTask).where(
             BackgroundTask.status == "running",
@@ -32,11 +40,12 @@ async def detect_stuck_state(db: AsyncSession) -> dict:
     )).scalars().all()
 
     return {
-        "stuck": len(running) == 0,
+        "stuck": len(running) == 0 and len(mem_running) == 0,
         "status": status,
         "expected_task_type": expected_task_type,
         "safe_status": safe_status,
-        "running_count": len(running),
+        "db_running_count": len(running),
+        "mem_running_count": len(mem_running),
     }
 
 
@@ -68,7 +77,7 @@ async def repair_stuck_state(db: AsyncSession) -> dict:
         event_result="回落卡住状态",
         description=f"检测到状态{old_status}卡住（无对应 running 任务），已回落为 {new_status}",
         category="系统事件",
-        priority="P1",
+        priority="P2",
         source_module="repair",
     )
 
@@ -99,7 +108,7 @@ async def recover_on_startup(db: AsyncSession) -> None:
             event_result="取消后台任务",
             description=f"服务重启自动取消未完成后台任务 {len(tasks)} 个",
             category="系统事件",
-            priority="P1",
+            priority="P2",
             source_module="startup",
         )
 
@@ -126,7 +135,7 @@ async def recover_on_startup(db: AsyncSession) -> None:
             event_result="回落状态",
             description=f"服务重启恢复：状态 {old_status} → {new_status}",
             category="系统事件",
-            priority="P1",
+            priority="P2",
             source_module="startup",
         )
 

@@ -1,9 +1,44 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.schemas import AIMemory, BetRecord, GameRecord, MistakeBook, RoadMap, SystemLog
+
+
+def _tier_for_priority(priority: str) -> str:
+    if priority == "P1":
+        return "cold_perm"
+    if priority == "P2":
+        return "warm30"
+    return "hot7"
+
+
+async def normalize_log_priorities(session: AsyncSession) -> dict:
+    mappings: dict[str, str] = {
+        "LOG-SYS-003": "P2",
+        "LOG-STL-001": "P2",
+        "LOG-BOOT-001": "P2",
+        "LOG-BOOT-002": "P2",
+        "LOG-BOOT-004": "P2",
+        "LOG-RECOVER-001": "P2",
+        "LOG-RECOVER-002": "P2",
+        "LOG-RECOVER-003": "P2",
+        "LOG-WDG-001": "P2",
+        "LOG-WDG-003": "P2",
+    }
+
+    updated = 0
+    for code, new_priority in mappings.items():
+        new_tier = _tier_for_priority(new_priority)
+        r = await session.execute(
+            update(SystemLog)
+            .where(SystemLog.event_code == code)
+            .values(priority=new_priority, retention_tier=new_tier)
+        )
+        updated += int(r.rowcount or 0)
+
+    return {"updated": updated}
 
 
 async def cleanup_logs(
@@ -13,6 +48,7 @@ async def cleanup_logs(
     warm_days: int = 30,
 ) -> dict:
     now = now or datetime.now()
+    normalized = await normalize_log_priorities(session)
     hot_cutoff = now - timedelta(days=int(hot_days))
     warm_cutoff = now - timedelta(days=int(warm_days))
 
@@ -31,7 +67,11 @@ async def cleanup_logs(
         )
     )
 
-    return {"deleted_p3": int(p3.rowcount or 0), "deleted_p2": int(p2.rowcount or 0)}
+    return {
+        "normalized": normalized,
+        "deleted_p3": int(p3.rowcount or 0),
+        "deleted_p2": int(p2.rowcount or 0),
+    }
 
 
 async def prune_history(session: AsyncSession, keep: int = 1000) -> dict:
