@@ -4,18 +4,19 @@
  * 
  * 优化：使用React Query + 乐观UI策略，页面切换无加载转圈
  */
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Button, Card, Table, Tag, Space, Badge, Switch, App, Input, Select, Modal, List, Typography, Divider,
+  Button, Card, Table, Tag, Space, Badge, Switch, App, Input, Select, Modal, List, Typography, Divider, Collapse,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useLogsQuery, type LogEntry, useAddLogOptimistically, useWebSocket } from '../hooks';
+import { useLogsQuery, type LogEntry, useAddLogsOptimistically, useWebSocket } from '../hooks';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { SystemStatusPanel } from '../components/ui/SystemStatusPanel';
 import { PRIORITY_COLORS } from '../utils/constants';
 import { copyText } from '../utils/clipboard';
+import { humanizeLog, toHumanCopyText } from '../utils/logHumanizer';
 import { useQueryClient } from '@tanstack/react-query';
 import * as api from '../services/api';
 
@@ -136,7 +137,9 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
     }
   };
 
-  const detailText = log ? JSON.stringify(log, null, 2) : '';
+  const human = useMemo(() => (log ? humanizeLog(log) : null), [log]);
+  const humanText = useMemo(() => (log ? toHumanCopyText(log) : ''), [log]);
+  const rawText = useMemo(() => (log ? JSON.stringify(log, null, 2) : ''), [log]);
 
   return (
     <Modal
@@ -144,8 +147,8 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
       open={open}
       onCancel={onClose}
       footer={[
-        <Button key="copy" disabled={!log} onClick={() => copy(detailText)}>
-          复制
+        <Button key="copy" disabled={!log} onClick={() => copy(humanText)}>
+          复制小白解读
         </Button>,
         <Button key="close" type="primary" onClick={onClose}>
           关闭
@@ -153,7 +156,7 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
       ]}
       width={720}
     >
-      {log ? (
+      {log && human ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Space wrap>
             <Tag color={PRIORITY_COLORS[log.priority]}>{priorityLabel(log.priority)}</Tag>
@@ -162,15 +165,57 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
             {log.is_pinned ? <Tag color="red">置顶</Tag> : null}
           </Space>
           <Divider style={{ margin: '8px 0' }} />
-          <Typography.Text type="secondary">说明</Typography.Text>
+          <Typography.Title level={5} style={{ margin: 0 }}>
+            {human.title}
+          </Typography.Title>
+          <Typography.Text type="secondary">发生了什么</Typography.Text>
           <Typography.Paragraph style={{ marginBottom: 0 }}>
-            {log.description || '-'}
+            {human.whatHappened || '-'}
+          </Typography.Paragraph>
+          <Typography.Text type="secondary">有什么影响</Typography.Text>
+          <Typography.Paragraph style={{ marginBottom: 0 }}>
+            {human.impact || '-'}
+          </Typography.Paragraph>
+          <Typography.Text type="secondary">建议怎么做</Typography.Text>
+          <Typography.Paragraph style={{ marginBottom: 0 }}>
+            {human.suggestion || '-'}
           </Typography.Paragraph>
           <Divider style={{ margin: '8px 0' }} />
-          <Typography.Text type="secondary">原始数据</Typography.Text>
-          <pre style={{ margin: 0, maxHeight: 360, overflow: 'auto' }}>
-            {detailText}
-          </pre>
+          <Typography.Text type="secondary">关键信息</Typography.Text>
+          <List
+            size="small"
+            dataSource={human.fieldsCn}
+            renderItem={(item) => (
+              <List.Item style={{ padding: '4px 0' }}>
+                <Space size={6} style={{ width: '100%', justifyContent: 'space-between' }}>
+                  <span style={{ opacity: 0.75 }}>{item.label}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{item.value}</span>
+                </Space>
+              </List.Item>
+            )}
+          />
+          <Divider style={{ margin: '8px 0' }} />
+          <Collapse
+            size="small"
+            items={[
+              {
+                key: 'raw',
+                label: '技术信息（原始数据）',
+                children: (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Space wrap>
+                      <Button size="small" onClick={() => copy(rawText)} disabled={!log}>
+                        复制原始数据
+                      </Button>
+                    </Space>
+                    <pre style={{ margin: 0, maxHeight: 260, overflow: 'auto' }}>
+                      {rawText}
+                    </pre>
+                  </div>
+                ),
+              },
+            ]}
+          />
         </div>
       ) : (
         <Typography.Text type="secondary">未选择日志</Typography.Text>
@@ -247,13 +292,54 @@ const LogsPage: React.FC = () => {
   const location = useLocation();
   const { message } = App.useApp();
   const queryClient = useQueryClient();
-  const addLogOptimistically = useAddLogOptimistically();
+  const addLogsOptimistically = useAddLogsOptimistically();
+  const [realtime, setRealtime] = useState(true);
+  const [pendingRealtimeCount, setPendingRealtimeCount] = useState(0);
+  const realtimeRef = useRef(true);
+  const pendingLogsRef = useRef<LogEntry[]>([]);
+  const flushTimerRef = useRef<number | null>(null);
 
   // 系统实时诊断
   const { diagnostics, dismissIssue, retryConnection } = useSystemDiagnostics({});
+
+  const flushPending = useCallback(() => {
+    const pending = pendingLogsRef.current;
+    if (pending.length === 0) return;
+    pendingLogsRef.current = [];
+    setPendingRealtimeCount(0);
+    addLogsOptimistically(pending);
+  }, [addLogsOptimistically]);
+
+  useEffect(() => {
+    return () => {
+      if (flushTimerRef.current) {
+        window.clearTimeout(flushTimerRef.current);
+        flushTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleRealtimeChange = useCallback((v: boolean) => {
+    realtimeRef.current = v;
+    setRealtime(v);
+    if (v) flushPending();
+  }, [flushPending]);
+
   useWebSocket({
     onLog: (data) => {
-      addLogOptimistically(data);
+      if (!data) return;
+      pendingLogsRef.current.push(data);
+
+      if (!realtimeRef.current) {
+        setPendingRealtimeCount(pendingLogsRef.current.length);
+        return;
+      }
+
+      if (flushTimerRef.current) return;
+      flushTimerRef.current = window.setTimeout(() => {
+        flushTimerRef.current = null;
+        flushPending();
+      }, 400);
     },
   });
 
@@ -365,16 +451,18 @@ const LogsPage: React.FC = () => {
   const exportToCSV = async () => {
     const exportLogs = await fetchExportLogs();
     if (!exportLogs.length) { message.warning('暂无数据可导出'); return; }
-    const headers = ['时间', '局号', '事件编码', '事件类型', '结果', '优先级', '类别', '说明'];
+    const headers = ['时间', '局号', '优先级', '类别', '事件', '小白解读', '解读摘要', '原始说明', '事件编码', '任务编号'];
     const rows = exportLogs.map(l => [
       l.log_time ? dayjs(l.log_time).format('YYYY-MM-DD HH:mm:ss') : '',
       l.game_number ?? '',
-      l.event_code,
-      l.event_type,
-      l.event_result,
       l.priority,
       l.category,
+      l.event_type,
+      `"${humanizeLog(l).title.replace(/"/g, '""')}"`,
+      `"${`${humanizeLog(l).whatHappened} | ${humanizeLog(l).impact} | ${humanizeLog(l).suggestion}`.replace(/"/g, '""')}"`,
       `"${(l.description || '').replace(/"/g, '""')}"`,
+      l.event_code,
+      l.task_id || '',
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     downloadFile(csv, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.csv`, 'text/csv;charset=utf-8;');
@@ -457,6 +545,10 @@ const LogsPage: React.FC = () => {
       title: '说明',
       dataIndex: 'description',
       ellipsis: true,
+      render: (_: string, record: LogEntry) => {
+        const h = humanizeLog(record);
+        return <span title={record.description || ''}>{h.title}</span>;
+      },
     },
     {
       title: '操作',
@@ -532,6 +624,18 @@ const LogsPage: React.FC = () => {
             checkedChildren="自动"
             unCheckedChildren="停止"
           />
+          <Switch
+            size="small"
+            checked={realtime}
+            onChange={handleRealtimeChange}
+            checkedChildren="实时"
+            unCheckedChildren="暂停"
+          />
+          {realtime ? null : (
+            <Button size="small" disabled={pendingRealtimeCount === 0} onClick={flushPending}>
+              新日志 {pendingRealtimeCount}
+            </Button>
+          )}
           <Switch
             size="small"
             checked={autoScroll}

@@ -26,6 +26,7 @@ export {
   usePlaceBetMutation,
   useRevealResultMutation,
   useAddLogOptimistically,
+  useAddLogsOptimistically,
   useAddBetOptimistically,
   useUpdateBetOptimistically,
   useAddGameOptimistically,
@@ -66,4 +67,3 @@ export type {
   WsStatus,
   ServiceStatus,
 } from './useSystemDiagnostics';
-

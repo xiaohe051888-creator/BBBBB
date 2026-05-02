@@ -336,6 +336,60 @@ export const useAddLogOptimistically = () => {
   };
 };
 
+export const useAddLogsOptimistically = () => {
+  const queryClient = useQueryClient();
+
+  return (newLogs: LogEntry[]) => {
+    if (!Array.isArray(newLogs) || newLogs.length === 0) return;
+
+    const logs = newLogs.filter(Boolean);
+    if (logs.length === 0) return;
+
+    const candidates = queryClient.getQueriesData<{ logs: LogEntry[]; total: number }>({ queryKey: ['logs'] });
+    const insertLogs = [...logs].reverse();
+
+    for (const [key] of candidates) {
+      const k = key as unknown as (string | number)[];
+      if (k.length < 7) continue;
+
+      const category = String(k[1] || '');
+      const taskId = String(k[2] || '');
+      const priority = String(k[3] || '');
+      const q = String(k[4] || '');
+      const page = Number(k[5] || 1);
+      const pageSize = Number(k[6] || 50);
+
+      if (page !== 1) continue;
+      if (q) continue;
+
+      queryClient.setQueryData(
+        key,
+        (oldData: { logs: LogEntry[]; total: number } | undefined) => {
+          const oldLogs = oldData?.logs || [];
+          const existingIds = new Set(oldLogs.map((l) => l.id).filter(Boolean));
+
+          const accepted: LogEntry[] = [];
+          for (const l of insertLogs) {
+            if (category && l.category !== category) continue;
+            if (taskId && (l.task_id || '') !== taskId) continue;
+            if (priority && l.priority !== priority) continue;
+            if (l.id && existingIds.has(l.id)) continue;
+            accepted.push(l);
+          }
+
+          if (accepted.length === 0) return oldData || { logs: [], total: 0 };
+
+          const maxLimit = Math.max(pageSize, 1);
+          const nextLogs = [...accepted, ...oldLogs].slice(0, maxLimit);
+          const nextTotal = (oldData?.total || 0) + accepted.length;
+
+          return { logs: nextLogs, total: nextTotal };
+        }
+      );
+    }
+  };
+};
+
 // 添加下注记录（用于WebSocket接收到新下注时）
 export const useAddBetOptimistically = () => {
   const queryClient = useQueryClient();
