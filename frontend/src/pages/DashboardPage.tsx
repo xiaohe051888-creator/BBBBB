@@ -165,8 +165,11 @@ const DashboardPage: React.FC = () => {
       debouncedInvalidateLogs();
     },
     onBetPlaced: (data) => {
+      const optimisticId = -Date.now();
       addBetOptimistically({
+        id: optimisticId,
         game_number: data.game_number,
+        bet_seq: 0,
         bet_direction: data.direction,
         bet_amount: data.amount,
         bet_tier: data.tier,

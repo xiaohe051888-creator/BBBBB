@@ -43,7 +43,9 @@ async def get_bet_records(
             "page_size": page_size,
             "data": [
                 {
+                    "id": r.id,
                     "game_number": r.game_number,
+                    "bet_seq": r.bet_seq,
                     "bet_time": r.bet_time.isoformat() if r.bet_time else None,
                     "bet_direction": r.bet_direction,
                     "bet_amount": r.bet_amount,

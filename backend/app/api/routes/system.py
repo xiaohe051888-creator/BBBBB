@@ -10,7 +10,7 @@ from app.core.database import async_session
 from app.models.schemas import GameRecord, BetRecord, SystemLog, SystemState, AiModelConfig
 from app.core.config import settings
 from app.services.game import get_current_state, get_session
-from app.api.routes.utils import get_current_user
+from app.api.routes.utils import get_current_user, is_secret_configured
 from app.services.ai_config_status import compute_config_hash
 
 router = APIRouter(
@@ -81,16 +81,13 @@ async def get_health_score():
     
     from app.services.game import get_current_state
 
-    def _enabled(v: str | None, min_len: int = 10) -> bool:
-        return bool(v and isinstance(v, str) and len(v) > min_len)
-
     mem = await get_current_state()
     mode = mem.get("prediction_mode", "rule")
 
-    openai_ok = _enabled(settings.OPENAI_API_KEY)
-    anthropic_ok = _enabled(settings.ANTHROPIC_API_KEY)
-    gemini_ok = _enabled(settings.GEMINI_API_KEY)
-    single_ok = _enabled(getattr(settings, "SINGLE_AI_API_KEY", ""))
+    openai_ok = is_secret_configured(settings.OPENAI_API_KEY)
+    anthropic_ok = is_secret_configured(settings.ANTHROPIC_API_KEY)
+    gemini_ok = is_secret_configured(settings.GEMINI_API_KEY)
+    single_ok = is_secret_configured(getattr(settings, "SINGLE_AI_API_KEY", ""))
 
     def _mode_label(v: str) -> str:
         return "3AI" if v == "ai" else "单AI" if v == "single_ai" else "规则" if v == "rule" else v
@@ -275,13 +272,10 @@ async def get_system_diagnostics():
     def _mode_label(v: str) -> str:
         return "3AI" if v == "ai" else "单AI" if v == "single_ai" else "规则" if v == "rule" else v
 
-    def _enabled(v: str | None, min_len: int = 10) -> bool:
-        return bool(v and isinstance(v, str) and len(v) > min_len)
-
-    openai_enabled = _enabled(settings.OPENAI_API_KEY)
-    anthropic_enabled = _enabled(settings.ANTHROPIC_API_KEY)
-    gemini_enabled = _enabled(settings.GEMINI_API_KEY)
-    single_ai_enabled = _enabled(getattr(settings, "SINGLE_AI_API_KEY", ""))
+    openai_enabled = is_secret_configured(settings.OPENAI_API_KEY)
+    anthropic_enabled = is_secret_configured(settings.ANTHROPIC_API_KEY)
+    gemini_enabled = is_secret_configured(settings.GEMINI_API_KEY)
+    single_ai_enabled = is_secret_configured(getattr(settings, "SINGLE_AI_API_KEY", ""))
     
     db_ok = True
     db_error = None
@@ -639,9 +633,6 @@ async def update_prediction_mode(
     if req.mode not in ("ai", "single_ai", "rule"):
         raise HTTPException(400, "非法的预测模式")
 
-    def _enabled(v: str | None, min_len: int = 10) -> bool:
-        return bool(v and isinstance(v, str) and len(v) > min_len)
-
     role_map = {
         "banker": ("OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_API_BASE"),
         "player": ("ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "ANTHROPIC_API_BASE"),
@@ -685,11 +676,11 @@ async def update_prediction_mode(
             raise HTTPException(409, f"无法切换至单AI模式：请先配置并测试通过：{'、'.join(missing)}")
 
     if req.mode == "ai":
-        ok = _enabled(settings.OPENAI_API_KEY) and _enabled(settings.ANTHROPIC_API_KEY) and _enabled(settings.GEMINI_API_KEY)
+        ok = is_secret_configured(settings.OPENAI_API_KEY) and is_secret_configured(settings.ANTHROPIC_API_KEY) and is_secret_configured(settings.GEMINI_API_KEY)
         if not ok:
             raise HTTPException(400, "无法切换至3AI模式：需同时配置 庄模型(OpenAI)、闲模型(Claude)、综合模型(Gemini) 三项接口密钥")
     elif req.mode == "single_ai":
-        ok = _enabled(getattr(settings, "SINGLE_AI_API_KEY", ""))
+        ok = is_secret_configured(getattr(settings, "SINGLE_AI_API_KEY", ""))
         if not ok:
             raise HTTPException(400, "无法切换至单AI模式：请先配置 单AI(DeepSeek) 接口密钥")
     

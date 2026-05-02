@@ -36,6 +36,10 @@ def decode_token(raw_token: str) -> dict:
         raise HTTPException(401, "无效或已过期的认证凭证")
 
 
+def is_secret_configured(v: str | None, min_len: int = 10) -> bool:
+    return bool(v and isinstance(v, str) and len(v) > min_len)
+
+
 async def get_current_user(
     request: Request,
     token: Optional[str] = Query(None, alias="token"),

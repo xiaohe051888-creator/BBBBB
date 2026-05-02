@@ -34,7 +34,9 @@ export interface GameRecord {
 }
 
 export interface BetRecord {
+  id: number;
   game_number: number;
+  bet_seq: number;
   bet_time: string | null;
   bet_direction: string;
   bet_amount: number;

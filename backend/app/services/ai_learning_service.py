@@ -1144,7 +1144,11 @@ class AILearningService:
             priority=kwargs.get("priority", LogPriority.P3),
             source_module="AI学习模块",
             is_pinned=kwargs.get("is_pinned", False),
-            retention_tier="cold_perm" if kwargs.get("priority") == LogPriority.P1 else "warm30",
+            retention_tier="cold_perm"
+            if kwargs.get("priority") == LogPriority.P1
+            else "warm30"
+            if kwargs.get("priority") == LogPriority.P2
+            else "hot7",
         )
         self.session.add(log)
         await self.session.commit()

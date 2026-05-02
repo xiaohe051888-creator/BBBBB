@@ -63,6 +63,7 @@ from app.models.schemas import AdminUser, SystemLog, BetRecord, MistakeBook
 # ============ 导入路由模块 ============
 from app.api.routes import game, bet, logs, stats, analysis, maintenance
 from app.api.routes import system as system_routes
+from app.api.routes.utils import is_secret_configured
 
 
 # ============ 全局状态 ============
@@ -109,9 +110,6 @@ async def lifespan(app: FastAPI):
                 mem_sess.boot_number = db_state.boot_number
                 mem_sess.next_game_number = db_state.game_number + 1
 
-    def _enabled(v: str | None, min_len: int = 10) -> bool:
-        return bool(v and isinstance(v, str) and len(v) > min_len)
-
     async with async_session() as session:
         stmt_state = select(SystemState).where(SystemState.singleton_key == 1)
         res_state = await session.execute(stmt_state)
@@ -119,11 +117,11 @@ async def lifespan(app: FastAPI):
         current_mode = getattr(state, "prediction_mode", None) or "rule"
 
         if current_mode == "ai":
-            ok = _enabled(settings.OPENAI_API_KEY) and _enabled(settings.ANTHROPIC_API_KEY) and _enabled(settings.GEMINI_API_KEY)
+            ok = is_secret_configured(settings.OPENAI_API_KEY) and is_secret_configured(settings.ANTHROPIC_API_KEY) and is_secret_configured(settings.GEMINI_API_KEY)
             if not ok:
                 current_mode = "rule"
         elif current_mode == "single_ai":
-            ok = _enabled(getattr(settings, "SINGLE_AI_API_KEY", ""))
+            ok = is_secret_configured(getattr(settings, "SINGLE_AI_API_KEY", ""))
             if not ok:
                 current_mode = "rule"
 

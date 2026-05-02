@@ -7,7 +7,9 @@ import type { ColumnsType } from 'antd/es/table';
 import { BET_STATUS_COLORS } from '../../utils/constants';
 
 interface BetRecord {
+  id: number;
   game_number: number;
+  bet_seq: number;
   bet_time: string | null;
   bet_direction: string;
   bet_amount: number;
@@ -99,7 +101,7 @@ const BetTable: React.FC<BetTableProps> = ({
           'data-label': typeof col.title === 'string' ? col.title : ''
         } as React.HTMLAttributes<HTMLElement>)
       }))}
-      rowKey={(r) => `bet-${r.game_number}-${r.bet_time || r.balance_before}`}
+      rowKey={(r) => String(r.id)}
       size="small"
       loading={loading}
       pagination={{
