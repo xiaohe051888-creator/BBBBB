@@ -40,7 +40,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
       
       # --- Admin ---
-      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:-}
+      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:-8888}
       
       # --- AI API (Three Models) ---
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
