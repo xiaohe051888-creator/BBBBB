@@ -130,7 +130,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
         {loading ? (
           <><Icons.Loading /> 验证中...</>
         ) : (
-          <><Icons.Key /> 登录进入管理面板</>
+          <><Icons.Key /> 登录进入系统</>
         )}
       </button>
     </Modal>

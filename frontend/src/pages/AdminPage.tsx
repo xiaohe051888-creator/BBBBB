@@ -775,7 +775,7 @@ const AdminPage: React.FC = () => {
 
       {/* 修改密码弹窗 */}
       <Modal
-        title="修改默认密码"
+        title="修改密码"
         open={changePwdVisible}
         closable
         mask={{ closable: true }}

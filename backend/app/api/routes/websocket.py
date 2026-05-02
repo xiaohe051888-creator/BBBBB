@@ -5,6 +5,7 @@ import asyncio
 import json
 from typing import List, Dict
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from datetime import datetime
 from jose import jwt, JWTError
 
@@ -16,6 +17,11 @@ router = APIRouter(tags=["WebSocket"])
 # 全局WebSocket客户端列表 - 使用锁保护并发访问
 ws_clients: List[WebSocket] = []
 ws_clients_lock = asyncio.Lock()
+
+
+@router.get("/ws")
+async def ws_http_upgrade_required():
+    return JSONResponse(status_code=426, content={"detail": "请使用 WebSocket Upgrade 连接 /ws"})
 
 
 @router.websocket("/ws")
