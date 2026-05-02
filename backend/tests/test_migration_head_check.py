@@ -14,7 +14,11 @@ class MigrationHeadCheckTest(unittest.TestCase):
             "DATABASE_URL": os.environ.get("DATABASE_URL"),
         }
         try:
-            db_url = "sqlite+aiosqlite:///./data/migration_head_mismatch.db"
+            backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            data_dir = os.path.join(backend_dir, "data")
+            os.makedirs(data_dir, exist_ok=True)
+            db_path = os.path.join(data_dir, "migration_head_mismatch.db")
+            db_url = f"sqlite+aiosqlite:///{db_path}"
 
             os.environ["ENVIRONMENT"] = "development"
             os.environ["DATABASE_URL"] = db_url

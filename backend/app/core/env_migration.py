@@ -17,6 +17,7 @@ KEY_WHITELIST = {
     "SINGLE_AI_MODEL",
     "SINGLE_AI_API_BASE",
     "JWT_SECRET_KEY",
+    "ADMIN_DEFAULT_PASSWORD",
 }
 
 
@@ -103,10 +104,19 @@ def merge_legacy_env(legacy_path: str, env_path: str) -> Dict[str, object]:
     return {"migrated": True, "reason": "merged", "merged_keys": merged_keys}
 
 
-def ensure_env_key(env_path: str, key: str, generator: Callable[[], str] | None = None) -> bool:
+def ensure_env_key(
+    env_path: str,
+    key: str,
+    generator: Callable[[], str] | None = None,
+    overwrite_if: Callable[[str | None], bool] | None = None,
+) -> bool:
     existing = os.environ.get(key)
-    if existing:
-        return False
+    if overwrite_if is None:
+        if existing:
+            return False
+    else:
+        if not overwrite_if(existing):
+            return False
 
     if generator is None:
         def _gen() -> str:
@@ -124,13 +134,28 @@ def ensure_env_key(env_path: str, key: str, generator: Callable[[], str] | None 
         except Exception:
             env_content = ""
 
-    env_map = _parse_env(env_content)
-    if env_map.get(key):
-        return False
-
     lines = env_content.splitlines() if env_content else []
-    lines.append(f"{key}={value}")
+    wrote = False
+    next_lines: list[str] = []
+    for raw in lines:
+        line = raw.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            if k.strip() == key:
+                if wrote:
+                    continue
+                if overwrite_if is not None:
+                    next_lines.append(f"{key}={value}")
+                else:
+                    next_lines.append(raw)
+                wrote = True
+                continue
+        next_lines.append(raw)
+
+    if not wrote:
+        next_lines.append(f"{key}={value}")
+
     with open(env_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines).rstrip() + "\n")
+        f.write("\n".join(next_lines).rstrip() + "\n")
 
     return True

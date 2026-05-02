@@ -3,6 +3,7 @@ FastAPI 主应用 - 百家乐分析预测系统
 路由拆分版本 - 统一入口
 """
 import os
+import secrets
 from contextlib import asynccontextmanager
 from typing import List
 
@@ -44,8 +45,17 @@ else:
 if merge_info.get("migrated"):
     logger.warning("⚠️  [api/main.py] 检测到历史错误位置的.env，已合并到正确位置（未输出密钥内容）")
 
-if ensure_env_key(env_path, "JWT_SECRET_KEY"):
-    logger.warning("⚠️  [api/main.py] JWT_SECRET_KEY 未配置，已自动生成并写入.env（未输出密钥内容）")
+_env = (os.getenv("ENVIRONMENT") or "development").lower()
+if _env != "production":
+    if ensure_env_key(env_path, "JWT_SECRET_KEY"):
+        logger.warning("⚠️  [api/main.py] JWT_SECRET_KEY 未配置，已自动生成并写入.env（未输出密钥内容）")
+    if ensure_env_key(
+        env_path,
+        "ADMIN_DEFAULT_PASSWORD",
+        generator=lambda: secrets.token_urlsafe(18),
+        overwrite_if=lambda v: (not v) or v == "8888",
+    ):
+        logger.warning("⚠️  [api/main.py] ADMIN_DEFAULT_PASSWORD 未配置或过弱，已自动生成并写入.env（请自行查看 .env，未输出明文）")
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse

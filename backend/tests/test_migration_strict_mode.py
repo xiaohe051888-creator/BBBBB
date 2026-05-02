@@ -15,7 +15,11 @@ class MigrationStrictModeTest(unittest.TestCase):
         }
         try:
             os.environ["ENVIRONMENT"] = "production"
-            os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./data/strict_mode_empty.db"
+            backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            data_dir = os.path.join(backend_dir, "data")
+            os.makedirs(data_dir, exist_ok=True)
+            db_path = os.path.join(data_dir, "strict_mode_empty.db")
+            os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{db_path}"
 
             import app.core.config as cfg
             import app.core.database as db

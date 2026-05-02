@@ -102,7 +102,7 @@ class Settings:
     MODEL_TIMEOUT: int = 30  # API调用超时时间（秒）
     
     # 管理员配置
-    DEFAULT_ADMIN_PASSWORD: str = os.getenv("ADMIN_DEFAULT_PASSWORD", "8888")
+    DEFAULT_ADMIN_PASSWORD: str = os.getenv("ADMIN_DEFAULT_PASSWORD", "")
     MAX_LOGIN_ATTEMPTS: int = 5
     LOGIN_LOCKOUT_MINUTES: int = 10
     
