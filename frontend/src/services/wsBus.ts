@@ -146,6 +146,25 @@ class WsBus {
       this.ws = ws;
 
       ws.onopen = () => {
+        const token = getToken();
+        if (!token) {
+          try {
+            ws.close();
+          } catch {
+            // ignore
+          }
+          return;
+        }
+        try {
+          ws.send(JSON.stringify({ type: 'auth', token }));
+        } catch {
+          try {
+            ws.close();
+          } catch {
+            // ignore
+          }
+          return;
+        }
         this.reconnectCount = 0;
         this.updateMeta({
           connectionState: 'open',

@@ -27,7 +27,22 @@ async def ws_http_upgrade_required():
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket 实时推送"""
-    token = websocket.query_params.get("token")
+    await websocket.accept()
+
+    token: str | None = None
+    try:
+        raw = await asyncio.wait_for(websocket.receive_text(), timeout=2.0)
+        try:
+            payload = json.loads(raw)
+        except Exception:
+            payload = None
+        if isinstance(payload, dict) and payload.get("type") == "auth" and isinstance(payload.get("token"), str):
+            token = payload.get("token")
+    except asyncio.TimeoutError:
+        token = None
+    except WebSocketDisconnect:
+        return
+
     if not token:
         await websocket.close(code=4401, reason="缺少认证凭证")
         return
@@ -37,8 +52,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except (HTTPException, Exception):
         await websocket.close(code=4401, reason="无效的认证凭证")
         return
-    
-    await websocket.accept()
+
     async with ws_clients_lock:
         ws_clients.append(websocket)
     
@@ -52,8 +66,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 payload = json.loads(data)
             except Exception:
                 payload = None
-            if isinstance(payload, dict) and payload.get("type") == "ping":
-                await websocket.send_json({"type": "pong"})
+            if isinstance(payload, dict):
+                if payload.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+                elif payload.get("type") == "auth":
+                    pass
     except WebSocketDisconnect:
         # 客户端正常断开连接
         pass

@@ -469,11 +469,9 @@ export const getRoadRawData = async (bootNumber?: number) => {
   return api.get('/roads/raw', { params });
 };
 
-// ====== WebSocket（带可选token认证）======
+// ====== WebSocket ======
 
 export const createWebSocket = (): WebSocket => {
-  const token = getToken();
-  
   // 智能推断 WebSocket URL：
   // 1. 如果配置了 VITE_WS_URL，直接使用
   // 2. 如果在开发环境或没有配置，根据当前页面地址自动生成 ws(s)://host:port/ws
@@ -488,8 +486,7 @@ export const createWebSocket = (): WebSocket => {
     ? baseWsUrl
     : `${baseWsUrl}/ws`;
     
-  const urlWithToken = token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl;
-  return new WebSocket(urlWithToken);
+  return new WebSocket(wsUrl);
 };
 
 // ====== AI模型分析 ======
