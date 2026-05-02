@@ -15,6 +15,7 @@ class Watchdog:
     _last_repair_ts: float | None = None
     _last_backlog_alert_ts: float | None = None
     _last_p1_alert_ts: float | None = None
+    _last_retention_ts: float | None = None
 
     async def check_once(self, db: AsyncSession, now_ts: float | None = None) -> dict:
         from datetime import datetime, timedelta
@@ -22,6 +23,7 @@ class Watchdog:
         from app.services.game.recovery import detect_stuck_state, repair_stuck_state
         from app.services.game.logging import write_game_log
         from app.services.game.state import get_or_create_state
+        from app.core.config import settings
 
         now = datetime.now()
         now_ts = float(now_ts) if now_ts is not None else now.timestamp()
@@ -103,6 +105,35 @@ class Watchdog:
                     source_module="watchdog",
                 )
                 await db.commit()
+
+        if settings.RETENTION_ENABLED:
+            can_run = self._last_retention_ts is None or (now_ts - self._last_retention_ts) >= settings.RETENTION_INTERVAL_SECONDS
+            if can_run:
+                try:
+                    from app.services.game.retention import cleanup_logs, prune_history
+
+                    await cleanup_logs(db, now=now, hot_days=settings.LOG_RETENTION_HOT, warm_days=settings.LOG_RETENTION_WARM)
+                    await prune_history(db, keep=settings.MAX_HISTORY_RECORDS)
+                    await db.commit()
+                    self._last_retention_ts = now_ts
+                except Exception:
+                    try:
+                        state = await get_or_create_state(db)
+                        await write_game_log(
+                            db,
+                            boot_number=state.boot_number or 0,
+                            game_number=state.game_number or 0,
+                            event_code="LOG-WDG-RET",
+                            event_type="Watchdog",
+                            event_result="Exception",
+                            description="Retention 清理失败（详见后端日志）",
+                            category="系统异常",
+                            priority="P1",
+                            source_module="watchdog",
+                        )
+                        await db.commit()
+                    except Exception:
+                        await db.rollback()
 
         return {
             "did_repair": did_repair,

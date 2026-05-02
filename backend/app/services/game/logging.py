@@ -24,6 +24,12 @@ async def write_game_log(
     source_module: str = "ManualGameService",
 ) -> SystemLog:
     """写入系统日志并广播到WebSocket"""
+    tier = "hot7"
+    if priority == "P1":
+        tier = "cold_perm"
+    elif priority == "P2":
+        tier = "warm30"
+
     log = SystemLog(
         log_time=datetime.now(),
         boot_number=boot_number,
@@ -36,6 +42,7 @@ async def write_game_log(
         priority=priority,
         source_module=source_module,
         task_id=current_task_id.get(),
+        retention_tier=tier,
     )
     session.add(log)
     

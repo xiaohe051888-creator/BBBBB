@@ -133,5 +133,7 @@ class Settings:
     WATCHDOG_P1_ERROR_WINDOW_SECONDS: int = int(os.getenv("WATCHDOG_P1_ERROR_WINDOW_SECONDS", "600"))
     WATCHDOG_P1_ERROR_THRESHOLD: int = int(os.getenv("WATCHDOG_P1_ERROR_THRESHOLD", "1"))
 
+    RETENTION_ENABLED: bool = os.getenv("RETENTION_ENABLED", "true").lower() in ("1", "true", "yes", "on")
+    RETENTION_INTERVAL_SECONDS: int = int(os.getenv("RETENTION_INTERVAL_SECONDS", "3600"))
 
 settings = Settings()
