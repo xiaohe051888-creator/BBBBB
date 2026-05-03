@@ -330,7 +330,7 @@ const LogsPage: React.FC = () => {
   const flushTimerRef = useRef<number | null>(null);
 
   // 系统实时诊断
-  const { diagnostics, dismissIssue, retryConnection } = useSystemDiagnostics({ enabled: false });
+  const { diagnostics, dismissIssue, retryConnection } = useSystemDiagnostics({});
 
   const flushRealtime = useCallback(() => {
     const pending = pendingLogsRef.current;
