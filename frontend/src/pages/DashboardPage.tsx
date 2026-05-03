@@ -260,9 +260,6 @@ const DashboardPage: React.FC = () => {
 
   // 管理员登录
   const { visible: loginVisible, openLogin, closeLogin } = useAdminLogin();
-  useEffect(() => {
-    if (!getToken()) openLogin();
-  }, [openLogin]);
 
   // 学习状态
   const [microLearning] = useState<any>(null);
