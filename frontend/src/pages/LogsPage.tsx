@@ -127,6 +127,7 @@ type LogDetailModalProps = {
 
 const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) => {
   const { message } = App.useApp();
+  const humanTextRef = useRef<HTMLTextAreaElement | null>(null);
 
   const copy = async (text: string) => {
     const ok = await copyText(text);
@@ -141,12 +142,22 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
   const humanText = useMemo(() => (log ? toHumanCopyText(log) : ''), [log]);
   const rawText = useMemo(() => (log ? JSON.stringify(log, null, 2) : ''), [log]);
 
+  const selectHumanText = useCallback(() => {
+    const el = humanTextRef.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, []);
+
   return (
     <Modal
       title="日志详情"
       open={open}
       onCancel={onClose}
       footer={[
+        <Button key="select" disabled={!log} onClick={selectHumanText}>
+          全选
+        </Button>,
         <Button key="copy" disabled={!log} onClick={() => copy(humanText)}>
           复制小白解读
         </Button>,
@@ -168,6 +179,26 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
           <Typography.Title level={5} style={{ margin: 0 }}>
             {human.title}
           </Typography.Title>
+          <Typography.Text type="secondary">小白解读（如粘贴为空，请点下面文本框 Ctrl+A 再 Ctrl+C）</Typography.Text>
+          <textarea
+            ref={humanTextRef}
+            value={humanText}
+            readOnly
+            onFocus={selectHumanText}
+            style={{
+              width: '100%',
+              minHeight: 120,
+              resize: 'vertical',
+              background: 'rgba(0,0,0,0.25)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 10,
+              padding: 10,
+              color: 'rgba(255,255,255,0.85)',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              fontSize: 12,
+              lineHeight: 1.5,
+            }}
+          />
           <Typography.Text type="secondary">发生了什么</Typography.Text>
           <Typography.Paragraph style={{ marginBottom: 0 }}>
             {human.whatHappened || '-'}
@@ -385,6 +416,15 @@ const LogsPage: React.FC = () => {
 
   // 使用useMemo缓存logs，避免useMemo依赖变化
   const logs = useMemo(() => logsData?.logs || [], [logsData]);
+  const humanTitleById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const l of logs) {
+      if (typeof l.id === 'number') {
+        map.set(l.id, humanizeLog(l).title);
+      }
+    }
+    return map;
+  }, [logs]);
 
   // 自动滚动
   const [autoScroll, setAutoScroll] = useState(true);
@@ -460,8 +500,14 @@ const LogsPage: React.FC = () => {
       l.priority,
       l.category,
       l.event_type,
-      `"${humanizeLog(l).title.replace(/"/g, '""')}"`,
-      `"${`${humanizeLog(l).whatHappened} | ${humanizeLog(l).impact} | ${humanizeLog(l).suggestion}`.replace(/"/g, '""')}"`,
+      (() => {
+        const h = humanizeLog(l);
+        return `"${h.title.replace(/"/g, '""')}"`;
+      })(),
+      (() => {
+        const h = humanizeLog(l);
+        return `"${`${h.whatHappened} | ${h.impact} | ${h.suggestion}`.replace(/"/g, '""')}"`;
+      })(),
       `"${(l.description || '').replace(/"/g, '""')}"`,
       l.event_code,
       l.task_id || '',
@@ -548,8 +594,9 @@ const LogsPage: React.FC = () => {
       dataIndex: 'description',
       ellipsis: true,
       render: (_: string, record: LogEntry) => {
-        const h = humanizeLog(record);
-        return <span title={record.description || ''}>{h.title}</span>;
+        const t = typeof record.id === 'number' ? humanTitleById.get(record.id) : undefined;
+        const title = t || humanizeLog(record).title;
+        return <span title={record.description || ''}>{title}</span>;
       },
     },
     {
