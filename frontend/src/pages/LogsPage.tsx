@@ -406,7 +406,12 @@ const LogsPage: React.FC = () => {
   }, [location.search, filterTaskId]);
 
   // React Query获取数据（乐观UI：永远不显示loading，数据来了直接渲染）
-  const { data: logsData } = useLogsQuery({
+  const {
+    data: logsData,
+    refetch: refetchLogs,
+    isFetching: isFetchingLogs,
+    error: logsError,
+  } = useLogsQuery({
     category: filterCategory || undefined,
     taskId: filterTaskId || undefined,
     priority: filterPriority || undefined,
@@ -436,15 +441,26 @@ const LogsPage: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
 
   // 手动刷新
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
+    if (!api.getToken()) {
+      message.warning('请先管理员登录后再刷新');
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ['logs'] });
-    queryClient.refetchQueries({ queryKey: ['logs'] });
-  }, [queryClient]);
+    const res = await refetchLogs();
+    if (res.error) {
+      message.error(res.error instanceof Error ? res.error.message : '刷新失败');
+      return;
+    }
+    message.success('已刷新');
+  }, [message, queryClient, refetchLogs]);
 
   useEffect(() => {
     if (!autoRefresh) return;
     if (realtime) return;
-    const timer = setInterval(handleRefresh, 15000);
+    const timer = setInterval(() => {
+      void handleRefresh();
+    }, 15000);
     return () => clearInterval(timer);
   }, [autoRefresh, realtime, handleRefresh]);
 
@@ -691,7 +707,8 @@ const LogsPage: React.FC = () => {
           <Button 
             icon={<Icons.Refresh />} 
             size="small" 
-            onClick={handleRefresh}
+            loading={isFetchingLogs}
+            onClick={() => void handleRefresh()}
           >
             刷新
           </Button>
@@ -724,6 +741,11 @@ const LogsPage: React.FC = () => {
 
           {/* 日志表格 - 乐观UI：永远不显示loading，数据来了直接渲染 */}
           <Card size="small">
+            {logsError ? (
+              <div style={{ padding: '8px 0', color: '#ff7875', fontSize: 12 }}>
+                {logsError instanceof Error ? logsError.message : '日志加载失败'}
+              </div>
+            ) : null}
             <Table
               dataSource={logs}
               columns={columns}
