@@ -326,10 +326,16 @@ async def test_api_config(
             lower = s.lower()
             if _re.search(r"\b401\b", s) or "invalid_api_key" in lower or "incorrect api key" in lower or "unauthorized" in lower:
                 return "密钥无效或无权限（401）"
+            if _re.search(r"\b403\b", s):
+                return "拒绝访问（403），请检查账号权限或接口侧是否限制访问"
+            if _re.search(r"\b404\b", s):
+                return "接口地址不正确（404），请检查接口地址是否需要 /v1"
             if "rate limit" in s.lower() or "429" in s:
                 return "触发限流（429），请稍后重试"
             if "quota" in s.lower() or "insufficient" in s.lower():
                 return "额度不足或账户余额不足"
+            if _re.search(r"\b400\b", s) or "bad request" in lower:
+                return "请求参数错误（400），请重点检查模型名称是否正确"
             if "model" in s.lower() and "not" in s.lower() and "found" in s.lower():
                 return "模型不存在或无权限使用该模型"
             if "timed out" in s.lower() or "timeout" in s.lower():
