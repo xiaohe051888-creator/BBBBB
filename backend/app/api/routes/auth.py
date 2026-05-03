@@ -231,9 +231,13 @@ async def update_api_config(
         
     k_key, m_key, b_key = role_map[req.role]
     
-    # Update runtime settings
-    setattr(settings, k_key, req.api_key)
-    os.environ[k_key] = req.api_key
+    effective_api_key = req.api_key or (getattr(settings, k_key, "") or "")
+    effective_model = req.model
+    effective_base_url = req.base_url or (getattr(settings, b_key, "") or "")
+
+    if req.api_key:
+        setattr(settings, k_key, req.api_key)
+        os.environ[k_key] = req.api_key
     setattr(settings, m_key, req.model)
     os.environ[m_key] = req.model
     if req.base_url:
@@ -260,7 +264,8 @@ async def update_api_config(
             lines.append(f"{key}={val}")
         return '\n'.join(lines)
 
-    env_content = set_env_var(env_content, k_key, req.api_key)
+    if req.api_key:
+        env_content = set_env_var(env_content, k_key, req.api_key)
     env_content = set_env_var(env_content, m_key, req.model)
     if req.base_url:
         env_content = set_env_var(env_content, b_key, req.base_url)
@@ -268,7 +273,7 @@ async def update_api_config(
     with open(env_path, "w", encoding="utf-8") as f:
         f.write(env_content)
 
-    new_hash = compute_config_hash(req.provider, req.model, req.api_key, req.base_url)
+    new_hash = compute_config_hash(req.provider, effective_model, effective_api_key, effective_base_url or None)
     async with async_session() as session:
         existing = await session.get(AiModelConfig, req.role)
         if existing is None:
@@ -276,8 +281,8 @@ async def update_api_config(
                 AiModelConfig(
                     role=req.role,
                     provider=req.provider,
-                    model=req.model,
-                    base_url=req.base_url,
+                    model=effective_model,
+                    base_url=effective_base_url,
                     config_hash=new_hash,
                     last_test_ok=False,
                     last_test_at=None,
@@ -288,8 +293,8 @@ async def update_api_config(
         else:
             changed = existing.config_hash != new_hash
             existing.provider = req.provider
-            existing.model = req.model
-            existing.base_url = req.base_url
+            existing.model = effective_model
+            existing.base_url = effective_base_url
             existing.config_hash = new_hash
             if changed:
                 existing.last_test_ok = False
@@ -298,7 +303,7 @@ async def update_api_config(
                 existing.last_test_config_hash = None
         await session.commit()
 
-    return {"status": "success", "message": f"{req.role} model updated"}
+    return {"status": "success", "message": "接口配置已保存"}
 
 @router.post("/api-config/test")
 async def test_api_config(
@@ -308,70 +313,114 @@ async def test_api_config(
     test_ok = False
     message = ""
     try:
-        # Default models for testing based on provider
-        if req.provider == "openai":
-            from openai import AsyncOpenAI
+        import re as _re
+        try:
             import httpx
-            client = AsyncOpenAI(
-                api_key=req.api_key,
-                base_url=req.base_url if req.base_url else None,
-                http_client=httpx.AsyncClient(timeout=10.0)
-            )
-            await client.chat.completions.create(
-                model=req.model,
-                messages=[{"role": "user", "content": "Hello"}],
-                max_tokens=5
-            )
+        except Exception:
+            raise Exception("服务端缺少网络请求依赖（httpx），无法进行接口测试")
+
+        def _cn_error(raw: str) -> str:
+            if not raw:
+                return "接口调用失败，请检查网络/代理/接口地址"
+            s = raw.strip()
+            lower = s.lower()
+            if _re.search(r"\b401\b", s) or "invalid_api_key" in lower or "incorrect api key" in lower or "unauthorized" in lower:
+                return "密钥无效或无权限（401）"
+            if "rate limit" in s.lower() or "429" in s:
+                return "触发限流（429），请稍后重试"
+            if "quota" in s.lower() or "insufficient" in s.lower():
+                return "额度不足或账户余额不足"
+            if "model" in s.lower() and "not" in s.lower() and "found" in s.lower():
+                return "模型不存在或无权限使用该模型"
+            if "timed out" in s.lower() or "timeout" in s.lower():
+                return "请求超时，请检查网络或接口地址"
+            if "name or service not known" in s.lower() or "nodename nor servname provided" in s.lower():
+                return "域名解析失败，请检查接口地址"
+            if "connection refused" in s.lower():
+                return "连接被拒绝，请检查接口地址或代理是否可用"
+            if "no module named" in s.lower():
+                return "服务端缺少依赖，已切换为直连测试方式仍失败"
+            return "接口调用失败，请检查接口密钥/模型/接口地址"
+
+        async def _openai_compatible(base_url: str, api_key: str, model: str) -> None:
+            if not base_url:
+                raise Exception("缺少接口地址")
+            url = base_url.rstrip("/")
+            if not url.endswith("/v1") and "/chat/completions" not in url:
+                url = f"{url}/v1"
+            if not url.endswith("/chat/completions"):
+                url = f"{url}/chat/completions"
+            payload = {
+                "model": model,
+                "messages": [{"role": "user", "content": "Hello"}],
+                "max_tokens": 5,
+                "temperature": 0.2,
+            }
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    url,
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                )
+                if resp.status_code != 200:
+                    raise Exception(f"上游接口返回错误（{resp.status_code}）")
+                data = resp.json()
+                _ = data.get("choices", [{}])[0].get("message", {}).get("content")
+
+        async def _anthropic(base_url: str, api_key: str, model: str) -> None:
+            if not base_url:
+                raise Exception("缺少接口地址")
+            url = base_url.rstrip("/")
+            if not url.endswith("/messages"):
+                url = f"{url}/messages"
+            payload = {
+                "model": model,
+                "max_tokens": 5,
+                "messages": [{"role": "user", "content": "Hello"}],
+            }
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    url,
+                    headers={
+                        "x-api-key": api_key,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                )
+                if resp.status_code != 200:
+                    raise Exception(f"上游接口返回错误（{resp.status_code}）")
+                data = resp.json()
+                _ = data.get("content")
+
+        provider = (req.provider or "").lower()
+        base_url = (req.base_url or "").strip()
+        if provider == "deepseek" and not base_url:
+            base_url = "https://api.deepseek.com"
+        if provider == "openai" and not base_url:
+            base_url = "https://api.openai.com"
+        if provider == "aliyun" and not base_url:
+            base_url = "https://dashscope.aliyuncs.com/compatible-mode"
+        if provider == "custom" and not base_url:
+            raise Exception("自定义兼容接口必须填写接口地址")
+
+        if provider in ("openai", "deepseek", "aliyun", "custom"):
+            await _openai_compatible(base_url, req.api_key, req.model)
             test_ok = True
-            message = "OpenAI connection successful"
-            
-        elif req.provider == "anthropic":
-            from anthropic import AsyncAnthropic
-            import httpx
-            client = AsyncAnthropic(
-                api_key=req.api_key,
-                base_url=req.base_url if req.base_url else None,
-                http_client=httpx.AsyncClient(timeout=10.0)
-            )
-            await client.messages.create(
-                model=req.model,
-                messages=[{"role": "user", "content": "Hello"}],
-                max_tokens=5
-            )
+            message = "接口连接正常"
+        elif provider == "anthropic":
+            await _anthropic(base_url, req.api_key, req.model)
             test_ok = True
-            message = "Anthropic connection successful"
-            
-        elif req.provider == "google":
-            import google.generativeai as genai
-            genai.configure(api_key=req.api_key)
-            model = genai.GenerativeModel(req.model)
-            model.generate_content("Hello")
-            test_ok = True
-            message = "Gemini connection successful"
-            
-        elif req.provider == "deepseek":
-            from openai import AsyncOpenAI
-            import httpx
-            client = AsyncOpenAI(
-                api_key=req.api_key,
-                base_url=req.base_url or "https://api.deepseek.com/v1",
-                http_client=httpx.AsyncClient(timeout=10.0)
-            )
-            await client.chat.completions.create(
-                model=req.model,
-                messages=[{"role": "user", "content": "Hello"}],
-                max_tokens=5
-            )
-            test_ok = True
-            message = "Deepseek connection successful"
-            
+            message = "接口连接正常"
         else:
             test_ok = False
-            message = f"Unknown provider: {req.provider}"
-            
+            message = "未知的服务商类型"
     except Exception as e:
         test_ok = False
-        message = str(e)
+        message = _cn_error(str(e))
 
     cfg_hash = compute_config_hash(req.provider, req.model, req.api_key, req.base_url)
     async with async_session() as session:
