@@ -15,8 +15,9 @@ describe('copyText', () => {
 
   it('uses navigator.clipboard when available', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
+    const readText = vi.fn().mockResolvedValue('hello');
     Object.defineProperty(navigator, 'clipboard', {
-      value: { writeText },
+      value: { writeText, readText },
       configurable: true,
     });
     vi.spyOn(document, 'execCommand').mockReturnValue(false);
@@ -24,6 +25,19 @@ describe('copyText', () => {
     const ok = await copyText('hello');
     expect(ok).toBe(true);
     expect(writeText).toHaveBeenCalledWith('hello');
+  });
+
+  it('returns false when clipboard API resolves but content does not match', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const readText = vi.fn().mockResolvedValue('something-else');
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText, readText },
+      configurable: true,
+    });
+    vi.spyOn(document, 'execCommand').mockReturnValue(true);
+
+    const ok = await copyText('hello');
+    expect(ok).toBe(false);
   });
 
   it('falls back to execCommand when clipboard API rejects', async () => {

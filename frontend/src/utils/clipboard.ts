@@ -2,10 +2,23 @@ export const copyText = async (text: string): Promise<boolean> => {
   if (!text) return false;
 
   const clipboard = navigator.clipboard;
+
+  const verify = async (): Promise<boolean | null> => {
+    if (!clipboard?.readText) return null;
+    try {
+      const v = await clipboard.readText();
+      return v === text;
+    } catch {
+      return null;
+    }
+  };
+
   if (clipboard?.writeText) {
     try {
       await clipboard.writeText(text);
-      return true;
+      const verified = await verify();
+      if (verified === true) return true;
+      if (verified === null) return true;
     } catch {
       // fall through
     }
@@ -26,9 +39,11 @@ export const copyText = async (text: string): Promise<boolean> => {
     el.select();
     const ok = document.execCommand('copy');
     document.body.removeChild(el);
-    return ok;
+    if (!ok) return false;
+    const verified = await verify();
+    if (verified === false) return false;
+    return true;
   } catch {
     return false;
   }
 };
-

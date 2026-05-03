@@ -298,6 +298,7 @@ const LogsPage: React.FC = () => {
   const realtimeRef = useRef(false);
   const pendingLogsRef = useRef<LogEntry[]>([]);
   const flushTimerRef = useRef<number | null>(null);
+  const pendingCountTimerRef = useRef<number | null>(null);
 
   // 系统实时诊断
   const { diagnostics, dismissIssue, retryConnection } = useSystemDiagnostics({});
@@ -315,6 +316,10 @@ const LogsPage: React.FC = () => {
       if (flushTimerRef.current) {
         window.clearTimeout(flushTimerRef.current);
         flushTimerRef.current = null;
+      }
+      if (pendingCountTimerRef.current) {
+        window.clearTimeout(pendingCountTimerRef.current);
+        pendingCountTimerRef.current = null;
       }
     };
   }, []);
@@ -334,7 +339,11 @@ const LogsPage: React.FC = () => {
       }
 
       if (!realtimeRef.current) {
-        setPendingRealtimeCount(pendingLogsRef.current.length);
+        if (pendingCountTimerRef.current) return;
+        pendingCountTimerRef.current = window.setTimeout(() => {
+          pendingCountTimerRef.current = null;
+          setPendingRealtimeCount(pendingLogsRef.current.length);
+        }, 500);
         return;
       }
 
