@@ -18,6 +18,18 @@ from app.api.routes.utils import get_current_user
 
 router = APIRouter(prefix="/api/admin", tags=["认证"])
 
+def resolve_api_key_for_role(role: str, api_key: str) -> str:
+    role_map = {
+        "banker": "OPENAI_API_KEY",
+        "player": "ANTHROPIC_API_KEY",
+        "combined": "GEMINI_API_KEY",
+        "single": "SINGLE_AI_API_KEY",
+    }
+    if api_key:
+        return api_key
+    key = role_map.get(role)
+    return (getattr(settings, key, "") or "") if key else ""
+
 
 @router.post("/login")
 async def admin_login(req: LoginRequest):
@@ -319,6 +331,10 @@ async def test_api_config(
         except Exception:
             raise Exception("服务端缺少网络请求依赖（httpx），无法进行接口测试")
 
+        effective_api_key = resolve_api_key_for_role(req.role, req.api_key)
+        if not effective_api_key:
+            raise Exception("未填写接口密钥，且系统未保存过密钥")
+
         def _cn_error(raw: str) -> str:
             if not raw:
                 return "接口调用失败，请检查网络/代理/接口地址"
@@ -414,11 +430,11 @@ async def test_api_config(
             raise Exception("自定义兼容接口必须填写接口地址")
 
         if provider in ("openai", "deepseek", "aliyun", "custom"):
-            await _openai_compatible(base_url, req.api_key, req.model)
+            await _openai_compatible(base_url, effective_api_key, req.model)
             test_ok = True
             message = "接口连接正常"
         elif provider == "anthropic":
-            await _anthropic(base_url, req.api_key, req.model)
+            await _anthropic(base_url, effective_api_key, req.model)
             test_ok = True
             message = "接口连接正常"
         else:
