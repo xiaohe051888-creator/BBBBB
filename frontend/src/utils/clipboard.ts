@@ -13,18 +13,7 @@ export const copyText = async (text: string): Promise<boolean> => {
     }
   };
 
-  if (clipboard?.writeText) {
-    try {
-      await clipboard.writeText(text);
-      const verified = await verify();
-      if (verified === true) return true;
-      if (verified === null) return true;
-    } catch {
-      // fall through
-    }
-  }
-
-  try {
+  const execCopy = async (): Promise<boolean> => {
     const el = document.createElement('textarea');
     el.value = text;
     el.setAttribute('readonly', 'true');
@@ -39,6 +28,28 @@ export const copyText = async (text: string): Promise<boolean> => {
     el.select();
     const ok = document.execCommand('copy');
     document.body.removeChild(el);
+    return ok;
+  };
+
+  if (clipboard?.writeText) {
+    try {
+      await clipboard.writeText(text);
+      const verified1 = await verify();
+      if (verified1 === true) return true;
+
+      const ok = await execCopy();
+      if (!ok) return false;
+
+      const verified2 = await verify();
+      if (verified2 === false) return false;
+      return true;
+    } catch {
+      // fall through
+    }
+  }
+
+  try {
+    const ok = await execCopy();
     if (!ok) return false;
     const verified = await verify();
     if (verified === false) return false;

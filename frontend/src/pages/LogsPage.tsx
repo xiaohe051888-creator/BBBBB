@@ -294,20 +294,16 @@ const LogsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const addLogsOptimistically = useAddLogsOptimistically();
   const [realtime, setRealtime] = useState(false);
-  const [pendingRealtimeCount, setPendingRealtimeCount] = useState(0);
-  const realtimeRef = useRef(false);
   const pendingLogsRef = useRef<LogEntry[]>([]);
   const flushTimerRef = useRef<number | null>(null);
-  const pendingCountTimerRef = useRef<number | null>(null);
 
   // 系统实时诊断
-  const { diagnostics, dismissIssue, retryConnection } = useSystemDiagnostics({});
+  const { diagnostics, dismissIssue, retryConnection } = useSystemDiagnostics({ enabled: false });
 
-  const flushPending = useCallback(() => {
+  const flushRealtime = useCallback(() => {
     const pending = pendingLogsRef.current;
     if (pending.length === 0) return;
     pendingLogsRef.current = [];
-    setPendingRealtimeCount(0);
     addLogsOptimistically(pending);
   }, [addLogsOptimistically]);
 
@@ -317,42 +313,34 @@ const LogsPage: React.FC = () => {
         window.clearTimeout(flushTimerRef.current);
         flushTimerRef.current = null;
       }
-      if (pendingCountTimerRef.current) {
-        window.clearTimeout(pendingCountTimerRef.current);
-        pendingCountTimerRef.current = null;
-      }
     };
   }, []);
 
   const handleRealtimeChange = useCallback((v: boolean) => {
-    realtimeRef.current = v;
     setRealtime(v);
-    if (v) flushPending();
-  }, [flushPending]);
+    pendingLogsRef.current = [];
+    if (flushTimerRef.current) {
+      window.clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+  }, []);
+
+  const onLog = useCallback((data: LogEntry) => {
+    if (!data) return;
+    pendingLogsRef.current.push(data);
+    if (pendingLogsRef.current.length > 500) {
+      pendingLogsRef.current = pendingLogsRef.current.slice(-200);
+    }
+
+    if (flushTimerRef.current) return;
+    flushTimerRef.current = window.setTimeout(() => {
+      flushTimerRef.current = null;
+      flushRealtime();
+    }, 1000);
+  }, [flushRealtime]);
 
   useWebSocket({
-    onLog: (data) => {
-      if (!data) return;
-      pendingLogsRef.current.push(data);
-      if (pendingLogsRef.current.length > 1000) {
-        pendingLogsRef.current = pendingLogsRef.current.slice(-500);
-      }
-
-      if (!realtimeRef.current) {
-        if (pendingCountTimerRef.current) return;
-        pendingCountTimerRef.current = window.setTimeout(() => {
-          pendingCountTimerRef.current = null;
-          setPendingRealtimeCount(pendingLogsRef.current.length);
-        }, 500);
-        return;
-      }
-
-      if (flushTimerRef.current) return;
-      flushTimerRef.current = window.setTimeout(() => {
-        flushTimerRef.current = null;
-        flushPending();
-      }, 1000);
-    },
+    onLog: realtime ? onLog : undefined,
   });
 
   // 分页
@@ -409,14 +397,15 @@ const LogsPage: React.FC = () => {
   // 手动刷新
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['logs'] });
+    queryClient.refetchQueries({ queryKey: ['logs'] });
   }, [queryClient]);
 
   useEffect(() => {
     if (!autoRefresh) return;
-    if (realtimeRef.current) return;
+    if (realtime) return;
     const timer = setInterval(handleRefresh, 15000);
     return () => clearInterval(timer);
-  }, [autoRefresh, handleRefresh]);
+  }, [autoRefresh, realtime, handleRefresh]);
 
   // 统计
   const stats = useMemo(() => {
@@ -644,11 +633,6 @@ const LogsPage: React.FC = () => {
             checkedChildren="实时"
             unCheckedChildren="暂停"
           />
-          {realtime ? null : (
-            <Button size="small" disabled={pendingRealtimeCount === 0} onClick={flushPending}>
-              新日志 {pendingRealtimeCount}
-            </Button>
-          )}
           <Switch
             size="small"
             checked={autoScroll}

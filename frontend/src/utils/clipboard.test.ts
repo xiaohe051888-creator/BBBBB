@@ -40,6 +40,30 @@ describe('copyText', () => {
     expect(ok).toBe(false);
   });
 
+  it('uses execCommand when readText is unavailable', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    vi.spyOn(document, 'execCommand').mockReturnValue(true);
+
+    const ok = await copyText('hello');
+    expect(ok).toBe(true);
+  });
+
+  it('returns false when writeText resolves but readText missing and execCommand fails', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    vi.spyOn(document, 'execCommand').mockReturnValue(false);
+
+    const ok = await copyText('hello');
+    expect(ok).toBe(false);
+  });
+
   it('falls back to execCommand when clipboard API rejects', async () => {
     const writeText = vi.fn().mockRejectedValue(new Error('denied'));
     Object.defineProperty(navigator, 'clipboard', {
