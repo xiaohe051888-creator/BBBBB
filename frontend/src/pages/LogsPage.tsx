@@ -441,25 +441,25 @@ const LogsPage: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
 
   // 手动刷新
-  const handleRefresh = useCallback(async () => {
+  const handleRefresh = useCallback(async (opts?: { silent?: boolean }) => {
     if (!api.getToken()) {
-      message.warning('请先管理员登录后再刷新');
+      if (!opts?.silent) message.warning('请先管理员登录后再刷新');
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['logs'] });
     const res = await refetchLogs();
     if (res.error) {
-      message.error(res.error instanceof Error ? res.error.message : '刷新失败');
+      if (!opts?.silent) message.error(res.error instanceof Error ? res.error.message : '刷新失败');
       return;
     }
-    message.success('已刷新');
+    if (!opts?.silent) message.success('已刷新');
   }, [message, queryClient, refetchLogs]);
 
   useEffect(() => {
     if (!autoRefresh) return;
     if (realtime) return;
     const timer = setInterval(() => {
-      void handleRefresh();
+      void handleRefresh({ silent: true });
     }, 15000);
     return () => clearInterval(timer);
   }, [autoRefresh, realtime, handleRefresh]);
@@ -496,15 +496,25 @@ const LogsPage: React.FC = () => {
   };
 
   const fetchExportLogs = async (): Promise<LogEntry[]> => {
-    const res = await api.getLogs({
-      category: filterCategory || undefined,
-      priority: filterPriority || undefined,
-      task_id: filterTaskId || undefined,
-      q: debouncedSearchText || undefined,
-      page: 1,
-      page_size: 200,
-    });
-    return res.data.data || [];
+    if (!api.getToken()) {
+      message.warning('请先管理员登录后再导出');
+      return [];
+    }
+    try {
+      const res = await api.getLogs({
+        category: filterCategory || undefined,
+        priority: filterPriority || undefined,
+        task_id: filterTaskId || undefined,
+        q: debouncedSearchText || undefined,
+        page: 1,
+        page_size: 200,
+      });
+      return res.data.data || [];
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '导出失败';
+      message.error(msg);
+      return [];
+    }
   };
 
   const exportToCSV = async () => {
@@ -530,16 +540,24 @@ const LogsPage: React.FC = () => {
       l.task_id || '',
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    downloadFile(csv, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.csv`, 'text/csv;charset=utf-8;');
-    message.success(`已导出 ${exportLogs.length} 条日志（表格）`);
+    try {
+      downloadFile(csv, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.csv`, 'text/csv;charset=utf-8;');
+      message.success(`已导出 ${exportLogs.length} 条日志（表格）`);
+    } catch {
+      message.error('导出失败：浏览器阻止下载');
+    }
   };
 
   const exportToJSON = async () => {
     const exportLogs = await fetchExportLogs();
     if (!exportLogs.length) { message.warning('暂无数据可导出'); return; }
     const json = JSON.stringify(exportLogs, null, 2);
-    downloadFile(json, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.json`, 'application/json');
-    message.success(`已导出 ${exportLogs.length} 条日志（数据）`);
+    try {
+      downloadFile(json, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.json`, 'application/json');
+      message.success(`已导出 ${exportLogs.length} 条日志（数据）`);
+    } catch {
+      message.error('导出失败：浏览器阻止下载');
+    }
   };
 
   // 表格列定义 - 自适应布局，避免横向滚动
@@ -708,7 +726,7 @@ const LogsPage: React.FC = () => {
             icon={<Icons.Refresh />} 
             size="small" 
             loading={isFetchingLogs}
-            onClick={() => void handleRefresh()}
+            onClick={() => void handleRefresh({ silent: false })}
           >
             刷新
           </Button>
