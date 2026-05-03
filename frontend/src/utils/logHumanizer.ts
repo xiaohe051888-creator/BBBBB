@@ -1,4 +1,5 @@
 import type { LogEntry } from '../types/models';
+import { formatBeijing } from './datetime';
 
 export type HumanLogField = { label: string; value: string };
 
@@ -18,7 +19,7 @@ const priorityCn = (p: string): string =>
 const isErrorPriority = (p: string): boolean => p === 'P0' || p === 'P1';
 
 const baseFields = (log: LogEntry): HumanLogField[] => [
-  { label: '时间', value: s(log.log_time) || '-' },
+  { label: '时间', value: log.log_time ? formatBeijing(String(log.log_time), 'YYYY-MM-DD HH:mm:ss') : '-' },
   { label: '靴内局号', value: log.game_number === null ? '-' : String(log.game_number) },
   { label: '事件', value: s(log.event_type) || '-' },
   { label: '结果', value: s(log.event_result) || '-' },
@@ -293,4 +294,3 @@ export const toHumanCopyText = (log: LogEntry): string => {
   }
   return lines.join('\n');
 };
-

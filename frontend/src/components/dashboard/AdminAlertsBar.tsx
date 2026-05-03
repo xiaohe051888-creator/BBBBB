@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Space, Tag } from 'antd';
-import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../../services/api';
+import { formatBeijing } from '../../utils/datetime';
 
 export const AdminAlertsBar: React.FC = () => {
   const navigate = useNavigate();
@@ -81,7 +81,7 @@ export const AdminAlertsBar: React.FC = () => {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ color: '#ffd6e7', fontSize: 12, fontWeight: 600 }}>
-                  {it.log_time ? dayjs(it.log_time).format('MM-DD HH:mm:ss') : '--'}
+                  {it.log_time ? formatBeijing(it.log_time, 'MM-DD HH:mm:ss') : '--'}
                 </span>
                 <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
                   {it.event_type} · {it.event_code}

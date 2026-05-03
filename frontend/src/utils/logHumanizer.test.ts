@@ -7,7 +7,7 @@ describe('logHumanizer', () => {
   it('humanizes known event_code', () => {
     const log: LogEntry = {
       id: 1,
-      log_time: '2026-05-02T00:00:00',
+      log_time: '2026-05-02T00:00:00Z',
       game_number: 2,
       event_code: 'LOG-STL-001',
       event_type: '结算',
@@ -27,7 +27,7 @@ describe('logHumanizer', () => {
   it('falls back to generic for unknown event_code', () => {
     const log: LogEntry = {
       id: 2,
-      log_time: '2026-05-02T00:00:00',
+      log_time: '2026-05-02T00:00:00Z',
       game_number: null,
       event_code: 'SOME-UNKNOWN',
       event_type: '未知事件',
@@ -43,4 +43,3 @@ describe('logHumanizer', () => {
     expect(h.suggestion.length).toBeGreaterThan(0);
   });
 });
-

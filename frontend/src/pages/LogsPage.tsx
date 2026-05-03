@@ -17,6 +17,7 @@ import { SystemStatusPanel } from '../components/ui/SystemStatusPanel';
 import { PRIORITY_COLORS } from '../utils/constants';
 import { copyText } from '../utils/clipboard';
 import { humanizeLog, toHumanCopyText } from '../utils/logHumanizer';
+import { formatBeijing, beijingValueOf } from '../utils/datetime';
 import { useQueryClient } from '@tanstack/react-query';
 import * as api from '../services/api';
 
@@ -495,7 +496,7 @@ const LogsPage: React.FC = () => {
     if (!exportLogs.length) { message.warning('暂无数据可导出'); return; }
     const headers = ['时间', '局号', '优先级', '类别', '事件', '小白解读', '解读摘要', '原始说明', '事件编码', '任务编号'];
     const rows = exportLogs.map(l => [
-      l.log_time ? dayjs(l.log_time).format('YYYY-MM-DD HH:mm:ss') : '',
+      l.log_time ? formatBeijing(l.log_time, 'YYYY-MM-DD HH:mm:ss') : '',
       l.game_number ?? '',
       l.priority,
       l.category,
@@ -533,10 +534,10 @@ const LogsPage: React.FC = () => {
       width: '14%',
       render: (v: string) => (
         <span style={{ fontFamily: 'monospace', fontSize: 11, whiteSpace: 'nowrap' }}>
-          {v ? dayjs(v).format('HH:mm:ss') : ''}
+          {v ? formatBeijing(v, 'HH:mm:ss') : ''}
         </span>
       ),
-      sorter: (a, b) => dayjs(a.log_time).valueOf() - dayjs(b.log_time).valueOf(),
+      sorter: (a, b) => beijingValueOf(a.log_time) - beijingValueOf(b.log_time),
       defaultSortOrder: 'descend' as const,
     },
     {
