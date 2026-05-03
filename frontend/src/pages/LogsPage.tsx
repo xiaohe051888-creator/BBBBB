@@ -293,9 +293,9 @@ const LogsPage: React.FC = () => {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const addLogsOptimistically = useAddLogsOptimistically();
-  const [realtime, setRealtime] = useState(true);
+  const [realtime, setRealtime] = useState(false);
   const [pendingRealtimeCount, setPendingRealtimeCount] = useState(0);
-  const realtimeRef = useRef(true);
+  const realtimeRef = useRef(false);
   const pendingLogsRef = useRef<LogEntry[]>([]);
   const flushTimerRef = useRef<number | null>(null);
 
@@ -329,6 +329,9 @@ const LogsPage: React.FC = () => {
     onLog: (data) => {
       if (!data) return;
       pendingLogsRef.current.push(data);
+      if (pendingLogsRef.current.length > 1000) {
+        pendingLogsRef.current = pendingLogsRef.current.slice(-500);
+      }
 
       if (!realtimeRef.current) {
         setPendingRealtimeCount(pendingLogsRef.current.length);
@@ -339,7 +342,7 @@ const LogsPage: React.FC = () => {
       flushTimerRef.current = window.setTimeout(() => {
         flushTimerRef.current = null;
         flushPending();
-      }, 400);
+      }, 1000);
     },
   });
 
@@ -388,7 +391,7 @@ const LogsPage: React.FC = () => {
 
   // 自动滚动
   const [autoScroll, setAutoScroll] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   // 详情弹窗
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -401,6 +404,7 @@ const LogsPage: React.FC = () => {
 
   useEffect(() => {
     if (!autoRefresh) return;
+    if (realtimeRef.current) return;
     const timer = setInterval(handleRefresh, 15000);
     return () => clearInterval(timer);
   }, [autoRefresh, handleRefresh]);
