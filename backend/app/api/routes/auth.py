@@ -11,7 +11,7 @@ from app.models.schemas import AdminUser, ModelVersion, AiModelConfig
 from app.core.config import settings
 from jose import jwt
 import os
-from app.services.ai_config_status import compute_config_hash
+from app.services.ai_config_status import compute_config_hash, normalize_base_url
 
 from app.api.routes.schemas import LoginRequest, ChangePasswordRequest, ApiConfigPayload
 from app.api.routes.utils import get_current_user
@@ -419,22 +419,17 @@ async def test_api_config(
                 _ = data.get("content")
 
         provider = (req.provider or "").lower()
-        base_url = (req.base_url or "").strip()
-        if provider == "deepseek" and not base_url:
-            base_url = "https://api.deepseek.com"
-        if provider == "openai" and not base_url:
-            base_url = "https://api.openai.com"
-        if provider == "aliyun" and not base_url:
-            base_url = "https://dashscope.aliyuncs.com/compatible-mode"
-        if provider == "custom" and not base_url:
+        base_url_for_request = normalize_base_url(provider, req.base_url or None) or ""
+        base_url_for_hash = req.base_url or None
+        if provider == "custom" and not base_url_for_request:
             raise Exception("自定义兼容接口必须填写接口地址")
 
         if provider in ("openai", "deepseek", "aliyun", "custom"):
-            await _openai_compatible(base_url, effective_api_key, req.model)
+            await _openai_compatible(base_url_for_request, effective_api_key, req.model)
             test_ok = True
             message = "接口连接正常"
         elif provider == "anthropic":
-            await _anthropic(base_url, effective_api_key, req.model)
+            await _anthropic(base_url_for_request, effective_api_key, req.model)
             test_ok = True
             message = "接口连接正常"
         else:
@@ -444,7 +439,7 @@ async def test_api_config(
         test_ok = False
         message = _cn_error(str(e))
 
-    cfg_hash = compute_config_hash(req.provider, req.model, req.api_key, req.base_url)
+    cfg_hash = compute_config_hash(req.provider, req.model, effective_api_key, base_url_for_hash)
     async with async_session() as session:
         row = await session.get(AiModelConfig, req.role)
         if row is None:
@@ -452,7 +447,7 @@ async def test_api_config(
                 role=req.role,
                 provider=req.provider,
                 model=req.model,
-                base_url=req.base_url,
+                base_url=base_url_for_hash,
                 config_hash=cfg_hash,
                 last_test_ok=False,
                 last_test_at=None,
@@ -463,7 +458,7 @@ async def test_api_config(
         else:
             row.provider = req.provider
             row.model = req.model
-            row.base_url = req.base_url
+            row.base_url = base_url_for_hash
             row.config_hash = cfg_hash
 
         row.last_test_ok = bool(test_ok)
