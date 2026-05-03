@@ -575,6 +575,15 @@ export interface ApiConfigPayload {
   base_url?: string;
 }
 
+export interface ApiTestResponse {
+  success: boolean;
+  message: string;
+}
+
+export const assertApiTestOk = (res: ApiTestResponse) => {
+  if (!res?.success) throw new Error(res?.message || '接口测试失败');
+};
+
 /** 获取三模型配置和状态（需管理员认证） */
 export const getThreeModelStatus = async () => {
   return api.get<ThreeModelStatus>('/admin/three-model-status');
@@ -587,7 +596,9 @@ export const updateApiConfig = async (payload: ApiConfigPayload) => {
 
 /** 测试模型连通性 */
 export const testApiConnection = async (payload: ApiConfigPayload) => {
-  return api.post('/admin/api-config/test', payload);
+  const res = await api.post<ApiTestResponse>('/admin/api-config/test', payload);
+  assertApiTestOk(res.data);
+  return res;
 };
 
 export const updatePredictionMode = async (mode: 'ai' | 'single_ai' | 'rule') => {
