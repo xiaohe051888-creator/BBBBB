@@ -3,6 +3,7 @@ import { Modal, Form, Input, Select, Button, App, Alert } from 'antd';
 import type { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
 import * as apiService from '../../services/api';
 import { shouldCloseApiConfigModalAfterSave } from './apiConfigFlow';
+import { toCnApiTestError } from '../../utils/i18nErrors';
 
 interface ApiConfigModalProps {
   visible: boolean;
@@ -117,7 +118,8 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       message.success('接口测试成功');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || err.message || '连接失败';
+      const raw = err.response?.data?.detail || err.message || '连接失败';
+      const errorMsg = toCnApiTestError(String(raw));
       setTestResult({ success: false, message: `测试失败: ${errorMsg}` });
     } finally {
       setTesting(false);
