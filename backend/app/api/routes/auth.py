@@ -239,7 +239,7 @@ async def update_api_config(
     }
     
     if req.role not in role_map:
-        raise HTTPException(status_code=400, detail="Invalid role")
+        raise HTTPException(status_code=400, detail="角色参数非法")
         
     k_key, m_key, b_key = role_map[req.role]
     

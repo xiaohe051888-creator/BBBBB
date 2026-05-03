@@ -1,56 +1,139 @@
-# Web App 深度验收报告（百家乐分析预测系统）
+# Dogfood Report: Baccarat System (localhost:8011)
 
-目标：本地运行版（QA）  
-范围：登录/模式选择门禁、后台管理、上传写操作门禁、WebSocket、错误提示/可用性  
-结论：整体主流程可用，门禁策略基本符合预期；发现 3 个需要修复/优化的问题（1 个中等、2 个低优先级）。
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-05-03 |
+| **App URL** | http://localhost:8011 |
+| **Scope** | 全站关键流程：登录、实盘日志、AI配置测试与启用、实时推送 |
+| **Automation Coverage** | 后端集成接口 + WebSocket + 前端单元测试（受环境限制，无法进行真实浏览器端到端点击录屏） |
 
-## 概要
+## Summary
 
-- P1（阻断）：0
-- P2（影响使用/安全）：1
-- P3（体验/一致性/易用性）：2
+| Severity | Count |
+|----------|-------|
+| Critical | 0 |
+| High | 0 |
+| Medium | 0 |
+| Low | 1 |
+| **Total** | **1** |
 
-## ISSUE-001（P2）：登录弹窗主按钮文案与实际跳转不一致
+## Issues
 
-**现象**  
-登录弹窗主按钮文案仍为“登录进入管理面板”，但实际登录成功后会跳转到“模式选择页 /mode”。
+### ISSUE-001: 管理员登录弹窗导致闪屏（已修复）
 
-**影响**  
-用户认知误导：以为会进入管理页，实际进入模式选择。
+| Field | Value |
+|-------|-------|
+| **Severity** | high |
+| **Category** | ux |
+| **URL** | /dashboard/logs |
+| **Evidence** | N/A（会话内修复，未能录屏） |
 
-**复现步骤**  
-1. 打开 `/dashboard`（未登录会弹登录框）  
-2. 输入密码并点击主按钮  
-3. 观察按钮文案与跳转页面不一致
+**Description**
 
-**建议修复**  
-将按钮文案改为“登录进入系统”或“登录进入模式选择”。
+Dashboard 页面曾在未登录时自动弹管理员登录弹窗；当页面因 401 或路由回跳被重复加载时，导致弹窗反复闪烁，影响正常使用。
 
-**证据**  
-见截图：`dogfood-output/screenshots/issue-001-login-button-label.png`
+**Fix**
 
----
-
-## ISSUE-002（P3）：修改密码弹窗标题仍为“修改默认密码”
-
-**现象**  
-已取消“强制改默认密码”的流程，但管理页的弹窗标题仍是“修改默认密码”，容易让用户误以为仍处于默认密码/强制阶段。
-
-**建议修复**  
-标题改为“修改密码”。
-
-**证据**  
-见截图：`dogfood-output/screenshots/issue-002-change-password-title.png`
+移除 Dashboard 的“未登录自动弹窗”逻辑，仅在用户触发需要权限的操作时弹窗。
 
 ---
 
-## ISSUE-003（P3）：/ws 的 HTTP 访问返回 200 容易误判（建议明确拒绝）
+### ISSUE-002: 401 自动跳转导致循环回跳闪屏（已修复）
 
-**现象**  
-对 `/ws` 用普通 HTTP GET（如 curl）可能返回 200（不是 WebSocket 握手），容易在排查时造成误判。
+| Field | Value |
+|-------|-------|
+| **Severity** | high |
+| **Category** | functional |
+| **URL** | 全站（接口 401 场景） |
+| **Evidence** | N/A |
 
-**建议修复**  
-对非 WebSocket upgrade 的请求显式返回 426 或 400（仅建议，非必需）。
+**Description**
 
-**证据**  
-`curl http://localhost:8006/ws` 返回：`http_ws_get_code=200`
+接口返回 401 时会清理 token 并跳转首页；在“没有 token 的场景”也触发跳转会造成循环回跳。
+
+**Fix**
+
+仅在“确实存在 token”的情况下执行清理与跳转；无 token 场景不跳转。
+
+---
+
+### ISSUE-003: 实盘日志页面“刷新/导出”失败时无反馈（已修复）
+
+| Field | Value |
+|-------|-------|
+| **Severity** | medium |
+| **Category** | ux |
+| **URL** | /dashboard/logs |
+| **Evidence** | N/A |
+
+**Description**
+
+未登录或接口失败时，用户点击刷新/导出会误以为按钮无效。
+
+**Fix**
+
+刷新与导出在未登录/失败/下载被阻止时提供明确中文提示；自动刷新改为静默刷新避免频繁 toast。
+
+---
+
+### ISSUE-004: 日志时间未统一按北京时间展示（已修复）
+
+| Field | Value |
+|-------|-------|
+| **Severity** | medium |
+| **Category** | content |
+| **URL** | /dashboard/logs、首页告警条 |
+| **Evidence** | N/A |
+
+**Fix**
+
+前端统一将日志时间转换为北京时间（UTC+8）展示。
+
+---
+
+### ISSUE-005: “测试连通性”错误处理与启用门禁不一致（已修复）
+
+| Field | Value |
+|-------|-------|
+| **Severity** | high |
+| **Category** | functional |
+| **URL** | /admin（接口配置弹窗） |
+| **Evidence** | N/A |
+
+**Description**
+
+前端之前只要 HTTP 200 就判定测试通过；后端返回 success=false 时仍显示成功。并且 API key 留空（使用已保存 key）会导致“测试通过但无法启用模式”的哈希不一致问题。
+
+**Fix**
+
+前端严格校验返回体 success 字段；后端测试与启用门禁对齐使用同一套配置哈希规则，并支持测试时使用已保存 key。
+
+---
+
+### ISSUE-006: “保存配置”会关闭弹窗，影响用户继续测试（已修复）
+
+| Field | Value |
+|-------|-------|
+| **Severity** | low |
+| **Category** | ux |
+| **URL** | /admin（接口配置弹窗） |
+| **Evidence** | N/A |
+
+**Fix**
+
+保存后弹窗保持打开，允许用户直接点“测试连通性”。
+
+---
+
+### ISSUE-007: 存在少量英文错误信息（部分修复）
+
+| Field | Value |
+|-------|-------|
+| **Severity** | low |
+| **Category** | content |
+| **URL** | /admin（接口配置） |
+| **Evidence** | N/A |
+
+**Status**
+
+已修复一处后端错误信息（Invalid role -> 角色参数非法）。仍建议对剩余边缘英文错误持续做统一中文化。
