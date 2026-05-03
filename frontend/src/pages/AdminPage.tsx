@@ -18,6 +18,7 @@ import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { useSystemStateQuery } from '../hooks/useQueries';
 import { StartLearningModal } from '../components/dashboard/StartLearningModal';
 import { ApiConfigModal } from '../components/admin/ApiConfigModal';
+import { shouldCloseApiConfigModalAfterSave } from '../components/admin/apiConfigFlow';
 
 // 精致图标组件
 const Icons = {
@@ -909,8 +910,8 @@ const AdminPage: React.FC = () => {
         visible={apiConfigVisible}
         onCancel={() => setApiConfigVisible(false)}
         onSuccess={() => {
-          setApiConfigVisible(false);
-          loadThreeModelStatus(); // 重新加载状态以刷新图标
+          loadThreeModelStatus();
+          if (shouldCloseApiConfigModalAfterSave()) setApiConfigVisible(false);
         }}
         role={apiConfigRole}
         currentStatus={threeModelStatus}

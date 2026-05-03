@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Button, App, Alert } from 'antd';
 import type { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
 import * as apiService from '../../services/api';
+import { shouldCloseApiConfigModalAfterSave } from './apiConfigFlow';
 
 interface ApiConfigModalProps {
   visible: boolean;
@@ -137,7 +138,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       await apiService.updateApiConfig(payload);
       message.success(`${roleName}接口配置保存成功`);
       onSuccess();
-      onCancel();
+      if (shouldCloseApiConfigModalAfterSave()) onCancel();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       message.error(`保存失败: ${err.response?.data?.detail || err.message}`);
