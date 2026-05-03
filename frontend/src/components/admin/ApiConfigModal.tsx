@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Form, Input, Select, Button, App, Alert } from 'antd';
 import type { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
 import * as apiService from '../../services/api';
@@ -8,7 +8,7 @@ import { toCnApiTestError } from '../../utils/i18nErrors';
 interface ApiConfigModalProps {
   visible: boolean;
   onCancel: () => void;
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
   role: 'banker' | 'player' | 'combined' | 'single';
   currentStatus: ThreeModelStatus | null;
 }
@@ -46,11 +46,17 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean; message: string} | null>(null);
   const [provider, setProvider] = useState<string>('deepseek');
+  const initializedRef = useRef(false);
 
   const roleName = role === 'banker' ? '庄模型' : role === 'player' ? '闲模型' : role === 'combined' ? '综合模型' : '单AI模式';
 
   useEffect(() => {
-    if (visible && currentStatus?.models?.[role]) {
+    if (!visible) {
+      initializedRef.current = false;
+      return;
+    }
+    if (initializedRef.current) return;
+    if (currentStatus?.models?.[role]) {
       const modelConfig = currentStatus.models[role];
       setProvider(modelConfig.provider || 'deepseek');
       form.setFieldsValue({
@@ -60,6 +66,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
         base_url: modelConfig.base_url || '',
       });
       setTestResult(null);
+      initializedRef.current = true;
     }
   }, [visible, currentStatus, role, form]);
 
@@ -122,6 +129,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       const errorMsg = toCnApiTestError(String(raw));
       setTestResult({ success: false, message: `测试失败: ${errorMsg}` });
     } finally {
+      await Promise.resolve(onSuccess());
       setTesting(false);
     }
   };
@@ -139,7 +147,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
     try {
       await apiService.updateApiConfig(payload);
       message.success(`${roleName}接口配置保存成功`);
-      onSuccess();
+      await Promise.resolve(onSuccess());
       if (shouldCloseApiConfigModalAfterSave()) onCancel();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {

@@ -909,8 +909,8 @@ const AdminPage: React.FC = () => {
       <ApiConfigModal 
         visible={apiConfigVisible}
         onCancel={() => setApiConfigVisible(false)}
-        onSuccess={() => {
-          loadThreeModelStatus();
+        onSuccess={async () => {
+          await loadThreeModelStatus();
           if (shouldCloseApiConfigModalAfterSave()) setApiConfigVisible(false);
         }}
         role={apiConfigRole}
