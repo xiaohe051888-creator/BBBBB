@@ -48,60 +48,70 @@ api.interceptors.request.use((config) => {
 });
 
 // ====== 响应拦截器：统一处理错误 ======
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const status = error.response?.status;
-    const detail = error.response?.data?.detail;
-    const hasDetail = !!detail;
-    const requestUrl = String(error.config?.url || '');
-    const isLoginRequest = requestUrl.includes('/admin/login');
+type ApiErrorLike = {
+  response?: { status?: number; data?: { detail?: unknown } };
+  config?: { url?: unknown };
+  message?: string;
+  code?: unknown;
+};
 
-    if (hasDetail) {
-      const message = Array.isArray(detail)
-        ? detail.map((e: { msg?: string }) => e.msg || '验证错误').join(', ')
-        : detail;
-      error.message = normalizeBackendDetail(message) || message;
-    } else if (status === 403) {
-      error.message = '拒绝访问 (403)';
-    } else if (status === 404) {
-      error.message = '请求的资源不存在 (404)';
-    } else if (status === 500) {
-      error.message = '服务器内部错误 (500)';
-    }
+export const handleApiError = (error: unknown) => {
+  const err = error as ApiErrorLike;
+  const status = err.response?.status;
+  const detail = err.response?.data?.detail;
+  const hasDetail = !!detail;
+  const requestUrl = String(err.config?.url || '');
+  const isLoginRequest = requestUrl.includes('/admin/login');
+  const hadToken = !!getToken();
 
-    if (status === 401 && !isLoginRequest) {
+  if (hasDetail) {
+    const message = Array.isArray(detail)
+      ? detail.map((e: { msg?: string }) => e.msg || '验证错误').join(', ')
+      : detail;
+    err.message = normalizeBackendDetail(message) || String(message);
+  } else if (status === 403) {
+    err.message = '拒绝访问 (403)';
+  } else if (status === 404) {
+    err.message = '请求的资源不存在 (404)';
+  } else if (status === 500) {
+    err.message = '服务器内部错误 (500)';
+  }
+
+  if (status === 401 && !isLoginRequest) {
+    if (hadToken) {
       clearToken();
       const currentPath = window.location.pathname;
       if (!currentPath.includes('/login') && !currentPath.includes('/start') && currentPath !== '/') {
-        window.location.href = '/?session_expired=true';
+        window.location.assign('/?session_expired=true');
       }
     }
+  }
 
-    if (error.message === 'Network Error') {
-      error.message = '网络连接失败，请检查后端服务是否正常运行';
-    }
-    if (error.code === 'ECONNABORTED') {
-      error.message = '请求超时，请重试';
-    }
+  if (err.message === 'Network Error') {
+    err.message = '网络连接失败，请检查后端服务是否正常运行';
+  }
+  if (err.code === 'ECONNABORTED') {
+    err.message = '请求超时，请重试';
+  }
 
-    if (status && !hasDetail) {
-      const statusMap: Record<number, string> = {
-        400: '请求参数错误',
-        401: '密码错误或登录已过期',
-        403: '拒绝访问，权限不足或账户被锁定',
-        404: '请求的资源不存在',
-        500: '服务器内部错误',
-        502: '网关错误',
-        503: '服务不可用',
-        504: '网关超时',
-      };
-      error.message = statusMap[status] || `请求失败 (${status})`;
-    }
+  if (status && !hasDetail) {
+    const statusMap: Record<number, string> = {
+      400: '请求参数错误',
+      401: '密码错误或登录已过期',
+      403: '拒绝访问，权限不足或账户被锁定',
+      404: '请求的资源不存在',
+      500: '服务器内部错误',
+      502: '网关错误',
+      503: '服务不可用',
+      504: '网关超时',
+    };
+    err.message = statusMap[status] || `请求失败 (${status})`;
+  }
 
-    return Promise.reject(error);
-  },
-);
+  return Promise.reject(error);
+};
+
+api.interceptors.response.use((response) => response, handleApiError);
 
 
 // ====== 系统状态 ======
