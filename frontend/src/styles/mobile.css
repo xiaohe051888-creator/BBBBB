@@ -38,9 +38,17 @@
     gap: 6px !important;
   }
   
-  .top-status-bar span {
-    font-size: 12px !important;
+  .top-status-bar .dashboard-current-predict span,
+  .top-status-bar .dashboard-balance-badge span {
     letter-spacing: 0 !important;
+  }
+
+  .top-status-bar .dashboard-boot-pill span,
+  .top-status-bar .dashboard-current-predict .label-text,
+  .top-status-bar .dashboard-current-predict .sub-text,
+  .top-status-bar .dashboard-balance-badge .balance-label,
+  .top-status-bar .dashboard-balance-badge .balance-value {
+    font-size: 12px !important;
   }
   
   .top-status-bar .predict-result-blink {
@@ -89,11 +97,78 @@
     display: none; /* Chrome/Safari 隐藏滚动条 */
   }
 
+  .five-road-scroll-container::after {
+    content: "";
+    display: block;
+    width: 1px;
+    height: 1px;
+  }
+
   /* 4. 分析面板卡片化与紧凑化 */
   .analysis-card {
     padding: 16px 12px !important;
     border-radius: 16px !important;
   }
+
+  .dashboard-current-predict {
+    width: 100%;
+    padding: 6px !important;
+    gap: 6px !important;
+  }
+
+  .dashboard-current-predict .latest-result,
+  .dashboard-current-predict .predict-pulse-container {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .dashboard-balance-badge {
+    width: 100%;
+    border-radius: 12px !important;
+    padding: 8px 12px !important;
+  }
+
+  .dashboard-balance-badge .balance-label {
+    color: rgba(82,196,26,0.75);
+  }
+
+  .dashboard-balance-badge .balance-value {
+    font-size: 14px !important;
+  }
+
+  .section-header .ant-tag {
+    margin-inline-end: 0 !important;
+  }
+  
+
+@media (max-width: 420px) {
+  .top-status-bar {
+    padding: 10px 12px !important;
+  }
+
+  .top-status-bar .mobile-action-group {
+    width: 100%;
+  }
+
+  .top-status-bar .mobile-action-group .ant-btn {
+    width: 100% !important;
+    height: 34px !important;
+  }
+
+  .top-status-bar .predict-pulse-container,
+  .top-status-bar .latest-result {
+    padding: 6px 8px !important;
+  }
+
+  .road-card {
+    padding: 10px !important;
+  }
+
+  .five-road-scroll-container {
+    margin: 0 -10px;
+    padding: 0 10px;
+  }
+}
   
   .analysis-card .section-header {
     margin-bottom: 12px !important;

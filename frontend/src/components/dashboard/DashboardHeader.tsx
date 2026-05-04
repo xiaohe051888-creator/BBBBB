@@ -57,7 +57,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
           {/* 1. 系统状态信息 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.15)', padding: '6px 14px', borderRadius: 20 }}>
+            <div className="dashboard-boot-pill" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.15)', padding: '6px 14px', borderRadius: 20 }}>
                 <span style={{ color: '#ffd700', fontSize: 16 }}><AppstoreOutlined /></span>
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: 0.5 }}>
                   第 <span style={{ color: '#ffd700', fontSize: 16 }}>{systemState?.boot_number || 1}</span> 靴
@@ -78,10 +78,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           }}>
             {/* 左半部分：最新开奖 */}
             <div className="latest-result" style={{ padding: '6px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>最新开奖</span>
+              <span className="label-text" style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>最新开奖</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 20, fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
-                  {Math.min(systemState?.game_number || 0, 72)} <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.45)' }}>局</span>
+                  {Math.min(systemState?.game_number || 0, 72)} <span className="sub-text" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.45)' }}>局</span>
                 </span>
                 {(systemState?.game_number || 0) >= 72 ? (
                   <div style={{
@@ -120,7 +120,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               border: '1px solid rgba(255,215,0,0.2)',
               boxShadow: '0 0 15px rgba(255,215,0,0.15) inset'
             }}>
-              <span style={{ fontSize: 13, color: '#ffd666', letterSpacing: 1, fontWeight: 600 }}>下局预测</span>
+              <span className="label-text" style={{ fontSize: 13, color: '#ffd666', letterSpacing: 1, fontWeight: 600 }}>下局预测</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 {(systemState?.game_number || 0) >= 72 ? (
                   <span style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,215,0,0.8)' }}>
@@ -129,7 +129,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 ) : (
                   <>
                     <span style={{ fontSize: 20, fontWeight: 800, color: '#ffd666', fontVariantNumeric: 'tabular-nums' }}>
-                      第 {systemState?.next_game_number || (systemState?.game_number || 0) + 1} <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,215,0,0.5)' }}>局</span>
+                      第 {systemState?.next_game_number || (systemState?.game_number || 0) + 1} <span className="sub-text" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,215,0,0.5)' }}>局</span>
                     </span>
                     {systemState?.predict_direction ? (
                       <div className="predict-result-blink" style={{
@@ -155,7 +155,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <div className="dashboard-header-right" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div className="dashboard-balance-badge" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(82,196,26,0.1)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(82,196,26,0.2)' }}>
             <DollarOutlined style={{ color: '#52c41a', fontSize: 16 }} />
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#52c41a', fontFamily: 'monospace' }}>
+            <span className="balance-label" style={{ fontSize: 12, color: 'rgba(82,196,26,0.75)' }}>当前余额</span>
+            <span className="balance-value" style={{ fontSize: 15, fontWeight: 700, color: '#52c41a', fontFamily: 'monospace' }}>
               {formatMoney(systemState?.balance)}
             </span>
           </div>

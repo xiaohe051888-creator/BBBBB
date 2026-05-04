@@ -363,7 +363,7 @@ const DashboardPage: React.FC = () => {
               <span className="section-title" style={{ marginRight: 16 }}>五路走势</span>
 
               {/* 庄闲和统计徽标 */}
-              <Space size={8}>
+              <Space size={8} wrap className="mobile-pills-grid">
                 <Tag color="#ff4d4f" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>庄 {bankerCount}</Tag>
                 <Tag color="#1890ff" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>闲 {playerCount}</Tag>
                 <Tag color="#52c41a" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>和 {tieCount}</Tag>
