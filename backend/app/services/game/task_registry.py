@@ -29,6 +29,21 @@ class TaskRegistry:
         self._tasks: Dict[str, RegisteredTask] = {}
         self._by_key: Dict[str, str] = {}
 
+    def _prune_memory(self, keep: int = 200) -> None:
+        if len(self._tasks) <= keep:
+            return
+
+        items = list(self._tasks.values())
+        items.sort(key=lambda x: x.created_at, reverse=True)
+        keep_ids = {t.task_id for t in items[:keep]}
+        remove_ids = [t.task_id for t in items[keep:] if t.status != "running"]
+        for task_id in remove_ids:
+            if task_id in keep_ids:
+                continue
+            meta = self._tasks.pop(task_id, None)
+            if meta and meta.dedupe_key and self._by_key.get(meta.dedupe_key) == task_id:
+                self._by_key.pop(meta.dedupe_key, None)
+
     async def _persist_create(self, meta: RegisteredTask) -> None:
         from sqlalchemy import select
         from sqlalchemy.exc import IntegrityError
@@ -148,6 +163,7 @@ class TaskRegistry:
         self._tasks[task_id] = meta
         if dedupe_key:
             self._by_key[dedupe_key] = task_id
+        self._prune_memory()
 
         if isinstance(coro, asyncio.Task):
             meta.task = coro
@@ -169,6 +185,9 @@ class TaskRegistry:
                     meta.status = "failed"
                     meta.message = "执行失败"
                     meta.error = str(e)[:200]
+                if meta.dedupe_key and self._by_key.get(meta.dedupe_key) == meta.task_id:
+                    self._by_key.pop(meta.dedupe_key, None)
+                self._prune_memory()
 
                 async def _persist() -> None:
                     try:
@@ -233,6 +252,9 @@ class TaskRegistry:
             except Exception:
                 pass
             meta.coro_obj = None
+            if meta.dedupe_key and self._by_key.get(meta.dedupe_key) == meta.task_id:
+                self._by_key.pop(meta.dedupe_key, None)
+            self._prune_memory()
 
         meta.task.add_done_callback(_finalize)
         return meta

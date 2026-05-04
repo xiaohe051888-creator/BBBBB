@@ -145,7 +145,6 @@ async def upload_games(
 
             # 记录重置前的状态（用于日志）
             old_status = sess.status
-            sess.boot_number
             
             # 推断靴号：取现有最大靴号
             stmt = select(GameRecord.boot_number).order_by(GameRecord.boot_number.desc()).limit(1)

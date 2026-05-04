@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Dict, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.models.schemas import BetRecord
@@ -33,9 +34,6 @@ async def place_bet(
         sess_backup = copy.deepcopy(sess)
         
         try:
-            if not can_place_bet(sess.status):
-                return {"success": False, "error": "illegal_state", "message": f"当前状态({sess.status})无法下注"}
-
             if direction not in ("庄", "闲"):
                 return {"success": False, "error": "下注方向只能是庄或闲"}
             
@@ -43,6 +41,37 @@ async def place_bet(
             amount = float(amount)
             if math.isnan(amount) or math.isinf(amount) or amount < 0:
                 return {"success": False, "error": "非法的下注金额"}
+
+            existing = (await db.execute(
+                select(BetRecord)
+                .where(
+                    BetRecord.boot_number == sess.boot_number,
+                    BetRecord.game_number == game_number,
+                )
+                .order_by(BetRecord.bet_seq.desc())
+                .limit(1)
+            )).scalars().first()
+            if existing:
+                if existing.status == "待开奖":
+                    sess.pending_bet_direction = existing.bet_direction
+                    sess.pending_bet_amount = float(existing.bet_amount)
+                    sess.pending_bet_tier = existing.bet_tier
+                    sess.pending_bet_time = existing.bet_time
+                    sess.pending_game_number = existing.game_number
+                    sess.status = "等待开奖"
+                    return {
+                        "success": True,
+                        "game_number": existing.game_number,
+                        "direction": existing.bet_direction,
+                        "amount": float(existing.bet_amount),
+                        "tier": existing.bet_tier,
+                        "balance_before": float(existing.balance_before),
+                        "balance_after": float(existing.balance_after),
+                    }
+                return {"success": False, "error": "该局已存在下注记录，不能重复下注"}
+
+            if not can_place_bet(sess.status):
+                return {"success": False, "error": "illegal_state", "message": f"当前状态({sess.status})无法下注"}
                 
             amount = max(settings.MIN_BET, min(settings.MAX_BET, int(amount / settings.BET_STEP) * settings.BET_STEP))
             

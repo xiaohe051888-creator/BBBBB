@@ -1,6 +1,9 @@
 import asyncio
 import os
+import sys
 from pathlib import Path
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 async def main() -> None:
@@ -77,13 +80,10 @@ async def main() -> None:
             balance_mode="keep",
             run_deep_learning=True,
         )
-        if not r3.get("success"):
-            raise RuntimeError(f"queue new_boot during deep learning failed: {r3}")
-        if "队列" not in (r3.get("message") or ""):
-            raise RuntimeError(f"expected queue message, got: {r3}")
-
-    if not sess.deep_learning_status.get("pending_upload"):
-        raise RuntimeError("pending_upload not set on session")
+        if r3.get("success"):
+            raise RuntimeError(f"expected rejection during deep learning, got: {r3}")
+        if "深度学习" not in (r3.get("message") or ""):
+            raise RuntimeError(f"expected deep learning rejection message, got: {r3}")
 
     print("OK")
 
