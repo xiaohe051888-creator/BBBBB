@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Space, Tag } from 'antd';
+import { Button, Grid, Space, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../../services/api';
 import { formatBeijing } from '../../utils/datetime';
 
 export const AdminAlertsBar: React.FC = () => {
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const isLoggedIn = !!api.getToken();
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -49,16 +51,16 @@ export const AdminAlertsBar: React.FC = () => {
       borderRadius: 12,
       padding: 12,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap', flex: '1 1 260px' }}>
           <span style={{ width: 8, height: 8, borderRadius: 999, background: '#ff4d4f', flexShrink: 0 }} />
-          <span style={{ color: '#ffccc7', fontWeight: 700, whiteSpace: 'nowrap' }}>严重告警</span>
+          <span style={{ color: '#ffccc7', fontWeight: 700 }}>严重告警</span>
           <Tag color="error" style={{ margin: 0 }}>P1 {count}</Tag>
-          <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, lineHeight: 1.5, minWidth: 0 }}>
             最近24小时内检测到 {count} 条 P1 事件
           </span>
         </div>
-        <Space size={8} wrap>
+        <Space size={8} wrap className={isMobile ? 'mobile-action-row' : undefined} style={isMobile ? { width: '100%' } : undefined}>
           <Button size="small" loading={loading} onClick={fetchAlerts}>刷新</Button>
           <Button size="small" onClick={() => setExpanded(v => !v)}>{expanded ? '收起' : '展开'}</Button>
           <Button size="small" type="primary" danger onClick={() => navigate(logsUrl())}>查看全部</Button>

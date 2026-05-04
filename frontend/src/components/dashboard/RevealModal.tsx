@@ -55,7 +55,7 @@ const RevealModal: React.FC<RevealModalProps> = ({
   }), []);
 
   const modalOuterStyle = React.useMemo(() => ({
-    maxWidth: 'calc(100vw - 32px)'
+    maxWidth: 'calc(100vw - 20px)'
   }), []);
 
   // 键盘快捷键支持
@@ -105,7 +105,7 @@ const RevealModal: React.FC<RevealModalProps> = ({
       open={visible}
       onCancel={onCancel}
       footer={null}
-      width={400}
+      width={isMobile ? 360 : 400}
       style={modalOuterStyle}
       centered
       closable={false}

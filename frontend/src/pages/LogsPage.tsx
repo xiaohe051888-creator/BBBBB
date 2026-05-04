@@ -278,7 +278,7 @@ const LogTimeline: React.FC<LogTimelineProps> = ({ logs }) => {
                 </Tag>
                 <span style={{ fontSize: 12 }}>{l.event_type || '-'}</span>
               </Space>
-              <span style={{ fontSize: 11, opacity: 0.65, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 11, opacity: 0.65 }}>
                 {l.log_time ? dayjs(l.log_time).format('HH:mm:ss') : ''}
               </span>
             </Space>

@@ -332,7 +332,7 @@ const BetRecordsPage: React.FC = () => {
       {summary && (
         <Card size="small" style={{ marginBottom: 16 }}>
           <div className="mobile-section-stack" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12, color: '#8b949e', whiteSpace: 'nowrap' }}>盈亏分布</span>
+            <span style={{ fontSize: 12, color: '#8b949e' }}>盈亏分布</span>
             <div style={{ flex: '1 1 200px', minWidth: 150 }}>
               <Progress
                 percent={

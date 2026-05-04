@@ -2,7 +2,7 @@
  * 下注记录表格组件 - 自适应布局，无横向滚动
  */
 import React from 'react';
-import { Table, Tag } from 'antd';
+import { Grid, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { BET_STATUS_COLORS } from '../../utils/constants';
 import { formatSignedMoney } from '../../utils/money';
@@ -40,6 +40,9 @@ const BetTable: React.FC<BetTableProps> = ({
   total,
   onPageChange,
 }) => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const columns: ColumnsType<BetRecord> = React.useMemo(() => [
     {
       title: '局号',
@@ -112,16 +115,22 @@ const BetTable: React.FC<BetTableProps> = ({
 
   return (
     <Table
-      className="mobile-card-table"
+      className="mobile-card-table dashboard-bet-table"
       dataSource={data}
       columns={columnsWithCell}
       rowKey={(r) => String(r.id)}
       size="small"
       loading={loading}
       pagination={pagination}
-      scroll={{ x: 'max-content', y: 200 }}
+      scroll={{ x: 'max-content', y: isMobile ? undefined : 200 }}
       locale={{ emptyText: '暂无下注记录' }}
       style={{ width: '100%' }}
+      title={() => (
+        <div className="dashboard-table-header">
+          <span className="dashboard-table-title">下注记录</span>
+          <span className="dashboard-table-meta">当前页 {data.length} 条</span>
+        </div>
+      )}
     />
   );
 };
