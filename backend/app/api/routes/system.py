@@ -163,7 +163,7 @@ async def get_health_score():
             else:
                 health_details["database"]["issues"].append("数据库无游戏记录")
             
-            stmt = select(SystemState)
+            stmt = select(SystemState).where(SystemState.singleton_key == 1)
             result = await session.execute(stmt)
             state = result.scalar_one_or_none()
             if state:
@@ -181,7 +181,7 @@ async def get_health_score():
         async with async_session() as session:
             stmt = select(func.count()).select_from(BetRecord).where(
                 BetRecord.settlement_amount.is_(None),
-                BetRecord.status == "pending"
+                BetRecord.status == "待开奖"
             )
             result = await session.execute(stmt)
             pending_count = result.scalar() or 0
@@ -191,8 +191,8 @@ async def get_health_score():
                 health_details["data_consistency"]["issues"].append(f"有{pending_count}笔未结算下注")
             
             stmt = select(func.count()).select_from(SystemLog).where(
-                SystemLog.priority == "high",
-                SystemLog.created_at > (datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=1))
+                SystemLog.priority == "P1",
+                SystemLog.log_time > (datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=1))
             )
             result = await session.execute(stmt)
             error_count = result.scalar() or 0

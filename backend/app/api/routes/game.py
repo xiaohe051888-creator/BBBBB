@@ -241,12 +241,12 @@ async def reveal_game_route(req: RevealRequest, _: dict = Depends(get_current_us
 
 @router.post("/end-boot")
 async def end_current_boot(
-
+    _: dict = Depends(get_current_user),
 ):
     """
     结束本靴 - 开始新靴（深度学习仅由管理员手动触发）
     """
-    from app.services.game import end_boot, get_session
+    from app.services.game import end_boot
 
     async with async_session() as session:
         result = await end_boot(

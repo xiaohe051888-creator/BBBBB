@@ -20,6 +20,7 @@ import { useSystemStateQuery } from '../hooks/useQueries';
 import { StartLearningModal } from '../components/dashboard/StartLearningModal';
 import { ApiConfigModal } from '../components/admin/ApiConfigModal';
 import { shouldCloseApiConfigModalAfterSave } from '../components/admin/apiConfigFlow';
+import { useQueryClient } from '@tanstack/react-query';
 
 // 精致图标组件
 const Icons = {
@@ -94,6 +95,7 @@ const AdminPage: React.FC = () => {
   const { message } = App.useApp();
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const token = (location.state as any)?.token || api.getToken();
   
   // 系统诊断（AdminPage使用默认桌号）
@@ -170,9 +172,10 @@ const AdminPage: React.FC = () => {
       setPredictionMode(newMode);
       message.success(`已切换至 ${newMode === 'ai' ? '3AI模式' : newMode === 'single_ai' ? '单AI模式' : '规则引擎模式'} `);
     } catch (error: any) {
-      message.error(`切换模式失败: ${error?.response?.data?.detail || error.message}`);
+      message.error(error instanceof Error ? error.message : '切换模式失败');
     } finally {
       setUpdatingMode(false);
+      queryClient.invalidateQueries({ queryKey: ['systemState'] });
     }
   };
 
@@ -189,9 +192,11 @@ const AdminPage: React.FC = () => {
       message.success(`余额${action === 'add' ? '充值' : '扣除'}成功，当前余额: ${res.data.new_balance}`);
       setBalanceAmount('');
     } catch (error: any) {
-      message.error(`操作失败: ${error?.response?.data?.detail || error.message}`);
+      message.error(error instanceof Error ? error.message : '操作失败');
     } finally {
       setAdjustingBalance(false);
+      queryClient.invalidateQueries({ queryKey: ['systemState'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
     }
   };
   

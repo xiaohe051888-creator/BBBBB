@@ -51,7 +51,7 @@ async def _get_balance(session) -> float:
     if sess.balance != settings.DEFAULT_BALANCE or sess.next_game_number > 1:
         return sess.balance
     
-    stmt = select(SystemState)
+    stmt = select(SystemState).where(SystemState.singleton_key == 1).limit(1)
     result = await session.execute(stmt)
     state = result.scalar_one_or_none()
     return state.balance if state else settings.DEFAULT_BALANCE

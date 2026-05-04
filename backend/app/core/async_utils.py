@@ -66,3 +66,21 @@ def spawn_task(
 
     task.add_done_callback(_done)
     return task
+
+
+async def cancel_spawned_tasks() -> None:
+    while True:
+        tasks = list(_tasks)
+        if not tasks:
+            return
+
+        for t in tasks:
+            try:
+                t.cancel()
+            except Exception:
+                pass
+
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+        for t in tasks:
+            _tasks.discard(t)

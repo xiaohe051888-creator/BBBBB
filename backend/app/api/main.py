@@ -163,6 +163,9 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    from app.core.async_utils import cancel_spawned_tasks
+    await cancel_spawned_tasks()
+
     await close_db()
     logger.info("系统已关闭")
 

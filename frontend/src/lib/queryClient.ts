@@ -38,9 +38,11 @@ export const queryKeys = {
   // 日志
   logs: (category?: string, taskId?: string, priority?: string, q?: string, page: number = 1, pageSize: number = 50) => ['logs', category || '', taskId || '', priority || '', q || '', page, pageSize] as const,
   // 游戏记录
-  games: (page: number) => ['games', page] as const,
+  games: (page: number = 1, pageSize: number = 20) => ['games', page, pageSize] as const,
   // 下注记录
-  bets: (page: number) => ['bets', page] as const,
+  bets: (page: number = 1, pageSize: number = 20) => ['bets', page, pageSize] as const,
+  // 错题本
+  mistakes: (page: number = 1, pageSize: number = 20) => ['mistakes', page, pageSize] as const,
   // 走势图
   roads: () => ['roads'] as const,
   // AI分析

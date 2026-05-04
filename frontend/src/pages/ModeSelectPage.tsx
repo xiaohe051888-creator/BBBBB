@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, App, Button, Card, Space, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import * as api from '../services/api';
 
 type Mode = 'ai' | 'single_ai' | 'rule';
@@ -20,18 +19,7 @@ const ModeSelectPage: React.FC = () => {
       const res = await api.getThreeModelStatus();
       setThreeModelStatus(res.data);
     } catch (err: unknown) {
-      const backendDetail =
-        axios.isAxiosError(err) &&
-        err.response &&
-        typeof err.response.data === 'object' &&
-        err.response.data &&
-        'detail' in err.response.data
-          ? (err.response.data as { detail?: unknown }).detail
-          : undefined;
-      const msg =
-        (typeof backendDetail === 'string' && backendDetail) ||
-        (err instanceof Error ? err.message : '') ||
-        '加载模型状态失败';
+      const msg = err instanceof Error ? err.message : '加载模型状态失败';
       message.error(msg);
     } finally {
       setStatusLoading(false);
@@ -39,10 +27,6 @@ const ModeSelectPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!api.getToken()) {
-      navigate('/dashboard', { replace: true });
-      return;
-    }
     reloadStatus();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -83,18 +67,7 @@ const ModeSelectPage: React.FC = () => {
       message.success('模式已启用');
       navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
-      const backendDetail =
-        axios.isAxiosError(err) &&
-        err.response &&
-        typeof err.response.data === 'object' &&
-        err.response.data &&
-        'detail' in err.response.data
-          ? (err.response.data as { detail?: unknown }).detail
-          : undefined;
-      const msg =
-        (typeof backendDetail === 'string' && backendDetail) ||
-        (err instanceof Error ? err.message : '') ||
-        '切换模式失败';
+      const msg = err instanceof Error ? err.message : '切换模式失败';
       message.error(msg);
       await reloadStatus();
     } finally {

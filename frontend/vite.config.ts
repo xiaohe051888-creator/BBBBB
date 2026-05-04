@@ -12,16 +12,18 @@ export default defineConfig({
     host: '0.0.0.0', // 允许所有 IP 访问
     proxy: {
       '/api': {
-        target: 'http://localhost:8001',
+        target: `http://localhost:${process.env.BACKEND_PORT || '8001'}`,
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://localhost:8001',
+        target: `ws://localhost:${process.env.BACKEND_PORT || '8001'}`,
         ws: true,
       },
     },
   },
   build: {
+    outDir: process.env.BUILD_BACKEND_STATIC === '1' ? '../backend/static' : 'dist',
+    emptyOutDir: true,
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {

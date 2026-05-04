@@ -122,7 +122,7 @@ export const useGamesQuery = (options: UseGamesQueryOptions) => {
     games: GameRecord[];
     total: number;
   }>({
-    queryKey: queryKeys.games(page),
+    queryKey: queryKeys.games(page, pageSize),
     queryFn: async () => {
             const res = await api.getGameRecords({
                 page,
@@ -136,7 +136,7 @@ export const useGamesQuery = (options: UseGamesQueryOptions) => {
     enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-            return queryClient.getQueryData(queryKeys.games(page)) || { games: [], total: 0 };
+            return queryClient.getQueryData(queryKeys.games(page, pageSize)) || { games: [], total: 0 };
     },
     notifyOnChangeProps: ['data', 'error'],
   });
@@ -159,7 +159,7 @@ export const useBetsQuery = (options: UseBetsQueryOptions) => {
     bets: BetRecord[];
     total: number;
   }>({
-    queryKey: queryKeys.bets(page),
+    queryKey: queryKeys.bets(page, pageSize),
     queryFn: async () => {
             const res = await api.getBetRecords({
                 page,
@@ -173,7 +173,7 @@ export const useBetsQuery = (options: UseBetsQueryOptions) => {
     enabled: enabled && authed,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-            return queryClient.getQueryData(queryKeys.bets(page)) || { bets: [], total: 0 };
+            return queryClient.getQueryData(queryKeys.bets(page, pageSize)) || { bets: [], total: 0 };
     },
     notifyOnChangeProps: ['data', 'error'],
   });
@@ -290,7 +290,6 @@ export const useRevealResultMutation = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
       // 补齐对错题本和 AI 记忆的刷新，防止因缓存导致复盘数据不更新
       queryClient.invalidateQueries({ queryKey: ['mistakes'] });
-      queryClient.invalidateQueries({ queryKey: ['memories'] });
     },
   });
 };
@@ -397,20 +396,28 @@ export const useAddBetOptimistically = () => {
   const queryClient = useQueryClient();
 
   return (newBet: BetRecord) => {
-    queryClient.setQueryData(
-      queryKeys.bets(1),
-      (oldData: { bets: BetRecord[]; total: number } | undefined) => {
-        if (!oldData) return { bets: [newBet], total: 1 };
-        // 去重检查，防止并发推送导致数据重复
-        if (oldData.bets.some(b => b.game_number === newBet.game_number)) {
-          return oldData;
+    const candidates = queryClient.getQueriesData<{ bets: BetRecord[]; total: number }>({ queryKey: ['bets'] });
+
+    for (const [key] of candidates) {
+      const k = key as unknown as (string | number)[];
+      if (k.length < 3) continue;
+      const page = Number(k[1] || 1);
+      const pageSize = Number(k[2] || 20);
+      if (page !== 1) continue;
+
+      queryClient.setQueryData(
+        key,
+        (oldData: { bets: BetRecord[]; total: number } | undefined) => {
+          if (!oldData) return { bets: [newBet], total: 1 };
+          if (oldData.bets.some(b => b.game_number === newBet.game_number)) return oldData;
+          const maxLimit = Math.max(pageSize, 1);
+          return {
+            bets: [newBet, ...oldData.bets].slice(0, maxLimit),
+            total: oldData.total + 1,
+          };
         }
-        return {
-          bets: [newBet, ...oldData.bets].slice(0, 20),
-          total: oldData.total + 1,
-        };
-      }
-    );
+      );
+    }
   };
 };
 
@@ -419,18 +426,27 @@ export const useUpdateBetOptimistically = () => {
   const queryClient = useQueryClient();
 
   return (gameNumber: number, updates: Partial<BetRecord>) => {
-    queryClient.setQueryData(
-      queryKeys.bets(1),
-      (oldData: { bets: BetRecord[]; total: number } | undefined) => {
-        if (!oldData) return oldData;
-        return {
-          bets: oldData.bets.map(bet =>
-            bet.game_number === gameNumber ? { ...bet, ...updates } : bet
-          ),
-          total: oldData.total,
-        };
-      }
-    );
+    const candidates = queryClient.getQueriesData<{ bets: BetRecord[]; total: number }>({ queryKey: ['bets'] });
+
+    for (const [key] of candidates) {
+      const k = key as unknown as (string | number)[];
+      if (k.length < 3) continue;
+      const page = Number(k[1] || 1);
+      if (page !== 1) continue;
+
+      queryClient.setQueryData(
+        key,
+        (oldData: { bets: BetRecord[]; total: number } | undefined) => {
+          if (!oldData) return oldData;
+          return {
+            bets: oldData.bets.map(bet =>
+              bet.game_number === gameNumber ? { ...bet, ...updates } : bet
+            ),
+            total: oldData.total,
+          };
+        }
+      );
+    }
   };
 };
 
@@ -535,7 +551,7 @@ export const useMistakesQuery = (options: UseMistakesQueryOptions) => {
     mistakes: MistakeRecord[];
     total: number;
   }>({
-    queryKey: ['mistakes', page],
+    queryKey: queryKeys.mistakes(page, pageSize),
     queryFn: async () => {
             const res = await api.getMistakeRecords({
                 page,
@@ -568,7 +584,7 @@ export const useMistakesQuery = (options: UseMistakesQueryOptions) => {
     enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-            return queryClient.getQueryData(['mistakes', page]) || { mistakes: [], total: 0 };
+            return queryClient.getQueryData(queryKeys.mistakes(page, pageSize)) || { mistakes: [], total: 0 };
     },
     notifyOnChangeProps: ['data', 'error'],
   });

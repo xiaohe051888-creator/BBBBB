@@ -23,7 +23,11 @@ class CoreWritesRequireAuthTest(unittest.TestCase):
         r = client.post("/api/games/reveal", json={"game_number": 1, "result": "庄"})
         self.assertEqual(r.status_code, 401)
 
+    def test_end_boot_requires_auth(self):
+        client = TestClient(app)
+        r = client.post("/api/games/end-boot")
+        self.assertEqual(r.status_code, 401)
+
 
 if __name__ == "__main__":
     unittest.main()
-

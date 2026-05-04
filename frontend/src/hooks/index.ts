@@ -1,7 +1,6 @@
 /**
  * 自定义 Hooks 统一导出
  */
-export { useAdminLogin } from './useAdminLogin';
 export { useWebSocket } from './useWebSocket';
 export { useWaitTimer } from './useWaitTimer';
 export { useLoading } from './useLoading';

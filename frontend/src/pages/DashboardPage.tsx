@@ -18,7 +18,6 @@ import { SmartAlerts } from '../components/ui';
 import { debounce } from 'lodash';
 import { AdminAlertsBar } from '../components/dashboard/AdminAlertsBar';
 import {
-  useAdminLogin,
   useSmartDetection,
   useSystemDiagnostics,
   useSystemStateQuery,
@@ -259,7 +258,9 @@ const DashboardPage: React.FC = () => {
   const [revealLoading, setRevealLoading] = useState(false);
 
   // 管理员登录
-  const { visible: loginVisible, openLogin, closeLogin } = useAdminLogin();
+  const [loginVisible, setLoginVisible] = useState(false);
+  const openLogin = () => setLoginVisible(true);
+  const closeLogin = () => setLoginVisible(false);
 
   // 学习状态
   const [microLearning] = useState<any>(null);

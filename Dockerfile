@@ -30,6 +30,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy backend code
 COPY backend/ ./backend/
 
+RUN rm -rf ./backend/static && mkdir -p ./backend/static
+
 # Copy frontend static build artifacts to backend static directory
 COPY --from=frontend-builder /app/frontend/dist ./backend/static
 

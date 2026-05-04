@@ -131,6 +131,8 @@ async def init_db():
 
 async def close_db() -> None:
     await engine.dispose()
+    if settings.DATABASE_URL.startswith("sqlite"):
+        await asyncio.sleep(0.05)
 
 
 async def get_session() -> AsyncSession:
