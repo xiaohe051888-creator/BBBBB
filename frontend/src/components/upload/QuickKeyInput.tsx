@@ -1,4 +1,5 @@
 import React from 'react';
+import { Grid } from 'antd';
 
 export type GameResult = '庄' | '闲' | '和';
 
@@ -9,6 +10,8 @@ type Props = {
 };
 
 export const QuickKeyInput: React.FC<Props> = ({ results, onChange, max }) => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const resultsRef = React.useRef(results);
   const onChangeRef = React.useRef(onChange);
   const maxRef = React.useRef(max);
@@ -62,13 +65,12 @@ export const QuickKeyInput: React.FC<Props> = ({ results, onChange, max }) => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'baseline', gap: 12, flexWrap: 'wrap' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 700 }}>快速输入</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>键盘：1=庄 2=闲 3=和，Backspace 撤销最后一局</div>
       </div>
-      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>已录入 {results.length}/{max}</div>
+      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', width: isMobile ? '100%' : 'auto' }}>已录入 {results.length}/{max}</div>
     </div>
   );
 };
-

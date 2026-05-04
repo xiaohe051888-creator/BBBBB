@@ -1,4 +1,5 @@
 import React from 'react';
+import { Grid } from 'antd';
 
 import type { GameResult } from './QuickKeyInput';
 import { cycleGameResult } from './sequence';
@@ -10,6 +11,8 @@ type Props = {
 };
 
 export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const handleClick = (index: number) => {
     if (index > results.length) return;
 
@@ -28,14 +31,23 @@ export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
   return (
     <div
       style={{
+        overflowX: 'auto',
+        overflowY: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        paddingBottom: isMobile ? 6 : 0,
+      }}
+    >
+      <div
+        style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-        gridTemplateRows: 'repeat(6, 34px)',
-        gap: 6,
+        gridTemplateColumns: `repeat(12, ${isMobile ? 42 : 1}fr)`,
+        gridTemplateRows: `repeat(6, ${isMobile ? 42 : 34}px)`,
+        gap: isMobile ? 8 : 6,
         padding: 12,
         borderRadius: 12,
         border: '1px solid rgba(255,255,255,0.08)',
         background: 'rgba(255,255,255,0.03)',
+        minWidth: isMobile ? 12 * 42 + 11 * 8 + 24 : undefined,
       }}
     >
       {Array.from({ length: max }).map((_, idx) => {
@@ -60,7 +72,7 @@ export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
             style={{
               gridColumn: Math.floor(idx / 6) + 1,
               gridRow: (idx % 6) + 1,
-              height: 34,
+              height: isMobile ? 42 : 34,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -73,6 +85,7 @@ export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
               fontVariantNumeric: 'tabular-nums',
               cursor: idx <= results.length ? 'pointer' : 'not-allowed',
               opacity: idx <= results.length ? 1 : 0.35,
+              fontSize: isMobile ? 13 : undefined,
             }}
             title={`第 ${idx + 1} 局`}
           >
@@ -80,6 +93,7 @@ export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
           </div>
         );
       })}
+      </div>
     </div>
   );
 };

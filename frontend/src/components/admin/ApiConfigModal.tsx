@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, Form, Input, Select, Button, App, Alert } from 'antd';
+import { Modal, Form, Input, Select, Button, App, Alert, Grid } from 'antd';
 import type { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
 import * as apiService from '../../services/api';
 import { shouldCloseApiConfigModalAfterSave } from './apiConfigFlow';
@@ -40,6 +40,8 @@ const DEFAULT_BASE_URLS: Record<string, string> = {
 export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
   visible, onCancel, onSuccess, role, currentStatus
 }) => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [form] = Form.useForm();
   const [testing, setTesting] = useState(false);
   const { message } = App.useApp();
@@ -175,7 +177,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
         </Button>,
       ]}
       width={500}
-      style={{ maxWidth: 'calc(100vw - 32px)' }}
+      style={{ maxWidth: 'calc(100vw - 20px)' }}
       mask={{ closable: false }}
     >
       <div style={{ marginBottom: 16, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
@@ -188,7 +190,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
           label="模型服务商" 
           rules={[{ required: true, message: '请选择服务商' }]}
         >
-          <Select options={PROVIDERS} onChange={handleProviderChange} />
+          <Select options={PROVIDERS} onChange={handleProviderChange} popupMatchSelectWidth={!isMobile} />
         </Form.Item>
 
         <Form.Item 
@@ -199,7 +201,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
           {provider === 'custom' ? (
             <Input placeholder="例如：模型编号" />
           ) : (
-            <Select options={MODEL_OPTIONS[provider] || []} />
+            <Select options={MODEL_OPTIONS[provider] || []} popupMatchSelectWidth={!isMobile} />
           )}
         </Form.Item>
 

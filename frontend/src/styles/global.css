@@ -138,6 +138,10 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+.mobile-scroll-x::-webkit-scrollbar {
+  height: 6px;
+}
+
 .mobile-pills-grid {
   display: flex;
   flex-wrap: wrap;
@@ -1739,6 +1743,12 @@ body {
     flex-wrap: wrap;
     justify-content: center;
     gap: 8px 0;
+  }
+
+  .upload-page .mobile-scroll-x,
+  .roadmap-page .mobile-scroll-x,
+  .dashboard-container .five-road-scroll-container {
+    margin-inline: -2px;
   }
 }
 

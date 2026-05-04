@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Button, Spin } from 'antd';
+import { Modal, Button, Spin, Grid } from 'antd';
 import { ExperimentOutlined, LoadingOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 
 interface StartLearningModalProps {
@@ -15,6 +15,8 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
   onConfirm,
   modeLabel,
 }) => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
@@ -35,7 +37,7 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
       footer={null}
       centered
       width={440}
-      style={{ maxWidth: 'calc(100vw - 32px)' }}
+      style={{ maxWidth: 'calc(100vw - 20px)' }}
       styles={{
         mask: { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.65)' },
         wrapper: {},
@@ -101,7 +103,7 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
         </ul>
       </div>
 
-      <div style={{ display: 'flex', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 12, flexDirection: isMobile ? 'column' : 'row' }}>
         <Button
           onClick={onClose}
           disabled={loading}
