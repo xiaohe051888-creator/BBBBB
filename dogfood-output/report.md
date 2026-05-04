@@ -22,16 +22,30 @@
 
 ## 摘要
 
-- P0：0
-- P1：0
-- P2：0
-- P3：0
+- P0：0（已修复 2）
+- P1：1（待确认 1 / 已修复 2）
+- P2：0（已修复 2）
+- P3：0（已修复 1）
 
 ---
 
 ## 发现的问题
 
 （探索过程中逐条补充，包含复现步骤、截图/视频证据、影响与建议修复点）
+
+### ISSUE-001（P0）：开奖接口 `/api/games/reveal` 在特定余额类型下触发 500（Decimal/float 混算）
+
+**现象**
+- 在“待开奖”状态点击“确认开奖”后，接口返回 500，导致整条链路中断（无法结算、无法推进局号）。
+
+**根因**
+- `decimal.Decimal` 与 `float` 混算触发 `TypeError`。
+- 代码定位：[betting_service.py](file:///workspace/backend/app/services/betting_service.py) 的余额计算路径。
+
+**状态**
+- 已修复：统一 `BettingService.balance` 为 `float` 并补回归单测：[test_betting_service_decimal_balance.py](file:///workspace/backend/tests/test_betting_service_decimal_balance.py)。
+
+---
 
 ### ISSUE-002（P2）：未登录时首页/列表页仍请求需要管理员权限的接口，产生 401 噪声与体验不一致
 
@@ -55,6 +69,75 @@
 - 已修复：未登录时不再触发 `/api/logs` 与 `/api/bets` 请求（通过对 Query 增加 token 门禁）
 
 ---
+
+### ISSUE-003（P1）：服务重启后“DB 有待开奖注单”但内存态丢失，导致前端页面缺少“开奖入口/提示”或状态错乱
+
+**现象**
+- 重启服务后，数据库里仍存在 `BetRecord.status=待开奖` 的注单，但内存 session 的 `pending_*` 被清空（或不存在）。
+- 结果是：页面提示/按钮依赖内存态时可能缺失“开奖入口”，同时系统状态可能被 watchdog 回落到“等待开奖/空闲”但无法正确引导用户完成结算。
+
+**状态**
+- 已修复：启动恢复逻辑在 `recover_on_startup` 中额外扫描最近一条“待开奖注单”，并同步回内存 session + DB 状态；新增回归单测：[test_startup_recovery_pending_bet.py](file:///workspace/backend/tests/test_startup_recovery_pending_bet.py)。
+
+---
+
+### ISSUE-004（P2）：系统诊断接口同一 provider 的默认 model 口径不一致（影响运维判断与 UI 展示）
+
+**现象**
+- `/api/system/diagnostics` 同时返回 `models[]` 与 `models_status` 两套结构，但 Anthropic/Gemini 的默认 model fallback 不一致，导致“同一个 provider 输出两个不同的默认 model”。
+
+**状态**
+- 已修复：统一 `models_status` fallback 与 `models[]` 一致：[system.py](file:///workspace/backend/app/api/routes/system.py)。
+
+---
+
+### ISSUE-005（P0）：E2E “全表清空/造数”路由具备强破坏性，需防止生产环境误开启
+
+**现象**
+- E2E 路由具备 `delete(GameRecord/BetRecord/SystemLog/BackgroundTask)` 级别能力；若生产误配 `E2E_TESTING=true`，破坏面极大。
+
+**状态**
+- 已修复：E2E 路由仅在 `E2E_TESTING=true` 且 `ENVIRONMENT != "production"` 时挂载；并在路由层二次兜底返回 404：[main.py](file:///workspace/backend/app/api/main.py) / [e2e_testing.py](file:///workspace/backend/app/api/routes/e2e_testing.py)。
+
+---
+
+### ISSUE-006（P3）：资金相关日志/页面展示存在“整数化”输出，可能误导用户对盈亏与余额的理解
+
+**现象**
+- 后端资金日志使用 `:.0f` 输出，前端列表多处使用 `toFixed(0)`；在出现 `0.5` 这类金额时，UI 会显示与真实数值不一致（例如 `598.5` 被显示为 `+599`）。
+
+**状态**
+- 已修复：
+  - 后端结算日志改为保留两位小数：[reveal.py](file:///workspace/backend/app/services/game/reveal.py)。
+  - 前端统一引入金额格式化工具并用于关键表格与余额展示：[money.ts](file:///workspace/frontend/src/utils/money.ts)。
+
+---
+
+### ISSUE-007（P1，待确认）：上传“开启新靴”会清空全表 MistakeBook/AIMemory，可能与“跨靴复盘/学习”目标冲突
+
+**现象**
+- `mode="new_boot"` 时对 `MistakeBook` 与 `AIMemory` 直接全表删除（非按 boot 删除），属于不可逆清理。
+
+**影响评估**
+- 如果产品期望“错题本/学习记忆跨靴累积”，这会导致资产被抹除。
+- 如果产品期望“每靴独立”，则该行为合理，但需要在 UI 上更强提示（“将清空历史错题/记忆”）。
+
+**状态**
+- 待你确认产品语义（跨靴保留 vs 每靴独立），确认后再决定：
+  - 改为按 `boot_number` 清理；或
+  - 保留现状但强化提示/二次确认。
+
+---
+
+### ISSUE-008（P1）：管理员调账接口 `/api/system/balance` 在余额为 Decimal 时触发 500
+
+**现象**
+- 在某些数据库字段类型/驱动返回为 `Decimal` 的情况下，`sess.balance` 可能被同步为 `Decimal`，导致调账时出现 `Decimal += float` 报错并返回 500。
+
+**状态**
+- 已修复：
+  - 启动/同步路径强制把 `sess.balance` 转为 `float`：[state.py](file:///workspace/backend/app/services/game/state.py)。
+  - 调账路径在加减前强制 `float` 并统一 `round(,2)`：[system.py](file:///workspace/backend/app/api/routes/system.py)。
 
 ## 代码审计观察（非阻塞，但建议纳入优化）
 

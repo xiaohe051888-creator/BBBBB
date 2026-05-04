@@ -484,7 +484,7 @@ const BetRecordsPage: React.FC = () => {
                 {selectedBet.bet_direction}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="下注金额">¥{selectedBet.bet_amount.toLocaleString()}</Descriptions.Item>
+            <Descriptions.Item label="下注金额">¥{formatMoney(selectedBet.bet_amount)}</Descriptions.Item>
             <Descriptions.Item label="下注档位">
               <Tag color={selectedBet.bet_tier === '保守' ? 'orange' : selectedBet.bet_tier === '进取' ? 'red' : 'blue'}>
                 {selectedBet.bet_tier}

@@ -79,7 +79,7 @@ async def sync_balance_from_db(db: AsyncSession):
         lock = get_session_lock()
         async with lock:
             sess = get_session()
-            sess.balance = state.balance
+            sess.balance = float(state.balance)
             sess.boot_number = state.boot_number or 1
             sess.consecutive_errors = state.consecutive_errors or 0
             if hasattr(state, "prediction_mode") and state.prediction_mode:

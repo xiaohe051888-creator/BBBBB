@@ -14,6 +14,7 @@ import dayjs from 'dayjs';
 import * as api from '../services/api';
 import { clearToken } from '../services/api';
 import { copyText } from '../utils/clipboard';
+import { formatMoney } from '../utils/money';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { useSystemStateQuery } from '../hooks/useQueries';
 import { StartLearningModal } from '../components/dashboard/StartLearningModal';
@@ -515,7 +516,7 @@ const AdminPage: React.FC = () => {
                 <Card title="资金与余额管理" size="small" styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}>
                   <div style={{ marginBottom: 16, color: 'rgba(255,255,255,0.6)' }}>
                     系统风险主要体现在下注金额上。您可以随时在此为系统增加或扣除测试余额。
-                    当前系统余额：<span style={{ fontSize: 18, color: '#52c41a', fontWeight: 'bold' }}>{systemState?.balance?.toLocaleString()}</span>
+                    当前系统余额：<span style={{ fontSize: 18, color: '#52c41a', fontWeight: 'bold' }}>{formatMoney(systemState?.balance)}</span>
                   </div>
                   <Space style={{ display: 'flex', flexWrap: 'wrap' }}>
                     <Input 

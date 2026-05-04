@@ -584,6 +584,7 @@ async def adjust_balance(
     lock = get_session_lock()
     async with lock:
         sess = get_session()
+        sess.balance = float(sess.balance)
         old_balance = sess.balance
 
         if req.action == "sub" and sess.balance < req.amount:
@@ -600,17 +601,17 @@ async def adjust_balance(
                 
                 # Apply changes to both memory and DB safely inside transaction
                 if req.action == "add":
-                    sess.balance += req.amount
+                    sess.balance = round(float(sess.balance) + float(req.amount), 2)
                 else:
-                    sess.balance -= req.amount
+                    sess.balance = round(float(sess.balance) - float(req.amount), 2)
                     
-                state.balance = sess.balance
+                state.balance = float(sess.balance)
 
                 action_text = "增加" if req.action == "add" else "扣除"
                 await write_game_log(
                     db, sess.boot_number, sess.next_game_number - 1,
                     "LOG-SYS-BAL", "管理员调账", "成功",
-                    f"管理员手动{action_text}余额: {req.amount:.0f}，原余额: {old_balance:.0f}，现余额: {sess.balance:.0f}",
+                    f"管理员手动{action_text}余额: {req.amount:.2f}，原余额: {old_balance:.2f}，现余额: {sess.balance:.2f}",
                     category="资金事件", priority="P1"
                 )
                 await db.commit()

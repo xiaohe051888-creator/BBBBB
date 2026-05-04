@@ -10,6 +10,7 @@ import { DollarOutlined, AppstoreOutlined, CloudUploadOutlined, UnlockOutlined, 
 import { SystemStatusPanel } from '../ui/SystemStatusPanel';
 import type { SystemDiagnostics } from '../../hooks/useSystemDiagnostics';
 import type { BettingAdvice } from '../../hooks/useSmartDetection';
+import { formatMoney } from '../../utils/money';
 
 interface DashboardHeaderProps {
   systemState: {
@@ -155,7 +156,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <div className="balance-badge" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(82,196,26,0.1)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(82,196,26,0.2)' }}>
             <DollarOutlined style={{ color: '#52c41a', fontSize: 16 }} />
             <span style={{ fontSize: 15, fontWeight: 700, color: '#52c41a', fontFamily: 'monospace' }}>
-              {systemState?.balance?.toLocaleString() || '0'}
+              {formatMoney(systemState?.balance)}
             </span>
           </div>
 
