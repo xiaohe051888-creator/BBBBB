@@ -6,7 +6,7 @@
  * 优化：乐观UI策略 - 数据立即显示，后台静默刷新，零等待体验
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Grid, Progress, Space, Tag } from 'antd';
+import { Grid, Progress, Tag } from 'antd';
 import { getToken } from '../services/api';
 import { MAX_GAMES_PER_BOOT } from '../utils/constants';
 import { RevealModal, DashboardHeader, WorkflowStatusBar, AnalysisPanel } from '../components/dashboard';
@@ -356,22 +356,25 @@ const DashboardPage: React.FC = () => {
         {/* 左侧：五路走势图 */}
         <div className="left-panel" style={{ flex: '1 1 500px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
           <div className="road-card" style={{ background: '#1a1d24', borderRadius: 12, padding: isMobile ? 12 : 16, marginBottom: isMobile ? 12 : 16, overflow: 'hidden', minHeight: isMobile ? 0 : 400 }}>
-            <div className="section-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-              <span style={{ color: '#58a6ff', marginRight: 8 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
-              </span>
-              <span className="section-title" style={{ marginRight: 16 }}>五路走势</span>
+            <div className="section-header dashboard-road-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div className="dashboard-road-header-title">
+                <span style={{ color: '#58a6ff', display: 'inline-flex', alignItems: 'center' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+                </span>
+                <span className="section-title">五路走势</span>
+              </div>
 
-              {/* 庄闲和统计徽标 */}
-              <Space size={8} wrap className="mobile-pills-grid">
-                <Tag color="#ff4d4f" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>庄 {bankerCount}</Tag>
-                <Tag color="#1890ff" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>闲 {playerCount}</Tag>
-                <Tag color="#52c41a" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>和 {tieCount}</Tag>
-              </Space>
+              <div className="dashboard-road-header-meta">
+                <div className="dashboard-road-stats">
+                  <Tag color="#ff4d4f" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>庄 {bankerCount}</Tag>
+                  <Tag color="#1890ff" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>闲 {playerCount}</Tag>
+                  <Tag color="#52c41a" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>和 {tieCount}</Tag>
+                </div>
 
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.4)', whiteSpace: isMobile ? 'normal' : 'nowrap' }}>
-                第{systemState?.boot_number || 1}靴 · 已开{validGamesLength}局
-              </span>
+                <span className="dashboard-road-summary">
+                  第{systemState?.boot_number || 1}靴 · 已开{validGamesLength}局
+                </span>
+              </div>
             </div>
             <div className="five-road-scroll-container" style={{ overflowX: 'auto', maxWidth: '100%' }}>
               <FiveRoadChart data={roadData?.roads ?? null} />

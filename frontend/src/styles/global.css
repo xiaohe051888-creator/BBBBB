@@ -1286,6 +1286,67 @@ body {
   background: linear-gradient(90deg, transparent, rgba(255,215,0,0.15), transparent);
 }
 
+.dashboard-header-mobile-top-row,
+.dashboard-header-mobile-status-row {
+  width: 100%;
+}
+
+.dashboard-header-mobile-boot,
+.dashboard-header-mobile-actions,
+.dashboard-header-mobile-status-shell,
+.dashboard-header-mobile-balance-shell {
+  min-width: 0;
+}
+
+.dashboard-road-header {
+  padding: 0 !important;
+  border-bottom: none !important;
+  justify-content: flex-start !important;
+}
+
+.dashboard-road-header-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.dashboard-road-header-title .section-title {
+  margin-right: 0 !important;
+  white-space: nowrap;
+}
+
+.dashboard-road-header-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 10px;
+  flex: 1 1 280px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.dashboard-road-stats {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.dashboard-road-stats .ant-tag {
+  white-space: nowrap;
+}
+
+.dashboard-road-summary {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  white-space: nowrap;
+}
+
 .status-indicator-dot {
   width: 10px;
   height: 10px;
@@ -1756,6 +1817,66 @@ body {
     min-width: 0;
   }
 
+  .dashboard-header-mobile-top-row,
+  .dashboard-header-mobile-status-row {
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-header-mobile-boot {
+    flex: 0 0 auto;
+  }
+
+  .dashboard-header-mobile-actions {
+    flex: 1 1 220px;
+    min-width: 0;
+  }
+
+  .dashboard-header-mobile-top-row .dashboard-action-group {
+    width: auto !important;
+    max-width: 100%;
+    justify-content: flex-end;
+  }
+
+  .dashboard-header-mobile-top-row .dashboard-action-group .ant-btn {
+    flex: 0 1 auto !important;
+  }
+
+  .dashboard-header-mobile-status-shell {
+    flex: 1 1 140px;
+  }
+
+  .dashboard-header-mobile-balance-shell {
+    flex: 0 1 auto;
+  }
+
+  .dashboard-header-mobile-status-row .dashboard-balance-badge {
+    width: auto !important;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .dashboard-road-header {
+    gap: 10px !important;
+  }
+
+  .dashboard-road-header-meta {
+    flex: 1 1 220px;
+  }
+
+  .dashboard-road-stats {
+    gap: 6px;
+  }
+
+  .dashboard-road-stats > * {
+    flex: 0 0 auto !important;
+  }
+
+  .dashboard-road-summary {
+    max-width: 100%;
+  }
+
   .workflow-status-actions {
     justify-content: stretch !important;
     align-items: stretch !important;
@@ -1962,6 +2083,16 @@ body {
   .ant-modal-footer .ant-btn {
     flex-basis: 100%;
   }
+
+  .dashboard-header-mobile-top-row .dashboard-action-group .ant-btn {
+    flex-basis: auto !important;
+  }
+
+  .dashboard-road-header-meta {
+    justify-content: flex-start;
+  }
+
+
 
   .mobile-bottom-tab-bar {
     gap: 2px;
