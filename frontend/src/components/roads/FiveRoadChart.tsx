@@ -197,7 +197,6 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
             flexShrink: 0,
           }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#e6edf3' }}>大路</span>
-            <span style={{ fontSize: '11px', color: '#8b949e' }}>Big Road</span>
           </div>
           <div
               ref={bigRoadScrollRef}
@@ -247,7 +246,6 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
               flexShrink: 0,
             }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>珠盘路</span>
-              <span style={{ fontSize: '10px', color: '#8b949e' }}>Bead</span>
             </div>
             <div style={{
               overflow: 'hidden',
@@ -287,7 +285,6 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
               flexShrink: 0,
             }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>大眼仔路</span>
-              <span style={{ fontSize: '10px', color: '#8b949e' }}>Big Eye</span>
             </div>
             <div
               ref={bigEyeScrollRef}
@@ -329,7 +326,6 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
             flexShrink: 0,
           }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>小路</span>
-            <span style={{ fontSize: '10px', color: '#8b949e' }}>Small</span>
           </div>
           <div
             ref={smallScrollRef}
@@ -370,7 +366,6 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
             flexShrink: 0,
           }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>螳螂路</span>
-            <span style={{ fontSize: '10px', color: '#8b949e' }}>Cockroach</span>
           </div>
           <div
             ref={cockroachScrollRef}

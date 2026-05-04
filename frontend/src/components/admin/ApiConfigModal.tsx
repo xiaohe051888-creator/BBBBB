@@ -48,7 +48,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
   const [provider, setProvider] = useState<string>('deepseek');
   const initializedRef = useRef(false);
 
-  const roleName = role === 'banker' ? '庄模型' : role === 'player' ? '闲模型' : role === 'combined' ? '综合模型' : '单AI模式';
+  const roleName = role === 'banker' ? '庄模型' : role === 'player' ? '闲模型' : role === 'combined' ? '综合模型' : '单AI模型';
 
   useEffect(() => {
     if (!visible) {
@@ -72,7 +72,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
   const MODEL_OPTIONS: Record<string, { label: string; value: string }[]> = {
     deepseek: [
-      { label: 'DeepSeek V4 Pro（推荐）', value: 'deepseek-v4-pro' },
+      { label: '深度求索 V4 专业版（推荐）', value: 'deepseek-v4-pro' },
       { label: '推理增强版（推荐）', value: 'deepseek-reasoner' },
       { label: '通用对话版', value: 'deepseek-chat' },
     ],
@@ -151,7 +151,8 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       if (shouldCloseApiConfigModalAfterSave()) onCancel();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      message.error(`保存失败: ${err.response?.data?.detail || err.message}`);
+      const raw = err.response?.data?.detail || err.message || '保存失败';
+      message.error(`保存失败：${toCnApiTestError(String(raw))}`);
     } finally {
       setSaving(false);
     }

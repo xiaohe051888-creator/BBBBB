@@ -42,10 +42,10 @@ const RevealModal: React.FC<RevealModalProps> = ({
   loading,
   gameNumber,
 }) => {
-  const results: Array<{ value: '庄' | '闲' | '和'; label: string; sublabel: string; color: string; bg: string }> = React.useMemo(() => ([
-    { value: '庄', label: '庄赢', sublabel: 'Banker', color: '#ff4d4f', bg: 'rgba(255,77,79,0.15)' },
-    { value: '闲', label: '闲赢', sublabel: 'Player', color: '#1890ff', bg: 'rgba(24,144,255,0.15)' },
-    { value: '和', label: '和局', sublabel: 'Tie', color: '#52c41a', bg: 'rgba(82,196,26,0.15)' },
+  const results: Array<{ value: '庄' | '闲' | '和'; label: string; desc: string; color: string; bg: string }> = React.useMemo(() => ([
+    { value: '庄', label: '庄赢', desc: '记为庄方胜出', color: '#ff4d4f', bg: 'rgba(255,77,79,0.15)' },
+    { value: '闲', label: '闲赢', desc: '记为闲方胜出', color: '#1890ff', bg: 'rgba(24,144,255,0.15)' },
+    { value: '和', label: '和局', desc: '记为本局打和', color: '#52c41a', bg: 'rgba(82,196,26,0.15)' },
   ]), []);
 
   const modalStyles = React.useMemo(() => ({
@@ -160,7 +160,7 @@ const RevealModal: React.FC<RevealModalProps> = ({
               display: 'inline-block',
             }} />
             <span style={{ fontSize: 15, fontWeight: 700, color: r.color }}>{r.label}</span>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{r.sublabel}</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{r.desc}</span>
           </button>
         ))}
       </div>

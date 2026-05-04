@@ -7,6 +7,7 @@ import React, { useMemo, useState } from 'react';
 import { Tag, Progress, Button, Drawer, Space } from 'antd';
 import { RobotOutlined, BulbOutlined, AimOutlined } from '@ant-design/icons';
 import { useSystemStateQuery } from '../../hooks/useQueries';
+import { toCnModelLabel } from '../../utils/i18nErrors';
 
 interface Analysis {
   prediction?: string | null;
@@ -41,12 +42,9 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     if (mode === 'rule') return '规则引擎';
     if (mode === 'single_ai') {
       const m = analysis?.engine?.model || '';
-      if (m === 'deepseek-v4-pro') return 'DeepSeek V4 Pro';
-      if (m === 'deepseek-reasoner') return 'DeepSeek Reasoner';
-      if (m === 'deepseek-chat') return 'DeepSeek Chat';
-      return m || 'DeepSeek';
+      return `单AI（${toCnModelLabel(m)}）`;
     }
-    return '3AI（OpenAI+Claude+Gemini）';
+    return '3AI（庄模型 / 闲模型 / 综合模型）';
   }, [mode, analysis?.engine?.model]);
 
   // 分析中状态 - 三模型进度指示器

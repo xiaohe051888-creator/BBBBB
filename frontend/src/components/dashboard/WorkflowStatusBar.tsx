@@ -91,7 +91,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
         iconColor: '#1890ff',
         title: mode === 'single_ai' ? '单AI正在深度分析中...' : mode === 'rule' ? '规则引擎分析中...' : 'AI正在深度分析中...',
         subtitle: mode === 'single_ai'
-          ? '正在结合五路走势与历史血迹图进行单模型预测（DeepSeek V4 Pro），请稍候'
+          ? '正在结合五路走势与历史血迹图进行单模型预测（深度求索 V4 专业版），请稍候'
           : mode === 'rule'
             ? '正在基于五路走势进行规则推断，请稍候'
             : '正在结合五路走势与历史血迹图进行三模型预测，请稍候',

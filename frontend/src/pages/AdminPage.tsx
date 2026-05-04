@@ -15,6 +15,7 @@ import * as api from '../services/api';
 import { clearToken } from '../services/api';
 import { copyText } from '../utils/clipboard';
 import { formatMoney } from '../utils/money';
+import { toCnModelLabel, toCnProviderLabel } from '../utils/i18nErrors';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { useSystemStateQuery } from '../hooks/useQueries';
 import { StartLearningModal } from '../components/dashboard/StartLearningModal';
@@ -91,6 +92,97 @@ const Icons = {
   ),
 };
 
+const MODE_LABELS: Record<'ai' | 'single_ai' | 'rule', string> = {
+  ai: '3AI模式',
+  single_ai: '单AI模式',
+  rule: '规则引擎模式',
+};
+
+const DEFAULT_SINGLE_AI_PREDICTION_TEMPLATE = `你是资深百家乐盘口分析员。任务：只预测下一局，且必须给出可执行下注建议。
+
+硬约束：
+1) 必须逐路分析当前靴完整五路：大路、珠盘路、大眼仔路、小路、螳螂路；每条路都不能漏。
+2) 必须覆盖当前靴每一局历史，不能跳局、不能只看最近几局。
+3) 每一局必须输出“庄”或“闲”二选一，不允许输出“观望/不下注/等待”。
+4) 风险控制只能通过下注档位与金额调整，不得用“不下注”规避风险。
+5) 先看五路特征摘要，再回看全量五路点位做交叉校验；若冲突，说明冲突来源并给出降级后的执行方案。
+
+输入数据：
+- 当前靴号：{{BOOT_NUMBER}}
+- 当前局号：{{GAME_NUMBER}}
+- 连续失准：{{CONSECUTIVE_ERRORS}}
+- 历史对局：{{GAME_HISTORY}}
+- 五路特征摘要：{{ROAD_FEATURES}}
+- 五路原始数据：{{ROAD_DATA}}
+- 最近失误上下文：{{MISTAKE_CONTEXT}}
+
+请严格按以下 JSON 输出（不要输出任何多余文字）：
+{
+  "final_prediction": "庄或闲",
+  "confidence": 0.0,
+  "bet_level": "激进|中等|保守",
+  "risk_score": 0.0,
+  "reason": "先给五路综合结论，再给逐路要点（大路/珠盘路/大眼仔/小路/螳螂路），最后给冲突处理",
+  "signals": [
+    {"road":"大路","bias":"庄|闲|中性","strength":0.0,"note":"一句话"},
+    {"road":"珠盘路","bias":"庄|闲|中性","strength":0.0,"note":"一句话"},
+    {"road":"大眼仔路","bias":"庄|闲|中性","strength":0.0,"note":"一句话"},
+    {"road":"小路","bias":"庄|闲|中性","strength":0.0,"note":"一句话"},
+    {"road":"螳螂路","bias":"庄|闲|中性","strength":0.0,"note":"一句话"}
+  ],
+  "next_action": "一句可执行指令，必须可直接下注"
+}`;
+
+const DEFAULT_SINGLE_AI_REALTIME_STRATEGY_TEMPLATE = `你是老手盘口复盘员。任务：当前局已下注且等待开奖时，提炼“下一局可执行策略”。
+
+硬约束：
+1) 必须基于当前靴完整五路与完整逐局历史复盘，每条路都不能漏。
+2) 不允许给“观望/不下注”建议；必须给下一局“庄/闲”方向倾向与资金节奏建议。
+3) 连续失准越高，语气越保守，明确缩仓和风控动作，但仍保持可执行。
+4) 结论要像实战盘口口吻：短句、明确、能落地。
+
+输入数据：
+- 连续失准：{{CONSECUTIVE_ERRORS}}
+- 历史对局：{{GAME_HISTORY}}
+- 五路特征摘要：{{ROAD_FEATURES}}
+- 五路原始数据：{{ROAD_DATA}}
+
+请严格按以下 JSON 输出（不要输出任何多余文字）：
+{
+  "table_talk": "老手盘口提示（2-3句）",
+  "trend_summary": "五路一致性与冲突点总结",
+  "next_bias": "庄或闲",
+  "confidence": 0.0,
+  "bet_level_advice": "激进|中等|保守",
+  "bankroll_advice": "一句资金管理建议（体现连错衰减）",
+  "risk_warning": "一句风险提醒",
+  "checkpoints": [
+    "下一局开前先看哪条路是否延续",
+    "若第一关键位反向，如何立即降级",
+    "若一致性增强，如何小步跟进"
+  ]
+}`;
+
+const isLegacyPromptTemplate = (value?: string | null): boolean =>
+  /^(PRED|REAL)\b/i.test(String(value || '').trim());
+
+const resolvePredictionTemplate = (value?: string | null): string => {
+  const raw = String(value || '').trim();
+  if (!raw || isLegacyPromptTemplate(raw)) return DEFAULT_SINGLE_AI_PREDICTION_TEMPLATE;
+  return value || DEFAULT_SINGLE_AI_PREDICTION_TEMPLATE;
+};
+
+const resolveRealtimeStrategyTemplate = (value?: string | null): string => {
+  const raw = String(value || '').trim();
+  if (!raw || isLegacyPromptTemplate(raw)) return DEFAULT_SINGLE_AI_REALTIME_STRATEGY_TEMPLATE;
+  return value || DEFAULT_SINGLE_AI_REALTIME_STRATEGY_TEMPLATE;
+};
+
+const getProviderModelSummary = (provider?: string | null, model?: string | null): string => {
+  if (!provider && !model) return '尚未配置';
+  return `${toCnProviderLabel(provider)} · ${toCnModelLabel(model)}`;
+};
+
 const AdminPage: React.FC = () => {
   const { message } = App.useApp();
   const location = useLocation();
@@ -159,14 +251,14 @@ const AdminPage: React.FC = () => {
         !!threeModelStatus?.models?.combined?.api_key_set;
 
       if (!isConfigured) {
-        message.warning('无法切换至 3AI 模式：需同时配置 庄模型(OpenAI)、闲模型(Claude)、综合模型(Gemini) 三项接口密钥。');
+        message.warning('无法切换至 3AI 模式：需先配置庄模型、闲模型、综合模型三项接口。');
         return;
       }
     }
     if (newMode === 'single_ai') {
       const isConfigured = threeModelStatus?.models?.single?.api_key_set;
       if (!isConfigured) {
-        message.warning('无法切换至 单AI 模式：您尚未配置 DeepSeek V4 Pro 的接口密钥。');
+        message.warning('无法切换至 单AI 模式：您尚未配置单AI模型接口。');
         return;
       }
     }
@@ -175,7 +267,7 @@ const AdminPage: React.FC = () => {
     try {
       await api.updatePredictionMode(newMode);
       setPredictionMode(newMode);
-      message.success(`已切换至 ${newMode === 'ai' ? '3AI模式' : newMode === 'single_ai' ? '单AI模式' : '规则引擎模式'} `);
+      message.success(`已切换至${MODE_LABELS[newMode]}`);
     } catch (error: any) {
       message.error(error instanceof Error ? error.message : '切换模式失败');
     } finally {
@@ -194,7 +286,7 @@ const AdminPage: React.FC = () => {
     setAdjustingBalance(true);
     try {
       const res = await api.adjustBalance({ action, amount: amt });
-      message.success(`余额${action === 'add' ? '充值' : '扣除'}成功，当前余额: ${res.data.new_balance}`);
+      message.success(`余额${action === 'add' ? '增加' : '减少'}成功，当前余额：${res.data.new_balance}`);
       setBalanceAmount('');
     } catch (error: any) {
       message.error(error instanceof Error ? error.message : '操作失败');
@@ -250,9 +342,25 @@ const AdminPage: React.FC = () => {
     setSingleAiPromptLoading(true);
     try {
       const res = await api.getSingleAiPromptTemplates();
+      const hasLegacyPrediction = !String(res.data.prediction_template || '').trim() || isLegacyPromptTemplate(res.data.prediction_template);
+      const hasLegacyRealtime = !String(res.data.realtime_strategy_template || '').trim() || isLegacyPromptTemplate(res.data.realtime_strategy_template);
+
+      if (hasLegacyPrediction || hasLegacyRealtime) {
+        await api.updateSingleAiPromptTemplates({
+          prediction_template: DEFAULT_SINGLE_AI_PREDICTION_TEMPLATE,
+          realtime_strategy_template: DEFAULT_SINGLE_AI_REALTIME_STRATEGY_TEMPLATE,
+        });
+        const migrated = await api.getSingleAiPromptTemplates();
+        setSingleAiActiveVersion(migrated.data.active_version || null);
+        setSingleAiPredictionTemplate(resolvePredictionTemplate(migrated.data.prediction_template));
+        setSingleAiRealtimeStrategyTemplate(resolveRealtimeStrategyTemplate(migrated.data.realtime_strategy_template));
+        message.success('已自动替换为系统中文模板');
+        return;
+      }
+
       setSingleAiActiveVersion(res.data.active_version || null);
-      setSingleAiPredictionTemplate(res.data.prediction_template || '');
-      setSingleAiRealtimeStrategyTemplate(res.data.realtime_strategy_template || '');
+      setSingleAiPredictionTemplate(resolvePredictionTemplate(res.data.prediction_template));
+      setSingleAiRealtimeStrategyTemplate(resolveRealtimeStrategyTemplate(res.data.realtime_strategy_template));
     } catch (err: any) {
       message.error(err instanceof Error ? err.message : '加载单AI提示词失败');
     } finally {
@@ -350,8 +458,8 @@ const AdminPage: React.FC = () => {
     setSingleAiPromptSaving(true);
     try {
       await api.updateSingleAiPromptTemplates({
-        prediction_template: singleAiPredictionTemplate,
-        realtime_strategy_template: singleAiRealtimeStrategyTemplate,
+        prediction_template: (singleAiPredictionTemplate || DEFAULT_SINGLE_AI_PREDICTION_TEMPLATE).trim(),
+        realtime_strategy_template: (singleAiRealtimeStrategyTemplate || DEFAULT_SINGLE_AI_REALTIME_STRATEGY_TEMPLATE).trim(),
       });
       message.success('单AI提示词已保存并生效');
       loadSingleAiPromptTemplates();
@@ -364,8 +472,8 @@ const AdminPage: React.FC = () => {
 
   const resetSingleAiPromptTemplates = useCallback(() => {
     Modal.confirm({
-      title: '恢复单AI默认提示词？',
-      content: '将清空已保存的提示词模板并回退到系统默认内置提示词。',
+      title: '恢复系统中文模板？',
+      content: '将把当前模板直接替换为系统推荐的中文模板，并立即保存生效。',
       okText: '确认恢复',
       okButtonProps: { danger: true },
       cancelText: '取消',
@@ -373,10 +481,10 @@ const AdminPage: React.FC = () => {
         setSingleAiPromptSaving(true);
         try {
           await api.updateSingleAiPromptTemplates({
-            prediction_template: '',
-            realtime_strategy_template: '',
+            prediction_template: DEFAULT_SINGLE_AI_PREDICTION_TEMPLATE,
+            realtime_strategy_template: DEFAULT_SINGLE_AI_REALTIME_STRATEGY_TEMPLATE,
           });
-          message.success('已恢复默认提示词');
+          message.success('已恢复系统中文模板');
           loadSingleAiPromptTemplates();
         } catch (err: any) {
           message.error(err instanceof Error ? err.message : '恢复默认失败');
@@ -563,7 +671,7 @@ const AdminPage: React.FC = () => {
                           <div style={{ display: 'grid', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Icons.Robot />
-                              <div style={{ fontWeight: 800 }}>单AI模式（DeepSeek V4 Pro）</div>
+                              <div style={{ fontWeight: 800 }}>单AI模式（深度求索 V4 专业版）</div>
                               {predictionMode === 'single_ai' && <Tag color="green">当前</Tag>}
                               {!threeModelStatus?.models?.single?.api_key_set && <Tag color="error">未配置API</Tag>}
                             </div>
@@ -571,7 +679,7 @@ const AdminPage: React.FC = () => {
                               单模型直接给出庄/闲预测，等待开奖期间也会进行微学习。
                             </div>
                             <Space wrap>
-                              <Button size="small" onClick={() => handleOpenApiConfig('single')}>配置/测试 DeepSeek V4 Pro</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('single')}>配置/测试单AI模型</Button>
                             </Space>
                           </div>
                           <Button
@@ -637,7 +745,7 @@ const AdminPage: React.FC = () => {
                       loading={adjustingBalance}
                       onClick={() => handleBalanceAdjust('add')}
                     >
-                      增加余额 (充值)
+                      增加余额
                     </Button>
                     <Button 
                       danger 
@@ -645,7 +753,7 @@ const AdminPage: React.FC = () => {
                       loading={adjustingBalance}
                       onClick={() => handleBalanceAdjust('sub')}
                     >
-                      减少余额 (扣除)
+                      减少余额
                     </Button>
                   </Space>
                 </Card>
@@ -661,7 +769,10 @@ const AdminPage: React.FC = () => {
                             <Button type="link" size="small" onClick={() => handleOpenApiConfig('banker')}>配置接口</Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                            {threeModelStatus.models?.banker?.provider} · {threeModelStatus.models?.banker?.model}
+                            {getProviderModelSummary(
+                              threeModelStatus.models?.banker?.provider,
+                              threeModelStatus.models?.banker?.model,
+                            )}
                           </div>
                           <div style={{ marginTop: 8 }}>
                             {threeModelStatus.models?.banker?.api_key_set ? (
@@ -679,7 +790,10 @@ const AdminPage: React.FC = () => {
                             <Button type="link" size="small" onClick={() => handleOpenApiConfig('player')}>配置接口</Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                            {threeModelStatus.models?.player?.provider} · {threeModelStatus.models?.player?.model}
+                            {getProviderModelSummary(
+                              threeModelStatus.models?.player?.provider,
+                              threeModelStatus.models?.player?.model,
+                            )}
                           </div>
                           <div style={{ marginTop: 8 }}>
                             {threeModelStatus.models?.player?.api_key_set ? (
@@ -697,7 +811,10 @@ const AdminPage: React.FC = () => {
                             <Button type="link" size="small" onClick={() => handleOpenApiConfig('combined')}>配置接口</Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                            {threeModelStatus.models?.combined?.provider} · {threeModelStatus.models?.combined?.model}
+                            {getProviderModelSummary(
+                              threeModelStatus.models?.combined?.provider,
+                              threeModelStatus.models?.combined?.model,
+                            )}
                           </div>
                           <div style={{ marginTop: 8 }}>
                             {threeModelStatus.models?.combined?.api_key_set ? (
@@ -715,7 +832,7 @@ const AdminPage: React.FC = () => {
                 </Card>
 
                 <Card
-                  title="单AI提示词配置"
+                  title="单AI提示词与策略模板"
                   size="small"
                   extra={
                     <Space size={8} wrap>
@@ -729,30 +846,43 @@ const AdminPage: React.FC = () => {
                   ) : (
                     <Space direction="vertical" size={10} style={{ width: '100%' }}>
                       <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
-                        单AI模式每一局必须输出庄/闲预测并自动下注；提示词只影响“如何分析”和“等待开奖策略提炼”的口径。
+                        单AI模式每一局都会自动分析、自动预测并自动下注。这里配置的是中文分析模板和等待开奖时的策略提炼模板，系统已经内置推荐中文版本。
                       </div>
 
-                      <div style={{ fontWeight: 700 }}>下一局预测提示词模板</div>
+                      <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
+                        如果你不想自己编写，直接使用系统推荐中文模板即可；恢复系统中文模板后会立即覆盖当前内容。
+                      </div>
+
+                      <div style={{ fontWeight: 700 }}>下一局预测分析模板</div>
                       <Input.TextArea
                         value={singleAiPredictionTemplate}
                         onChange={(e) => setSingleAiPredictionTemplate(e.target.value)}
                         autoSize={{ minRows: 8, maxRows: 16 }}
-                        placeholder="支持占位符：{{BOOT_NUMBER}} {{GAME_NUMBER}} {{CONSECUTIVE_ERRORS}} {{GAME_HISTORY}} {{ROAD_FEATURES}} {{ROAD_DATA}} {{MISTAKE_CONTEXT}}"
+                        placeholder="请输入中文分析模板。系统会自动补入当前靴号、局号、完整历史、五路特征、五路原始数据和失误上下文。"
                         style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                       />
 
-                      <div style={{ fontWeight: 700 }}>等待开奖策略提炼提示词模板</div>
+                      <div style={{ fontWeight: 700 }}>等待开奖策略模板</div>
                       <Input.TextArea
                         value={singleAiRealtimeStrategyTemplate}
                         onChange={(e) => setSingleAiRealtimeStrategyTemplate(e.target.value)}
                         autoSize={{ minRows: 6, maxRows: 12 }}
-                        placeholder="支持占位符：{{GAME_HISTORY}} {{ROAD_DATA}} {{CONSECUTIVE_ERRORS}}"
+                        placeholder="请输入中文策略模板。系统会自动补入完整历史、五路特征、五路原始数据和连续失准次数。"
                         style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                       />
 
                       <Space wrap>
+                        <Button
+                          onClick={() => {
+                            setSingleAiPredictionTemplate(DEFAULT_SINGLE_AI_PREDICTION_TEMPLATE);
+                            setSingleAiRealtimeStrategyTemplate(DEFAULT_SINGLE_AI_REALTIME_STRATEGY_TEMPLATE);
+                            message.success('已填入系统推荐中文模板，请点击“保存并生效”');
+                          }}
+                        >
+                          填入系统推荐中文模板
+                        </Button>
                         <Button type="primary" loading={singleAiPromptSaving} onClick={saveSingleAiPromptTemplates}>保存并生效</Button>
-                        <Button danger loading={singleAiPromptSaving} onClick={resetSingleAiPromptTemplates}>恢复默认</Button>
+                        <Button danger loading={singleAiPromptSaving} onClick={resetSingleAiPromptTemplates}>恢复系统中文模板</Button>
                       </Space>
                     </Space>
                   )}
@@ -1053,7 +1183,7 @@ const AdminPage: React.FC = () => {
         visible={startLearningVisible}
         onClose={() => setStartLearningVisible(false)}
         onConfirm={handleStartLearning}
-        modeLabel={predictionMode === 'ai' ? '3AI模式' : '单AI模式（DeepSeek V4 Pro）'}
+        modeLabel={predictionMode === 'ai' ? '3AI模式' : '单AI模式（深度求索 V4 专业版）'}
       />
 
       {/* 接口配置弹窗 */}

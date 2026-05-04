@@ -119,7 +119,7 @@ const ModeSelectPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card size="small" styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }} title="单 AI 模式（DeepSeek V4 Pro）">
+        <Card size="small" styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }} title="单 AI 模式（深度求索 V4 专业版）">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'grid', gap: 8 }}>
               <div>
