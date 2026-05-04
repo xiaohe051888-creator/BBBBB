@@ -51,7 +51,7 @@ async def place_bet(
                 await write_game_log(
                     db, sess.boot_number, game_number,
                     "LOG-BET-ERR", "下注失败", "余额不足",
-                    f"第{game_number}局下注{direction}{amount:.0f}元失败，当前余额{sess.balance:.0f}元",
+                    f"第{game_number}局下注{direction}{amount:.2f}元失败，当前余额{sess.balance:.2f}元",
                     category="资金事件",
                     priority="P2",
                 )
@@ -62,11 +62,11 @@ async def place_bet(
                 await db.commit()
                 await broadcast_event("state_update", {"status": "余额不足"})
                 
-                return {"success": False, "error": f"余额不足，当前余额{sess.balance:.0f}，下注{amount:.0f}"}
+                return {"success": False, "error": f"余额不足，当前余额{sess.balance:.2f}，下注{amount:.2f}"}
             
             # 扣款
             balance_before = sess.balance
-            sess.balance -= amount
+            sess.balance = round(sess.balance - amount, 2)
             balance_after = sess.balance
             
             tier = sess.predict_bet_tier or "标准"
@@ -102,8 +102,8 @@ async def place_bet(
             
             await write_game_log(
                 db, sess.boot_number, game_number,
-                "LOG-BET-001", "下注", f"已下注{direction}{amount:.0f}元",
-                f"第{game_number}局下注{direction}{amount:.0f}元（{tier}档），余额{balance_before:.0f}→{balance_after:.0f}",
+                "LOG-BET-001", "下注", f"已下注{direction}{amount:.2f}元",
+                f"第{game_number}局下注{direction}{amount:.2f}元（{tier}档），余额{balance_before:.2f}→{balance_after:.2f}",
                 category="资金事件",
                 priority="P2",
             )

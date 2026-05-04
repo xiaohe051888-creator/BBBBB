@@ -15,6 +15,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useBetsQuery, type BetRecord } from '../hooks';
 import { BET_STATUS_COLORS } from '../utils/constants';
+import { formatMoney, formatSignedMoney } from '../utils/money';
 import { useQueryClient } from '@tanstack/react-query';
 
 // 精致图标组件
@@ -231,7 +232,7 @@ const BetRecordsPage: React.FC = () => {
             fontWeight: 700,
             fontSize: 12,
           }}>
-            {v > 0 ? '+' : ''}{v.toFixed(0)}
+            {formatSignedMoney(v)}
           </span>
         ) : <span style={{ color: '#888' }}>-</span>,
     },
@@ -506,12 +507,12 @@ const BetRecordsPage: React.FC = () => {
                 fontSize: 14,
               }}>
                 {selectedBet.profit_loss !== null
-                  ? `${selectedBet.profit_loss > 0 ? '+' : ''}${selectedBet.profit_loss?.toFixed(0)}`
+                  ? formatSignedMoney(selectedBet.profit_loss)
                   : '-'}
               </span>
             </Descriptions.Item>
             <Descriptions.Item label="余额变化">
-              ¥{selectedBet.balance_before?.toLocaleString()} → ¥{selectedBet.balance_after?.toLocaleString()}
+              ¥{formatMoney(selectedBet.balance_before)} → ¥{formatMoney(selectedBet.balance_after)}
             </Descriptions.Item>
             <Descriptions.Item label="自适应说明">{selectedBet.adapt_summary || '-'}</Descriptions.Item>
           </Descriptions>

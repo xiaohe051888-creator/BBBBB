@@ -30,6 +30,7 @@ export default defineConfig({
     timeout: 60_000,
     env: {
       ...process.env,
+      BACKEND_PORT: '8011',
       E2E_TESTING: 'true',
       E2E_USE_MOCK: process.env.E2E_USE_MOCK,
     },

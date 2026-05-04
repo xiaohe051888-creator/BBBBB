@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/admin/e2e", tags=["E2E测试"])
 
 
 def _require_enabled():
-    if not settings.E2E_TESTING:
+    if (not settings.E2E_TESTING) or (settings.ENVIRONMENT == "production"):
         raise HTTPException(status_code=404, detail="Not Found")
 
 
@@ -160,4 +160,3 @@ async def e2e_seed_logs(req: SeedLogsReq, _: dict = Depends(get_current_user)):
             )
         await db.commit()
     return {"ok": True}
-

@@ -267,7 +267,7 @@ async def _settle_bet(
         await write_game_log(
             db, sess.boot_number, game_number,
             "LOG-STL-001", "结算", settle["status"],
-            f"第{game_number}局开{result}，注单结算：{settle['reason']}，盈亏{settle['profit_loss']:+.0f}，余额{sess.balance:.0f}",
+            f"第{game_number}局开{result}，注单结算：{settle['reason']}，盈亏{settle['profit_loss']:+.2f}，余额{sess.balance:.2f}",
             category="资金事件",
             priority="P2",
         )

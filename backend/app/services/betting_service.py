@@ -32,7 +32,7 @@ class BettingService:
     """
     
     def __init__(self):
-        self.balance = settings.DEFAULT_BALANCE
+        self.balance = float(settings.DEFAULT_BALANCE)
     
     def calculate_adaptive_bet(
         self,
@@ -176,7 +176,7 @@ class BettingService:
     
     def refund_bet(self, amount: float) -> float:
         """异常退回"""
-        self.balance += amount
+        self.balance = round(float(self.balance) + float(amount), 2)
         return self.balance
     
     def get_balance(self) -> float:
@@ -185,4 +185,4 @@ class BettingService:
     
     def set_balance(self, balance: float):
         """设置余额（用于从数据库恢复）"""
-        self.balance = balance
+        self.balance = float(balance)

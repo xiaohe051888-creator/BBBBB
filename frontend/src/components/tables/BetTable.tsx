@@ -5,6 +5,7 @@ import React from 'react';
 import { Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { BET_STATUS_COLORS } from '../../utils/constants';
+import { formatSignedMoney } from '../../utils/money';
 
 interface BetRecord {
   id: number;
@@ -83,7 +84,7 @@ const BetTable: React.FC<BetTableProps> = ({
               fontSize: 13,
             }}
           >
-            {v > 0 ? '+' : ''}{v?.toFixed(0)}
+            {formatSignedMoney(v)}
           </span>
         ) : (
           <span style={{ color: '#555' }}>-</span>

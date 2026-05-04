@@ -371,13 +371,13 @@ async def get_system_diagnostics():
         "anthropic": {
             "enabled": anthropic_enabled,
             "label": "闲模型",
-            "model": getattr(settings, "ANTHROPIC_MODEL", "claude-sonnet-4-5"),
+            "model": getattr(settings, "ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
             "issue": None if anthropic_enabled else "接口密钥未配置",
         },
         "gemini": {
             "enabled": gemini_enabled,
             "label": "综合模型",
-            "model": getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"),
+            "model": getattr(settings, "GEMINI_MODEL", "gemini-1.5-flash"),
             "issue": None if gemini_enabled else "接口密钥未配置",
         },
         "single_ai": {

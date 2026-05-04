@@ -4,6 +4,7 @@
 import React from 'react';
 import { Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { formatSignedMoney } from '../../utils/money';
 
 interface GameRecord {
   game_number: number;
@@ -105,7 +106,7 @@ const GameTable: React.FC<GameTableProps> = ({
             fontSize: 13,
           }}
         >
-          {v > 0 ? '+' : ''}{v?.toFixed(0)}
+          {formatSignedMoney(v)}
         </span>
       ),
     },

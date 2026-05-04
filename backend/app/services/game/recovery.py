@@ -120,6 +120,8 @@ async def recover_on_startup(db: AsyncSession) -> None:
     elif old_status == "深度学习中":
         new_status = "等待新靴"
 
+    changed = bool(tasks) or new_status != old_status
+
     if new_status != old_status:
         state.status = new_status
         lock = get_session_lock()
@@ -139,5 +141,45 @@ async def recover_on_startup(db: AsyncSession) -> None:
             source_module="startup",
         )
 
-    if tasks or new_status != old_status:
+    from app.models.schemas import BetRecord
+    pending = (
+        (await db.execute(
+            select(BetRecord)
+            .where(BetRecord.boot_number == (state.boot_number or 0), BetRecord.status == "待开奖")
+            .order_by(BetRecord.game_number.desc(), BetRecord.bet_seq.desc())
+            .limit(1)
+        ))
+        .scalars()
+        .first()
+    )
+    if pending:
+        lock = get_session_lock()
+        async with lock:
+            mem = get_session()
+            mem.pending_bet_direction = pending.bet_direction
+            mem.pending_bet_amount = float(pending.bet_amount) if pending.bet_amount is not None else None
+            mem.pending_bet_tier = pending.bet_tier
+            mem.pending_bet_time = pending.bet_time
+            mem.pending_game_number = pending.game_number
+            mem.status = "等待开奖"
+
+        if state.status != "等待开奖":
+            from_status = state.status
+            state.status = "等待开奖"
+            state.current_bet_tier = pending.bet_tier or state.current_bet_tier
+            await write_game_log(
+                db,
+                boot_number=state.boot_number or 0,
+                game_number=state.game_number or 0,
+                event_code="LOG-RECOVER-004",
+                event_type="系统恢复",
+                event_result="恢复待开奖注单",
+                description=f"服务重启恢复：检测到待开奖注单，状态 {from_status} → 等待开奖",
+                category="系统事件",
+                priority="P2",
+                source_module="startup",
+            )
+            changed = True
+
+    if changed:
         await db.commit()

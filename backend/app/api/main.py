@@ -251,7 +251,7 @@ app.include_router(maintenance.router)
 from app.api.routes.auth import router as auth_router
 app.include_router(auth_router)
 
-if settings.E2E_TESTING:
+if settings.E2E_TESTING and settings.ENVIRONMENT != "production":
     from app.api.routes.e2e_testing import router as e2e_testing_router
     app.include_router(e2e_testing_router)
 
