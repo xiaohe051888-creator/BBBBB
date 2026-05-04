@@ -3,7 +3,7 @@ import math
 from app.core.config import settings
 
 
-def compute_bet_amount(confidence: float, balance: float) -> float:
+def compute_bet_amount(confidence: float, balance: float, consecutive_errors: int = 0) -> float:
     conf = float(confidence) if confidence is not None else 0.0
     if math.isnan(conf) or math.isinf(conf):
         conf = 0.0
@@ -30,9 +30,20 @@ def compute_bet_amount(confidence: float, balance: float) -> float:
         x = (conf - c0) / (1.0 - c0)
         raw = min_bet + (max_bet - min_bet) * (x ** gamma)
 
+    errors = int(consecutive_errors or 0)
+    if errors < 0:
+        errors = 0
+    decay = float(getattr(settings, "BET_ERROR_DECAY", 0.6) or 0.6)
+    decay = max(0.05, min(0.95, decay))
+    raw = raw * (decay ** errors)
+
+    ratio = float(getattr(settings, "BET_MAX_BALANCE_RATIO", 0.2) or 0.2)
+    ratio = max(0.0, min(1.0, ratio))
+    if bal > 0 and ratio > 0:
+        raw = min(raw, bal * ratio)
+
     raw = max(min_bet, min(max_bet, raw))
     raw = math.floor(raw / step) * step
     if bal > 0:
         raw = min(raw, bal)
     return float(raw)
-

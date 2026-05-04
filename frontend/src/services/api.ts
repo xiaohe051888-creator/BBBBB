@@ -445,6 +445,24 @@ export const getModelVersions = async () => {
   return api.get('/admin/model-versions');
 };
 
+export interface SingleAiPromptTemplates {
+  prediction_mode: 'single_ai';
+  active_version?: string | null;
+  prediction_template?: string | null;
+  realtime_strategy_template?: string | null;
+}
+
+export const getSingleAiPromptTemplates = async () => {
+  return api.get<SingleAiPromptTemplates>('/admin/prompt-templates/single-ai');
+};
+
+export const updateSingleAiPromptTemplates = async (payload: {
+  prediction_template?: string | null;
+  realtime_strategy_template?: string | null;
+}) => {
+  return api.post<SingleAiPromptTemplates>('/admin/prompt-templates/single-ai', payload);
+};
+
 export const getDatabaseRecords = async (tableName: string, page: number = 1, pageSize: number = 50) => {
   return api.get('/admin/database-records', { params: { table_name: tableName, page, page_size: pageSize } });
 };

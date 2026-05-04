@@ -65,3 +65,15 @@ class ApiConfigPayload(BaseModel):
     model: str = Field(..., description="Model name")
     api_key: str = Field(..., description="API Key")
     base_url: str | None = Field(None, description="Custom base URL")
+
+
+class SingleAiPromptTemplatesResponse(BaseModel):
+    prediction_mode: str
+    active_version: str | None = None
+    prediction_template: str | None = None
+    realtime_strategy_template: str | None = None
+
+
+class SingleAiPromptTemplatesUpdateRequest(BaseModel):
+    prediction_template: str | None = None
+    realtime_strategy_template: str | None = None

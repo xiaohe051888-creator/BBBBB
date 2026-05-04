@@ -120,6 +120,11 @@ const AdminPage: React.FC = () => {
   const [threeModelStatus, setThreeModelStatus] = useState<any>(null);
   const [systemTasks, setSystemTasks] = useState<api.BackgroundTaskItem[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
+  const [singleAiPromptLoading, setSingleAiPromptLoading] = useState(false);
+  const [singleAiPromptSaving, setSingleAiPromptSaving] = useState(false);
+  const [singleAiActiveVersion, setSingleAiActiveVersion] = useState<string | null>(null);
+  const [singleAiPredictionTemplate, setSingleAiPredictionTemplate] = useState('');
+  const [singleAiRealtimeStrategyTemplate, setSingleAiRealtimeStrategyTemplate] = useState('');
 
   // API配置弹窗
   const [apiConfigVisible, setApiConfigVisible] = useState(false);
@@ -241,6 +246,20 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const loadSingleAiPromptTemplates = useCallback(async () => {
+    setSingleAiPromptLoading(true);
+    try {
+      const res = await api.getSingleAiPromptTemplates();
+      setSingleAiActiveVersion(res.data.active_version || null);
+      setSingleAiPredictionTemplate(res.data.prediction_template || '');
+      setSingleAiRealtimeStrategyTemplate(res.data.realtime_strategy_template || '');
+    } catch (err: any) {
+      message.error(err instanceof Error ? err.message : '加载单AI提示词失败');
+    } finally {
+      setSingleAiPromptLoading(false);
+    }
+  }, [message]);
+
   const loadSystemTasks = useCallback(async () => {
     setTasksLoading(true);
     try {
@@ -327,6 +346,47 @@ const AdminPage: React.FC = () => {
     });
   }, [loadMaintenanceStats, message, navigate, queryClient]);
 
+  const saveSingleAiPromptTemplates = useCallback(async () => {
+    setSingleAiPromptSaving(true);
+    try {
+      await api.updateSingleAiPromptTemplates({
+        prediction_template: singleAiPredictionTemplate,
+        realtime_strategy_template: singleAiRealtimeStrategyTemplate,
+      });
+      message.success('单AI提示词已保存并生效');
+      loadSingleAiPromptTemplates();
+    } catch (err: any) {
+      message.error(err instanceof Error ? err.message : '保存单AI提示词失败');
+    } finally {
+      setSingleAiPromptSaving(false);
+    }
+  }, [loadSingleAiPromptTemplates, message, singleAiPredictionTemplate, singleAiRealtimeStrategyTemplate]);
+
+  const resetSingleAiPromptTemplates = useCallback(() => {
+    Modal.confirm({
+      title: '恢复单AI默认提示词？',
+      content: '将清空已保存的提示词模板并回退到系统默认内置提示词。',
+      okText: '确认恢复',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: async () => {
+        setSingleAiPromptSaving(true);
+        try {
+          await api.updateSingleAiPromptTemplates({
+            prediction_template: '',
+            realtime_strategy_template: '',
+          });
+          message.success('已恢复默认提示词');
+          loadSingleAiPromptTemplates();
+        } catch (err: any) {
+          message.error(err instanceof Error ? err.message : '恢复默认失败');
+        } finally {
+          setSingleAiPromptSaving(false);
+        }
+      },
+    });
+  }, [loadSingleAiPromptTemplates, message]);
+
   const [startLearningVisible, setStartLearningVisible] = useState(false);
 
   const handleStartLearning = async () => {
@@ -349,6 +409,7 @@ const AdminPage: React.FC = () => {
       loadModelVersions();
       loadAiLearningStatus();
       loadThreeModelStatus();
+      loadSingleAiPromptTemplates();
     }
     if (activeTab === 'db') {
       loadDbRecords();
@@ -641,6 +702,50 @@ const AdminPage: React.FC = () => {
                     </Row>
                   ) : (
                     <Empty description="加载中..." />
+                  )}
+                </Card>
+
+                <Card
+                  title="单AI提示词配置"
+                  size="small"
+                  extra={
+                    <Space size={8} wrap>
+                      {singleAiActiveVersion && <Tag color="blue">版本：{singleAiActiveVersion}</Tag>}
+                      <Button size="small" loading={singleAiPromptLoading} onClick={loadSingleAiPromptTemplates}>刷新</Button>
+                    </Space>
+                  }
+                >
+                  {singleAiPromptLoading ? (
+                    <Empty description="加载中..." />
+                  ) : (
+                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
+                        单AI模式每一局必须输出庄/闲预测并自动下注；提示词只影响“如何分析”和“等待开奖策略提炼”的口径。
+                      </div>
+
+                      <div style={{ fontWeight: 700 }}>下一局预测提示词模板</div>
+                      <Input.TextArea
+                        value={singleAiPredictionTemplate}
+                        onChange={(e) => setSingleAiPredictionTemplate(e.target.value)}
+                        autoSize={{ minRows: 8, maxRows: 16 }}
+                        placeholder="支持占位符：{{BOOT_NUMBER}} {{GAME_NUMBER}} {{CONSECUTIVE_ERRORS}} {{GAME_HISTORY}} {{ROAD_DATA}} {{MISTAKE_CONTEXT}}"
+                        style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+                      />
+
+                      <div style={{ fontWeight: 700 }}>等待开奖策略提炼提示词模板</div>
+                      <Input.TextArea
+                        value={singleAiRealtimeStrategyTemplate}
+                        onChange={(e) => setSingleAiRealtimeStrategyTemplate(e.target.value)}
+                        autoSize={{ minRows: 6, maxRows: 12 }}
+                        placeholder="支持占位符：{{GAME_HISTORY}} {{ROAD_DATA}} {{CONSECUTIVE_ERRORS}}"
+                        style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+                      />
+
+                      <Space wrap>
+                        <Button type="primary" loading={singleAiPromptSaving} onClick={saveSingleAiPromptTemplates}>保存并生效</Button>
+                        <Button danger loading={singleAiPromptSaving} onClick={resetSingleAiPromptTemplates}>恢复默认</Button>
+                      </Space>
+                    </Space>
                   )}
                 </Card>
 

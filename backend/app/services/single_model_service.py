@@ -41,8 +41,12 @@ class SingleModelService:
         text = await self._call_model(prompt)
         parsed = self._parse_model_json(text)
 
+        fp = parsed.get("final_prediction") or parsed.get("prediction") or "庄"
+        if fp not in ("庄", "闲"):
+            fp = "庄"
+
         combined_model = {
-            "final_prediction": parsed.get("final_prediction") or parsed.get("prediction") or "庄",
+            "final_prediction": fp,
             "confidence": float(parsed.get("confidence") or 0.0),
             "bet_tier": parsed.get("bet_tier") or "标准",
             "summary": parsed.get("summary") or "",
@@ -62,16 +66,25 @@ class SingleModelService:
         road_data: dict[str, Any],
         consecutive_errors: int = 0,
     ) -> str:
+        tmpl = getattr(settings, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_TEMPLATE", "") or ""
         encoded_road_data = jsonable_encoder(road_data)
-        prompt = (
-            "你是百家乐分析系统的【策略提炼专家】。当前玩家已经下注，正在等待开奖。\n"
-            "请利用等待时间，深度审视当前的五路结构，输出 100-200 字的高度浓缩策略总结。\n"
-            "必须包含：当前主要处于什么形态（如长龙、单跳、齐脚等）、哪几路正在发生共振、下一局决策最该警惕的陷阱。\n"
-            "不要寒暄，不要分点编号，直接输出策略文本。\n"
-            f"历史: {json.dumps(game_history, ensure_ascii=False)}\n"
-            f"五路: {json.dumps(encoded_road_data, ensure_ascii=False)}\n"
-            f"连续失准: {consecutive_errors}\n"
-        )
+        if tmpl:
+            prompt = (
+                tmpl
+                .replace("{{GAME_HISTORY}}", json.dumps(game_history, ensure_ascii=False))
+                .replace("{{ROAD_DATA}}", json.dumps(encoded_road_data, ensure_ascii=False))
+                .replace("{{CONSECUTIVE_ERRORS}}", str(consecutive_errors))
+            )
+        else:
+            prompt = (
+                "你是百家乐分析系统的【策略提炼专家】。当前玩家已经下注，正在等待开奖。\n"
+                "请利用等待时间，深度审视当前的五路结构，输出 100-200 字的高度浓缩策略总结。\n"
+                "必须包含：当前主要处于什么形态（如长龙、单跳、齐脚等）、哪几路正在发生共振、下一局决策最该警惕的陷阱。\n"
+                "不要寒暄，不要分点编号，直接输出策略文本。\n"
+                f"历史: {json.dumps(game_history, ensure_ascii=False)}\n"
+                f"五路: {json.dumps(encoded_road_data, ensure_ascii=False)}\n"
+                f"连续失准: {consecutive_errors}\n"
+            )
         return await self._call_raw(prompt)
 
     def _build_prompt(

@@ -200,7 +200,7 @@ async def run_ai_analysis(
             logging.getLogger(__name__).error(f"单AI分析发生致命异常: {e}", exc_info=True)
             analysis_result = {
                 "combined_model": {
-                    "final_prediction": "观望",
+                    "final_prediction": "庄",
                     "confidence": 0.0,
                     "bet_tier": "保守",
                     "summary": f"系统异常，单AI回退安全输出: {str(e)}",
@@ -231,7 +231,7 @@ async def run_ai_analysis(
             # 触发安全回退结构，防止死锁卡死在“分析中”
             analysis_result = {
                 "combined_model": {
-                    "final_prediction": "观望", 
+                    "final_prediction": "庄", 
                     "confidence": 0.0, 
                     "bet_tier": "保守", 
                     "summary": f"系统异常，AI回退安全输出: {str(e)}",
@@ -273,7 +273,11 @@ async def run_ai_analysis(
             sess.predict_confidence = combined_model.get("confidence", 0.5)
             sess.predict_bet_tier = combined_model.get("bet_tier", "标准")
             from app.services.game.bet_sizing import compute_bet_amount
-            sess.predict_bet_amount = compute_bet_amount(sess.predict_confidence, sess.balance)
+            sess.predict_bet_amount = compute_bet_amount(
+                sess.predict_confidence,
+                sess.balance,
+                consecutive_errors=sess.consecutive_errors,
+            )
             sess.banker_summary = banker_model.get("summary", "")
             sess.player_summary = player_model.get("summary", "")
             sess.combined_summary = combined_model.get("summary", "")

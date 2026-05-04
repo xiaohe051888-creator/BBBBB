@@ -27,7 +27,15 @@ class BetSizingExponentialTest(unittest.TestCase):
         b = compute_bet_amount(0.9, balance=1_000_000)
         self.assertLess(a, b)
 
+    def test_bet_amount_decay_with_consecutive_errors(self):
+        from app.services.game.bet_sizing import compute_bet_amount
+
+        a0 = compute_bet_amount(0.9, balance=1_000_000, consecutive_errors=0)
+        a1 = compute_bet_amount(0.9, balance=1_000_000, consecutive_errors=1)
+        a2 = compute_bet_amount(0.9, balance=1_000_000, consecutive_errors=2)
+        self.assertGreater(a0, a1)
+        self.assertGreater(a1, a2)
+
 
 if __name__ == "__main__":
     unittest.main()
-

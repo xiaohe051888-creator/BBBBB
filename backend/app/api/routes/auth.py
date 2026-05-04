@@ -1,10 +1,11 @@
 """
 认证相关路由
 """
+import base64
 import bcrypt as _bcrypt
 from datetime import datetime, timedelta, UTC
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, update
 
 from app.core.database import async_session
 from app.models.schemas import AdminUser, ModelVersion, AiModelConfig
@@ -13,7 +14,13 @@ from jose import jwt
 import os
 from app.services.ai_config_status import compute_config_hash, normalize_base_url
 
-from app.api.routes.schemas import LoginRequest, ChangePasswordRequest, ApiConfigPayload
+from app.api.routes.schemas import (
+    LoginRequest,
+    ChangePasswordRequest,
+    ApiConfigPayload,
+    SingleAiPromptTemplatesResponse,
+    SingleAiPromptTemplatesUpdateRequest,
+)
 from app.api.routes.utils import get_current_user
 
 router = APIRouter(prefix="/api/admin", tags=["认证"])
@@ -132,6 +139,111 @@ async def get_model_versions(_: dict = Depends(get_current_user)):
             ]
         }
 
+
+@router.get("/prompt-templates/single-ai")
+async def get_single_ai_prompt_templates(_: dict = Depends(get_current_user)):
+    async with async_session() as session:
+        stmt = select(ModelVersion).where(
+            ModelVersion.is_eliminated == False,
+            ModelVersion.prediction_mode == "single_ai",
+            ModelVersion.is_active == True,
+        ).order_by(desc(ModelVersion.created_at))
+        result = await session.execute(stmt)
+        v = result.scalar_one_or_none()
+
+        if v is None:
+            stmt2 = select(ModelVersion).where(
+                ModelVersion.is_eliminated == False,
+                ModelVersion.prediction_mode == "single_ai",
+            ).order_by(desc(ModelVersion.created_at))
+            result2 = await session.execute(stmt2)
+            v = result2.scalar_one_or_none()
+
+    return SingleAiPromptTemplatesResponse(
+        prediction_mode="single_ai",
+        active_version=v.version if v else None,
+        prediction_template=v.prompt_template if v else None,
+        realtime_strategy_template=getattr(settings, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_TEMPLATE", "") or None,
+    ).model_dump()
+
+
+@router.post("/prompt-templates/single-ai")
+async def update_single_ai_prompt_templates(
+    req: SingleAiPromptTemplatesUpdateRequest,
+    _: dict = Depends(get_current_user),
+):
+    from app.core.env_migration import get_env_paths
+
+    env_path, _ = get_env_paths()
+
+    async with async_session() as session:
+        stmt = select(ModelVersion).where(
+            ModelVersion.is_eliminated == False,
+            ModelVersion.prediction_mode == "single_ai",
+            ModelVersion.is_active == True,
+        ).order_by(desc(ModelVersion.created_at))
+        result = await session.execute(stmt)
+        v = result.scalar_one_or_none()
+
+        if req.prediction_template is not None:
+            if v is None:
+                version_name = f"single_ai-manual-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                v = ModelVersion(
+                    version=version_name,
+                    prediction_mode="single_ai",
+                    prompt_template=req.prediction_template or None,
+                    is_active=True,
+                    is_eliminated=False,
+                )
+                session.add(v)
+                await session.flush()
+                await session.execute(
+                    update(ModelVersion)
+                    .where(
+                        ModelVersion.prediction_mode == "single_ai",
+                        ModelVersion.id != v.id,
+                    )
+                    .values(is_active=False)
+                )
+            else:
+                v.prompt_template = req.prediction_template or None
+
+        await session.commit()
+
+    if req.realtime_strategy_template is not None:
+        raw = req.realtime_strategy_template or ""
+        b64 = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("utf-8") if raw else ""
+        os.environ["SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64"] = b64
+        setattr(settings, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", b64)
+
+        env_content = ""
+        if os.path.exists(env_path):
+            try:
+                with open(env_path, "r", encoding="utf-8") as f:
+                    env_content = f.read()
+            except Exception:
+                env_content = ""
+
+        def set_env_var(content: str, key: str, val: str) -> str:
+            lines = content.split("\n") if content else []
+            updated = False
+            next_lines: list[str] = []
+            for line in lines:
+                if line.startswith(f"{key}="):
+                    if not updated:
+                        next_lines.append(f"{key}={val}")
+                        updated = True
+                    continue
+                next_lines.append(line)
+            if not updated:
+                next_lines.append(f"{key}={val}")
+            return "\n".join(next_lines).rstrip() + "\n"
+
+        env_content = set_env_var(env_content, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", b64)
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.write(env_content)
+
+    return await get_single_ai_prompt_templates(_)
 
 # @router.get("/database-records")
 # async def get_database_records(

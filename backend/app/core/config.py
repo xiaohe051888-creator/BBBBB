@@ -48,6 +48,8 @@ class Settings:
     BASE_AMOUNT: int = 100
     BET_CONF_THRESHOLD: float = float(os.getenv("BET_CONF_THRESHOLD", "0.60"))
     BET_EXP_GAMMA: float = float(os.getenv("BET_EXP_GAMMA", "2.0"))
+    BET_ERROR_DECAY: float = float(os.getenv("BET_ERROR_DECAY", "0.60"))
+    BET_MAX_BALANCE_RATIO: float = float(os.getenv("BET_MAX_BALANCE_RATIO", "0.20"))
     
     # 自适应下注档位
     CONSERVATIVE_FACTOR: float = 0.5
@@ -76,6 +78,19 @@ class Settings:
     SINGLE_AI_MODEL: str = os.getenv("SINGLE_AI_MODEL", "deepseek-v4-pro")
     SINGLE_AI_API_BASE: Optional[str] = os.getenv("SINGLE_AI_API_BASE")
     SINGLE_AI_THINKING: str = os.getenv("SINGLE_AI_THINKING", "enabled")
+    SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64: str = os.getenv("SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", "")
+
+    @property
+    def SINGLE_AI_REALTIME_STRATEGY_PROMPT_TEMPLATE(self) -> str:
+        import base64
+
+        raw = os.getenv("SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", "") or ""
+        if not raw:
+            return ""
+        try:
+            return base64.urlsafe_b64decode(raw.encode("utf-8")).decode("utf-8")
+        except Exception:
+            return ""
     
     # API代理配置
     OFOX_API_BASE: Optional[str] = os.getenv("OFOX_API_BASE")  # ofox.ai代理API地址
