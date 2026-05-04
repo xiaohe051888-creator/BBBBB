@@ -65,7 +65,7 @@ services:
       - postgres
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8001/api/system/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8001/api/system/ping"]
       interval: 30s
       timeout: 10s
       retries: 3

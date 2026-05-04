@@ -182,7 +182,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
     if (isUnmountedRef.current) return;
     const start = Date.now();
     try {
-      await api.getSystemHealth();
+      await api.getSystemPing();
       const latency = Date.now() - start;
       setBackendStatus('online');
       setBackendLatency(latency);
@@ -241,6 +241,19 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
 
     const checkAI = async () => {
       if (isUnmountedRef.current) return;
+      if (!api.getToken()) {
+        removeIssueBySource('ai_current');
+        removeIssueBySource('ai_other');
+        setCurrentMode(undefined);
+        setModeReadiness(undefined);
+        setAiModels([
+          { name: '庄模型接口', key: 'openai', label: '庄模型', status: 'unknown' },
+          { name: '闲模型接口', key: 'anthropic', label: '闲模型', status: 'unknown' },
+          { name: '综合模型接口', key: 'gemini', label: '综合模型', status: 'unknown' },
+        ]);
+        setBackgroundTasks({ runningCount: 0, runningTypes: [], latestErrors: [] });
+        return;
+      }
       try {
         const res = await api.getSystemDiagnostics();
         if (isUnmountedRef.current) return;

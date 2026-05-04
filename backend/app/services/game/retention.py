@@ -46,11 +46,13 @@ async def cleanup_logs(
     now: datetime | None = None,
     hot_days: int = 7,
     warm_days: int = 30,
+    cold_days: int = 180,
 ) -> dict:
     now = now or datetime.now()
     normalized = await normalize_log_priorities(session)
     hot_cutoff = now - timedelta(days=int(hot_days))
     warm_cutoff = now - timedelta(days=int(warm_days))
+    cold_cutoff = now - timedelta(days=int(cold_days))
 
     p3 = await session.execute(
         delete(SystemLog).where(
@@ -66,11 +68,19 @@ async def cleanup_logs(
             SystemLog.log_time < warm_cutoff,
         )
     )
+    p1 = await session.execute(
+        delete(SystemLog).where(
+            SystemLog.is_pinned == False,
+            SystemLog.retention_tier == "cold_perm",
+            SystemLog.log_time < cold_cutoff,
+        )
+    )
 
     return {
         "normalized": normalized,
         "deleted_p3": int(p3.rowcount or 0),
         "deleted_p2": int(p2.rowcount or 0),
+        "deleted_p1": int(p1.rowcount or 0),
     }
 
 

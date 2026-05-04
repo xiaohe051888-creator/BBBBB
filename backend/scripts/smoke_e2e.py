@@ -16,7 +16,7 @@ async def main() -> int:
     token = r.json()["token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    await c.get(f"{BASE}/api/system/state")
+    await c.get(f"{BASE}/api/system/state", headers=headers)
     await c.get(f"{BASE}/api/system/health", headers=headers)
 
     payload = {
@@ -54,4 +54,3 @@ if __name__ == "__main__":
   except Exception as e:
     sys.stderr.write(str(e) + "\n")
     raise SystemExit(1)
-

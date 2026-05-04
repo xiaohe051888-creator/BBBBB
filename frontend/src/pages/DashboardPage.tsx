@@ -80,8 +80,8 @@ const DashboardPage: React.FC = () => {
   // 余额低位预警 (只在 <= 2000 且 > 0 时提醒一次)
   const [lowBalanceWarned, setLowBalanceWarned] = useState(false);
   useEffect(() => {
-    if (systemState?.balance !== undefined) {
-      const bal = systemState.balance;
+    const bal = systemState?.balance;
+    if (typeof bal === 'number' && Number.isFinite(bal)) {
       // 当余额大于 2000 时重置警告状态（可能用户刚充了钱）
       if (bal > 2000) {
         if (lowBalanceWarned) {

@@ -20,7 +20,7 @@ export const useSystemStateQuery = (options: UseSystemStateQueryOptions) => {
   return useQuery<SystemState | null>({
     queryKey: queryKeys.systemState(),
     queryFn: async () => {
-            const res = await api.getSystemState();
+            const res = api.getToken() ? await api.getSystemState() : await api.getSystemStatePublic();
       return res.data;
     },
     enabled: enabled,

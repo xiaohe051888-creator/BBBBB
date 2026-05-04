@@ -89,7 +89,7 @@ python backend/scripts/migrate_sqlite_to_postgres.py
 - `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY`
 
 5) 部署后验证：
-- 后端健康检查：`/api/system/health`
+- 后端健康检查：`/api/system/ping`
 - 后端接口文档：`/docs`
 - 前端能正常打开，且能连上实时推送
 

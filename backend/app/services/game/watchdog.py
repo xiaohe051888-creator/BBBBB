@@ -146,6 +146,8 @@ class Watchdog:
         from app.core.database import async_session
         from app.core.async_utils import spawn_task
 
+        await asyncio.sleep(1)
+
         while True:
             try:
                 async with async_session() as s:

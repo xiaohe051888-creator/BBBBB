@@ -30,6 +30,10 @@ class MigrationStrictModeTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 asyncio.run(db.init_db())
         finally:
+            try:
+                asyncio.run(db.close_db())
+            except Exception:
+                pass
             for k, v in prev_env.items():
                 if v is None:
                     os.environ.pop(k, None)

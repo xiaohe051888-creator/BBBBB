@@ -7,9 +7,9 @@ export interface SystemState {
   predict_confidence: number | null;
   current_model_version: string | null;
   current_bet_tier: string;
-  balance: number;
+  balance: number | null;
   consecutive_errors: number;
-  health_score: number;
+  health_score: number | null;
   pending_bet: {
     direction: string;
     amount: number;

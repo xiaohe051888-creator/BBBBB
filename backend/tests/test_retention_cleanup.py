@@ -19,6 +19,7 @@ class RetentionCleanupTest(unittest.TestCase):
             now = datetime.now()
             old_p3 = now - timedelta(days=10)
             old_p2 = now - timedelta(days=10)
+            very_old_p1 = now - timedelta(days=365)
 
             async with async_session() as s:
                 await s.execute(delete(SystemLog).where(SystemLog.event_code == "UT-RET"))
@@ -28,6 +29,7 @@ class RetentionCleanupTest(unittest.TestCase):
                 s.add(SystemLog(log_time=old_p3, boot_number=1, game_number=1, event_code="UT-RET", event_type="T", event_result="T", description="p3", category="T", priority="P3", retention_tier="hot7", is_pinned=False))
                 s.add(SystemLog(log_time=old_p2, boot_number=1, game_number=1, event_code="UT-RET", event_type="T", event_result="T", description="p2", category="T", priority="P2", retention_tier="warm30", is_pinned=False))
                 s.add(SystemLog(log_time=old_p3, boot_number=1, game_number=1, event_code="UT-RET", event_type="T", event_result="T", description="p1", category="T", priority="P1", retention_tier="cold_perm", is_pinned=False))
+                s.add(SystemLog(log_time=very_old_p1, boot_number=1, game_number=1, event_code="UT-RET", event_type="T", event_result="T", description="p1_old", category="T", priority="P1", retention_tier="cold_perm", is_pinned=False))
                 s.add(SystemLog(log_time=old_p3, boot_number=1, game_number=1, event_code="UT-RET", event_type="T", event_result="T", description="pinned", category="T", priority="P3", retention_tier="hot7", is_pinned=True))
                 await s.commit()
 

@@ -19,8 +19,12 @@ router = APIRouter(
 )
 logger = logging.getLogger(__name__)
 
+@router.get("/ping")
+async def ping():
+    return {"ok": True}
+
 @router.get("/state")
-async def get_system_state():
+async def get_system_state(_: dict = Depends(get_current_user)):
     """获取系统状态"""
     from app.services.game import get_current_state
     
@@ -65,9 +69,29 @@ async def get_system_state():
             "next_game_number": mem_state["next_game_number"],
         }
 
+@router.get("/state-public")
+async def get_system_state_public():
+    mem_state = await get_current_state()
+    return {
+        "status": mem_state.get("status"),
+        "boot_number": mem_state.get("boot_number"),
+        "game_number": (mem_state.get("next_game_number") or 1) - 1,
+        "current_game_result": None,
+        "prediction_mode": mem_state.get("prediction_mode", "rule"),
+        "predict_direction": None,
+        "predict_confidence": None,
+        "current_model_version": None,
+        "current_bet_tier": mem_state.get("predict_bet_tier") or "标准",
+        "balance": None,
+        "consecutive_errors": mem_state.get("consecutive_errors") or 0,
+        "health_score": None,
+        "pending_bet": None,
+        "next_game_number": mem_state.get("next_game_number"),
+    }
+
 
 @router.get("/health")
-async def get_health_score():
+async def get_health_score(_: dict = Depends(get_current_user)):
     """
     获取系统健康分 - 实时计算
     基于AI模型状态、数据库健康、数据一致性等实际指标
@@ -262,7 +286,7 @@ async def get_health_score():
 
 
 @router.get("/diagnostics")
-async def get_system_diagnostics():
+async def get_system_diagnostics(_: dict = Depends(get_current_user)):
     """
     系统诊断接口 - 返回所有关键系统组件的实时状态
     """

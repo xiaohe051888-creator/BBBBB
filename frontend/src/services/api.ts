@@ -120,6 +120,14 @@ export const getSystemState = async () => {
   return api.get('/system/state', { params: { } });
 };
 
+export const getSystemStatePublic = async () => {
+  return api.get('/system/state-public', { params: { } });
+};
+
+export const getSystemPing = async () => {
+  return api.get('/system/ping', { params: { } });
+};
+
 export interface HealthScoreResponse {
   health_score: number;
   model_stability: number;
