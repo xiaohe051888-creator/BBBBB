@@ -7,7 +7,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Card, Button, Table, Tag, Space, Input, Modal, App,
+  Card, Button, Table, Tag, Space, Input, Modal, App, Grid,
   Select, Tabs, Empty, Statistic, Row, Col
 } from 'antd';
 import dayjs from 'dayjs';
@@ -197,6 +197,8 @@ const AdminPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const token = (location.state as any)?.token || api.getToken();
   
   // 系统诊断（AdminPage使用默认桌号）
@@ -606,21 +608,22 @@ const AdminPage: React.FC = () => {
       </div>
 
       <Tabs
+        className="admin-tabs"
         activeKey={activeTab}
         onChange={setActiveTab}
         items={[
           {
             key: 'ai',
-            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Robot /> AI大模型与规则引擎</span>,
+            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Robot /> {isMobile ? 'AI设置' : 'AI大模型与规则引擎'}</span>,
             children: (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div className="admin-tab-panel" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {/* 分析预测模式设置 */}
                 <Card title="分析预测模式设置" size="small" styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}>
                   <div style={{ marginBottom: 16, color: 'rgba(255,255,255,0.6)' }}>
                     选择系统的分析预测大脑。同一时间仅能激活一种模式。
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <div className="admin-summary-inline" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div className="admin-summary-inline" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <div style={{ color: 'rgba(255,255,255,0.7)' }}>当前模式</div>
                       <Tag color={predictionMode === 'ai' ? 'purple' : predictionMode === 'single_ai' ? 'green' : 'blue'}>
                         {predictionMode === 'ai' ? '3AI模式' : predictionMode === 'single_ai' ? '单AI模式' : '规则引擎模式'}
@@ -636,13 +639,13 @@ const AdminPage: React.FC = () => {
                     onCancel={() => setModePickerVisible(false)}
                     title="选择模式"
                     footer={null}
-                    width={720}
-                    style={{ maxWidth: 'calc(100vw - 32px)' }}
+                    width={isMobile ? 360 : 720}
+                    style={{ maxWidth: 'calc(100vw - 20px)' }}
                     mask={{ closable: false }}
                   >
                     <div style={{ display: 'grid', gap: 12 }}>
                       <Card size="small">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <div className="admin-mode-option" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                           <div style={{ display: 'grid', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Icons.Brain />
@@ -655,13 +658,14 @@ const AdminPage: React.FC = () => {
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
                               三个模型分工协作，等待开奖期间进行微学习。
                             </div>
-                            <Space wrap>
+                            <Space wrap className="mobile-action-row" style={{ width: '100%' }}>
                               <Button size="small" onClick={() => handleOpenApiConfig('banker')}>配置/测试庄模型</Button>
                               <Button size="small" onClick={() => handleOpenApiConfig('player')}>配置/测试闲模型</Button>
                               <Button size="small" onClick={() => handleOpenApiConfig('combined')}>配置/测试综合模型</Button>
                             </Space>
                           </div>
                           <Button
+                            className="admin-mode-option-action"
                             type="primary"
                             disabled={predictionMode === 'ai' || !threeModelStatus?.ai_ready_for_enable}
                             loading={updatingMode}
@@ -676,7 +680,7 @@ const AdminPage: React.FC = () => {
                       </Card>
 
                       <Card size="small">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <div className="admin-mode-option" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                           <div style={{ display: 'grid', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Icons.Robot />
@@ -687,11 +691,12 @@ const AdminPage: React.FC = () => {
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
                               单模型直接给出庄/闲预测，等待开奖期间也会进行微学习。
                             </div>
-                            <Space wrap>
+                            <Space wrap className="mobile-action-row" style={{ width: '100%' }}>
                               <Button size="small" onClick={() => handleOpenApiConfig('single')}>配置/测试单AI模型</Button>
                             </Space>
                           </div>
                           <Button
+                            className="admin-mode-option-action"
                             type="primary"
                             disabled={predictionMode === 'single_ai' || !threeModelStatus?.single_ai_ready_for_enable}
                             loading={updatingMode}
@@ -706,7 +711,7 @@ const AdminPage: React.FC = () => {
                       </Card>
 
                       <Card size="small">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <div className="admin-mode-option" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                           <div style={{ display: 'grid', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Icons.Trend />
@@ -718,6 +723,7 @@ const AdminPage: React.FC = () => {
                             </div>
                           </div>
                           <Button
+                            className="admin-mode-option-action"
                             type="primary"
                             disabled={predictionMode === 'rule'}
                             loading={updatingMode}
@@ -845,7 +851,7 @@ const AdminPage: React.FC = () => {
                   title="单AI提示词与策略模板"
                   size="small"
                   extra={
-                    <Space size={8} wrap>
+                    <Space size={8} wrap className="admin-template-meta">
                       {singleAiActiveVersion && <Tag color="blue">版本：{singleAiActiveVersion}</Tag>}
                       <Button size="small" loading={singleAiPromptLoading} onClick={loadSingleAiPromptTemplates}>刷新</Button>
                     </Space>
@@ -867,7 +873,7 @@ const AdminPage: React.FC = () => {
                       <Input.TextArea
                         value={singleAiPredictionTemplate}
                         onChange={(e) => setSingleAiPredictionTemplate(e.target.value)}
-                        autoSize={{ minRows: 8, maxRows: 16 }}
+                        autoSize={{ minRows: isMobile ? 10 : 8, maxRows: isMobile ? 18 : 16 }}
                         placeholder="请输入中文分析模板。系统会自动补入当前靴号、局号、完整历史、五路特征、五路原始数据和失误上下文。"
                         style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                       />
@@ -876,12 +882,12 @@ const AdminPage: React.FC = () => {
                       <Input.TextArea
                         value={singleAiRealtimeStrategyTemplate}
                         onChange={(e) => setSingleAiRealtimeStrategyTemplate(e.target.value)}
-                        autoSize={{ minRows: 6, maxRows: 12 }}
+                        autoSize={{ minRows: isMobile ? 8 : 6, maxRows: isMobile ? 14 : 12 }}
                         placeholder="请输入中文策略模板。系统会自动补入完整历史、五路特征、五路原始数据和连续失准次数。"
                         style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                       />
 
-                      <Space wrap className="mobile-action-row" style={{ width: '100%' }}>
+                      <Space wrap className="mobile-action-row admin-template-actions" style={{ width: '100%' }}>
                         <Button
                           onClick={() => {
                             setSingleAiPredictionTemplate(DEFAULT_SINGLE_AI_PREDICTION_TEMPLATE);
@@ -916,7 +922,7 @@ const AdminPage: React.FC = () => {
                         />
                       </Col>
                     </Row>
-                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+                    <div className="admin-learning-cta" style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
                       <Button 
                         type="primary" 
                         icon={<Icons.AI />} 
@@ -955,7 +961,7 @@ const AdminPage: React.FC = () => {
                   </Space>
                   <Table
                     dataSource={filteredModelVersions}
-                    className="mobile-card-table"
+                    className="mobile-card-table admin-model-version-table"
                     columns={withMobileTableLabels([
                       { title: '版本号', dataIndex: 'version', width: '12%' },
                       { title: '模式', dataIndex: 'prediction_mode', width: '10%', align: 'center' as const, render: (v: string) => v === 'single_ai' ? <Tag color="green">单AI</Tag> : <Tag color="purple">3AI</Tag> },
@@ -979,14 +985,14 @@ const AdminPage: React.FC = () => {
           },
           {
             key: 'tasks',
-            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Experiment /> 后台任务</span>,
+            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Experiment /> {isMobile ? '任务' : '后台任务'}</span>,
             children: (
               <Card title="后台任务" size="small">
-                <Space style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+                <Space style={{ marginBottom: 12, flexWrap: 'wrap' }} className="mobile-action-row">
                   <Button size="small" onClick={loadSystemTasks} loading={tasksLoading}>刷新</Button>
                 </Space>
                 <Table
-                  className="mobile-card-table"
+                  className="mobile-card-table admin-tasks-table"
                   dataSource={systemTasks}
                   loading={tasksLoading}
                   rowKey="task_id"
@@ -1086,14 +1092,14 @@ const AdminPage: React.FC = () => {
           },
           {
             key: 'db',
-            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Database /> 数据库存储</span>,
+            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Database /> {isMobile ? '数据库' : '数据库存储'}</span>,
             children: (
               <Space direction="vertical" size={12} style={{ width: '100%' }}>
                 <Card
                   title="维护与清理"
                   size="small"
                   extra={
-                    <Space size={8} className="mobile-action-row">
+                    <Space size={8} className="mobile-action-row admin-maintenance-extra">
                       <Button size="small" loading={maintenanceLoading} onClick={loadMaintenanceStats}>刷新统计</Button>
                       <Button size="small" danger onClick={runRetentionNow}>立即清理</Button>
                       <Button size="small" danger onClick={resetAllData}>清空全部数据</Button>
@@ -1129,7 +1135,7 @@ const AdminPage: React.FC = () => {
                   </Row>
 
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <Space size={8} wrap>
+                    <Space size={8} wrap className="admin-maintenance-tags">
                       <Tag color={maintenanceStats ? (maintenanceStats.config.RETENTION_ENABLED ? 'green' : 'default') : 'default'}>
                         自动清理 {maintenanceStats ? (maintenanceStats.config.RETENTION_ENABLED ? '开启' : '关闭') : '加载中'}
                       </Tag>
@@ -1161,7 +1167,7 @@ const AdminPage: React.FC = () => {
                     />
                   </Space>
                   <Table
-                    className="mobile-card-table"
+                    className="mobile-card-table admin-db-table"
                     dataSource={dbRecords}
                     columns={withMobileTableLabels(tableColumns)}
                     rowKey="id"
@@ -1178,6 +1184,7 @@ const AdminPage: React.FC = () => {
 
       {/* 修改密码弹窗 */}
       <Modal
+        className="admin-change-password-modal"
         title="修改密码"
         open={changePwdVisible}
         closable
@@ -1186,6 +1193,8 @@ const AdminPage: React.FC = () => {
         onOk={handleChangePassword}
         okText="保存新密码"
         cancelText="取消"
+        width={isMobile ? 360 : 520}
+        style={{ maxWidth: 'calc(100vw - 20px)' }}
       >
         <Space orientation="vertical" style={{ width: '100%' }}>
           <Input.Password placeholder="当前密码" value={oldPwd} onChange={e => setOldPwd(e.target.value)} />
