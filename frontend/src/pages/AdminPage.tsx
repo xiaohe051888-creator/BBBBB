@@ -297,6 +297,36 @@ const AdminPage: React.FC = () => {
     });
   }, [loadMaintenanceStats, maintenanceStats?.config, message]);
 
+  const resetAllData = useCallback(async () => {
+    Modal.confirm({
+      title: '确认清空全部数据？',
+      content: (
+        <div>
+          <div>将清空：开奖记录、下注记录、错题本、五路缓存、AI记忆、模型版本、后台任务与系统日志。</div>
+          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.65)' }}>仅允许在开发环境执行，清空后不可恢复。</div>
+        </div>
+      ),
+      okText: '确认清空',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await api.adminMaintenanceResetAll();
+          const d = res.data.deleted || {};
+          message.success(`已清空：局${d.game_records || 0}、注${d.bet_records || 0}、日志${d.system_logs || 0}`);
+          setDbRecords([]);
+          setDbPage(1);
+          queryClient.invalidateQueries({ queryKey: ['systemState'] });
+          queryClient.invalidateQueries({ queryKey: ['stats'] });
+          loadMaintenanceStats();
+          navigate('/dashboard');
+        } catch (err: any) {
+          message.error(err instanceof Error ? err.message : '清空失败');
+        }
+      },
+    });
+  }, [loadMaintenanceStats, message, navigate, queryClient]);
+
   const [startLearningVisible, setStartLearningVisible] = useState(false);
 
   const handleStartLearning = async () => {
@@ -809,6 +839,7 @@ const AdminPage: React.FC = () => {
                     <Space size={8}>
                       <Button size="small" loading={maintenanceLoading} onClick={loadMaintenanceStats}>刷新统计</Button>
                       <Button size="small" danger onClick={runRetentionNow}>立即清理</Button>
+                      <Button size="small" danger onClick={resetAllData}>清空全部数据</Button>
                     </Space>
                   }
                 >

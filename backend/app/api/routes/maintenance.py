@@ -2,17 +2,28 @@ import os
 import time
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.engine.url import make_url
 
 from app.api.routes.utils import get_current_user
 from app.core.config import settings
 from app.core.database import async_session
-from app.models.schemas import BetRecord, GameRecord, SystemLog
+from app.models.schemas import (
+    BetRecord,
+    GameRecord,
+    SystemLog,
+    MistakeBook,
+    RoadMap,
+    AIMemory,
+    ModelVersion,
+    BackgroundTask,
+)
 from app.services.game.logging import write_game_log
 from app.services.game.retention import cleanup_logs, prune_history
 from app.services.game.state import get_or_create_state
+from app.services.game.session import get_session_lock, clear_session, broadcast_event
+from app.services.game.task_registry import registry
 
 router = APIRouter(prefix="/api/admin/maintenance", tags=["系统维护"])
 
@@ -149,4 +160,55 @@ async def maintenance_retention_run(_: dict = Depends(get_current_user)):
             **deleted_history,
         },
         "elapsed_ms": elapsed_ms,
+    }
+
+
+@router.post("/reset-all")
+async def maintenance_reset_all(_: dict = Depends(get_current_user)):
+    if settings.ENVIRONMENT.lower() == "production":
+        raise HTTPException(status_code=403, detail="生产环境禁止执行清空数据操作")
+
+    lock = get_session_lock()
+    async with lock:
+        for t in registry.list(limit=500):
+            if t.get("status") == "running":
+                registry.cancel(str(t.get("task_id")))
+        clear_session()
+
+    async with async_session() as session:
+        d_ai_mem = await session.execute(AIMemory.__table__.delete())
+        d_road = await session.execute(RoadMap.__table__.delete())
+        d_mistakes = await session.execute(MistakeBook.__table__.delete())
+        d_bets = await session.execute(BetRecord.__table__.delete())
+        d_games = await session.execute(GameRecord.__table__.delete())
+        d_models = await session.execute(ModelVersion.__table__.delete())
+        d_tasks = await session.execute(BackgroundTask.__table__.delete())
+        d_logs = await session.execute(SystemLog.__table__.delete())
+
+        state = await get_or_create_state(session)
+        state.status = "手动模式"
+        state.boot_number = 1
+        state.game_number = 0
+        state.prediction_mode = "rule"
+        state.current_model_version = None
+        state.predict_direction = None
+        state.predict_confidence = None
+        state.current_bet_tier = "标准"
+        state.balance = settings.DEFAULT_BALANCE
+        state.consecutive_errors = 0
+        await session.commit()
+
+    await broadcast_event("state_update", {"status": "空闲", "boot_number": 1, "game_number": 0})
+
+    return {
+        "deleted": {
+            "ai_memories": int(d_ai_mem.rowcount or 0),
+            "road_maps": int(d_road.rowcount or 0),
+            "mistake_book": int(d_mistakes.rowcount or 0),
+            "bet_records": int(d_bets.rowcount or 0),
+            "game_records": int(d_games.rowcount or 0),
+            "model_versions": int(d_models.rowcount or 0),
+            "background_tasks": int(d_tasks.rowcount or 0),
+            "system_logs": int(d_logs.rowcount or 0),
+        }
     }

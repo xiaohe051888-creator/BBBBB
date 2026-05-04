@@ -421,6 +421,10 @@ export interface AdminMaintenanceRetentionRunResponse {
   elapsed_ms: number;
 }
 
+export interface AdminMaintenanceResetAllResponse {
+  deleted: Record<string, number>;
+}
+
 export const adminMaintenanceStats = async () => {
   return api.get<AdminMaintenanceStatsResponse>('/admin/maintenance/stats');
 };
@@ -431,6 +435,10 @@ export const adminMaintenanceAlerts = async (hours: number = 24, limit: number =
 
 export const adminMaintenanceRunRetention = async () => {
   return api.post<AdminMaintenanceRetentionRunResponse>('/admin/maintenance/retention/run');
+};
+
+export const adminMaintenanceResetAll = async () => {
+  return api.post<AdminMaintenanceResetAllResponse>('/admin/maintenance/reset-all');
 };
 
 export const getModelVersions = async () => {
