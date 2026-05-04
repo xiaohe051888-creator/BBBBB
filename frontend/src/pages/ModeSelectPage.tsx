@@ -76,7 +76,7 @@ const ModeSelectPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: 'clamp(16px, 3vw, 28px)', maxWidth: 980, margin: '0 auto' }}>
+    <div className="page-wrapper mode-select-page" style={{ padding: 'clamp(16px, 3vw, 28px)', maxWidth: 980, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: 0.5 }}>选择模式</div>
@@ -84,7 +84,7 @@ const ModeSelectPage: React.FC = () => {
             选择好模式后才会进入系统主界面。AI 模式需要先配置并测试通过。
           </div>
         </div>
-        <Space wrap>
+        <Space wrap className="mobile-action-row">
           <Button
             onClick={() => {
               const selected = localStorage.getItem('mode_selected') === '1';

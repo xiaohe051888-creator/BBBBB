@@ -8,7 +8,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button, Card, Select, Space, Tag, Table,
-  Statistic, Tooltip, Empty,
+  Statistic, Tooltip, Empty, Grid,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -87,6 +87,8 @@ const RoadMapPage: React.FC = () => {
   
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   // 标签页状态
   const [activeTab, setActiveTab] = useState<'chart' | 'raw' | 'analysis'>('chart');
@@ -199,7 +201,7 @@ const RoadMapPage: React.FC = () => {
   }, [rawData, stats]);
 
   return (
-    <div className="page-wrapper">
+    <div className="page-wrapper roadmap-page">
       {/* 顶部导航栏 */}
       <div className="page-nav-bar">
         <div className="page-nav-left">
@@ -222,7 +224,7 @@ const RoadMapPage: React.FC = () => {
               { label: '数据', value: 'raw' },
               { label: '分析', value: 'analysis' },
             ]}
-            style={{ width: 120 }}
+            style={{ width: isMobile ? '100%' : 120 }}
           />
           <Button 
             icon={<Icons.Refresh />} 
@@ -236,7 +238,7 @@ const RoadMapPage: React.FC = () => {
 
       {/* 主内容区 - 乐观UI：无Spin包裹，数据立即显示 */}
       {activeTab === 'chart' && (
-        <div style={{
+        <div className="roadmap-chart-shell" style={{
           minHeight: 'calc(100vh - 140px)',
           display: 'flex',
           flexDirection: 'column',
@@ -265,7 +267,7 @@ const RoadMapPage: React.FC = () => {
             </div>
             
             {/* 图例说明 */}
-            <div style={{
+            <div className="mobile-scroll-x" style={{
               display: 'flex',
               gap: '16px',
               fontSize: '12px',
@@ -294,14 +296,14 @@ const RoadMapPage: React.FC = () => {
           </div>
           
           {/* 五路图区域 */}
-          <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+          <div className="mobile-scroll-x" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
             <FiveRoadChart data={roadData?.roads ?? null} />
           </div>
         </div>
       )}
 
       {activeTab === 'raw' && (
-        <Card title={<span><Icons.File /> 原始开奖数据</span>} style={{ minHeight: 'calc(100vh - 160px)' }}>
+        <Card className="roadmap-raw-shell" title={<span><Icons.File /> 原始开奖数据</span>} style={{ minHeight: 'calc(100vh - 160px)' }}>
           <Table
             className="mobile-card-table"
             dataSource={rawData}
@@ -319,7 +321,7 @@ const RoadMapPage: React.FC = () => {
               showSizeChanger: true,
               showQuickJumper: true,
             }}
-            scroll={{ x: 600, y: 'calc(100vh - 280px)' }}
+            scroll={{ x: 'max-content', y: isMobile ? undefined : 'calc(100vh - 280px)' }}
             locale={{ emptyText: <Empty description="暂无开奖数据" /> }}
             summary={() => (
               <Table.Summary fixed>
@@ -345,7 +347,7 @@ const RoadMapPage: React.FC = () => {
       )}
 
       {activeTab === 'analysis' && (
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', minHeight: 'calc(100vh - 160px)' }}>
+        <div className="mobile-section-stack" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', minHeight: 'calc(100vh - 160px)' }}>
           {/* 路势分析 */}
           <div className="roadmap-analysis-col" style={{ flex: '1 1 400px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
             <Card

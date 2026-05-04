@@ -63,13 +63,13 @@ const UploadDataPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: isMobile ? '16px 12px 36px' : '24px 24px 48px' }}>
+    <div className="page-wrapper upload-page" style={{ padding: isMobile ? '16px 12px 36px' : '24px 24px 48px' }}>
       <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }} wrap>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>上传数据</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>支持 1=庄 2=闲 3=和 与 6×12 珠盘格子录入</div>
         </div>
-        <Space wrap>
+        <Space wrap className={isMobile ? 'mobile-action-row' : undefined}>
           <Button type="primary" onClick={handleConfirm} disabled={results.length === 0} loading={submitting}>
             确认上传
           </Button>
@@ -124,7 +124,7 @@ const UploadDataPage: React.FC = () => {
       </Card>
 
       <Card>
-        <div style={{ display: 'flex', gap: isMobile ? 12 : 16, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
+        <div className="mobile-section-stack" style={{ display: 'flex', gap: isMobile ? 12 : 16, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
           <div style={{ flex: '1 1 520px', minWidth: isMobile ? 'auto' : 320 }}>
             <QuickKeyInput results={results} onChange={setResults} max={MAX_GAMES} />
             <div style={{ height: 12 }} />
@@ -132,9 +132,9 @@ const UploadDataPage: React.FC = () => {
           </div>
 
           <div style={{ flex: '1 1 360px', minWidth: isMobile ? 'auto' : 300 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
               <div style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 700 }}>局序列</div>
-              <Space size={8}>
+              <Space size={8} wrap className={isMobile ? 'mobile-action-row' : undefined}>
                 <Button size="small" onClick={handleUndoLast} disabled={results.length === 0}>
                   撤销上一局
                 </Button>

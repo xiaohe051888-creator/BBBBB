@@ -56,6 +56,8 @@ export const UploadConfirmModal: React.FC<Props> = ({
         onCancel();
       }}
       title="确认上传"
+      width={560}
+      style={{ maxWidth: 'calc(100vw - 20px)' }}
       footer={[
         <Button key="cancel" onClick={onCancel} disabled={submitting}>
           取消

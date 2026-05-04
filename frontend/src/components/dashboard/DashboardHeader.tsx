@@ -50,10 +50,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   return (
     <div className="top-status-bar" style={{ padding: 'clamp(12px, 2vw, 16px) clamp(16px, 3vw, 24px)', background: 'linear-gradient(180deg, #141b26 0%, #0f151e 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div className="dashboard-header-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 
         {/* 左侧组：系统信息 + 最新开奖/预测（合并在一边，避免中间空旷） */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', flex: '1 1 auto' }}>
+        <div className="dashboard-header-left" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', flex: '1 1 auto' }}>
 
           {/* 1. 系统状态信息 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -66,7 +66,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </div>
 
           {/* 2. 已开局信息 & 下局预测 */}
-          <div style={{
+          <div className="dashboard-current-predict" style={{
             display: 'flex',
             alignItems: 'stretch',
             background: 'rgba(255,255,255,0.03)',
@@ -110,7 +110,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             </div>
 
             {/* 分隔符 */}
-            <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '4px 0' }}></div>
+            <div className="dashboard-current-predict-divider" style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '4px 0' }}></div>
 
             {/* 右半部分：下局预测 */}
             <div className="predict-pulse-container" style={{
@@ -152,8 +152,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         </div>
 
         {/* 右侧组：余额 & 操作 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <div className="balance-badge" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(82,196,26,0.1)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(82,196,26,0.2)' }}>
+        <div className="dashboard-header-right" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div className="dashboard-balance-badge" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(82,196,26,0.1)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(82,196,26,0.2)' }}>
             <DollarOutlined style={{ color: '#52c41a', fontSize: 16 }} />
             <span style={{ fontSize: 15, fontWeight: 700, color: '#52c41a', fontFamily: 'monospace' }}>
               {formatMoney(systemState?.balance)}
@@ -163,7 +163,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <SystemStatusPanel diagnostics={diagnostics} onDismissIssue={onDismissIssue} onRetryConnection={onRetryConnection} compact />
 
           {/* 操作按钮组（移动端下只显示图标，不显示文字） */}
-          <Space size={8} wrap className="mobile-action-group">
+          <Space size={8} wrap className="mobile-action-group dashboard-action-group">
             <Button
               icon={<CloudUploadOutlined />}
               onClick={() => {

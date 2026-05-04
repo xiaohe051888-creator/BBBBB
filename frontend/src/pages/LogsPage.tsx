@@ -7,7 +7,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Button, Card, Table, Tag, Space, Badge, Switch, App, Input, Select, Modal, List, Typography, Divider, Collapse,
+  Button, Card, Table, Tag, Space, Badge, Switch, App, Input, Select, Modal, List, Typography, Divider, Collapse, Grid,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -324,6 +324,8 @@ const LogsPage: React.FC = () => {
   const location = useLocation();
   const { message } = App.useApp();
   const queryClient = useQueryClient();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const addLogsOptimistically = useAddLogsOptimistically();
   const [realtime, setRealtime] = useState(false);
   const pendingLogsRef = useRef<LogEntry[]>([]);
@@ -673,7 +675,7 @@ const LogsPage: React.FC = () => {
   }, [filterTaskId, queryClient]);
 
   return (
-    <div className="page-wrapper">
+    <div className="page-wrapper logs-page">
       {/* 顶部导航 */}
       <div className="page-nav-bar">
         <div className="page-nav-left">
@@ -737,7 +739,7 @@ const LogsPage: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+      <div className="mobile-section-stack logs-main-layout" style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         {/* 左侧：主日志表格 */}
         <div className="logs-layout-col-left" style={{ flex: '1 1 500px', minWidth: 0 }}>
           {/* 筛选栏 */}
@@ -778,7 +780,7 @@ const LogsPage: React.FC = () => {
                 pageSizeOptions: ['20', '50', '100', '200'],
                 size: 'small',
               }}
-              scroll={{ y: 'calc(100vh - 380px)' }}
+              scroll={{ y: isMobile ? undefined : 'calc(100vh - 380px)' }}
               locale={{ emptyText: '暂无日志记录' }}
               rowClassName={(record) => {
                 if (record.is_pinned) return 'log-pinned';

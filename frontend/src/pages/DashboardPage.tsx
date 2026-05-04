@@ -6,7 +6,7 @@
  * 优化：乐观UI策略 - 数据立即显示，后台静默刷新，零等待体验
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Progress, Space, Tag } from 'antd';
+import { Grid, Progress, Space, Tag } from 'antd';
 import { getToken } from '../services/api';
 import { MAX_GAMES_PER_BOOT } from '../utils/constants';
 import { RevealModal, DashboardHeader, WorkflowStatusBar, AnalysisPanel } from '../components/dashboard';
@@ -40,6 +40,8 @@ import { queryKeys } from '../lib/queryClient';
 const DashboardPage: React.FC = () => {
 
   const queryClient = useQueryClient();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   // 系统实时诊断
   const { diagnostics, dismissIssue, retryConnection, addIssue } = useSystemDiagnostics({});
@@ -350,11 +352,11 @@ const DashboardPage: React.FC = () => {
       <AdminAlertsBar />
 
       {/* 主体内容 */}
-      <div className="dashboard-main-grid" style={{ padding: 16, display: 'flex', gap: 16, flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
+      <div className="dashboard-main-grid" style={{ padding: isMobile ? 12 : 16, display: 'flex', gap: isMobile ? 12 : 16, flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
         {/* 左侧：五路走势图 */}
         <div className="left-panel" style={{ flex: '1 1 500px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
-          <div className="road-card" style={{ background: '#1a1d24', borderRadius: 12, padding: 16, marginBottom: 16, overflow: 'hidden', minHeight: 400 }}>
-            <div className="section-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+          <div className="road-card" style={{ background: '#1a1d24', borderRadius: 12, padding: isMobile ? 12 : 16, marginBottom: isMobile ? 12 : 16, overflow: 'hidden', minHeight: isMobile ? 0 : 400 }}>
+            <div className="section-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
               <span style={{ color: '#58a6ff', marginRight: 8 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
               </span>
@@ -367,7 +369,7 @@ const DashboardPage: React.FC = () => {
                 <Tag color="#52c41a" style={{ margin: 0, borderRadius: 12, border: 'none', padding: '0 8px' }}>和 {tieCount}</Tag>
               </Space>
 
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.4)', whiteSpace: isMobile ? 'normal' : 'nowrap' }}>
                 第{systemState?.boot_number || 1}靴 · 已开{validGamesLength}局
               </span>
             </div>
@@ -377,7 +379,7 @@ const DashboardPage: React.FC = () => {
           </div>
 
           {/* 本靴进度 */}
-          <div className="progress-card" style={{ background: '#1a1d24', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div className="progress-card" style={{ background: '#1a1d24', borderRadius: 12, padding: isMobile ? 12 : 16, marginBottom: isMobile ? 12 : 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>本靴进度</span>
               <span style={{ fontSize: 12, color: '#ffd700' }}>{validGamesLength} / {MAX_GAMES_PER_BOOT} 局</span>
@@ -389,7 +391,7 @@ const DashboardPage: React.FC = () => {
               railColor="rgba(255,255,255,0.1)"
               size="small"
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11 }}>
+            <div className="mobile-pills-grid" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11 }}>
               <span style={{ color: 'rgba(255,255,255,0.4)' }}>
                 命中: <span style={{ color: '#52c41a' }}>{stats?.hit_count || 0}</span>
               </span>
@@ -400,7 +402,7 @@ const DashboardPage: React.FC = () => {
                 胜率: <span style={{ color: '#ffd700' }}>{((stats?.accuracy || 0) * 100).toFixed(1)}%</span>
               </span>
             </div>
-            <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>当前AI模型版本</span>
               <span style={{ fontSize: 12, color: '#b37feb', background: 'rgba(179,127,235,0.1)', padding: '2px 8px', borderRadius: 12 }}>
                 {systemState?.current_model_version || 'v1.0'}
@@ -431,7 +433,7 @@ const DashboardPage: React.FC = () => {
           />
 
           {/* 数据表格 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
+          <div className="mobile-single-col-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${isMobile ? 280 : 300}px), 1fr))`, gap: isMobile ? 12 : 16 }}>
             <GameTable
               data={games}
               page={gamePage}

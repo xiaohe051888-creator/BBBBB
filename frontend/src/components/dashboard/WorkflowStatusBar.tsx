@@ -133,7 +133,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
   const config = getStatusConfig();
 
   return (
-    <div className="status-bar" style={{
+    <div className="status-bar workflow-status-main" style={{
       padding: '10px 20px',
       background: config.bgGradient,
       borderBottom: `1px solid ${config.borderColor}`,
@@ -143,7 +143,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       gap: 16,
       flexWrap: 'wrap', // 添加此属性以修复在手机端按钮溢出屏幕的问题
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="workflow-status-texts" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span style={{
           fontSize: 14,
           fontWeight: 700,
@@ -164,7 +164,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
 
       {/* 等待开奖或等待第一局录入时显示开奖按钮 */}
       {(hasPendingBet && systemState?.status === '等待开奖') && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="workflow-status-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* 工作流倒计时 */}
           {hasPendingBet && waitSeconds >= 0 && (
             <div style={{

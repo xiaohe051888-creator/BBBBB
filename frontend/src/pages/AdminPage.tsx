@@ -574,7 +574,7 @@ const AdminPage: React.FC = () => {
   ];
 
   return (
-    <div className="page-wrapper" style={{ padding: '16px' }}>
+    <div className="page-wrapper admin-page" style={{ padding: '16px' }}>
       {/* 顶部 */}
       <div className="page-nav-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div className="page-nav-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -591,7 +591,7 @@ const AdminPage: React.FC = () => {
           <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600 }}>管理员后台</span>
           <Tag color="blue">自动验证模式</Tag>
         </div>
-        <div className="page-nav-right" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="page-nav-right mobile-action-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Button icon={<Icons.Key />} onClick={() => setChangePwdVisible(true)} size="small">修改密码</Button>
           <Button danger icon={<Icons.Logout />} onClick={() => { clearToken(); navigate('/dashboard'); }} size="small">退出登录</Button>
         </div>
@@ -732,13 +732,14 @@ const AdminPage: React.FC = () => {
                     系统风险主要体现在下注金额上。您可以随时在此为系统增加或扣除测试余额。
                     当前系统余额：<span style={{ fontSize: 18, color: '#52c41a', fontWeight: 'bold' }}>{formatMoney(systemState?.balance)}</span>
                   </div>
-                  <Space style={{ display: 'flex', flexWrap: 'wrap' }}>
-                    <Input 
+                  <Space className="mobile-action-row" style={{ display: 'flex', flexWrap: 'wrap', width: '100%' }}>
+                      <Input 
                       placeholder="输入操作金额" 
                       type="number"
                       value={balanceAmount}
                       onChange={(e) => setBalanceAmount(e.target.value)}
-                      style={{ width: 200, maxWidth: '100%', background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+                        className="mobile-fill-control"
+                        style={{ width: 200, maxWidth: '100%', background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                     />
                     <Button 
                       type="primary" 
@@ -872,7 +873,7 @@ const AdminPage: React.FC = () => {
                         style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                       />
 
-                      <Space wrap>
+                      <Space wrap className="mobile-action-row" style={{ width: '100%' }}>
                         <Button
                           onClick={() => {
                             setSingleAiPredictionTemplate(DEFAULT_SINGLE_AI_PREDICTION_TEMPLATE);
@@ -929,11 +930,12 @@ const AdminPage: React.FC = () => {
 
                 {/* 模型版本列表 */}
                 <Card title="模型版本管理" size="small">
-                  <Space style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+                  <Space style={{ marginBottom: 12, flexWrap: 'wrap' }} className="mobile-action-row">
                     <span style={{ color: 'rgba(255,255,255,0.65)' }}>模式筛选</span>
                     <Select
                       value={modelVersionModeFilter}
                       onChange={setModelVersionModeFilter}
+                      className="mobile-fill-control"
                       style={{ width: 160 }}
                       options={[
                         { label: '全部', value: 'all' },
@@ -1081,7 +1083,7 @@ const AdminPage: React.FC = () => {
                   title="维护与清理"
                   size="small"
                   extra={
-                    <Space size={8}>
+                    <Space size={8} className="mobile-action-row">
                       <Button size="small" loading={maintenanceLoading} onClick={loadMaintenanceStats}>刷新统计</Button>
                       <Button size="small" danger onClick={runRetentionNow}>立即清理</Button>
                       <Button size="small" danger onClick={resetAllData}>清空全部数据</Button>
@@ -1133,11 +1135,12 @@ const AdminPage: React.FC = () => {
                 </Card>
 
                 <Card title="数据库记录查看" size="small">
-                  <Space style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                  <Space style={{ marginBottom: 16, flexWrap: 'wrap' }} className="mobile-action-row">
                     <span>选择表：</span>
                     <Select
                       value={dbTable}
                       onChange={(v) => { setDbTable(v); setDbPage(1); }}
+                      className="mobile-fill-control"
                       style={{ width: 160, maxWidth: '100%' }}
                       options={[
                         { label: '开奖记录', value: 'game_records' },
