@@ -38,6 +38,7 @@
 - 先按置信度得到基础金额曲线（已有 `compute_bet_amount(confidence, balance)`）
 - 再叠加连续失准衰减系数（错误越多越保守）：
   - `amount = base_amount * (error_decay ** consecutive_errors)`
+  - 默认建议：`error_decay = 0.6`（更猛：连错 1 次变为 60%，连错 2 次 36%，连错 3 次 21.6%）
 - 再叠加余额比例上限（避免在余额很大时一次押太重）：
   - `amount <= balance * max_balance_ratio`
 - 最终仍遵守：
