@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+if (!process.env.E2E_USE_MOCK) process.env.E2E_USE_MOCK = '1';
+
 const baseURL = process.env.E2E_BASE_URL || 'http://localhost:8011';
 
 export default defineConfig({
@@ -29,6 +31,7 @@ export default defineConfig({
     env: {
       ...process.env,
       E2E_TESTING: 'true',
+      E2E_USE_MOCK: process.env.E2E_USE_MOCK,
     },
   },
 });

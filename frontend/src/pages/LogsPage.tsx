@@ -519,7 +519,6 @@ const LogsPage: React.FC = () => {
 
   const exportToCSV = async () => {
     const exportLogs = await fetchExportLogs();
-    if (!exportLogs.length) { message.warning('暂无数据可导出'); return; }
     const headers = ['时间', '局号', '优先级', '类别', '事件', '小白解读', '解读摘要', '原始说明', '事件编码', '任务编号'];
     const rows = exportLogs.map(l => [
       l.log_time ? formatBeijing(l.log_time, 'YYYY-MM-DD HH:mm:ss') : '',
@@ -550,7 +549,6 @@ const LogsPage: React.FC = () => {
 
   const exportToJSON = async () => {
     const exportLogs = await fetchExportLogs();
-    if (!exportLogs.length) { message.warning('暂无数据可导出'); return; }
     const json = JSON.stringify(exportLogs, null, 2);
     try {
       downloadFile(json, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.json`, 'application/json');

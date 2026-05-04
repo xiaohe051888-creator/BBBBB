@@ -4,7 +4,7 @@
 
 **Goal:** 新增“测试专用重置/造数”能力 + 扩展 Playwright 真实用户流程 E2E，用自动化方式深挖并固化回归，覆盖配置/启用/上传/下注/开奖/结算/日志/任务/维护与异常恢复。
 
-**Architecture:** 后端新增仅在 `E2E_TESTING=true` 时启用的管理员测试路由（reset/seed），前端 Playwright E2E 通过这些路由实现用例隔离与稳定造数；E2E 默认真连外网 AI（用户选择），并提供 `E2E_USE_MOCK=1` 的稳定回归模式。
+**Architecture:** 后端新增仅在 `E2E_TESTING=true` 时启用的管理员测试路由（reset/seed），前端 Playwright E2E 通过这些路由实现用例隔离与稳定造数；E2E 默认使用本地 mock 上游（`E2E_USE_MOCK=1`），真实外网 AI 连通性用例仅在 `E2E_REAL_AI=1` 时执行。
 
 **Tech Stack:** FastAPI + SQLAlchemy(Async)；React + Antd；Playwright(@playwright/test)；Vitest
 
@@ -693,4 +693,3 @@ Expected: PASS
 2) Inline Execution：我在当前会话按 Task 顺序直接落地并跑全量测试
 
 选择哪一种？
-

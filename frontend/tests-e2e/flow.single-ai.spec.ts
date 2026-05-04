@@ -4,6 +4,7 @@ import { adminLoginAndInject, e2eSeedLogs } from './helpers';
 import { startMockOpenAI } from './mockOpenAI';
 
 test('单AI配置→测试→启用→日志页刷新与导出', async ({ page, baseURL }) => {
+  if (process.env.E2E_USE_MOCK === '0') test.skip(true, '已关闭 mock（E2E_USE_MOCK=0），跳过稳定回归用例');
   const mock = await startMockOpenAI();
   const token = await adminLoginAndInject(baseURL!, page);
 
