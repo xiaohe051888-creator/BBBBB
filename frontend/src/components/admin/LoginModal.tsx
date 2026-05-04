@@ -2,7 +2,7 @@
  * 管理员登录弹窗组件 - 精致图标、中文全站
  */
 import React, { useState } from 'react';
-import { Modal, Input, App } from 'antd';
+import { Modal, Input, App, Grid } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../../services/api';
 
@@ -35,6 +35,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { message } = App.useApp();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.sm;
   const navigate = useNavigate();
 
   const handleLogin = async () => {
@@ -68,20 +70,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
 
   return (
     <Modal
+      className="admin-login-modal"
       title={null}
       open={visible}
       onCancel={handleClose}
       footer={null}
       centered
       styles={{ mask: { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' } }}
-      width={400}
-      style={{ maxWidth: 'calc(100vw - 32px)' }}
+      width={isMobile ? 360 : 400}
+      style={{ maxWidth: 'calc(100vw - 20px)' }}
       closable={false}
     >
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+      <div style={{ textAlign: 'center', marginBottom: isMobile ? 20 : 24, paddingInline: isMobile ? 2 : 0 }}>
         <div style={{ 
-          width: 56,
-          height: 56,
+          width: isMobile ? 52 : 56,
+          height: isMobile ? 52 : 56,
           borderRadius: '50%',
           background: 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.08))',
           border: '1px solid rgba(255,215,0,0.3)',
@@ -93,8 +96,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
         }}>
           <Icons.Lock />
         </div>
-        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#fff' }}>管理员登录</h2>
-        <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>仅限授权人员访问</p>
+        <h2 style={{ margin: 0, fontSize: isMobile ? 17 : 18, fontWeight: 700, color: '#fff' }}>管理员登录</h2>
+        <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.4)', fontSize: isMobile ? 12 : 13, lineHeight: 1.5 }}>
+          仅限授权人员访问
+        </p>
       </div>
       <Input.Password
         value={password}
@@ -103,7 +108,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
         placeholder="请输入管理员密码"
         size="large"
         autoFocus
-        style={{ height: 48, borderRadius: 10, fontSize: 14 }}
+        style={{ height: isMobile ? 46 : 48, borderRadius: 10, fontSize: isMobile ? 13 : 14 }}
         styles={{ input: { color: '#fff' } }}
       />
       <button
@@ -112,12 +117,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
         style={{
           width: '100%',
           marginTop: 16,
-          padding: '14px 24px',
+          padding: isMobile ? '13px 18px' : '14px 24px',
           borderRadius: 10,
           border: 'none',
           background: 'linear-gradient(135deg, #ffd700, #f0b90b)',
           color: '#000',
-          fontSize: 15,
+          fontSize: isMobile ? 14 : 15,
           fontWeight: 700,
           cursor: loading || !password ? 'not-allowed' : 'pointer',
           opacity: loading ? 0.7 : 1,

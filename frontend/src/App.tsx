@@ -85,11 +85,11 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   const navItems = [
-    { key: 'home', Icon: NavIcons.Home, label: '首页总览', path: `/dashboard`, desc: '智能分析+五路图' },
-    { key: 'roadmap', Icon: NavIcons.Chart, label: '五路走势图', path: `/dashboard/roadmap`, desc: '大路·珠盘·下三路' },
-    { key: 'bets', Icon: NavIcons.Coin, label: '下注记录', path: `/dashboard/bets`, desc: '仿真下注流水' },
-    { key: 'logs', Icon: NavIcons.File, label: '实盘日志', path: `/dashboard/logs`, desc: '实时运行日志' },
-    { key: 'mistakes', Icon: NavIcons.Book, label: '错题本', path: `/dashboard/mistakes`, desc: '本靴复盘修正' },
+    { key: 'home', Icon: NavIcons.Home, label: '首页总览', mobileLabel: '总览', path: `/dashboard`, desc: '智能分析+五路图' },
+    { key: 'roadmap', Icon: NavIcons.Chart, label: '五路走势图', mobileLabel: '走势', path: `/dashboard/roadmap`, desc: '大路·珠盘·下三路' },
+    { key: 'bets', Icon: NavIcons.Coin, label: '下注记录', mobileLabel: '下注', path: `/dashboard/bets`, desc: '仿真下注流水' },
+    { key: 'logs', Icon: NavIcons.File, label: '实盘日志', mobileLabel: '日志', path: `/dashboard/logs`, desc: '实时运行日志' },
+    { key: 'mistakes', Icon: NavIcons.Book, label: '错题本', mobileLabel: '错题', path: `/dashboard/mistakes`, desc: '本靴复盘修正' },
   ];
 
   const getActiveKey = () => {
@@ -197,9 +197,14 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               key={item.key}
               className={`mobile-tab-item ${isActive ? 'active' : ''}`}
               onClick={() => handleNav(item.key)}
+              type="button"
+              aria-label={item.label}
+              aria-current={isActive ? 'page' : undefined}
             >
-              <span className="mobile-tab-icon"><IconComponent /></span>
-              <span>{item.label.replace('五路走势图', '走势').replace('首页总览', '总览')}</span>
+              <span className="mobile-tab-icon-shell">
+                <span className="mobile-tab-icon"><IconComponent /></span>
+              </span>
+              <span className="mobile-tab-text">{item.mobileLabel}</span>
             </button>
           );
         })}

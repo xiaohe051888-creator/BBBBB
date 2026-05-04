@@ -2,7 +2,7 @@
  * 开奖记录表格组件 - 自适应布局
  */
 import React from 'react';
-import { Table, Tag } from 'antd';
+import { Grid, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { formatSignedMoney } from '../../utils/money';
 
@@ -47,6 +47,9 @@ const GameTable: React.FC<GameTableProps> = ({
   total,
   onPageChange,
 }) => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const columns: ColumnsType<GameRecord> = React.useMemo(() => [
     {
       title: '局号',
@@ -132,16 +135,22 @@ const GameTable: React.FC<GameTableProps> = ({
 
   return (
     <Table
-      className="mobile-card-table"
+      className="mobile-card-table dashboard-game-table"
       dataSource={data}
       columns={columnsWithCell}
       rowKey="game_number"
       size="small"
       loading={loading}
       pagination={pagination}
-      scroll={{ x: 'max-content', y: 200 }}
+      scroll={{ x: 'max-content', y: isMobile ? undefined : 200 }}
       locale={{ emptyText: '暂无开奖记录' }}
       style={{ width: '100%' }}
+      title={() => (
+        <div className="dashboard-table-header">
+          <span className="dashboard-table-title">开奖记录</span>
+          <span className="dashboard-table-meta">当前页 {data.length} 条</span>
+        </div>
+      )}
     />
   );
 };

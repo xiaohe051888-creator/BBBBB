@@ -2,7 +2,7 @@
  * 实盘日志表格组件 - 自适应布局，无横向滚动
  */
 import React from 'react';
-import { Table, Space } from 'antd';
+import { Grid, Table, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { PRIORITY_COLORS } from '../../utils/constants';
@@ -59,6 +59,9 @@ const LogTable: React.FC<LogTableProps> = ({
   loading = false,
   scrollY = 240,
 }) => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const columns: ColumnsType<LogEntry> = React.useMemo(() => [
     {
       title: '时间',
@@ -118,6 +121,15 @@ const LogTable: React.FC<LogTableProps> = ({
     record.id ? String(record.id) : `log-${record.game_number || 0}-${record.event_code}-${record.log_time || ''}`
   ), []);
 
+  const columnsWithCell = React.useMemo(() => (
+    columns.map(col => ({
+      ...col,
+      onCell: () => ({
+        'data-label': typeof col.title === 'string' ? col.title : ''
+      } as React.HTMLAttributes<HTMLElement>)
+    }))
+  ), [columns]);
+
   const pagination = React.useMemo(() => ({
     pageSize: 100,
     showSizeChanger: true,
@@ -130,16 +142,23 @@ const LogTable: React.FC<LogTableProps> = ({
 
   return (
     <Table
+      className="mobile-card-table dashboard-log-table"
       dataSource={data}
-      columns={columns}
+      columns={columnsWithCell}
       rowKey={rowKey}
       size="small"
       loading={loading}
       pagination={pagination}
-      scroll={{ x: 'max-content', y: scrollY }}
+      scroll={{ x: 'max-content', y: isMobile ? undefined : scrollY }}
       locale={{ emptyText: '暂无日志记录' }}
       rowClassName={rowClassName}
       style={{ width: '100%' }}
+      title={() => (
+        <div className="dashboard-table-header">
+          <span className="dashboard-table-title">系统日志</span>
+          <span className="dashboard-table-meta">当前载入 {data.length} 条</span>
+        </div>
+      )}
     />
   );
 };
