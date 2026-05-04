@@ -7,7 +7,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Button, Card, Table, Tag, Space, Badge, Switch, App, Input, Select, Modal, List, Typography, Divider, Collapse, Grid,
+  Button, Card, Table, Tag, Space, Badge, Switch, App, Input, Select, Modal, Typography, Divider, Collapse, Grid,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -34,6 +34,12 @@ const Icons = {
 
 const priorityLabel = (v: string): string =>
   v === 'P0' ? '致命' : v === 'P1' ? '严重' : v === 'P2' ? '警告' : v === 'P3' ? '信息' : '未知';
+
+const simpleListStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+};
 
 
 type LogFilterBarProps = {
@@ -214,18 +220,19 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
           </Typography.Paragraph>
           <Divider style={{ margin: '8px 0' }} />
           <Typography.Text type="secondary">关键信息</Typography.Text>
-          <List
-            size="small"
-            dataSource={human.fieldsCn}
-            renderItem={(item) => (
-              <List.Item style={{ padding: '4px 0' }}>
+          <div style={simpleListStyle}>
+            {human.fieldsCn.map((item, index) => (
+              <div
+                key={`${item.label}-${index}`}
+                style={{ padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              >
                 <Space size={6} style={{ width: '100%', justifyContent: 'space-between' }}>
                   <span style={{ opacity: 0.75 }}>{item.label}</span>
                   <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{item.value}</span>
                 </Space>
-              </List.Item>
-            )}
-          />
+              </div>
+            ))}
+          </div>
           <Divider style={{ margin: '8px 0' }} />
           <Collapse
             size="small"
@@ -265,26 +272,30 @@ const LogTimeline: React.FC<LogTimelineProps> = ({ logs }) => {
 
   return (
     <Card size="small" title="最新动态" style={{ marginBottom: 12 }}>
-      <List
-        size="small"
-        dataSource={items}
-        locale={{ emptyText: '暂无数据' }}
-        renderItem={(l) => (
-          <List.Item style={{ padding: '6px 0' }}>
-            <Space size={8} style={{ width: '100%', justifyContent: 'space-between' }}>
-              <Space size={8}>
-                <Tag color={PRIORITY_COLORS[l.priority]} style={{ marginInlineEnd: 0 }}>
-                  {priorityLabel(l.priority)}
-                </Tag>
-                <span style={{ fontSize: 12 }}>{l.event_type || '-'}</span>
+      {items.length === 0 ? (
+        <Typography.Text type="secondary">暂无数据</Typography.Text>
+      ) : (
+        <div style={simpleListStyle}>
+          {items.map((l, index) => (
+            <div
+              key={`${l.id ?? l.log_time ?? 'log'}-${index}`}
+              style={{ padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <Space size={8} style={{ width: '100%', justifyContent: 'space-between' }}>
+                <Space size={8}>
+                  <Tag color={PRIORITY_COLORS[l.priority]} style={{ marginInlineEnd: 0 }}>
+                    {priorityLabel(l.priority)}
+                  </Tag>
+                  <span style={{ fontSize: 12 }}>{l.event_type || '-'}</span>
+                </Space>
+                <span style={{ fontSize: 11, opacity: 0.65 }}>
+                  {l.log_time ? dayjs(l.log_time).format('HH:mm:ss') : ''}
+                </span>
               </Space>
-              <span style={{ fontSize: 11, opacity: 0.65 }}>
-                {l.log_time ? dayjs(l.log_time).format('HH:mm:ss') : ''}
-              </span>
-            </Space>
-          </List.Item>
-        )}
-      />
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 };
@@ -302,19 +313,23 @@ const CategoryStats: React.FC<CategoryStatsProps> = ({ stats }) => {
 
   return (
     <Card size="small" title="类别分布">
-      <List
-        size="small"
-        dataSource={items}
-        locale={{ emptyText: '暂无数据' }}
-        renderItem={([k, v]) => (
-          <List.Item style={{ padding: '6px 0' }}>
-            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12 }}>{k || '未分类'}</span>
-              <Tag style={{ marginInlineEnd: 0 }}>{v}</Tag>
-            </Space>
-          </List.Item>
-        )}
-      />
+      {items.length === 0 ? (
+        <Typography.Text type="secondary">暂无数据</Typography.Text>
+      ) : (
+        <div style={simpleListStyle}>
+          {items.map(([k, v]) => (
+            <div
+              key={k || 'uncategorized'}
+              style={{ padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12 }}>{k || '未分类'}</span>
+                <Tag style={{ marginInlineEnd: 0 }}>{v}</Tag>
+              </Space>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 };

@@ -193,7 +193,7 @@ const withMobileTableLabels = (columns: any[]): any[] =>
   }));
 
 const AdminPage: React.FC = () => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -409,7 +409,7 @@ const AdminPage: React.FC = () => {
 
   const runRetentionNow = useCallback(async () => {
     const cfg = maintenanceStats?.config;
-    Modal.confirm({
+    modal.confirm({
       title: '确认立即执行清理？',
       content: cfg ? (
         <div>
@@ -433,10 +433,10 @@ const AdminPage: React.FC = () => {
         }
       },
     });
-  }, [loadMaintenanceStats, maintenanceStats?.config, message]);
+  }, [loadMaintenanceStats, maintenanceStats?.config, message, modal]);
 
   const resetAllData = useCallback(async () => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认清空全部数据？',
       content: (
         <div>
@@ -463,7 +463,7 @@ const AdminPage: React.FC = () => {
         }
       },
     });
-  }, [loadMaintenanceStats, message, navigate, queryClient]);
+  }, [loadMaintenanceStats, message, modal, navigate, queryClient]);
 
   const saveSingleAiPromptTemplates = useCallback(async () => {
     setSingleAiPromptSaving(true);
@@ -482,7 +482,7 @@ const AdminPage: React.FC = () => {
   }, [loadSingleAiPromptTemplates, message, singleAiPredictionTemplate, singleAiRealtimeStrategyTemplate]);
 
   const resetSingleAiPromptTemplates = useCallback(() => {
-    Modal.confirm({
+    modal.confirm({
       title: '恢复系统中文模板？',
       content: '将把当前模板直接替换为系统推荐的中文模板，并立即保存生效。',
       okText: '确认恢复',
@@ -504,7 +504,7 @@ const AdminPage: React.FC = () => {
         }
       },
     });
-  }, [loadSingleAiPromptTemplates, message]);
+  }, [loadSingleAiPromptTemplates, message, modal]);
 
   const [startLearningVisible, setStartLearningVisible] = useState(false);
 
@@ -860,7 +860,7 @@ const AdminPage: React.FC = () => {
                   {singleAiPromptLoading ? (
                     <Empty description="加载中..." />
                   ) : (
-                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                    <Space orientation="vertical" size={10} style={{ width: '100%' }}>
                       <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
                         单AI模式每一局都会自动分析、自动预测并自动下注。这里配置的是中文分析模板和等待开奖时的策略提炼模板，系统已经内置推荐中文版本。
                       </div>
@@ -1063,7 +1063,7 @@ const AdminPage: React.FC = () => {
                             danger
                             disabled={record.status !== 'running'}
                             onClick={() => {
-                              Modal.confirm({
+                              modal.confirm({
                                 title: '确认取消任务？',
                                 content: '取消后可能会导致本次学习/分析不完整，请谨慎操作。',
                                 okText: '确认取消',
@@ -1094,7 +1094,7 @@ const AdminPage: React.FC = () => {
             key: 'db',
             label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Database /> {isMobile ? '数据库' : '数据库存储'}</span>,
             children: (
-              <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
                 <Card
                   title="维护与清理"
                   size="small"
