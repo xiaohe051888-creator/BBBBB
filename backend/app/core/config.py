@@ -12,6 +12,7 @@ class Settings:
     APP_VERSION: str = "2.0.0"
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+    E2E_TESTING: bool = os.getenv("E2E_TESTING", "false").lower() == "true"
     
     # 服务器配置
     HOST: str = os.getenv("HOST", "0.0.0.0")

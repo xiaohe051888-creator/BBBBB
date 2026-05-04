@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-import { adminLoginAndInject } from './helpers';
+import { adminLoginAndInject, e2eSeedLogs } from './helpers';
 import { startMockOpenAI } from './mockOpenAI';
 
 test('单AI配置→测试→启用→日志页刷新与导出', async ({ page, baseURL }) => {
   const mock = await startMockOpenAI();
-  await adminLoginAndInject(baseURL!, page);
+  const token = await adminLoginAndInject(baseURL!, page);
 
   await page.goto('/admin', { waitUntil: 'networkidle' });
 
@@ -37,6 +37,8 @@ test('单AI配置→测试→启用→日志页刷新与导出', async ({ page, 
   await expect(page.getByText(/已切换至.*单AI模式/)).toBeVisible();
 
   await page.goto('/dashboard/logs', { waitUntil: 'networkidle' });
+
+  await e2eSeedLogs(baseURL!, token, { boot_number: 1, game_number: 1, count: 50, priority: 'P3' });
 
   await page.getByRole('button', { name: '刷新' }).click();
   await expect(page.getByText('已刷新')).toBeVisible();
