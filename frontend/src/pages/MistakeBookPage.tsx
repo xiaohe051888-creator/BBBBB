@@ -470,13 +470,13 @@ const MistakeBookPage: React.FC = () => {
               styles={{ header: { background: '#161b22', color: '#e6edf3' } }}
             >
               {selectedMistake.banker_summary && (
-                <Alert type="error" message="庄模型" description={selectedMistake.banker_summary} style={{ marginBottom: 8 }} />
+                <Alert type="error" title="庄模型" description={selectedMistake.banker_summary} style={{ marginBottom: 8 }} />
               )}
               {selectedMistake.player_summary && (
-                <Alert type="warning" message="闲模型" description={selectedMistake.player_summary} style={{ marginBottom: 8 }} />
+                <Alert type="warning" title="闲模型" description={selectedMistake.player_summary} style={{ marginBottom: 8 }} />
               )}
               {selectedMistake.combined_summary && (
-                <Alert type="error" message="综合模型" description={selectedMistake.combined_summary} />
+                <Alert type="error" title="综合模型" description={selectedMistake.combined_summary} />
               )}
               {!selectedMistake.banker_summary && !selectedMistake.player_summary && !selectedMistake.combined_summary && (
                 <span style={{ color: '#555' }}>无AI模型分析摘要</span>

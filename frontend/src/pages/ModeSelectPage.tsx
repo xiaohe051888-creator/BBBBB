@@ -110,7 +110,7 @@ const ModeSelectPage: React.FC = () => {
                 {readiness.aiReady ? <Tag color="success">可用</Tag> : <Tag color="error">不可用</Tag>}
               </div>
               {!readiness.aiReady && readiness.missing3Ai.length > 0 && (
-                <Alert type="warning" showIcon message={`原因：${readiness.missing3Ai.join('、')}`} />
+                <Alert type="warning" showIcon title={`原因：${readiness.missing3Ai.join('、')}`} />
               )}
             </div>
             <Button type="primary" loading={loading} disabled={!readiness.aiReady || loading} onClick={() => applyMode('ai')}>
@@ -126,7 +126,7 @@ const ModeSelectPage: React.FC = () => {
                 {readiness.singleReady ? <Tag color="success">可用</Tag> : <Tag color="error">不可用</Tag>}
               </div>
               {!readiness.singleReady && readiness.missingSingle.length > 0 && (
-                <Alert type="warning" showIcon message={`原因：${readiness.missingSingle.join('、')}`} />
+                <Alert type="warning" showIcon title={`原因：${readiness.missingSingle.join('、')}`} />
               )}
             </div>
             <Button type="primary" loading={loading} disabled={!readiness.singleReady || loading} onClick={() => applyMode('single_ai')}>

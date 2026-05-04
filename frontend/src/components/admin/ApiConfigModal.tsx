@@ -233,7 +233,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       {testResult && (
         <Alert 
           type={testResult.success ? 'success' : 'error'}
-          message={testResult.success ? '测试通过' : '测试失败'}
+          title={testResult.success ? '测试通过' : '测试失败'}
           description={testResult.message}
           showIcon
           style={{ marginTop: 16 }}
