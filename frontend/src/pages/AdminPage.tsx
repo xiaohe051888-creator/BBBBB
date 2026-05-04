@@ -728,7 +728,7 @@ const AdminPage: React.FC = () => {
                         value={singleAiPredictionTemplate}
                         onChange={(e) => setSingleAiPredictionTemplate(e.target.value)}
                         autoSize={{ minRows: 8, maxRows: 16 }}
-                        placeholder="支持占位符：{{BOOT_NUMBER}} {{GAME_NUMBER}} {{CONSECUTIVE_ERRORS}} {{GAME_HISTORY}} {{ROAD_DATA}} {{MISTAKE_CONTEXT}}"
+                        placeholder="支持占位符：{{BOOT_NUMBER}} {{GAME_NUMBER}} {{CONSECUTIVE_ERRORS}} {{GAME_HISTORY}} {{ROAD_FEATURES}} {{ROAD_DATA}} {{MISTAKE_CONTEXT}}"
                         style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                       />
 

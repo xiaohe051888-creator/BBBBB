@@ -16,6 +16,7 @@ class SingleModelService:
         road_data: dict[str, Any],
         mistake_context: list[dict[str, Any]],
         consecutive_errors: int,
+        road_features: Optional[dict[str, Any]] = None,
         prompt_template: Optional[str] = None,
     ) -> Dict[str, Any]:
         if prompt_template:
@@ -25,6 +26,7 @@ class SingleModelService:
                 boot_number=boot_number,
                 game_history=game_history,
                 road_data=road_data,
+                road_features=road_features,
                 mistake_context=mistake_context,
                 consecutive_errors=consecutive_errors,
             )
@@ -34,6 +36,7 @@ class SingleModelService:
                 boot_number=boot_number,
                 game_history=game_history,
                 road_data=road_data,
+                road_features=road_features,
                 mistake_context=mistake_context,
                 consecutive_errors=consecutive_errors,
             )
@@ -95,17 +98,21 @@ class SingleModelService:
         road_data: dict[str, Any],
         mistake_context: list[dict[str, Any]],
         consecutive_errors: int,
+        road_features: Optional[dict[str, Any]] = None,
     ) -> str:
         encoded_road_data = jsonable_encoder(road_data)
+        encoded_road_features = jsonable_encoder(road_features) if road_features else None
         encoded_mistakes = jsonable_encoder(mistake_context)
         return (
             "你是百家乐分析预测引擎。请基于当前靴的全量历史局与全量五路走势图，预测下一局庄/闲。\n"
+            "你必须逐路核对五条路（大路/珠盘路/大眼仔/小路/螳螂），并先使用五路特征摘要进行投票汇总，再结合全量五路点位解释。\n"
             "输出必须是严格 JSON（不要任何额外文字），字段如下：\n"
             '{"final_prediction":"庄或闲","confidence":0-1,"bet_tier":"保守/标准/激进","summary":"一句话摘要","reasoning_points":["要点1","要点2"],"reasoning_detail":"更详细的解释版推理"}\n'
             f"靴号: {boot_number}\n"
             f"局号: {game_number}\n"
             f"连续失准: {consecutive_errors}\n"
             f"历史: {json.dumps(game_history, ensure_ascii=False)}\n"
+            f"五路特征摘要: {json.dumps(encoded_road_features, ensure_ascii=False) if encoded_road_features else ''}\n"
             f"五路: {json.dumps(encoded_road_data, ensure_ascii=False)}\n"
             f"错题: {json.dumps(encoded_mistakes, ensure_ascii=False)}\n"
         )
@@ -119,8 +126,10 @@ class SingleModelService:
         road_data: dict[str, Any],
         mistake_context: list[dict[str, Any]],
         consecutive_errors: int,
+        road_features: Optional[dict[str, Any]] = None,
     ) -> str:
         encoded_road_data = jsonable_encoder(road_data)
+        encoded_road_features = jsonable_encoder(road_features) if road_features else None
         encoded_mistakes = jsonable_encoder(mistake_context)
         rendered = (
             prompt_template
@@ -128,6 +137,7 @@ class SingleModelService:
             .replace("{{GAME_NUMBER}}", str(game_number))
             .replace("{{CONSECUTIVE_ERRORS}}", str(consecutive_errors))
             .replace("{{GAME_HISTORY}}", json.dumps(game_history, ensure_ascii=False))
+            .replace("{{ROAD_FEATURES}}", json.dumps(encoded_road_features, ensure_ascii=False) if encoded_road_features else "")
             .replace("{{ROAD_DATA}}", json.dumps(encoded_road_data, ensure_ascii=False))
             .replace("{{MISTAKE_CONTEXT}}", json.dumps(encoded_mistakes, ensure_ascii=False))
         )

@@ -185,12 +185,20 @@ async def run_ai_analysis(
         }
     elif prediction_mode == "single_ai":
         try:
+            from app.services.game.road_features import build_road_features
+            road_features = build_road_features(
+                boot_number=boot_number,
+                game_number=next_game_number,
+                game_history=game_history,
+                road_data=road_data,
+            )
             ai_service = SingleModelService()
             analysis_result = await ai_service.analyze(
                 game_number=next_game_number,
                 boot_number=boot_number,
                 game_history=game_history,
                 road_data=road_data,
+                road_features=road_features,
                 mistake_context=mistake_context,
                 consecutive_errors=consecutive_errors,
                 prompt_template=prompt_template,
