@@ -41,9 +41,6 @@ async def end_boot(
             existing_boot = result.scalar_one_or_none() or 0
             next_boot = max(current_boot, existing_boot) + 1
 
-            await db.execute(delete(MistakeBook))
-            await db.execute(delete(AIMemory))
-
             sess.boot_number = next_boot
             sess.next_game_number = 1
             sess.status = "空闲"

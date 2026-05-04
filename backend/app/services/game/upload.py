@@ -156,8 +156,6 @@ async def upload_games(
                 boot_number = existing_boot + 1
                 # 开启新靴，不需要清理上靴数据
                 await _reset_table_data(db, boot_number=None)
-                await db.execute(delete(MistakeBook))
-                await db.execute(delete(AIMemory))
             else:
                 # 覆盖当前靴
                 boot_number = existing_boot if existing_boot > 0 else 1

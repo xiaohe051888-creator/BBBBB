@@ -23,7 +23,7 @@
 ## 摘要
 
 - P0：0（已修复 2）
-- P1：1（待确认 1 / 已修复 2）
+- P1：0（已修复 3）
 - P2：0（已修复 2）
 - P3：0（已修复 1）
 
@@ -113,7 +113,7 @@
 
 ---
 
-### ISSUE-007（P1，待确认）：上传“开启新靴”会清空全表 MistakeBook/AIMemory，可能与“跨靴复盘/学习”目标冲突
+### ISSUE-007（P1）：开启新靴/结束本靴会清空 MistakeBook/AIMemory（历史资产误删风险）
 
 **现象**
 - `mode="new_boot"` 时对 `MistakeBook` 与 `AIMemory` 直接全表删除（非按 boot 删除），属于不可逆清理。
@@ -123,9 +123,10 @@
 - 如果产品期望“每靴独立”，则该行为合理，但需要在 UI 上更强提示（“将清空历史错题/记忆”）。
 
 **状态**
-- 待你确认产品语义（跨靴保留 vs 每靴独立），确认后再决定：
-  - 改为按 `boot_number` 清理；或
-  - 保留现状但强化提示/二次确认。
+- 已修复（采用跨靴保留）：
+  - new_boot 不再全表删除 MistakeBook/AIMemory：[upload.py](file:///workspace/backend/app/services/game/upload.py#L155-L166)
+  - end_boot 不再全表删除 MistakeBook/AIMemory：[boot.py](file:///workspace/backend/app/services/game/boot.py#L19-L70)
+  - 新增/更新回归用例：[test_new_boot_preserves_cross_boot_assets.py](file:///workspace/backend/tests/test_new_boot_preserves_cross_boot_assets.py) / [test_boot_change_clears_micro_learning.py](file:///workspace/backend/tests/test_boot_change_clears_micro_learning.py)
 
 ---
 

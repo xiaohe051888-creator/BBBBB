@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 
 class BootChangeClearsMicroLearningTest(unittest.TestCase):
-    def test_new_boot_upload_clears_mistakes_and_memories(self):
+    def test_new_boot_upload_preserves_mistakes_and_memories(self):
         async def _run():
             from datetime import datetime
             from sqlalchemy import select, func
@@ -64,19 +64,27 @@ class BootChangeClearsMicroLearningTest(unittest.TestCase):
                 )
                 await s.commit()
 
-                mb_cnt = (await s.execute(select(func.count()).select_from(MistakeBook))).scalar() or 0
-                mem_cnt = (await s.execute(select(func.count()).select_from(AIMemory))).scalar() or 0
+                mb_cnt = (
+                    (await s.execute(select(func.count()).select_from(MistakeBook).where(MistakeBook.boot_number == seed["boot_number"])))
+                    .scalar()
+                    or 0
+                )
+                mem_cnt = (
+                    (await s.execute(select(func.count()).select_from(AIMemory).where(AIMemory.boot_number == seed["boot_number"])))
+                    .scalar()
+                    or 0
+                )
                 gr_cnt_boot1 = (await s.execute(select(func.count()).select_from(GameRecord).where(GameRecord.boot_number == seed["boot_number"]))).scalar() or 0
 
             return seed["boot_number"], res["boot_number"], mb_cnt, mem_cnt, gr_cnt_boot1
 
         seed_boot, boot_number, mb_cnt, mem_cnt, gr_cnt_boot1 = asyncio.run(_run())
         self.assertEqual(boot_number, seed_boot + 1)
-        self.assertEqual(mb_cnt, 0)
-        self.assertEqual(mem_cnt, 0)
+        self.assertEqual(mb_cnt, 1)
+        self.assertEqual(mem_cnt, 1)
         self.assertEqual(gr_cnt_boot1, 3)
 
-    def test_end_boot_clears_mistakes_and_memories(self):
+    def test_end_boot_preserves_mistakes_and_memories(self):
         async def _run():
             from datetime import datetime
             from sqlalchemy import select, func
@@ -133,15 +141,23 @@ class BootChangeClearsMicroLearningTest(unittest.TestCase):
                 await s.commit()
 
             async with async_session() as s:
-                mb_cnt = (await s.execute(select(func.count()).select_from(MistakeBook))).scalar() or 0
-                mem_cnt = (await s.execute(select(func.count()).select_from(AIMemory))).scalar() or 0
+                mb_cnt = (
+                    (await s.execute(select(func.count()).select_from(MistakeBook).where(MistakeBook.boot_number == current_boot)))
+                    .scalar()
+                    or 0
+                )
+                mem_cnt = (
+                    (await s.execute(select(func.count()).select_from(AIMemory).where(AIMemory.boot_number == current_boot)))
+                    .scalar()
+                    or 0
+                )
 
             return current_boot, res["boot_number"], mb_cnt, mem_cnt
 
         current_boot, boot_number, mb_cnt, mem_cnt = asyncio.run(_run())
         self.assertEqual(boot_number, current_boot + 1)
-        self.assertEqual(mb_cnt, 0)
-        self.assertEqual(mem_cnt, 0)
+        self.assertEqual(mb_cnt, 1)
+        self.assertEqual(mem_cnt, 1)
 
 
 if __name__ == "__main__":
