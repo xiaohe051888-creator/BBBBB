@@ -469,7 +469,16 @@ const AdminPage: React.FC = () => {
       {/* 顶部 */}
       <div className="page-nav-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div className="page-nav-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Button icon={<Icons.Back />} onClick={() => navigate('/dashboard')} size="small">返回总览</Button>
+          <Button
+            icon={<Icons.Back />}
+            onClick={() => {
+              const selected = localStorage.getItem('mode_selected') === '1';
+              navigate(selected ? '/dashboard' : '/mode');
+            }}
+            size="small"
+          >
+            返回总览
+          </Button>
           <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600 }}>管理员后台</span>
           <Tag color="blue">自动验证模式</Tag>
         </div>

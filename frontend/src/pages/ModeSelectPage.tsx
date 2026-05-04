@@ -85,7 +85,19 @@ const ModeSelectPage: React.FC = () => {
           </div>
         </div>
         <Space wrap>
-          <Button onClick={() => navigate('/dashboard')} disabled={loading || statusLoading}>返回总览</Button>
+          <Button
+            onClick={() => {
+              const selected = localStorage.getItem('mode_selected') === '1';
+              if (!selected) {
+                message.warning('请先选择模式后再进入总览');
+                return;
+              }
+              navigate('/dashboard');
+            }}
+            disabled={loading || statusLoading}
+          >
+            返回总览
+          </Button>
           <Button onClick={reloadStatus} loading={statusLoading} disabled={loading}>刷新状态</Button>
         </Space>
       </div>
