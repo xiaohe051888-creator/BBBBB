@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, select, or_
 from sqlalchemy.engine.url import make_url
 
 from app.api.routes.utils import get_current_user
@@ -99,7 +99,12 @@ async def maintenance_alerts(
     async with async_session() as session:
         q = (
             select(SystemLog)
-            .where(SystemLog.priority == "P1", SystemLog.log_time >= cutoff)
+            .where(
+                SystemLog.priority == "P1",
+                SystemLog.log_time >= cutoff,
+                or_(SystemLog.event_code.is_(None), SystemLog.event_code.notlike("TEST-%")),
+                or_(SystemLog.category.is_(None), SystemLog.category != "测试"),
+            )
             .order_by(SystemLog.log_time.desc())
             .limit(int(limit))
         )
