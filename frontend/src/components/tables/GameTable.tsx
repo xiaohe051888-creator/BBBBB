@@ -47,10 +47,10 @@ const GameTable: React.FC<GameTableProps> = ({
   total,
   onPageChange,
 }) => {
-  const columns: ColumnsType<GameRecord> = [
-    { 
-      title: '局号', 
-      dataIndex: 'game_number', 
+  const columns: ColumnsType<GameRecord> = React.useMemo(() => [
+    {
+      title: '局号',
+      dataIndex: 'game_number',
       width: '15%',
       align: 'center',
     },
@@ -68,9 +68,9 @@ const GameTable: React.FC<GameTableProps> = ({
         </Tag>
       ),
     },
-    { 
-      title: '预测', 
-      dataIndex: 'predict_direction', 
+    {
+      title: '预测',
+      dataIndex: 'predict_direction',
       width: '15%',
       align: 'center',
       render: (v: string | null) => v || '-',
@@ -110,29 +110,35 @@ const GameTable: React.FC<GameTableProps> = ({
         </span>
       ),
     },
-  ];
+  ], []);
+
+  const columnsWithCell = React.useMemo(() => (
+    columns.map(col => ({
+      ...col,
+      onCell: () => ({
+        'data-label': typeof col.title === 'string' ? col.title : ''
+      } as React.HTMLAttributes<HTMLElement>)
+    }))
+  ), [columns]);
+
+  const pagination = React.useMemo(() => ({
+    current: page,
+    pageSize: 5,
+    total: total || data.length,
+    onChange: onPageChange,
+    size: 'small' as const,
+    showTotal: (t: number) => `共 ${t} 条`,
+  }), [page, total, data.length, onPageChange]);
 
   return (
     <Table
       className="mobile-card-table"
       dataSource={data}
-      columns={columns.map(col => ({
-        ...col,
-        onCell: () => ({
-          'data-label': typeof col.title === 'string' ? col.title : ''
-        } as React.HTMLAttributes<HTMLElement>)
-      }))}
+      columns={columnsWithCell}
       rowKey="game_number"
       size="small"
       loading={loading}
-      pagination={{
-        current: page,
-        pageSize: 5,
-        total: total || data.length,
-        onChange: onPageChange,
-        size: 'small',
-        showTotal: (t) => `共 ${t} 条`,
-      }}
+      pagination={pagination}
       scroll={{ x: 'max-content', y: 200 }}
       locale={{ emptyText: '暂无开奖记录' }}
       style={{ width: '100%' }}

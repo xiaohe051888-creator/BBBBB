@@ -5,7 +5,7 @@
  *
  * 优化：乐观UI策略 - 数据立即显示，后台静默刷新，零等待体验
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Progress, Space, Tag } from 'antd';
 import { getToken } from '../services/api';
 import { MAX_GAMES_PER_BOOT } from '../utils/constants';
@@ -256,6 +256,7 @@ const DashboardPage: React.FC = () => {
   const [revealVisible, setRevealVisible] = useState(false);
   const [revealResult, setRevealResult] = useState<'庄' | '闲' | '和' | ''>('');
   const [revealLoading, setRevealLoading] = useState(false);
+  const closeReveal = useCallback(() => setRevealVisible(false), []);
 
   // 管理员登录
   const [loginVisible, setLoginVisible] = useState(false);
@@ -453,8 +454,18 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* 弹窗 */}
-      <RevealModal visible={revealVisible} onCancel={() => setRevealVisible(false)} result={revealResult} setResult={setRevealResult} onConfirm={handleConfirmReveal} loading={revealLoading} gameNumber={systemState?.pending_bet?.game_number ?? systemState?.next_game_number} />
-      <LoginModal visible={loginVisible} onCancel={closeLogin} onSuccess={closeLogin} />
+      {(revealVisible || revealLoading) && (
+        <RevealModal
+          visible={true}
+          onCancel={closeReveal}
+          result={revealResult}
+          setResult={setRevealResult}
+          onConfirm={handleConfirmReveal}
+          loading={revealLoading}
+          gameNumber={systemState?.pending_bet?.game_number ?? systemState?.next_game_number}
+        />
+      )}
+      {loginVisible && <LoginModal visible={true} onCancel={closeLogin} onSuccess={closeLogin} />}
     </div>
   );
 };

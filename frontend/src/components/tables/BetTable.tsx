@@ -40,10 +40,10 @@ const BetTable: React.FC<BetTableProps> = ({
   total,
   onPageChange,
 }) => {
-  const columns: ColumnsType<BetRecord> = [
-    { 
-      title: '局号', 
-      dataIndex: 'game_number', 
+  const columns: ColumnsType<BetRecord> = React.useMemo(() => [
+    {
+      title: '局号',
+      dataIndex: 'game_number',
       width: '15%',
       align: 'center',
     },
@@ -56,9 +56,9 @@ const BetTable: React.FC<BetTableProps> = ({
         <Tag color={v === '庄' ? '#ff4d4f' : '#1890ff'} style={{ fontSize: 12, fontWeight: 600 }}>{v}</Tag>
       ),
     },
-    { 
-      title: '金额', 
-      dataIndex: 'bet_amount', 
+    {
+      title: '金额',
+      dataIndex: 'bet_amount',
       width: '20%',
       align: 'center',
       render: (v: number) => <span style={{ fontWeight: 500 }}>{v}</span>,
@@ -90,29 +90,35 @@ const BetTable: React.FC<BetTableProps> = ({
           <span style={{ color: '#555' }}>-</span>
         ),
     },
-  ];
+  ], []);
+
+  const columnsWithCell = React.useMemo(() => (
+    columns.map(col => ({
+      ...col,
+      onCell: () => ({
+        'data-label': typeof col.title === 'string' ? col.title : ''
+      } as React.HTMLAttributes<HTMLElement>)
+    }))
+  ), [columns]);
+
+  const pagination = React.useMemo(() => ({
+    current: page,
+    pageSize: 5,
+    total: total || data.length,
+    onChange: onPageChange,
+    size: 'small' as const,
+    showTotal: (t: number) => `共 ${t} 条`,
+  }), [page, total, data.length, onPageChange]);
 
   return (
     <Table
       className="mobile-card-table"
       dataSource={data}
-      columns={columns.map(col => ({
-        ...col,
-        onCell: () => ({
-          'data-label': typeof col.title === 'string' ? col.title : ''
-        } as React.HTMLAttributes<HTMLElement>)
-      }))}
+      columns={columnsWithCell}
       rowKey={(r) => String(r.id)}
       size="small"
       loading={loading}
-      pagination={{
-        current: page,
-        pageSize: 5,
-        total: total || data.length,
-        onChange: onPageChange,
-        size: 'small',
-        showTotal: (t) => `共 ${t} 条`,
-      }}
+      pagination={pagination}
       scroll={{ x: 'max-content', y: 200 }}
       locale={{ emptyText: '暂无下注记录' }}
       style={{ width: '100%' }}

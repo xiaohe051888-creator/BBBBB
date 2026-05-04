@@ -59,7 +59,7 @@ const LogTable: React.FC<LogTableProps> = ({
   loading = false,
   scrollY = 240,
 }) => {
-  const columns: ColumnsType<LogEntry> = [
+  const columns: ColumnsType<LogEntry> = React.useMemo(() => [
     {
       title: '时间',
       dataIndex: 'log_time',
@@ -112,23 +112,33 @@ const LogTable: React.FC<LogTableProps> = ({
         <span style={{ fontSize: 12, color: '#c9d1d9', lineHeight: 1.4 }}>{v}</span>
       ),
     },
-  ];
+  ], []);
+
+  const rowKey = React.useCallback((record: LogEntry) => (
+    record.id ? String(record.id) : `log-${record.game_number || 0}-${record.event_code}-${record.log_time || ''}`
+  ), []);
+
+  const pagination = React.useMemo(() => ({
+    pageSize: 100,
+    showSizeChanger: true,
+    pageSizeOptions: ['50', '100', '500'],
+  }), []);
+
+  const rowClassName = React.useCallback((record: LogEntry) => (
+    record.is_pinned ? 'log-pinned-row' : ''
+  ), []);
 
   return (
     <Table
       dataSource={data}
       columns={columns}
-      rowKey={(record) => record.id ? String(record.id) : `log-${record.game_number || 0}-${record.event_code}-${record.log_time || ''}`}
+      rowKey={rowKey}
       size="small"
       loading={loading}
-      pagination={{
-        pageSize: 100, // 启用分页，限制单页最大 DOM 渲染数量，防止浏览器假死
-        showSizeChanger: true,
-        pageSizeOptions: ['50', '100', '500'],
-      }}
+      pagination={pagination}
       scroll={{ x: 'max-content', y: scrollY }}
       locale={{ emptyText: '暂无日志记录' }}
-      rowClassName={(record) => (record.is_pinned ? 'log-pinned-row' : '')}
+      rowClassName={rowClassName}
       style={{ width: '100%' }}
     />
   );

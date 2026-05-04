@@ -20,7 +20,7 @@ interface DashboardHeaderProps {
     next_game_number?: number;
     current_game_result?: string | null;
     predict_direction?: string | null;
-    balance?: number;
+    balance?: number | null;
     current_model_version?: string | null;
     pending_bet?: {
       game_number: number;

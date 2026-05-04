@@ -233,6 +233,14 @@ const RequireModeSelected: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 const App: React.FC = () => {
+  React.useEffect(() => {
+    const handleAuthChanged = () => {
+      queryClient.clear();
+    };
+    window.addEventListener('auth_token_changed', handleAuthChanged);
+    return () => window.removeEventListener('auth_token_changed', handleAuthChanged);
+  }, []);
+
   return (
     <PageErrorBoundary>
       <QueryClientProvider client={queryClient}>

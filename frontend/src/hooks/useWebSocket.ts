@@ -35,6 +35,12 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
     onReconnect,
   } = options;
 
+  const hasStateUpdate = !!onStateUpdate;
+  const hasLog = !!onLog;
+  const hasAnalysis = !!onAnalysis;
+  const hasGameRevealed = !!onGameRevealed;
+  const hasBetPlaced = !!onBetPlaced;
+
   const [connectionState, setConnectionState] = useState<WsConnectionState>('closed');
   // 使用 ref 存储回调函数，避免闭包问题
   const callbacksRef = useRef({
@@ -83,16 +89,16 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketReturn =
       }
     }));
 
-    if (onStateUpdate) unsubs.push(wsBus.subscribe('state_update', (data) => callbacksRef.current.onStateUpdate?.(data as any)));
-    if (onLog) unsubs.push(wsBus.subscribe('log', (data) => callbacksRef.current.onLog?.(data as any)));
-    if (onAnalysis) unsubs.push(wsBus.subscribe('ai_analysis', (data) => callbacksRef.current.onAnalysis?.(data as any)));
-    if (onGameRevealed) unsubs.push(wsBus.subscribe('game_revealed', (data) => callbacksRef.current.onGameRevealed?.(data as any)));
-    if (onBetPlaced) unsubs.push(wsBus.subscribe('bet_placed', (data) => callbacksRef.current.onBetPlaced?.(data as any)));
+    if (hasStateUpdate) unsubs.push(wsBus.subscribe('state_update', (data) => callbacksRef.current.onStateUpdate?.(data as any)));
+    if (hasLog) unsubs.push(wsBus.subscribe('log', (data) => callbacksRef.current.onLog?.(data as any)));
+    if (hasAnalysis) unsubs.push(wsBus.subscribe('ai_analysis', (data) => callbacksRef.current.onAnalysis?.(data as any)));
+    if (hasGameRevealed) unsubs.push(wsBus.subscribe('game_revealed', (data) => callbacksRef.current.onGameRevealed?.(data as any)));
+    if (hasBetPlaced) unsubs.push(wsBus.subscribe('bet_placed', (data) => callbacksRef.current.onBetPlaced?.(data as any)));
 
     return () => {
       unsubs.forEach((fn) => fn());
     };
-  }, [onStateUpdate, onLog, onAnalysis, onGameRevealed, onBetPlaced]);
+  }, [hasStateUpdate, hasLog, hasAnalysis, hasGameRevealed, hasBetPlaced]);
 
   const reconnect = useCallback(() => {
     wsBus.reconnectNow();

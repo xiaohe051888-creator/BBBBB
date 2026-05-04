@@ -42,11 +42,19 @@ const RevealModal: React.FC<RevealModalProps> = ({
   loading,
   gameNumber,
 }) => {
-  const results: Array<{ value: '庄' | '闲' | '和'; label: string; sublabel: string; color: string; bg: string }> = [
+  const results: Array<{ value: '庄' | '闲' | '和'; label: string; sublabel: string; color: string; bg: string }> = React.useMemo(() => ([
     { value: '庄', label: '庄赢', sublabel: 'Banker', color: '#ff4d4f', bg: 'rgba(255,77,79,0.15)' },
     { value: '闲', label: '闲赢', sublabel: 'Player', color: '#1890ff', bg: 'rgba(24,144,255,0.15)' },
     { value: '和', label: '和局', sublabel: 'Tie', color: '#52c41a', bg: 'rgba(82,196,26,0.15)' },
-  ];
+  ]), []);
+
+  const modalStyles = React.useMemo(() => ({
+    mask: { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' }
+  }), []);
+
+  const modalOuterStyle = React.useMemo(() => ({
+    maxWidth: 'calc(100vw - 32px)'
+  }), []);
 
   // 键盘快捷键支持
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -96,10 +104,10 @@ const RevealModal: React.FC<RevealModalProps> = ({
       onCancel={onCancel}
       footer={null}
       width={400}
-      style={{ maxWidth: 'calc(100vw - 32px)' }}
+      style={modalOuterStyle}
       centered
       closable={false}
-      styles={{ mask: { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.75)' } }}
+      styles={modalStyles}
     >
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <div style={{ 
