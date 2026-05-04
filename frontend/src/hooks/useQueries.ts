@@ -76,6 +76,7 @@ interface UseLogsQueryOptions {
 export const useLogsQuery = (options: UseLogsQueryOptions) => {
   const { category, taskId, priority, q, page = 1, pageSize = 50, enabled = true } = options;
   const queryClient = useQueryClient();
+  const authed = !!api.getToken();
 
   return useQuery<{
     logs: LogEntry[];
@@ -96,7 +97,7 @@ export const useLogsQuery = (options: UseLogsQueryOptions) => {
         total: res.data.total || 0,
       };
     },
-    enabled: enabled,
+    enabled: enabled && authed,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
             return queryClient.getQueryData(queryKeys.logs(category, taskId, priority, q, page, pageSize)) || { logs: [], total: 0 };
@@ -152,6 +153,7 @@ interface UseBetsQueryOptions {
 export const useBetsQuery = (options: UseBetsQueryOptions) => {
   const { page = 1, pageSize = 20, enabled = true } = options;
   const queryClient = useQueryClient();
+  const authed = !!api.getToken();
 
   return useQuery<{
     bets: BetRecord[];
@@ -168,7 +170,7 @@ export const useBetsQuery = (options: UseBetsQueryOptions) => {
         total: res.data.total || 0,
       };
     },
-    enabled: enabled,
+    enabled: enabled && authed,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
             return queryClient.getQueryData(queryKeys.bets(page)) || { bets: [], total: 0 };

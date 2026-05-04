@@ -25,7 +25,7 @@ export default defineConfig({
   webServer: {
     command: 'python -m uvicorn app.api.main:app --host 0.0.0.0 --port 8011 --log-level warning',
     url: `${baseURL}/`,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     cwd: '../backend',
     timeout: 60_000,
     env: {
