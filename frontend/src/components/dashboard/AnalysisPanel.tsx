@@ -72,8 +72,8 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             <>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16, marginBottom: 8, flexWrap: 'wrap' }}>
                 {[
-                  { name: '庄模型', icon: 'B', color: '#ff4d4f', delay: 0 },
-                  { name: '闲模型', icon: 'P', color: '#1890ff', delay: 0.5 },
+                  { name: '庄模型', icon: '庄', color: '#ff4d4f', delay: 0 },
+                  { name: '闲模型', icon: '闲', color: '#1890ff', delay: 0.5 },
                   { name: '综合模型', icon: 'AI', color: '#52c41a', delay: 1 },
                 ].map((model) => (
                   <div

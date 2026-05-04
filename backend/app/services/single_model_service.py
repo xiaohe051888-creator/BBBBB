@@ -8,6 +8,21 @@ from fastapi.encoders import jsonable_encoder
 
 
 class SingleModelService:
+    @staticmethod
+    def _pick_value(data: Dict[str, Any], *keys: str, default: Any = None) -> Any:
+        for key in keys:
+            if key in data and data.get(key) not in (None, ""):
+                return data.get(key)
+        return default
+
+    @staticmethod
+    def _pick_list(data: Dict[str, Any], *keys: str) -> list[Any]:
+        for key in keys:
+            value = data.get(key)
+            if isinstance(value, list):
+                return value
+        return []
+
     async def analyze(
         self,
         game_number: int,
@@ -44,17 +59,27 @@ class SingleModelService:
         text = await self._call_model(prompt)
         parsed = self._parse_model_json(text)
 
-        fp = parsed.get("final_prediction") or parsed.get("prediction") or "庄"
+        fp = self._pick_value(parsed, "final_prediction", "prediction", "最终预测", "预测结果", "预测方向", default="庄")
         if fp not in ("庄", "闲"):
             fp = "庄"
 
         combined_model = {
             "final_prediction": fp,
-            "confidence": float(parsed.get("confidence") or 0.0),
-            "bet_tier": parsed.get("bet_tier") or "标准",
-            "summary": parsed.get("summary") or "",
-            "reasoning_points": parsed.get("reasoning_points") if isinstance(parsed.get("reasoning_points"), list) else [],
-            "reasoning_detail": parsed.get("reasoning_detail") or parsed.get("summary") or "",
+            "confidence": float(self._pick_value(parsed, "confidence", "置信度", default=0.0) or 0.0),
+            "bet_tier": self._pick_value(parsed, "bet_tier", "bet_level", "下注档位", "下注级别", "档位", default="标准"),
+            "summary": self._pick_value(parsed, "summary", "reason", "摘要", "分析摘要", "理由", "结论摘要", default=""),
+            "reasoning_points": self._pick_list(parsed, "reasoning_points", "signals", "推理要点", "关键信号"),
+            "reasoning_detail": self._pick_value(
+                parsed,
+                "reasoning_detail",
+                "reason",
+                "推理详情",
+                "详细推理",
+                "分析详情",
+                "summary",
+                "摘要",
+                default="",
+            ),
         }
 
         return {
