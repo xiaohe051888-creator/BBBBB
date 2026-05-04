@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Statistic,
   Select, Input, Modal, Empty, Descriptions, Tooltip,
-  Alert, Progress, Badge,
+  Alert, Progress, Badge, Grid,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMistakesQuery, type MistakeRecord } from '../hooks';
@@ -90,6 +90,8 @@ const MistakeBookPage: React.FC = () => {
   
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   // 分页
   const [page, setPage] = useState(1);
@@ -247,7 +249,7 @@ const MistakeBookPage: React.FC = () => {
   ];
 
   return (
-    <div className="page-wrapper" style={{ padding: '16px', maxWidth: '100%' }}>
+    <div className="page-wrapper mistakes-page" style={{ padding: '16px', maxWidth: '100%' }}>
       {/* 顶部导航 */}
       <div className="page-nav-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div className="page-nav-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -260,7 +262,7 @@ const MistakeBookPage: React.FC = () => {
           </span>
           <Badge count={filtered.length} showZero style={{ backgroundColor: filtered.length > 10 ? '#ff4d4f' : '#58a6ff' }} />
         </div>
-        <div className="page-nav-right">
+        <div className="page-nav-right mobile-action-row">
           <Button 
             icon={<Icons.Refresh />} 
             size="small" 
@@ -285,7 +287,7 @@ const MistakeBookPage: React.FC = () => {
         <div className="stats-grid" style={{ 
           marginBottom: 16, 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
+          gridTemplateColumns: `repeat(auto-fit, minmax(${isMobile ? 150 : 140}px, 1fr))`,
           gap: 12 
         }}>
           <Card size="small">
@@ -336,7 +338,7 @@ const MistakeBookPage: React.FC = () => {
 
       {/* 筛选栏 */}
       <Card size="small" style={{ marginBottom: 16 }}>
-        <Space size="middle" wrap style={{ width: '100%' }}>
+        <Space size="middle" wrap style={{ width: '100%' }} className="mobile-action-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#8b949e' }}>
             <Icons.Filter /> <strong>筛选：</strong>
           </span>
@@ -346,6 +348,7 @@ const MistakeBookPage: React.FC = () => {
             allowClear
             value={filterErrorType || undefined}
             onChange={setFilterErrorType}
+            className="mobile-fill-control"
             style={{ width: 130 }}
             size="small"
             options={Object.entries(ERROR_TYPE_MAP).map(([k, v]) => ({ label: v.label, value: k }))}
@@ -356,6 +359,7 @@ const MistakeBookPage: React.FC = () => {
             allowClear
             value={filterPredictDir || undefined}
             onChange={setFilterPredictDir}
+            className="mobile-fill-control"
             style={{ width: 110 }}
             size="small"
             options={[
@@ -370,6 +374,7 @@ const MistakeBookPage: React.FC = () => {
             value={searchGameNumber}
             onChange={(e) => setSearchGameNumber(e.target.value)}
             prefix={<Icons.Search />}
+            className="mobile-fill-control"
             style={{ width: 120 }}
           />
 
@@ -384,7 +389,7 @@ const MistakeBookPage: React.FC = () => {
             重置
           </Button>
 
-          <span style={{ marginLeft: 'auto', color: '#8b949e', fontSize: 13 }}>
+          <span style={{ marginLeft: isMobile ? 0 : 'auto', color: '#8b949e', fontSize: 13 }}>
             共 {filtered.length} 条记录
           </span>
         </Space>
@@ -411,7 +416,7 @@ const MistakeBookPage: React.FC = () => {
             showSizeChanger: true,
             showTotal: total => `共 ${total} 条`,
           }}
-          scroll={{ x: 'max-content', y: 'calc(max(300px, 100vh - 520px))' }}
+          scroll={{ x: 'max-content', y: isMobile ? undefined : 'calc(max(300px, 100vh - 520px))' }}
           locale={{ emptyText: <Empty description={
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               <span>暂无错题记录</span>
@@ -430,10 +435,11 @@ const MistakeBookPage: React.FC = () => {
         onCancel={() => setDetailModalOpen(false)}
         footer={[<Button key="close" onClick={() => setDetailModalOpen(false)}>关闭</Button>]}
         width={680}
+        style={{ maxWidth: 'calc(100vw - 20px)' }}
       >
         {selectedMistake && (
           <>
-            <Descriptions bordered column={2} size="small" labelStyle={{ width: 100, background: '#161b22' }} style={{ marginBottom: 16 }}>
+            <Descriptions bordered column={isMobile ? 1 : 2} size="small" labelStyle={{ width: isMobile ? 88 : 100, background: '#161b22' }} style={{ marginBottom: 16 }}>
               
               <Descriptions.Item label="靴号">#{selectedMistake.boot_number}</Descriptions.Item>
               <Descriptions.Item label="局号">{selectedMistake.game_number}</Descriptions.Item>
@@ -478,7 +484,7 @@ const MistakeBookPage: React.FC = () => {
             </Card>
 
             {/* 错因分析与修正策略 */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div className="mobile-section-stack" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                 <Card
                   size="small"

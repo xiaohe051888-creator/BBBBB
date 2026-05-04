@@ -2,7 +2,7 @@
  * 开奖结果输入弹窗组件 - 精致图标、中文全站
  */
 import React, { useEffect, useCallback } from 'react';
-import { Button, Modal } from 'antd';
+import { Button, Grid, Modal } from 'antd';
 
 interface RevealModalProps {
   visible: boolean;
@@ -42,6 +42,8 @@ const RevealModal: React.FC<RevealModalProps> = ({
   loading,
   gameNumber,
 }) => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const results: Array<{ value: '庄' | '闲' | '和'; label: string; desc: string; color: string; bg: string }> = React.useMemo(() => ([
     { value: '庄', label: '庄赢', desc: '记为庄方胜出', color: '#ff4d4f', bg: 'rgba(255,77,79,0.15)' },
     { value: '闲', label: '闲赢', desc: '记为闲方胜出', color: '#1890ff', bg: 'rgba(24,144,255,0.15)' },
@@ -140,7 +142,7 @@ const RevealModal: React.FC<RevealModalProps> = ({
             key={r.value}
             onClick={() => setResult(r.value)}
             style={{
-              height: 54,
+              minHeight: isMobile ? 62 : 54,
               borderRadius: 12,
               border: `2px solid ${result === r.value ? r.color : 'rgba(255,255,255,0.1)'}`,
               background: result === r.value ? r.bg : 'rgba(255,255,255,0.04)',
@@ -150,6 +152,8 @@ const RevealModal: React.FC<RevealModalProps> = ({
               justifyContent: 'center',
               gap: 10,
               transition: 'all 0.2s',
+              flexWrap: 'wrap',
+              padding: isMobile ? '10px 12px' : undefined,
             }}
           >
             <span style={{
@@ -160,7 +164,7 @@ const RevealModal: React.FC<RevealModalProps> = ({
               display: 'inline-block',
             }} />
             <span style={{ fontSize: 15, fontWeight: 700, color: r.color }}>{r.label}</span>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{r.desc}</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', width: isMobile ? '100%' : 'auto', textAlign: 'center' }}>{r.desc}</span>
           </button>
         ))}
       </div>

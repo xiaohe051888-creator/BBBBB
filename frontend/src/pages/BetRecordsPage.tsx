@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Statistic,
   Select, Input, Modal, Empty,
-  Progress, Badge, Descriptions,
+  Progress, Badge, Descriptions, Grid,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -75,6 +75,8 @@ const BetRecordsPage: React.FC = () => {
   
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   // 分页
   const [page, setPage] = useState(1);
@@ -254,7 +256,7 @@ const BetRecordsPage: React.FC = () => {
   ];
 
   return (
-    <div className="page-wrapper" style={{ padding: '16px' }}>
+    <div className="page-wrapper bet-records-page" style={{ padding: '16px' }}>
       {/* 顶部导航 */}
       <div className="page-nav-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div className="page-nav-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -267,7 +269,7 @@ const BetRecordsPage: React.FC = () => {
           </span>
           <Badge count={filteredBets.length} showZero style={{ backgroundColor: '#58a6ff' }} />
         </div>
-        <div className="page-nav-right">
+        <div className="page-nav-right mobile-action-row">
           <Button 
             icon={<Icons.Refresh />} 
             size="small" 
@@ -283,8 +285,8 @@ const BetRecordsPage: React.FC = () => {
         <div className="stats-grid" style={{ 
           marginBottom: 16, 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
-          gap: 10 
+          gridTemplateColumns: `repeat(auto-fit, minmax(${isMobile ? 140 : 120}px, 1fr))`,
+          gap: isMobile ? 12 : 10 
         }}>
           <Card size="small">
             <Statistic title="总下注" value={summary.totalBets} suffix="笔" styles={{ content: { fontSize: 16, color: '#58a6ff' } }} />
@@ -329,7 +331,7 @@ const BetRecordsPage: React.FC = () => {
       {/* 盈亏进度条 */}
       {summary && (
         <Card size="small" style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className="mobile-section-stack" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12, color: '#8b949e', whiteSpace: 'nowrap' }}>盈亏分布</span>
             <div style={{ flex: '1 1 200px', minWidth: 150 }}>
               <Progress
@@ -344,7 +346,7 @@ const BetRecordsPage: React.FC = () => {
                 format={() => `${summary.winCount}胜 / ${summary.lossCount}负`}
               />
             </div>
-            <Space size={4}>
+            <Space size={4} wrap>
               <Tag color="#ff4d4f" style={{ fontSize: 11 }}>胜 {summary.winCount}</Tag>
               <Tag color="#52c41a" style={{ fontSize: 11 }}>负 {summary.lossCount}</Tag>
               <Tag color="#faad14" style={{ fontSize: 11 }}>待 {summary.pendingCount}</Tag>
@@ -355,7 +357,7 @@ const BetRecordsPage: React.FC = () => {
 
       {/* 筛选栏 */}
       <Card size="small" style={{ marginBottom: 16 }}>
-        <Space size="middle" wrap style={{ width: '100%' }}>
+        <Space size="middle" wrap style={{ width: '100%' }} className="mobile-action-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#8b949e' }}>
             <Icons.Filter /> <strong>筛选：</strong>
           </span>
@@ -365,6 +367,7 @@ const BetRecordsPage: React.FC = () => {
             allowClear
             value={filterDirection || undefined}
             onChange={setFilterDirection}
+            className="mobile-fill-control"
             style={{ width: 100 }}
             size="small"
             options={[
@@ -378,6 +381,7 @@ const BetRecordsPage: React.FC = () => {
             allowClear
             value={filterStatus || undefined}
             onChange={setFilterStatus}
+            className="mobile-fill-control"
             style={{ width: 100 }}
             size="small"
             options={[
@@ -391,6 +395,7 @@ const BetRecordsPage: React.FC = () => {
             allowClear
             value={filterTier || undefined}
             onChange={setFilterTier}
+            className="mobile-fill-control"
             style={{ width: 90 }}
             size="small"
             options={[
@@ -406,6 +411,7 @@ const BetRecordsPage: React.FC = () => {
             value={searchGameNumber}
             onChange={(e) => setSearchGameNumber(e.target.value)}
             prefix={<Icons.Search />}
+            className="mobile-fill-control"
             style={{ width: 110 }}
           />
 
@@ -421,7 +427,7 @@ const BetRecordsPage: React.FC = () => {
             重置
           </Button>
 
-          <span style={{ marginLeft: 'auto', color: '#8b949e', fontSize: 12 }}>
+          <span style={{ marginLeft: isMobile ? 0 : 'auto', color: '#8b949e', fontSize: 12 }}>
             共 {filteredBets.length} 条记录
           </span>
         </Space>
@@ -451,7 +457,7 @@ const BetRecordsPage: React.FC = () => {
             pageSizeOptions: ['10', '20', '50', '100'],
             size: 'small',
           }}
-          scroll={{ x: 'max-content', y: 'calc(max(300px, 100vh - 520px))' }}
+          scroll={{ x: 'max-content', y: isMobile ? undefined : 'calc(max(300px, 100vh - 520px))' }}
           locale={{ emptyText: <Empty description="暂无下注记录" /> }}
           rowClassName={(record) => {
             if (record.status === '待结算') return 'row-pending';
@@ -472,9 +478,10 @@ const BetRecordsPage: React.FC = () => {
           <Button key="close" onClick={() => setDetailModalOpen(false)}>关闭</Button>,
         ]}
         width={520}
+        style={{ maxWidth: 'calc(100vw - 20px)' }}
       >
         {selectedBet && (
-          <Descriptions bordered column={1} size="small" labelStyle={{ width: 100, background: '#161b22' }}>
+          <Descriptions bordered column={1} size="small" labelStyle={{ width: isMobile ? 88 : 100, background: '#161b22' }}>
             <Descriptions.Item label="局号">{selectedBet.game_number}</Descriptions.Item>
             <Descriptions.Item label="下注时间">
               {selectedBet.bet_time ? dayjs(selectedBet.bet_time).format('YYYY-MM-DD HH:mm:ss') : '-'}

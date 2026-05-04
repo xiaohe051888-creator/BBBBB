@@ -184,6 +184,14 @@ const getProviderModelSummary = (provider?: string | null, model?: string | null
   return `${toCnProviderLabel(provider)} · ${toCnModelLabel(model)}`;
 };
 
+const withMobileTableLabels = (columns: any[]): any[] =>
+  columns.map((col) => ({
+    ...col,
+    onCell: () => ({
+      'data-label': typeof col.title === 'string' ? col.title : '',
+    } as React.HTMLAttributes<HTMLElement>),
+  }));
+
 const AdminPage: React.FC = () => {
   const { message } = App.useApp();
   const location = useLocation();
@@ -947,7 +955,8 @@ const AdminPage: React.FC = () => {
                   </Space>
                   <Table
                     dataSource={filteredModelVersions}
-                    columns={[
+                    className="mobile-card-table"
+                    columns={withMobileTableLabels([
                       { title: '版本号', dataIndex: 'version', width: '12%' },
                       { title: '模式', dataIndex: 'prediction_mode', width: '10%', align: 'center' as const, render: (v: string) => v === 'single_ai' ? <Tag color="green">单AI</Tag> : <Tag color="purple">3AI</Tag> },
                       { title: '创建时间', dataIndex: 'created_at', width: '18%', render: (v: string) => v ? new Date(v).toLocaleString() : '-' },
@@ -957,7 +966,7 @@ const AdminPage: React.FC = () => {
                       { title: '状态', dataIndex: 'is_active', width: '10%', align: 'center' as const, render: (v: boolean) => v ? <Tag color="green">使用中</Tag> : <Tag>未启用</Tag> },
                       { title: '使用局数', dataIndex: 'total_runs', width: '10%', align: 'center' as const },
                       { title: '命中数', dataIndex: 'hit_count', width: '10%', align: 'center' as const },
-                    ]}
+                    ])}
                     rowKey="version"
                     size="small"
                     pagination={false}
@@ -977,6 +986,7 @@ const AdminPage: React.FC = () => {
                   <Button size="small" onClick={loadSystemTasks} loading={tasksLoading}>刷新</Button>
                 </Space>
                 <Table
+                  className="mobile-card-table"
                   dataSource={systemTasks}
                   loading={tasksLoading}
                   rowKey="task_id"
@@ -984,7 +994,7 @@ const AdminPage: React.FC = () => {
                   pagination={{ pageSize: 50 }}
                   scroll={{ x: 'max-content' }}
                   locale={{ emptyText: <Empty description="暂无后台任务" /> }}
-                  columns={[
+                  columns={withMobileTableLabels([
                     { title: '类型', dataIndex: 'task_type', width: 120 },
                     { title: '靴号', dataIndex: 'boot_number', width: 80, align: 'center' as const, render: (v: number | null) => v ?? '-' },
                     {
@@ -1035,7 +1045,7 @@ const AdminPage: React.FC = () => {
                       width: 170,
                       align: 'center' as const,
                       render: (_: any, record: api.BackgroundTaskItem) => (
-                        <Space size={8}>
+                        <Space size={8} wrap>
                           <Button
                             size="small"
                             onClick={() => navigate(`/dashboard/logs?task_id=${encodeURIComponent(record.task_id)}`)}
@@ -1069,7 +1079,7 @@ const AdminPage: React.FC = () => {
                         </Space>
                       ),
                     },
-                  ]}
+                  ])}
                 />
               </Card>
             ),
@@ -1151,8 +1161,9 @@ const AdminPage: React.FC = () => {
                     />
                   </Space>
                   <Table
+                    className="mobile-card-table"
                     dataSource={dbRecords}
-                    columns={tableColumns}
+                    columns={withMobileTableLabels(tableColumns)}
                     rowKey="id"
                     size="small"
                     scroll={{ x: 'max-content' }}
