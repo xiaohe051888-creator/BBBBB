@@ -14,7 +14,12 @@ import dayjs from 'dayjs';
 import * as api from '../services/api';
 import { clearToken } from '../services/api';
 import { copyText } from '../utils/clipboard';
-import { formatAdminModeName } from '../utils/beginnerCopy';
+import {
+  formatAdminModeName,
+  formatLogPriorityLabel,
+  formatMaintenanceLabel,
+  formatTaskAreaLabel,
+} from '../utils/beginnerCopy';
 import { formatMoney } from '../utils/money';
 import { toCnModelLabel, toCnProviderLabel } from '../utils/i18nErrors';
 import { formatModelVersionTagLabel } from '../utils/modelVersionDisplay';
@@ -991,9 +996,9 @@ const AdminPage: React.FC = () => {
           },
           {
             key: 'tasks',
-            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Experiment /> {isMobile ? '任务' : '后台任务'}</span>,
+            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Experiment /> {isMobile ? '处理' : formatTaskAreaLabel('tab')}</span>,
             children: (
-              <Card title="后台任务" size="small">
+              <Card title={formatTaskAreaLabel('card')} size="small">
                 <Space style={{ marginBottom: 12, flexWrap: 'wrap' }} className="mobile-action-row">
                   <Button size="small" onClick={loadSystemTasks} loading={tasksLoading}>刷新</Button>
                 </Space>
@@ -1005,9 +1010,9 @@ const AdminPage: React.FC = () => {
                   size="small"
                   pagination={{ pageSize: 50 }}
                   scroll={{ x: 'max-content' }}
-                  locale={{ emptyText: <Empty description="暂无后台任务" /> }}
+                  locale={{ emptyText: <Empty description={formatTaskAreaLabel('empty')} /> }}
                   columns={withMobileTableLabels([
-                    { title: '类型', dataIndex: 'task_type', width: 120 },
+                    { title: '处理类型', dataIndex: 'task_type', width: 120 },
                     { title: '靴号', dataIndex: 'boot_number', width: 80, align: 'center' as const, render: (v: number | null) => v ?? '-' },
                     {
                       title: '状态',
@@ -1028,10 +1033,10 @@ const AdminPage: React.FC = () => {
                       width: 170,
                       render: (v: string) => v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-',
                     },
-                    { title: '消息', dataIndex: 'message', ellipsis: true },
-                    { title: '失败原因', dataIndex: 'error', ellipsis: true, render: (v: string | null) => v || '-' },
+                    { title: '说明', dataIndex: 'message', ellipsis: true },
+                    { title: '失败说明', dataIndex: 'error', ellipsis: true, render: (v: string | null) => v || '-' },
                     {
-                      title: '任务编号',
+                      title: formatTaskAreaLabel('id'),
                       dataIndex: 'task_id',
                       width: 160,
                       render: (v: string) => (
@@ -1042,7 +1047,7 @@ const AdminPage: React.FC = () => {
                           onClick={async () => {
                             const ok = await copyText(v);
                             if (ok) {
-                              message.success('任务编号已复制');
+                              message.success('处理编号已复制');
                             } else {
                               message.error('复制失败');
                             }
@@ -1062,7 +1067,7 @@ const AdminPage: React.FC = () => {
                             size="small"
                             onClick={() => navigate(`/dashboard/logs?task_id=${encodeURIComponent(record.task_id)}`)}
                           >
-                            查看日志
+                            查看过程记录
                           </Button>
                           <Button
                             size="small"
@@ -1070,10 +1075,10 @@ const AdminPage: React.FC = () => {
                             disabled={record.status !== 'running'}
                             onClick={() => {
                               modal.confirm({
-                                title: '确认取消任务？',
-                                content: '取消后可能会导致本次学习/分析不完整，请谨慎操作。',
+                                title: '确认取消这项处理？',
+                                content: '取消后，本次学习或分析可能不会完整完成，请确认后再操作。',
                                 okText: '确认取消',
-                                cancelText: '暂不取消',
+                                cancelText: '先不取消',
                                 onOk: async () => {
                                   try {
                                     await api.cancelSystemTask(record.task_id);
@@ -1102,12 +1107,12 @@ const AdminPage: React.FC = () => {
             children: (
                     <Space orientation="vertical" size={12} style={{ width: '100%' }}>
                 <Card
-                  title="维护与清理"
+                  title={formatMaintenanceLabel('title')}
                   size="small"
                   extra={
                     <Space size={8} className="mobile-action-row admin-maintenance-extra">
-                      <Button size="small" loading={maintenanceLoading} onClick={loadMaintenanceStats}>刷新统计</Button>
-                      <Button size="small" danger onClick={runRetentionNow}>立即清理</Button>
+                      <Button size="small" loading={maintenanceLoading} onClick={loadMaintenanceStats}>刷新数据</Button>
+                      <Button size="small" danger onClick={runRetentionNow}>立即执行清理</Button>
                       <Button size="small" danger onClick={resetAllData}>清空全部数据</Button>
                     </Space>
                   }
@@ -1115,7 +1120,7 @@ const AdminPage: React.FC = () => {
                   <Row gutter={[12, 12]}>
                     <Col xs={24} sm={12} md={8}>
                       <Statistic
-                        title="数据库大小（本地库）"
+                        title={formatMaintenanceLabel('dbSize')}
                         value={
                           maintenanceStats?.sqlite_size_bytes
                             ? `${(maintenanceStats.sqlite_size_bytes / 1024 / 1024).toFixed(2)} MB`
@@ -1130,10 +1135,10 @@ const AdminPage: React.FC = () => {
                       <Statistic title="下注记录" value={maintenanceStats?.counts.bet_records_total ?? '-'} />
                     </Col>
                     <Col xs={24} sm={12} md={8}>
-                      <Statistic title="日志总量" value={maintenanceStats?.counts.system_logs_total ?? '-'} />
+                      <Statistic title="系统记录总数" value={maintenanceStats?.counts.system_logs_total ?? '-'} />
                     </Col>
                     <Col xs={24} sm={12} md={8}>
-                      <Statistic title="P1 / P2 / P3" value={`${maintenanceStats?.counts.system_logs_p1 ?? '-'} / ${maintenanceStats?.counts.system_logs_p2 ?? '-'} / ${maintenanceStats?.counts.system_logs_p3 ?? '-'}`} />
+                      <Statistic title={`${formatLogPriorityLabel('P1')} / ${formatLogPriorityLabel('P2')} / ${formatLogPriorityLabel('P3')}`} value={`${maintenanceStats?.counts.system_logs_p1 ?? '-'} / ${maintenanceStats?.counts.system_logs_p2 ?? '-'} / ${maintenanceStats?.counts.system_logs_p3 ?? '-'}`} />
                     </Col>
                     <Col xs={24} sm={12} md={8}>
                       <Statistic title="置顶日志" value={maintenanceStats?.counts.system_logs_pinned ?? '-'} />
@@ -1145,12 +1150,12 @@ const AdminPage: React.FC = () => {
                       <Tag color={maintenanceStats ? (maintenanceStats.config.RETENTION_ENABLED ? 'green' : 'default') : 'default'}>
                         自动清理 {maintenanceStats ? (maintenanceStats.config.RETENTION_ENABLED ? '开启' : '关闭') : '加载中'}
                       </Tag>
-                      <Tag color="blue">P3保留 {maintenanceStats?.config.LOG_RETENTION_HOT ?? '-'} 天</Tag>
-                      <Tag color="gold">P2保留 {maintenanceStats?.config.LOG_RETENTION_WARM ?? '-'} 天</Tag>
-                      <Tag color="purple">历史上限 {maintenanceStats?.config.MAX_HISTORY_RECORDS ?? '-'} 条</Tag>
-                      <Tag color="default">间隔 {maintenanceStats?.config.RETENTION_INTERVAL_SECONDS ?? '-'} 秒</Tag>
+                      <Tag color="blue">{formatLogPriorityLabel('P3')}记录保留 {maintenanceStats?.config.LOG_RETENTION_HOT ?? '-'} 天</Tag>
+                      <Tag color="gold">{formatLogPriorityLabel('P2')}记录保留 {maintenanceStats?.config.LOG_RETENTION_WARM ?? '-'} 天</Tag>
+                      <Tag color="purple">{formatMaintenanceLabel('historyLimit')} {maintenanceStats?.config.MAX_HISTORY_RECORDS ?? '-'} 条</Tag>
+                      <Tag color="default">自动清理间隔 {maintenanceStats?.config.RETENTION_INTERVAL_SECONDS ?? '-'} 秒</Tag>
                       <Tag color="default">
-                        最近手动清理 {maintenanceStats?.last_manual_retention_at ? dayjs(maintenanceStats.last_manual_retention_at).format('YYYY-MM-DD HH:mm:ss') : '无'}
+                        {formatMaintenanceLabel('lastRun')} {maintenanceStats?.last_manual_retention_at ? dayjs(maintenanceStats.last_manual_retention_at).format('YYYY-MM-DD HH:mm:ss') : '无'}
                       </Tag>
                     </Space>
                   </div>
@@ -1158,7 +1163,7 @@ const AdminPage: React.FC = () => {
 
                 <Card title="数据库记录查看" size="small">
                   <Space style={{ marginBottom: 16, flexWrap: 'wrap' }} className="mobile-action-row">
-                    <span>选择表：</span>
+                    <span>查看内容：</span>
                     <Select
                       value={dbTable}
                       onChange={(v) => { setDbTable(v); setDbPage(1); }}

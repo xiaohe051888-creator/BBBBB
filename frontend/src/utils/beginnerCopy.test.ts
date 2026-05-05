@@ -4,7 +4,10 @@ import {
   formatAdminModeName,
   formatAnalysisLoadingText,
   formatConfidenceLabel,
+  formatLogPriorityLabel,
+  formatMaintenanceLabel,
   formatSystemStatusLabel,
+  formatTaskAreaLabel,
   formatUploadActionLabel,
 } from './beginnerCopy';
 
@@ -35,5 +38,25 @@ describe('beginnerCopy', () => {
     expect(formatSystemStatusLabel('backend')).toBe('服务状态');
     expect(formatSystemStatusLabel('aiConfig')).toBe('当前模式配置');
     expect(formatSystemStatusLabel('tasks')).toBe('系统处理进度');
+  });
+
+  it('formats task area labels in plain language', () => {
+    expect(formatTaskAreaLabel('tab')).toBe('系统处理');
+    expect(formatTaskAreaLabel('card')).toBe('系统处理记录');
+    expect(formatTaskAreaLabel('empty')).toBe('当前没有进行中的系统处理');
+    expect(formatTaskAreaLabel('id')).toBe('处理编号');
+  });
+
+  it('formats maintenance labels in plain language', () => {
+    expect(formatMaintenanceLabel('title')).toBe('数据清理与空间整理');
+    expect(formatMaintenanceLabel('dbSize')).toBe('已占用空间');
+    expect(formatMaintenanceLabel('historyLimit')).toBe('历史最多保留');
+    expect(formatMaintenanceLabel('lastRun')).toBe('上次手动清理');
+  });
+
+  it('formats log priority labels in plain language', () => {
+    expect(formatLogPriorityLabel('P1')).toBe('高优先级');
+    expect(formatLogPriorityLabel('P2')).toBe('重要');
+    expect(formatLogPriorityLabel('P3')).toBe('普通');
   });
 });

@@ -25,3 +25,25 @@ export const formatSystemStatusLabel = (
   if (key === 'aiConfig') return '当前模式配置';
   return '系统处理进度';
 };
+
+export const formatTaskAreaLabel = (key: 'tab' | 'card' | 'empty' | 'id') => {
+  if (key === 'tab') return '系统处理';
+  if (key === 'card') return '系统处理记录';
+  if (key === 'empty') return '当前没有进行中的系统处理';
+  return '处理编号';
+};
+
+export const formatMaintenanceLabel = (
+  key: 'title' | 'dbSize' | 'historyLimit' | 'lastRun',
+) => {
+  if (key === 'title') return '数据清理与空间整理';
+  if (key === 'dbSize') return '已占用空间';
+  if (key === 'historyLimit') return '历史最多保留';
+  return '上次手动清理';
+};
+
+export const formatLogPriorityLabel = (priority: 'P1' | 'P2' | 'P3') => {
+  if (priority === 'P1') return '高优先级';
+  if (priority === 'P2') return '重要';
+  return '普通';
+};
