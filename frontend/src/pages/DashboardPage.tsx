@@ -17,6 +17,7 @@ import { LearningStatusPanel } from '../components/learning';
 import { SmartAlerts } from '../components/ui';
 import { debounce } from 'lodash';
 import { AdminAlertsBar } from '../components/dashboard/AdminAlertsBar';
+import { formatModelVersionLabel } from '../utils/modelVersionDisplay';
 import {
   useSmartDetection,
   useSystemDiagnostics,
@@ -408,7 +409,7 @@ const DashboardPage: React.FC = () => {
             <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>当前AI模型版本</span>
               <span style={{ fontSize: 12, color: '#b37feb', background: 'rgba(179,127,235,0.1)', padding: '2px 8px', borderRadius: 12 }}>
-                {systemState?.current_model_version || 'v1.0'}
+                {formatModelVersionLabel(systemState?.current_model_version)}
               </span>
             </div>
           </div>
