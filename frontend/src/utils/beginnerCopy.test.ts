@@ -5,7 +5,9 @@ import {
   formatAnalysisLoadingText,
   formatConfidenceLabel,
   formatLearningLabel,
+  formatNavigationLabel,
   formatLogPriorityLabel,
+  formatLogsLabel,
   formatMaintenanceLabel,
   formatReviewLabel,
   formatSystemStatusLabel,
@@ -72,5 +74,25 @@ describe('beginnerCopy', () => {
     expect(formatLearningLabel('title')).toBe('确认开始系统学习优化');
     expect(formatLearningLabel('confirm')).toBe('立即开始优化');
     expect(formatLearningLabel('cancel')).toBe('暂不优化');
+  });
+
+  it('formats navigation labels in plain language', () => {
+    expect(formatNavigationLabel('logs')).toEqual({
+      label: '运行记录',
+      mobileLabel: '记录',
+      desc: '查看系统运行过程',
+    });
+    expect(formatNavigationLabel('mistakes')).toEqual({
+      label: '复盘记录',
+      mobileLabel: '复盘',
+      desc: '查看失误与复盘',
+    });
+  });
+
+  it('formats logs page labels in plain language', () => {
+    expect(formatLogsLabel('pageTitle')).toBe('运行记录');
+    expect(formatLogsLabel('detailTitle')).toBe('记录详情');
+    expect(formatLogsLabel('empty')).toBe('暂无运行记录');
+    expect(formatLogsLabel('taskFilter')).toBe('按处理编号筛选');
   });
 });

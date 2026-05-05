@@ -13,6 +13,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import zhCN from 'antd/locale/zh_CN';
 import { getToken } from './services/api';
 import { isModeSelected } from './utils/modeSelection';
+import { formatNavigationLabel } from './utils/beginnerCopy';
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const RoadMapPage = React.lazy(() => import('./pages/RoadMapPage'));
 const BetRecordsPage = React.lazy(() => import('./pages/BetRecordsPage'));
@@ -87,8 +88,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { key: 'home', Icon: NavIcons.Home, label: '首页总览', mobileLabel: '总览', path: `/dashboard`, desc: '智能分析+五路图' },
     { key: 'roadmap', Icon: NavIcons.Chart, label: '五路走势图', mobileLabel: '走势', path: `/dashboard/roadmap`, desc: '大路·珠盘·下三路' },
     { key: 'bets', Icon: NavIcons.Coin, label: '下注记录', mobileLabel: '下注', path: `/dashboard/bets`, desc: '仿真下注流水' },
-    { key: 'logs', Icon: NavIcons.File, label: '实盘日志', mobileLabel: '日志', path: `/dashboard/logs`, desc: '实时运行日志' },
-    { key: 'mistakes', Icon: NavIcons.Book, label: '错题本', mobileLabel: '错题', path: `/dashboard/mistakes`, desc: '本靴复盘修正' },
+    { key: 'logs', Icon: NavIcons.File, ...formatNavigationLabel('logs'), path: `/dashboard/logs` },
+    { key: 'mistakes', Icon: NavIcons.Book, ...formatNavigationLabel('mistakes'), path: `/dashboard/mistakes` },
   ];
 
   const getActiveKey = () => {

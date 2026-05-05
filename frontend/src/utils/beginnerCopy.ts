@@ -59,3 +59,27 @@ export const formatLearningLabel = (key: 'title' | 'confirm' | 'cancel') => {
   if (key === 'confirm') return '立即开始优化';
   return '暂不优化';
 };
+
+export const formatNavigationLabel = (key: 'logs' | 'mistakes') => {
+  if (key === 'logs') {
+    return {
+      label: '运行记录',
+      mobileLabel: '记录',
+      desc: '查看系统运行过程',
+    };
+  }
+  return {
+    label: '复盘记录',
+    mobileLabel: '复盘',
+    desc: '查看失误与复盘',
+  };
+};
+
+export const formatLogsLabel = (
+  key: 'pageTitle' | 'detailTitle' | 'empty' | 'taskFilter',
+) => {
+  if (key === 'pageTitle') return '运行记录';
+  if (key === 'detailTitle') return '记录详情';
+  if (key === 'empty') return '暂无运行记录';
+  return '按处理编号筛选';
+};

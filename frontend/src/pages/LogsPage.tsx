@@ -15,6 +15,7 @@ import { useLogsQuery, type LogEntry, useAddLogsOptimistically, useWebSocket } f
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { SystemStatusPanel } from '../components/ui/SystemStatusPanel';
 import { PRIORITY_COLORS } from '../utils/constants';
+import { formatLogsLabel } from '../utils/beginnerCopy';
 import { copyText } from '../utils/clipboard';
 import { humanizeLog, toHumanCopyText } from '../utils/logHumanizer';
 import { formatBeijing, beijingValueOf } from '../utils/datetime';
@@ -102,7 +103,7 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
         <Input
           value={filterTaskId}
           onChange={(e) => setFilterTaskId(e.target.value)}
-          placeholder="任务编号筛选"
+          placeholder={formatLogsLabel('taskFilter')}
           allowClear
           size="small"
           style={{ width: 220 }}
@@ -158,7 +159,7 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
 
   return (
     <Modal
-      title="日志详情"
+      title={formatLogsLabel('detailTitle')}
       open={open}
       onCancel={onClose}
       footer={[
@@ -257,7 +258,7 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
           />
         </div>
       ) : (
-        <Typography.Text type="secondary">未选择日志</Typography.Text>
+        <Typography.Text type="secondary">未选择记录</Typography.Text>
       )}
     </Modal>
   );
@@ -699,7 +700,7 @@ const LogsPage: React.FC = () => {
           </Button>
           <span className="page-nav-title">
             <Icons.FileText />
-            <span style={{ marginLeft: 8 }}>实盘日志 </span>
+            <span style={{ marginLeft: 8 }}>{formatLogsLabel('pageTitle')} </span>
           </span>
           <Space size="small">
             <Badge count={stats.total} showZero style={{ backgroundColor: '#58a6ff' }} overflowCount={9999} />
@@ -776,7 +777,7 @@ const LogsPage: React.FC = () => {
           <Card size="small">
             {logsError ? (
               <div style={{ padding: '8px 0', color: '#ff7875', fontSize: 12 }}>
-                {logsError instanceof Error ? logsError.message : '日志加载失败'}
+                {logsError instanceof Error ? logsError.message : '运行记录加载失败'}
               </div>
             ) : null}
             <Table
@@ -789,14 +790,14 @@ const LogsPage: React.FC = () => {
                 pageSize,
                 total: logsData?.total || 0,
                 onChange: (p, ps) => { setPage(p); if (ps !== pageSize) setPageSize(ps); },
-                showTotal: (total) => `共 ${total} 条日志`,
+                showTotal: (total) => `共 ${total} 条记录`,
                 showSizeChanger: true,
                 showQuickJumper: true,
                 pageSizeOptions: ['20', '50', '100', '200'],
                 size: 'small',
               }}
               scroll={{ y: isMobile ? undefined : 'calc(100vh - 380px)' }}
-              locale={{ emptyText: '暂无日志记录' }}
+              locale={{ emptyText: formatLogsLabel('empty') }}
               rowClassName={(record) => {
                 if (record.is_pinned) return 'log-pinned';
                 if (record.priority === 'P0') return 'log-critical';

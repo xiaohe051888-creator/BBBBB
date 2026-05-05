@@ -150,12 +150,12 @@ const LogTable: React.FC<LogTableProps> = ({
       loading={loading}
       pagination={pagination}
       scroll={{ x: 'max-content', y: isMobile ? undefined : scrollY }}
-      locale={{ emptyText: '暂无日志记录' }}
+      locale={{ emptyText: '暂无运行记录' }}
       rowClassName={rowClassName}
       style={{ width: '100%' }}
       title={() => (
         <div className="dashboard-table-header">
-          <span className="dashboard-table-title">系统日志</span>
+          <span className="dashboard-table-title">运行记录</span>
           <span className="dashboard-table-meta">当前载入 {data.length} 条</span>
         </div>
       )}
