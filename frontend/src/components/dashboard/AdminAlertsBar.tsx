@@ -44,23 +44,23 @@ export const AdminAlertsBar: React.FC = () => {
   if (!isLoggedIn || count <= 0) return null;
 
   return (
-    <div style={{
+    <div className="admin-alerts-bar" style={{
       margin: '12px 16px 0 16px',
       border: '1px solid rgba(255,77,79,0.45)',
       background: 'rgba(255,77,79,0.10)',
       borderRadius: 12,
       padding: 12,
     }}>
-      <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap', flex: '1 1 260px' }}>
-          <span style={{ width: 8, height: 8, borderRadius: 999, background: '#ff4d4f', flexShrink: 0 }} />
-          <span style={{ color: '#ffccc7', fontWeight: 700 }}>严重告警</span>
-          <Tag color="error" style={{ margin: 0 }}>P1 {count}</Tag>
-          <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, lineHeight: 1.5, minWidth: 0 }}>
+      <div className="admin-alerts-bar-head" style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div className="admin-alerts-bar-summary" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap', flex: '1 1 260px' }}>
+          <span className="admin-alerts-bar-dot" style={{ width: 8, height: 8, borderRadius: 999, background: '#ff4d4f', flexShrink: 0 }} />
+          <span className="admin-alerts-bar-title" style={{ color: '#ffccc7', fontWeight: 700 }}>严重告警</span>
+          <Tag color="error" className="admin-alerts-bar-tag" style={{ margin: 0 }}>P1 {count}</Tag>
+          <span className="admin-alerts-bar-desc" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, lineHeight: 1.5, minWidth: 0 }}>
             最近24小时内检测到 {count} 条 P1 事件
           </span>
         </div>
-        <Space size={8} wrap className={isMobile ? 'mobile-action-row' : undefined} style={isMobile ? { width: '100%' } : undefined}>
+        <Space size={8} wrap className={`admin-alerts-bar-actions ${isMobile ? 'mobile-action-row' : ''}`} style={isMobile ? { width: '100%' } : undefined}>
           <Button size="small" loading={loading} onClick={fetchAlerts}>刷新</Button>
           <Button size="small" onClick={() => setExpanded(v => !v)}>{expanded ? '收起' : '展开'}</Button>
           <Button size="small" type="primary" danger onClick={() => navigate(logsUrl())}>查看全部</Button>
@@ -68,10 +68,11 @@ export const AdminAlertsBar: React.FC = () => {
       </div>
 
       {expanded && (
-        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="admin-alerts-bar-list" style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {items.map((it) => (
             <div
               key={it.id}
+              className="admin-alerts-bar-item"
               style={{
                 background: 'rgba(0,0,0,0.15)',
                 border: '1px solid rgba(255,255,255,0.08)',
@@ -81,15 +82,15 @@ export const AdminAlertsBar: React.FC = () => {
               }}
               onClick={() => navigate(logsUrl(it.event_code))}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ color: '#ffd6e7', fontSize: 12, fontWeight: 600 }}>
+              <div className="admin-alerts-bar-item-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span className="admin-alerts-bar-item-time" style={{ color: '#ffd6e7', fontSize: 12, fontWeight: 600 }}>
                   {it.log_time ? formatBeijing(it.log_time, 'MM-DD HH:mm:ss') : '--'}
                 </span>
-                <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
+                <span className="admin-alerts-bar-item-meta" style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
                   {it.event_type} · {it.event_code}
                 </span>
               </div>
-              <div style={{ marginTop: 4, color: 'rgba(255,255,255,0.80)', fontSize: 12, lineHeight: 1.4 }}>
+              <div className="admin-alerts-bar-item-desc" style={{ marginTop: 4, color: 'rgba(255,255,255,0.80)', fontSize: 12, lineHeight: 1.4 }}>
                 {it.description}
               </div>
             </div>
