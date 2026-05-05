@@ -17,7 +17,7 @@ import { LearningStatusPanel } from '../components/learning';
 import { SmartAlerts } from '../components/ui';
 import { debounce } from 'lodash';
 import { AdminAlertsBar } from '../components/dashboard/AdminAlertsBar';
-import { formatModelVersionLabel } from '../utils/modelVersionDisplay';
+import { getModelVersionDisplay } from '../utils/modelVersionDisplay';
 import {
   useSmartDetection,
   useSystemDiagnostics,
@@ -59,6 +59,7 @@ const DashboardPage: React.FC = () => {
   const { data: gamesData } = useGamesQuery({ page: 1, pageSize: 100 });
   const { data: betsData } = useBetsQuery({ page: betPage });
   const { data: roadData } = useRoadsQuery({});
+  const modelVersionDisplay = getModelVersionDisplay(systemState?.current_model_version);
 
   const logs = logsData?.logs || [];
   const games = gamesData?.games || [];
@@ -408,8 +409,15 @@ const DashboardPage: React.FC = () => {
             </div>
             <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>当前AI模型版本</span>
-              <span style={{ fontSize: 12, color: '#b37feb', background: 'rgba(179,127,235,0.1)', padding: '2px 8px', borderRadius: 12 }}>
-                {formatModelVersionLabel(systemState?.current_model_version)}
+              <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: 12, color: '#b37feb', background: 'rgba(179,127,235,0.1)', padding: '6px 10px', borderRadius: 12, maxWidth: '100%' }}>
+                <span style={{ fontWeight: 600, lineHeight: 1.3, wordBreak: 'break-word', textAlign: 'right' }}>
+                  {modelVersionDisplay.title}
+                </span>
+                {modelVersionDisplay.subtitle && (
+                  <span style={{ marginTop: 2, fontSize: 11, color: 'rgba(179,127,235,0.82)', lineHeight: 1.3, wordBreak: 'break-word', textAlign: 'right' }}>
+                    {modelVersionDisplay.subtitle}
+                  </span>
+                )}
               </span>
             </div>
           </div>
