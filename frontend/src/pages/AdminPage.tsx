@@ -16,6 +16,7 @@ import { clearToken } from '../services/api';
 import { copyText } from '../utils/clipboard';
 import {
   formatAdminModeName,
+  formatDangerZoneLabel,
   formatLogPriorityLabel,
   formatMaintenanceLabel,
   formatTaskAreaLabel,
@@ -419,26 +420,26 @@ const AdminPage: React.FC = () => {
   const runRetentionNow = useCallback(async () => {
     const cfg = maintenanceStats?.config;
     modal.confirm({
-      title: '确认立即执行清理？',
+      title: formatDangerZoneLabel('runCleanupTitle'),
       content: cfg ? (
         <div>
-          <div>将按当前配置清理超期日志并裁剪历史数据（保留最近N条）。</div>
+          <div>系统会按当前设置，删除过期记录，并只保留最近一部分历史数据。</div>
           <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.65)' }}>
-            P3保留 {cfg.LOG_RETENTION_HOT} 天，P2保留 {cfg.LOG_RETENTION_WARM} 天，历史上限 {cfg.MAX_HISTORY_RECORDS} 条
+            普通记录保留 {cfg.LOG_RETENTION_HOT} 天，重要记录保留 {cfg.LOG_RETENTION_WARM} 天，历史最多保留 {cfg.MAX_HISTORY_RECORDS} 条
           </div>
         </div>
       ) : (
-        '将按配置清理超期日志并裁剪历史数据（保留最近N条）。'
+        '系统会按当前设置删除过期记录，并只保留最近一部分历史数据。'
       ),
       okText: '确认执行',
       cancelText: '取消',
       onOk: async () => {
         try {
           const res = await api.adminMaintenanceRunRetention();
-          message.success(`清理完成：P3-${res.data.deleted.deleted_p3}、P2-${res.data.deleted.deleted_p2}、局-${res.data.deleted.deleted_game_records}、注-${res.data.deleted.deleted_bet_records}（${res.data.elapsed_ms}ms）`);
+          message.success(`整理完成：普通记录 ${res.data.deleted.deleted_p3}、重要记录 ${res.data.deleted.deleted_p2}、局记录 ${res.data.deleted.deleted_game_records}、下注记录 ${res.data.deleted.deleted_bet_records}（${res.data.elapsed_ms}ms）`);
           loadMaintenanceStats();
         } catch (err: any) {
-          message.error(err instanceof Error ? err.message : '清理失败');
+          message.error(err instanceof Error ? err.message : '整理失败');
         }
       },
     });
@@ -446,11 +447,11 @@ const AdminPage: React.FC = () => {
 
   const resetAllData = useCallback(async () => {
     modal.confirm({
-      title: '确认清空全部数据？',
+      title: formatDangerZoneLabel('resetAllTitle'),
       content: (
         <div>
-          <div>将清空：开奖记录、下注记录、错题本、五路缓存、AI记忆、模型版本、后台任务与系统日志。</div>
-          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.65)' }}>仅允许在开发环境执行，清空后不可恢复。</div>
+          <div>将清空所有演示用的数据，包括开奖记录、下注记录、复盘记录、路图缓存、系统记忆、当前可用版本、系统处理记录和运行记录。</div>
+          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.65)' }}>仅开发环境允许执行，清空后不可恢复。</div>
         </div>
       ),
       okText: '确认清空',
@@ -460,7 +461,7 @@ const AdminPage: React.FC = () => {
         try {
           const res = await api.adminMaintenanceResetAll();
           const d = res.data.deleted || {};
-          message.success(`已清空：局${d.game_records || 0}、注${d.bet_records || 0}、日志${d.system_logs || 0}`);
+          message.success(`已清空：局记录 ${d.game_records || 0}、下注记录 ${d.bet_records || 0}、运行记录 ${d.system_logs || 0}`);
           setDbRecords([]);
           setDbPage(1);
           queryClient.invalidateQueries({ queryKey: ['systemState'] });
@@ -954,7 +955,7 @@ const AdminPage: React.FC = () => {
                 </Card>
 
                 {/* 模型版本列表 */}
-                <Card title="模型版本管理" size="small">
+                <Card title={`${formatDangerZoneLabel('modelVersion')}管理`} size="small">
                   <Space style={{ marginBottom: 12, flexWrap: 'wrap' }} className="mobile-action-row">
                     <span style={{ color: 'rgba(255,255,255,0.65)' }}>模式筛选</span>
                     <Select
@@ -988,7 +989,7 @@ const AdminPage: React.FC = () => {
                     size="small"
                     pagination={false}
                     scroll={{ x: 'max-content' }}
-                    locale={{ emptyText: <Empty description="暂无模型版本" /> }}
+                    locale={{ emptyText: <Empty description={`暂无${formatDangerZoneLabel('modelVersion')}`} /> }}
                   />
                 </Card>
               </div>
@@ -1112,8 +1113,8 @@ const AdminPage: React.FC = () => {
                   extra={
                     <Space size={8} className="mobile-action-row admin-maintenance-extra">
                       <Button size="small" loading={maintenanceLoading} onClick={loadMaintenanceStats}>刷新数据</Button>
-                      <Button size="small" danger onClick={runRetentionNow}>立即执行清理</Button>
-                      <Button size="small" danger onClick={resetAllData}>清空全部数据</Button>
+                      <Button size="small" danger onClick={runRetentionNow}>立即整理历史数据</Button>
+                      <Button size="small" danger onClick={resetAllData}>{formatDangerZoneLabel('resetAllButton')}</Button>
                     </Space>
                   }
                 >

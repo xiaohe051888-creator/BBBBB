@@ -83,3 +83,12 @@ export const formatLogsLabel = (
   if (key === 'empty') return '暂无运行记录';
   return '按处理编号筛选';
 };
+
+export const formatDangerZoneLabel = (
+  key: 'runCleanupTitle' | 'resetAllTitle' | 'resetAllButton' | 'modelVersion',
+) => {
+  if (key === 'runCleanupTitle') return '确认立即整理历史数据？';
+  if (key === 'resetAllTitle') return '确认清空所有演示数据？';
+  if (key === 'resetAllButton') return '清空演示数据';
+  return '当前可用版本';
+};

@@ -4,6 +4,7 @@ import {
   formatAdminModeName,
   formatAnalysisLoadingText,
   formatConfidenceLabel,
+  formatDangerZoneLabel,
   formatLearningLabel,
   formatNavigationLabel,
   formatLogPriorityLabel,
@@ -94,5 +95,12 @@ describe('beginnerCopy', () => {
     expect(formatLogsLabel('detailTitle')).toBe('记录详情');
     expect(formatLogsLabel('empty')).toBe('暂无运行记录');
     expect(formatLogsLabel('taskFilter')).toBe('按处理编号筛选');
+  });
+
+  it('formats admin danger-zone labels in plain language', () => {
+    expect(formatDangerZoneLabel('runCleanupTitle')).toBe('确认立即整理历史数据？');
+    expect(formatDangerZoneLabel('resetAllTitle')).toBe('确认清空所有演示数据？');
+    expect(formatDangerZoneLabel('resetAllButton')).toBe('清空演示数据');
+    expect(formatDangerZoneLabel('modelVersion')).toBe('当前可用版本');
   });
 });
