@@ -36,3 +36,7 @@ export const formatModelVersionLabel = (version: string | null | undefined) => {
   const display = getModelVersionDisplay(version);
   return display.subtitle ? `${display.title} · ${display.subtitle.replace(/^生效于 /, '')}` : display.title;
 };
+
+export const formatModelVersionTagLabel = (version: string | null | undefined) => {
+  return `版本：${formatModelVersionLabel(version)}`;
+};

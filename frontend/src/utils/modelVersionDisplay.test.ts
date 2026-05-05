@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatModelVersionLabel, getModelVersionDisplay } from './modelVersionDisplay';
+import {
+  formatModelVersionLabel,
+  formatModelVersionTagLabel,
+  getModelVersionDisplay,
+} from './modelVersionDisplay';
 
 describe('modelVersionDisplay', () => {
   it('formats manual single-ai versions into a user-friendly label', () => {
@@ -14,6 +18,12 @@ describe('modelVersionDisplay', () => {
       title: '单AI · 手动配置',
       subtitle: '生效于 2026-05-05 09:34',
     });
+  });
+
+  it('builds a compact admin tag label for manual single-ai versions', () => {
+    expect(formatModelVersionTagLabel('single_ai-manual-20260505093409')).toBe(
+      '版本：单AI · 手动配置 · 2026-05-05 09:34',
+    );
   });
 
   it('returns the original value for unknown version formats', () => {

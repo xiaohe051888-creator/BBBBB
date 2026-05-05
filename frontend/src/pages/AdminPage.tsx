@@ -16,6 +16,7 @@ import { clearToken } from '../services/api';
 import { copyText } from '../utils/clipboard';
 import { formatMoney } from '../utils/money';
 import { toCnModelLabel, toCnProviderLabel } from '../utils/i18nErrors';
+import { formatModelVersionTagLabel } from '../utils/modelVersionDisplay';
 import { isModeSelected, markModeSelected } from '../utils/modeSelection';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { useSystemStateQuery } from '../hooks/useQueries';
@@ -856,7 +857,7 @@ const AdminPage: React.FC = () => {
                   size="small"
                   extra={
                     <Space size={8} wrap className="admin-template-meta">
-                      {singleAiActiveVersion && <Tag color="blue">版本：{singleAiActiveVersion}</Tag>}
+                      {singleAiActiveVersion && <Tag color="blue">{formatModelVersionTagLabel(singleAiActiveVersion)}</Tag>}
                       <Button size="small" loading={singleAiPromptLoading} onClick={loadSingleAiPromptTemplates}>刷新</Button>
                     </Space>
                   }
