@@ -47,3 +47,15 @@ export const formatLogPriorityLabel = (priority: 'P1' | 'P2' | 'P3') => {
   if (priority === 'P2') return '重要';
   return '普通';
 };
+
+export const formatReviewLabel = (key: 'pageTitle' | 'empty' | 'positiveHint') => {
+  if (key === 'pageTitle') return '复盘记录';
+  if (key === 'empty') return '暂无复盘记录';
+  return '预测正确时，这里不会新增记录';
+};
+
+export const formatLearningLabel = (key: 'title' | 'confirm' | 'cancel') => {
+  if (key === 'title') return '确认开始系统学习优化';
+  if (key === 'confirm') return '立即开始优化';
+  return '暂不优化';
+};

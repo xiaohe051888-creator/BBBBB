@@ -4,8 +4,10 @@ import {
   formatAdminModeName,
   formatAnalysisLoadingText,
   formatConfidenceLabel,
+  formatLearningLabel,
   formatLogPriorityLabel,
   formatMaintenanceLabel,
+  formatReviewLabel,
   formatSystemStatusLabel,
   formatTaskAreaLabel,
   formatUploadActionLabel,
@@ -58,5 +60,17 @@ describe('beginnerCopy', () => {
     expect(formatLogPriorityLabel('P1')).toBe('高优先级');
     expect(formatLogPriorityLabel('P2')).toBe('重要');
     expect(formatLogPriorityLabel('P3')).toBe('普通');
+  });
+
+  it('formats review-area labels in plain language', () => {
+    expect(formatReviewLabel('pageTitle')).toBe('复盘记录');
+    expect(formatReviewLabel('empty')).toBe('暂无复盘记录');
+    expect(formatReviewLabel('positiveHint')).toBe('预测正确时，这里不会新增记录');
+  });
+
+  it('formats learning labels in plain language', () => {
+    expect(formatLearningLabel('title')).toBe('确认开始系统学习优化');
+    expect(formatLearningLabel('confirm')).toBe('立即开始优化');
+    expect(formatLearningLabel('cancel')).toBe('暂不优化');
   });
 });

@@ -42,4 +42,22 @@ describe('logHumanizer', () => {
     expect(h.title).toContain('未知事件');
     expect(h.suggestion.length).toBeGreaterThan(0);
   });
+
+  it('uses beginner-friendly titles for AI learning logs', () => {
+    const log: LogEntry = {
+      id: 3,
+      log_time: '2026-05-02T00:00:00Z',
+      game_number: null,
+      event_code: 'LOG-AI-002',
+      event_type: 'AI学习',
+      event_result: '成功',
+      description: '模型版本已更新。',
+      category: '系统事件',
+      priority: 'P3',
+      task_id: null,
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.title).toBe('系统优化：已生成并切换到新版本');
+  });
 });

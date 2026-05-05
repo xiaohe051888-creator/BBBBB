@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Button, Spin, Grid } from 'antd';
 import { ExperimentOutlined, LoadingOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { formatLearningLabel } from '../../utils/beginnerCopy';
 
 interface StartLearningModalProps {
   visible: boolean;
@@ -70,7 +71,7 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
           )}
         </div>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>
-          确认开始 AI 深度学习
+          {formatLearningLabel('title')}
         </h2>
         {modeLabel && (
           <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
@@ -118,7 +119,7 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
             fontWeight: 500,
           }}
         >
-          暂不优化
+          {formatLearningLabel('cancel')}
         </Button>
         <Button
           type="primary"
@@ -135,7 +136,7 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
             boxShadow: '0 4px 12px rgba(114,46,209,0.3)',
           }}
         >
-          立即开始学习
+          {formatLearningLabel('confirm')}
         </Button>
       </div>
     </Modal>

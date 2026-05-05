@@ -14,7 +14,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useMistakesQuery, type MistakeRecord } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
-import { formatConfidenceLabel } from '../utils/beginnerCopy';
+import { formatConfidenceLabel, formatReviewLabel } from '../utils/beginnerCopy';
 
 // 错误类型映射
 const ERROR_TYPE_MAP: Record<string, { color: string; label: string; desc: string }> = {
@@ -259,7 +259,7 @@ const MistakeBookPage: React.FC = () => {
           </Button>
           <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icons.Experiment />
-            错题本 
+            {formatReviewLabel('pageTitle')}
           </span>
           <Badge count={filtered.length} showZero style={{ backgroundColor: filtered.length > 10 ? '#ff4d4f' : '#58a6ff' }} />
         </div>
@@ -420,8 +420,8 @@ const MistakeBookPage: React.FC = () => {
           scroll={{ x: 'max-content', y: isMobile ? undefined : 'calc(max(300px, 100vh - 520px))' }}
           locale={{ emptyText: <Empty description={
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-              <span>暂无错题记录</span>
-              <span style={{ color: '#8b949e', fontSize: 12 }}>预测正确时不会产生错题记录 ✅</span>
+              <span>{formatReviewLabel('empty')}</span>
+              <span style={{ color: '#8b949e', fontSize: 12 }}>{formatReviewLabel('positiveHint')} ✅</span>
             </div>
           } /> }}
           rowClassName={() => 'row-mistake'}
@@ -431,7 +431,7 @@ const MistakeBookPage: React.FC = () => {
 
       {/* 详情弹窗 */}
       <Modal
-        title={`错题详情 - 第${selectedMistake?.game_number}局`}
+        title={`复盘详情 - 第${selectedMistake?.game_number}局`}
         open={detailModalOpen}
         onCancel={() => setDetailModalOpen(false)}
         footer={[<Button key="close" onClick={() => setDetailModalOpen(false)}>关闭</Button>]}
