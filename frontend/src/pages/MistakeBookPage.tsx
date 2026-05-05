@@ -14,7 +14,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useMistakesQuery, type MistakeRecord } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
-import { formatConfidenceLabel, formatReviewLabel } from '../utils/beginnerCopy';
+import { formatConfidenceLabel, formatDetailLabel, formatReviewLabel } from '../utils/beginnerCopy';
 
 // 错误类型映射
 const ERROR_TYPE_MAP: Record<string, { color: string; label: string; desc: string }> = {
@@ -444,7 +444,7 @@ const MistakeBookPage: React.FC = () => {
               
               <Descriptions.Item label="靴号">#{selectedMistake.boot_number}</Descriptions.Item>
               <Descriptions.Item label="局号">{selectedMistake.game_number}</Descriptions.Item>
-              <Descriptions.Item label="错误编号">{selectedMistake.error_id}</Descriptions.Item>
+              <Descriptions.Item label={formatDetailLabel('errorId')}>{selectedMistake.error_id}</Descriptions.Item>
               <Descriptions.Item label="错误类型">
                 <Tag color={ERROR_TYPE_MAP[selectedMistake.error_type]?.color}>{ERROR_TYPE_MAP[selectedMistake.error_type]?.label || selectedMistake.error_type}</Tag>
               </Descriptions.Item>
@@ -466,7 +466,7 @@ const MistakeBookPage: React.FC = () => {
             {/* 三模型摘要 */}
             <Card
               size="small"
-              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Aim /> AI模型分析摘要</span>}
+              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Aim /> {formatDetailLabel('modelSummary')}</span>}
               style={{ marginBottom: 12 }}
               styles={{ header: { background: '#161b22', color: '#e6edf3' } }}
             >
@@ -489,7 +489,7 @@ const MistakeBookPage: React.FC = () => {
               <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                 <Card
                   size="small"
-                  title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Warning /> 错因分析</span>}
+                  title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Warning /> {formatDetailLabel('analysis')}</span>}
                   styles={{ header: { background: '#2d1318', color: '#ff4d4f' } }}
                 >
                   <p style={{ color: '#c9d1d9', lineHeight: 1.8, margin: 0 }}>
@@ -500,7 +500,7 @@ const MistakeBookPage: React.FC = () => {
               <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                 <Card
                   size="small"
-                  title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Check /> 修正策略</span>}
+                  title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Check /> {formatDetailLabel('correction')}</span>}
                   styles={{ header: { background: '#132d1c', color: '#52c41a' } }}
                 >
                   <p style={{ color: '#c9d1d9', lineHeight: 1.8, margin: 0 }}>

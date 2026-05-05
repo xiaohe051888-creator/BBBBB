@@ -92,3 +92,28 @@ export const formatDangerZoneLabel = (
   if (key === 'resetAllButton') return '清空演示数据';
   return '当前可用版本';
 };
+
+export const formatDetailLabel = (
+  key:
+    | 'copyHint'
+    | 'whatHappened'
+    | 'impact'
+    | 'suggestion'
+    | 'keyInfo'
+    | 'rawData'
+    | 'errorId'
+    | 'modelSummary'
+    | 'analysis'
+    | 'correction',
+) => {
+  if (key === 'copyHint') return '一键复制下面这段通俗说明';
+  if (key === 'whatHappened') return '这次发生了什么';
+  if (key === 'impact') return '对当前使用有什么影响';
+  if (key === 'suggestion') return '建议你接下来怎么做';
+  if (key === 'keyInfo') return '你可能会关心的信息';
+  if (key === 'rawData') return '原始记录（高级信息）';
+  if (key === 'errorId') return '记录编号';
+  if (key === 'modelSummary') return 'AI分析摘要';
+  if (key === 'analysis') return '原因分析';
+  return '改进建议';
+};

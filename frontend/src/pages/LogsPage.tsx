@@ -15,7 +15,7 @@ import { useLogsQuery, type LogEntry, useAddLogsOptimistically, useWebSocket } f
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { SystemStatusPanel } from '../components/ui/SystemStatusPanel';
 import { PRIORITY_COLORS } from '../utils/constants';
-import { formatLogsLabel } from '../utils/beginnerCopy';
+import { formatDetailLabel, formatLogsLabel } from '../utils/beginnerCopy';
 import { copyText } from '../utils/clipboard';
 import { humanizeLog, toHumanCopyText } from '../utils/logHumanizer';
 import { formatBeijing, beijingValueOf } from '../utils/datetime';
@@ -187,7 +187,7 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
           <Typography.Title level={5} style={{ margin: 0 }}>
             {human.title}
           </Typography.Title>
-          <Typography.Text type="secondary">小白解读（如粘贴为空，请点下面文本框 Ctrl+A 再 Ctrl+C）</Typography.Text>
+          <Typography.Text type="secondary">{formatDetailLabel('copyHint')}</Typography.Text>
           <textarea
             ref={humanTextRef}
             value={humanText}
@@ -207,20 +207,20 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
               lineHeight: 1.5,
             }}
           />
-          <Typography.Text type="secondary">发生了什么</Typography.Text>
+          <Typography.Text type="secondary">{formatDetailLabel('whatHappened')}</Typography.Text>
           <Typography.Paragraph style={{ marginBottom: 0 }}>
             {human.whatHappened || '-'}
           </Typography.Paragraph>
-          <Typography.Text type="secondary">有什么影响</Typography.Text>
+          <Typography.Text type="secondary">{formatDetailLabel('impact')}</Typography.Text>
           <Typography.Paragraph style={{ marginBottom: 0 }}>
             {human.impact || '-'}
           </Typography.Paragraph>
-          <Typography.Text type="secondary">建议怎么做</Typography.Text>
+          <Typography.Text type="secondary">{formatDetailLabel('suggestion')}</Typography.Text>
           <Typography.Paragraph style={{ marginBottom: 0 }}>
             {human.suggestion || '-'}
           </Typography.Paragraph>
           <Divider style={{ margin: '8px 0' }} />
-          <Typography.Text type="secondary">关键信息</Typography.Text>
+          <Typography.Text type="secondary">{formatDetailLabel('keyInfo')}</Typography.Text>
           <div style={simpleListStyle}>
             {human.fieldsCn.map((item, index) => (
               <div
@@ -240,7 +240,7 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
             items={[
               {
                 key: 'raw',
-                label: '技术信息（原始数据）',
+                label: formatDetailLabel('rawData'),
                 children: (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <Space wrap>

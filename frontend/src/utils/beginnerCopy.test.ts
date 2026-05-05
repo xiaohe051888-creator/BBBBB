@@ -5,6 +5,7 @@ import {
   formatAnalysisLoadingText,
   formatConfidenceLabel,
   formatDangerZoneLabel,
+  formatDetailLabel,
   formatLearningLabel,
   formatNavigationLabel,
   formatLogPriorityLabel,
@@ -102,5 +103,18 @@ describe('beginnerCopy', () => {
     expect(formatDangerZoneLabel('resetAllTitle')).toBe('确认清空所有演示数据？');
     expect(formatDangerZoneLabel('resetAllButton')).toBe('清空演示数据');
     expect(formatDangerZoneLabel('modelVersion')).toBe('当前可用版本');
+  });
+
+  it('formats detail labels in plain language', () => {
+    expect(formatDetailLabel('copyHint')).toBe('一键复制下面这段通俗说明');
+    expect(formatDetailLabel('whatHappened')).toBe('这次发生了什么');
+    expect(formatDetailLabel('impact')).toBe('对当前使用有什么影响');
+    expect(formatDetailLabel('suggestion')).toBe('建议你接下来怎么做');
+    expect(formatDetailLabel('keyInfo')).toBe('你可能会关心的信息');
+    expect(formatDetailLabel('rawData')).toBe('原始记录（高级信息）');
+    expect(formatDetailLabel('errorId')).toBe('记录编号');
+    expect(formatDetailLabel('modelSummary')).toBe('AI分析摘要');
+    expect(formatDetailLabel('analysis')).toBe('原因分析');
+    expect(formatDetailLabel('correction')).toBe('改进建议');
   });
 });

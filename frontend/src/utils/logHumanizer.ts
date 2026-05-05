@@ -262,7 +262,7 @@ const inferGeneric = (log: LogEntry): Omit<HumanLog, 'fieldsCn'> => {
   const inferred = byPrefix(prefix);
 
   const title = fail ? `${type}：出现异常` : `${type}：${result}`;
-  const what = desc || `系统记录了一条 ${type} 日志。`;
+  const what = desc || `系统刚记录了一条 ${type} 记录。`;
   const impact = inferred?.impact || (fail ? '可能影响当前流程，请留意系统状态。' : '一般不影响使用。');
   const suggestion = inferred?.suggestion || (fail ? '建议刷新页面后重试；如持续出现请截图反馈。' : '无需处理。');
 
