@@ -384,37 +384,6 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
     from app.api.routes.websocket import get_ws_client_count
     ws_count = await get_ws_client_count()
     
-    # 收集AI模型详细状态（兼容旧字段）
-    models_status = {
-        "openai": {
-            "enabled": openai_enabled,
-            "label": "庄模型",
-            "model": getattr(settings, "OPENAI_MODEL", "gpt-4o-mini"),
-            "issue": None if openai_enabled else "接口密钥未配置",
-        },
-        "anthropic": {
-            "enabled": anthropic_enabled,
-            "label": "闲模型",
-            "model": getattr(settings, "ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
-            "issue": None if anthropic_enabled else "接口密钥未配置",
-        },
-        "gemini": {
-            "enabled": gemini_enabled,
-            "label": "综合模型",
-            "model": getattr(settings, "GEMINI_MODEL", "gemini-1.5-flash"),
-            "issue": None if gemini_enabled else "接口密钥未配置",
-        },
-        "single_ai": {
-            "enabled": single_ai_enabled,
-            "label": "单AI",
-            "model": getattr(settings, "SINGLE_AI_MODEL", "deepseek-v4-pro"),
-            "issue": None if single_ai_enabled else "接口密钥未配置",
-        },
-    }
-    
-    configured_count = sum([openai_enabled, anthropic_enabled, gemini_enabled])
-
-    current_required = mode_readiness.get(current_mode, mode_readiness["ai"]).get("required", [])
     current_missing = mode_readiness.get(current_mode, mode_readiness["ai"]).get("missing", [])
     other_modes = [m for m in ("ai", "single_ai", "rule") if m != current_mode]
     issues_current_mode = []
@@ -510,11 +479,6 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
         "issues_current_mode": issues_current_mode,
         "issues_other_modes": issues_other_modes,
         "overall_status_current_mode": overall_status_current_mode,
-        "openai_enabled": openai_enabled,
-        "anthropic_enabled": anthropic_enabled,
-        "gemini_enabled": gemini_enabled,
-        "ai_configured_count": configured_count,
-        "models_detail": models_status,
         "db_ok": db_ok,
         "db_error": db_error,
         "db_game_count": db_game_count,

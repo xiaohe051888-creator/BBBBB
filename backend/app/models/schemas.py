@@ -38,12 +38,12 @@ class BetTier(str, PyEnum):
 
 class SystemStatus(str, PyEnum):
     """系统状态"""
-    RUNNING = "运行中"
-    WAITING = "等待开奖"
-    STRATEGY_REVIEW = "策略重评估中"
-    ERROR = "异常处理中"
-    STOPPED = "空闲"
-    SHUFFLE_WAIT = "洗牌等待"
+    IDLE = "空闲"
+    ANALYZING = "分析中"
+    WAITING_RESULT = "等待开奖"
+    ANALYSIS_READY = "分析完成"
+    DEEP_LEARNING = "深度学习中"
+    WAITING_NEXT_BOOT = "等待新靴"
     INSUFFICIENT_BALANCE = "余额不足"
 
 

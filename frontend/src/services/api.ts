@@ -170,17 +170,22 @@ export interface SystemDiagnosticsResponse {
   issues_current_mode?: Array<{ level: 'critical' | 'warning' | 'info'; title: string; detail: string }>;
   issues_other_modes?: Array<{ level: 'critical' | 'warning' | 'info'; title: string; detail: string }>;
   overall_status_current_mode?: 'ok' | 'warning' | 'critical';
-  openai_enabled: boolean;
-  anthropic_enabled: boolean;
-  gemini_enabled: boolean;
   db_ok: boolean;
+  db_error?: string | null;
+  db_game_count?: number | null;
+  db_has_state?: boolean | null;
   ws_connections: number;
   current_session?: Record<string, unknown>;
   background_tasks?: {
     running_count: number;
     running_types: string[];
+    running_tasks_by_type?: Record<string, number>;
+    stuck_signals?: Array<Record<string, unknown>>;
     latest_errors: Array<Record<string, unknown>>;
   };
+  issues?: Array<{ level: 'critical' | 'warning' | 'info'; title: string; detail: string }>;
+  has_critical_issues?: boolean;
+  overall_status?: 'ok' | 'warning' | 'critical';
 }
 
 /** 获取系统诊断信息（AI Key配置、DB状态、WS连接数等） */

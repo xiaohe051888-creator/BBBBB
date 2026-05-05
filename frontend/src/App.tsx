@@ -23,7 +23,6 @@ const UploadDataPage = React.lazy(() => import('./pages/UploadDataPage'));
 const ModeSelectPage = React.lazy(() => import('./pages/ModeSelectPage'));
 import { queryClient } from './lib/queryClient';
 import { PageErrorBoundary } from './components/error';
-import './styles/mobile.css';
 
 // 精致SVG图标组件
 const NavIcons = {

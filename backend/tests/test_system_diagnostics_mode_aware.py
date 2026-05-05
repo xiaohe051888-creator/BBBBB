@@ -30,7 +30,19 @@ class SystemDiagnosticsModeAwareTest(unittest.TestCase):
         self.assertEqual(res["current_mode"], "rule")
         self.assertEqual(res["mode_readiness"]["rule"]["status"], "ok")
 
+    def test_diagnostics_excludes_legacy_model_summary_fields(self):
+        async def _run():
+            from app.api.routes.system import get_system_diagnostics
+
+            return await get_system_diagnostics()
+
+        res = asyncio.run(_run())
+        self.assertNotIn("openai_enabled", res)
+        self.assertNotIn("anthropic_enabled", res)
+        self.assertNotIn("gemini_enabled", res)
+        self.assertNotIn("ai_configured_count", res)
+        self.assertNotIn("models_detail", res)
+
 
 if __name__ == "__main__":
     unittest.main()
-
