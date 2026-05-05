@@ -214,7 +214,7 @@ const RoadMapPage: React.FC = () => {
           </span>
         </div>
 
-        <div className="page-nav-right">
+        <div className="page-nav-right roadmap-page-actions">
           <Select
             size="small"
             value={activeTab}
@@ -248,7 +248,7 @@ const RoadMapPage: React.FC = () => {
           overflow: 'auto',
         }}>
           {/* 标题栏 */}
-          <div style={{
+          <div className="roadmap-chart-header" style={{
             padding: '12px 16px',
             background: 'linear-gradient(90deg, #161b22 0%, #0d1117 100%)',
             borderBottom: '1px solid #30363d',
@@ -258,7 +258,7 @@ const RoadMapPage: React.FC = () => {
             flexWrap: 'wrap',
             gap: '12px',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="roadmap-chart-titlebar" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icons.Target />
               <span style={{ fontSize: '15px', fontWeight: 600, color: '#e6edf3' }}>
                 五路走势图
@@ -267,7 +267,7 @@ const RoadMapPage: React.FC = () => {
             </div>
             
             {/* 图例说明 */}
-            <div className="mobile-scroll-x" style={{
+            <div className="mobile-scroll-x roadmap-chart-legend" style={{
               display: 'flex',
               gap: '16px',
               fontSize: '12px',

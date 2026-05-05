@@ -588,8 +588,8 @@ const AdminPage: React.FC = () => {
   return (
     <div className="page-wrapper admin-page" style={{ padding: '16px' }}>
       {/* 顶部 */}
-      <div className="page-nav-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div className="page-nav-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="page-nav-bar admin-page-nav" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div className="page-nav-left admin-page-nav-main" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <Button
             icon={<Icons.Back />}
             onClick={() => {
@@ -600,10 +600,12 @@ const AdminPage: React.FC = () => {
           >
             返回总览
           </Button>
-          <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600 }}>管理员后台</span>
-          <Tag color="blue">自动验证模式</Tag>
+          <div className="admin-page-headline">
+            <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600 }}>管理员后台</span>
+            <Tag color="blue" className="admin-page-mode-badge">自动验证模式</Tag>
+          </div>
         </div>
-        <div className="page-nav-right mobile-action-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="page-nav-right mobile-action-row admin-page-top-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Button icon={<Icons.Key />} onClick={() => setChangePwdVisible(true)} size="small">修改密码</Button>
           <Button danger icon={<Icons.Logout />} onClick={() => { clearToken(); navigate('/dashboard'); }} size="small">退出登录</Button>
         </div>
