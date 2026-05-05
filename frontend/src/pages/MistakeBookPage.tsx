@@ -14,7 +14,11 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useMistakesQuery, type MistakeRecord } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
-import { formatConfidenceLabel, formatDetailLabel, formatReviewLabel } from '../utils/beginnerCopy';
+import {
+  formatConfidenceLabel,
+  formatDetailLabel,
+  formatReviewLabel,
+} from '../utils/beginnerCopy';
 
 // 错误类型映射
 const ERROR_TYPE_MAP: Record<string, { color: string; label: string; desc: string }> = {
@@ -276,8 +280,8 @@ const MistakeBookPage: React.FC = () => {
 
       {/* 提示信息 */}
       <Alert
-        title="系统说明"
-        description="预测正确时不会记录；只有预测失误时，系统才会保留当时现场，方便后续复盘和优化。"
+        title={formatReviewLabel('infoTitle')}
+        description={formatReviewLabel('infoDescription')}
         type="info"
         showIcon
         style={{ marginBottom: 24, background: 'rgba(24,144,255,0.1)', border: '1px solid rgba(24,144,255,0.2)' }}
@@ -293,7 +297,7 @@ const MistakeBookPage: React.FC = () => {
         }}>
           <Card size="small">
             <Statistic
-              title="总错误数"
+              title={formatReviewLabel('totalErrors')}
               value={summary.totalErrors}
               suffix="条"
               styles={{ content: { fontSize: 18, color: summary.totalErrors > 15 ? '#ff4d4f' : '#58a6ff' } }}
@@ -309,14 +313,14 @@ const MistakeBookPage: React.FC = () => {
           </Card>
           <Card size="small">
             <Statistic
-              title="庄向误判"
+              title={formatReviewLabel('bankerErrors')}
               value={summary.byDirection.banker}
               styles={{ content: { fontSize: 16, color: '#ff4d4f' } }}
             />
           </Card>
           <Card size="small">
             <Statistic
-              title="闲向误判"
+              title={formatReviewLabel('playerErrors')}
               value={summary.byDirection.player}
               styles={{ content: { fontSize: 16, color: '#1890ff' } }}
             />
@@ -345,7 +349,7 @@ const MistakeBookPage: React.FC = () => {
           </span>
 
           <Select
-            placeholder="错误类型"
+            placeholder={formatReviewLabel('errorTypeFilter')}
             allowClear
             value={filterErrorType || undefined}
             onChange={setFilterErrorType}
@@ -356,7 +360,7 @@ const MistakeBookPage: React.FC = () => {
           />
 
           <Select
-            placeholder="预测方向"
+            placeholder={formatReviewLabel('directionFilter')}
             allowClear
             value={filterPredictDir || undefined}
             onChange={setFilterPredictDir}
@@ -370,7 +374,7 @@ const MistakeBookPage: React.FC = () => {
           />
 
           <Input
-            placeholder="搜索局号"
+            placeholder={formatReviewLabel('gameSearch')}
             size="small"
             value={searchGameNumber}
             onChange={(e) => setSearchGameNumber(e.target.value)}
@@ -445,7 +449,7 @@ const MistakeBookPage: React.FC = () => {
               <Descriptions.Item label="靴号">#{selectedMistake.boot_number}</Descriptions.Item>
               <Descriptions.Item label="局号">{selectedMistake.game_number}</Descriptions.Item>
               <Descriptions.Item label={formatDetailLabel('errorId')}>{selectedMistake.error_id}</Descriptions.Item>
-              <Descriptions.Item label="错误类型">
+              <Descriptions.Item label="失误类型">
                 <Tag color={ERROR_TYPE_MAP[selectedMistake.error_type]?.color}>{ERROR_TYPE_MAP[selectedMistake.error_type]?.label || selectedMistake.error_type}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="置信度">

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatAdminPageLabel,
   formatAdminModeName,
   formatAnalysisLoadingText,
   formatConfidenceLabel,
@@ -44,6 +45,8 @@ describe('beginnerCopy', () => {
     expect(formatSystemStatusLabel('backend')).toBe('服务状态');
     expect(formatSystemStatusLabel('aiConfig')).toBe('当前模式配置');
     expect(formatSystemStatusLabel('tasks')).toBe('系统处理进度');
+    expect(formatSystemStatusLabel('tasksIdle')).toBe('当前没有正在处理的事项');
+    expect(formatSystemStatusLabel('tasksAlert')).toBe('最近有处理失败，可到管理页面查看');
   });
 
   it('formats task area labels in plain language', () => {
@@ -70,12 +73,24 @@ describe('beginnerCopy', () => {
     expect(formatReviewLabel('pageTitle')).toBe('复盘记录');
     expect(formatReviewLabel('empty')).toBe('暂无复盘记录');
     expect(formatReviewLabel('positiveHint')).toBe('预测正确时，这里不会新增记录');
+    expect(formatReviewLabel('infoTitle')).toBe('查看说明');
+    expect(formatReviewLabel('infoDescription')).toBe('只有预测失误时，系统才会保留当时记录，方便你回看原因。');
+    expect(formatReviewLabel('totalErrors')).toBe('累计复盘次数');
+    expect(formatReviewLabel('bankerErrors')).toBe('庄方向失误');
+    expect(formatReviewLabel('playerErrors')).toBe('闲方向失误');
+    expect(formatReviewLabel('errorTypeFilter')).toBe('按失误类型');
+    expect(formatReviewLabel('directionFilter')).toBe('按当时建议筛选');
+    expect(formatReviewLabel('gameSearch')).toBe('搜索局号');
   });
 
   it('formats learning labels in plain language', () => {
     expect(formatLearningLabel('title')).toBe('确认开始系统学习优化');
     expect(formatLearningLabel('confirm')).toBe('立即开始优化');
     expect(formatLearningLabel('cancel')).toBe('暂不优化');
+    expect(formatLearningLabel('runningTitle')).toBe('系统学习优化进行中');
+    expect(formatLearningLabel('doneTitle')).toBe('系统学习优化完成，已经可以开始新一靴');
+    expect(formatLearningLabel('queueNotice')).toBe('系统正在整理当前学习任务，你现在上传的新数据会排队接续处理。');
+    expect(formatLearningLabel('manualStartHint')).toBe('本靴结束后，如需继续优化，请到管理页面手动开始系统学习优化');
   });
 
   it('formats navigation labels in plain language', () => {
@@ -103,6 +118,12 @@ describe('beginnerCopy', () => {
     expect(formatDangerZoneLabel('resetAllTitle')).toBe('确认清空所有演示数据？');
     expect(formatDangerZoneLabel('resetAllButton')).toBe('清空演示数据');
     expect(formatDangerZoneLabel('modelVersion')).toBe('当前可用版本');
+  });
+
+  it('formats admin page labels in plain language', () => {
+    expect(formatAdminPageLabel('title')).toBe('管理页面');
+    expect(formatAdminPageLabel('learningNotNeeded')).toBe('规则参考模式下无需系统学习优化');
+    expect(formatAdminPageLabel('learningStarted')).toBe('系统学习优化已开始');
   });
 
   it('formats detail labels in plain language', () => {

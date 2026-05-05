@@ -15,6 +15,7 @@ import * as api from '../services/api';
 import { clearToken } from '../services/api';
 import { copyText } from '../utils/clipboard';
 import {
+  formatAdminPageLabel,
   formatAdminModeName,
   formatDangerZoneLabel,
   formatLogPriorityLabel,
@@ -520,12 +521,12 @@ const AdminPage: React.FC = () => {
 
   const handleStartLearning = async () => {
     if (predictionMode !== 'ai' && predictionMode !== 'single_ai') {
-      message.warning('规则引擎模式下不需要深度学习');
+      message.warning(formatAdminPageLabel('learningNotNeeded'));
       return;
     }
     try {
       await api.startAiLearning(0, predictionMode);
-      message.success('AI深度学习已启动');
+      message.success(formatAdminPageLabel('learningStarted'));
       loadAiLearningStatus();
     } catch (err: any) {
       const errorMsg = err instanceof Error ? err.message : '启动学习失败';
@@ -609,7 +610,9 @@ const AdminPage: React.FC = () => {
             返回总览
           </Button>
           <div className="admin-page-headline">
-            <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600 }}>管理员后台</span>
+            <span className="page-nav-title" style={{ fontSize: 16, fontWeight: 600 }}>
+              {formatAdminPageLabel('title')}
+            </span>
             <Tag color="blue" className="admin-page-mode-badge">自动验证模式</Tag>
           </div>
         </div>
@@ -940,7 +943,7 @@ const AdminPage: React.FC = () => {
                         icon={<Icons.AI />} 
                         onClick={() => {
                           if (predictionMode !== 'ai' && predictionMode !== 'single_ai') {
-                            message.warning('规则引擎模式下不需要深度学习');
+                            message.warning(formatAdminPageLabel('learningNotNeeded'));
                             return;
                           }
                           setStartLearningVisible(true);

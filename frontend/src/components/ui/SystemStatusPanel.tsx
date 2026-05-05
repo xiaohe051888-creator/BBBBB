@@ -338,12 +338,14 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
                   ))}
                 </>
               ) : (
-                <Tag style={{ marginInlineEnd: 0, fontSize: 10, padding: '1px 6px', borderRadius: 8 }}>无运行中任务</Tag>
+                <Tag style={{ marginInlineEnd: 0, fontSize: 10, padding: '1px 6px', borderRadius: 8 }}>
+                  {formatSystemStatusLabel('tasksIdle')}
+                </Tag>
               )}
             </div>
             {backgroundTasks.latestErrors.length > 0 && (
               <span style={{ fontSize: 10, color: '#ff7875', marginTop: 2 }}>
-                ⚠ 最近有任务失败，请查看管理员后台
+                ⚠ {formatSystemStatusLabel('tasksAlert')}
               </span>
             )}
           </div>
@@ -509,7 +511,7 @@ const StatusTooltip: React.FC<{ diagnostics: SystemDiagnostics; onRetry?: () => 
           </span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-          <span style={{ color: '#8b949e' }}>后台任务</span>
+          <span style={{ color: '#8b949e' }}>{formatSystemStatusLabel('tasks')}</span>
           <span style={{ color: backgroundTasks.runningCount > 0 ? '#58a6ff' : '#8b949e' }}>
             {backgroundTasks.runningCount > 0 ? `运行中 ${backgroundTasks.runningCount}` : '无'}
           </span>

@@ -18,11 +18,13 @@ export const formatUploadActionLabel = (action: 'reset_current_boot' | 'new_boot
 };
 
 export const formatSystemStatusLabel = (
-  key: 'realtime' | 'backend' | 'aiConfig' | 'tasks',
+  key: 'realtime' | 'backend' | 'aiConfig' | 'tasks' | 'tasksIdle' | 'tasksAlert',
 ) => {
   if (key === 'realtime') return '实时连接';
   if (key === 'backend') return '服务状态';
   if (key === 'aiConfig') return '当前模式配置';
+  if (key === 'tasksIdle') return '当前没有正在处理的事项';
+  if (key === 'tasksAlert') return '最近有处理失败，可到管理页面查看';
   return '系统处理进度';
 };
 
@@ -48,15 +50,55 @@ export const formatLogPriorityLabel = (priority: 'P1' | 'P2' | 'P3') => {
   return '普通';
 };
 
-export const formatReviewLabel = (key: 'pageTitle' | 'empty' | 'positiveHint') => {
+export const formatReviewLabel = (
+  key:
+    | 'pageTitle'
+    | 'empty'
+    | 'positiveHint'
+    | 'infoTitle'
+    | 'infoDescription'
+    | 'totalErrors'
+    | 'bankerErrors'
+    | 'playerErrors'
+    | 'errorTypeFilter'
+    | 'directionFilter'
+    | 'gameSearch',
+) => {
   if (key === 'pageTitle') return '复盘记录';
   if (key === 'empty') return '暂无复盘记录';
+  if (key === 'infoTitle') return '查看说明';
+  if (key === 'infoDescription') {
+    return '只有预测失误时，系统才会保留当时记录，方便你回看原因。';
+  }
+  if (key === 'totalErrors') return '累计复盘次数';
+  if (key === 'bankerErrors') return '庄方向失误';
+  if (key === 'playerErrors') return '闲方向失误';
+  if (key === 'errorTypeFilter') return '按失误类型';
+  if (key === 'directionFilter') return '按当时建议筛选';
+  if (key === 'gameSearch') return '搜索局号';
   return '预测正确时，这里不会新增记录';
 };
 
-export const formatLearningLabel = (key: 'title' | 'confirm' | 'cancel') => {
+export const formatLearningLabel = (
+  key:
+    | 'title'
+    | 'confirm'
+    | 'cancel'
+    | 'runningTitle'
+    | 'doneTitle'
+    | 'queueNotice'
+    | 'manualStartHint',
+) => {
   if (key === 'title') return '确认开始系统学习优化';
   if (key === 'confirm') return '立即开始优化';
+  if (key === 'runningTitle') return '系统学习优化进行中';
+  if (key === 'doneTitle') return '系统学习优化完成，已经可以开始新一靴';
+  if (key === 'queueNotice') {
+    return '系统正在整理当前学习任务，你现在上传的新数据会排队接续处理。';
+  }
+  if (key === 'manualStartHint') {
+    return '本靴结束后，如需继续优化，请到管理页面手动开始系统学习优化';
+  }
   return '暂不优化';
 };
 
@@ -91,6 +133,14 @@ export const formatDangerZoneLabel = (
   if (key === 'resetAllTitle') return '确认清空所有演示数据？';
   if (key === 'resetAllButton') return '清空演示数据';
   return '当前可用版本';
+};
+
+export const formatAdminPageLabel = (
+  key: 'title' | 'learningNotNeeded' | 'learningStarted',
+) => {
+  if (key === 'title') return '管理页面';
+  if (key === 'learningNotNeeded') return '规则参考模式下无需系统学习优化';
+  return '系统学习优化已开始';
 };
 
 export const formatDetailLabel = (

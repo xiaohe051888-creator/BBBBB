@@ -408,7 +408,7 @@ const DashboardPage: React.FC = () => {
               </span>
             </div>
             <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>当前AI模型版本</span>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>当前使用版本</span>
               <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: 12, color: '#b37feb', background: 'rgba(179,127,235,0.1)', padding: '6px 10px', borderRadius: 12, maxWidth: '100%' }}>
                 <span style={{ fontWeight: 600, lineHeight: 1.3, wordBreak: 'break-word', textAlign: 'right' }}>
                   {modelVersionDisplay.title}

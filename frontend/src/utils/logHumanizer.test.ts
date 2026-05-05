@@ -60,4 +60,22 @@ describe('logHumanizer', () => {
     const h = humanizeLog(log);
     expect(h.title).toBe('系统优化：已生成并切换到新版本');
   });
+
+  it('uses beginner-friendly wording for learning progress logs', () => {
+    const log: LogEntry = {
+      id: 4,
+      log_time: '2026-05-02T00:00:00Z',
+      game_number: null,
+      event_code: 'LOG-BOOT-002',
+      event_type: 'AI学习',
+      event_result: '成功',
+      description: '',
+      category: '系统事件',
+      priority: 'P3',
+      task_id: null,
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.whatHappened).toBe('系统学习优化已完成。');
+  });
 });
