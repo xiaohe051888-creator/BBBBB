@@ -167,7 +167,7 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
           全选
         </Button>,
         <Button key="copy" disabled={!log} onClick={() => copy(humanText)}>
-          复制小白解读
+          {formatDetailLabel('copySummary')}
         </Button>,
         <Button key="close" type="primary" onClick={onClose}>
           关闭
@@ -245,7 +245,7 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <Space wrap>
                       <Button size="small" onClick={() => copy(rawText)} disabled={!log}>
-                        复制原始数据
+                        复制原始记录
                       </Button>
                     </Space>
                     <pre style={{ margin: 0, maxHeight: 260, overflow: 'auto' }}>
@@ -258,7 +258,7 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
           />
         </div>
       ) : (
-        <Typography.Text type="secondary">未选择记录</Typography.Text>
+        <Typography.Text type="secondary">请先选择一条记录</Typography.Text>
       )}
     </Modal>
   );

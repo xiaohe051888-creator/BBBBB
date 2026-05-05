@@ -454,11 +454,11 @@ const MistakeBookPage: React.FC = () => {
                     strokeColor={selectedMistake.confidence >= 0.75 ? '#ff4d4f' : '#faad14'} format={p => `${p}%`} />
                 ) : '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="预测方向" span={2}>
+              <Descriptions.Item label={formatDetailLabel('predicted')} span={2}>
                 <Space>
-                  <Tag color="#ff4d4f">预测: {selectedMistake.predict_direction}</Tag>
+                  <Tag color="#ff4d4f">{formatDetailLabel('predicted')}: {selectedMistake.predict_direction}</Tag>
                   <span style={{ color: '#ff4d4f', fontSize: 16 }}>✗</span>
-                  <Tag color="#1890ff">实际: {selectedMistake.actual_result}</Tag>
+                  <Tag color="#1890ff">{formatDetailLabel('actual')}: {selectedMistake.actual_result}</Tag>
                 </Space>
               </Descriptions.Item>
             </Descriptions>
@@ -471,16 +471,30 @@ const MistakeBookPage: React.FC = () => {
               styles={{ header: { background: '#161b22', color: '#e6edf3' } }}
             >
               {selectedMistake.banker_summary && (
-                <Alert type="error" title="庄模型" description={selectedMistake.banker_summary} style={{ marginBottom: 8 }} />
+                <Alert
+                  type="error"
+                  title={formatDetailLabel('bankerModel')}
+                  description={selectedMistake.banker_summary}
+                  style={{ marginBottom: 8 }}
+                />
               )}
               {selectedMistake.player_summary && (
-                <Alert type="warning" title="闲模型" description={selectedMistake.player_summary} style={{ marginBottom: 8 }} />
+                <Alert
+                  type="warning"
+                  title={formatDetailLabel('playerModel')}
+                  description={selectedMistake.player_summary}
+                  style={{ marginBottom: 8 }}
+                />
               )}
               {selectedMistake.combined_summary && (
-                <Alert type="error" title="综合模型" description={selectedMistake.combined_summary} />
+                <Alert
+                  type="error"
+                  title={formatDetailLabel('combinedModel')}
+                  description={selectedMistake.combined_summary}
+                />
               )}
               {!selectedMistake.banker_summary && !selectedMistake.player_summary && !selectedMistake.combined_summary && (
-                <span style={{ color: '#555' }}>无AI模型分析摘要</span>
+                <span style={{ color: '#555' }}>暂时没有AI分析摘要</span>
               )}
             </Card>
 
@@ -493,7 +507,9 @@ const MistakeBookPage: React.FC = () => {
                   styles={{ header: { background: '#2d1318', color: '#ff4d4f' } }}
                 >
                   <p style={{ color: '#c9d1d9', lineHeight: 1.8, margin: 0 }}>
-                    {selectedMistake.analysis || <span style={{ color: '#555' }}>暂无分析</span>}
+                    {selectedMistake.analysis || (
+                      <span style={{ color: '#555' }}>{formatDetailLabel('noAnalysis')}</span>
+                    )}
                   </p>
                 </Card>
               </div>
@@ -504,7 +520,9 @@ const MistakeBookPage: React.FC = () => {
                   styles={{ header: { background: '#132d1c', color: '#52c41a' } }}
                 >
                   <p style={{ color: '#c9d1d9', lineHeight: 1.8, margin: 0 }}>
-                    {selectedMistake.correction || <span style={{ color: '#555' }}>暂无修正策略</span>}
+                    {selectedMistake.correction || (
+                      <span style={{ color: '#555' }}>{formatDetailLabel('noCorrection')}</span>
+                    )}
                   </p>
                 </Card>
               </div>

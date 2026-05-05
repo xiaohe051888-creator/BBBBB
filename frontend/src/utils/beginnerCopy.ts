@@ -96,6 +96,7 @@ export const formatDangerZoneLabel = (
 export const formatDetailLabel = (
   key:
     | 'copyHint'
+    | 'copySummary'
     | 'whatHappened'
     | 'impact'
     | 'suggestion'
@@ -104,9 +105,17 @@ export const formatDetailLabel = (
     | 'errorId'
     | 'modelSummary'
     | 'analysis'
-    | 'correction',
+    | 'correction'
+    | 'predicted'
+    | 'actual'
+    | 'bankerModel'
+    | 'playerModel'
+    | 'combinedModel'
+    | 'noAnalysis'
+    | 'noCorrection',
 ) => {
   if (key === 'copyHint') return '一键复制下面这段通俗说明';
+  if (key === 'copySummary') return '复制通俗说明';
   if (key === 'whatHappened') return '这次发生了什么';
   if (key === 'impact') return '对当前使用有什么影响';
   if (key === 'suggestion') return '建议你接下来怎么做';
@@ -115,5 +124,12 @@ export const formatDetailLabel = (
   if (key === 'errorId') return '记录编号';
   if (key === 'modelSummary') return 'AI分析摘要';
   if (key === 'analysis') return '原因分析';
+  if (key === 'predicted') return '当时建议';
+  if (key === 'actual') return '实际结果';
+  if (key === 'bankerModel') return '庄方向判断';
+  if (key === 'playerModel') return '闲方向判断';
+  if (key === 'combinedModel') return '综合判断';
+  if (key === 'noAnalysis') return '暂时没有原因分析';
+  if (key === 'noCorrection') return '暂时没有改进建议';
   return '改进建议';
 };

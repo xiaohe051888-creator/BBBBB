@@ -116,5 +116,13 @@ describe('beginnerCopy', () => {
     expect(formatDetailLabel('modelSummary')).toBe('AI分析摘要');
     expect(formatDetailLabel('analysis')).toBe('原因分析');
     expect(formatDetailLabel('correction')).toBe('改进建议');
+    expect(formatDetailLabel('predicted')).toBe('当时建议');
+    expect(formatDetailLabel('actual')).toBe('实际结果');
+    expect(formatDetailLabel('bankerModel')).toBe('庄方向判断');
+    expect(formatDetailLabel('playerModel')).toBe('闲方向判断');
+    expect(formatDetailLabel('combinedModel')).toBe('综合判断');
+    expect(formatDetailLabel('noAnalysis')).toBe('暂时没有原因分析');
+    expect(formatDetailLabel('noCorrection')).toBe('暂时没有改进建议');
+    expect(formatDetailLabel('copySummary')).toBe('复制通俗说明');
   });
 });
