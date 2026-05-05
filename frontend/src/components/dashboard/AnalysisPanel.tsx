@@ -7,6 +7,7 @@ import React, { useMemo, useState } from 'react';
 import { Tag, Progress, Button, Drawer, Space } from 'antd';
 import { RobotOutlined, BulbOutlined, AimOutlined } from '@ant-design/icons';
 import { useSystemStateQuery } from '../../hooks/useQueries';
+import { formatAdminModeName, formatAnalysisLoadingText, formatConfidenceLabel } from '../../utils/beginnerCopy';
 import { toCnModelLabel } from '../../utils/i18nErrors';
 
 interface Analysis {
@@ -39,12 +40,12 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   const reasoningPoints = useMemo(() => (analysis?.reasoning_points || []).filter(Boolean).slice(0, 6), [analysis]);
   const reasoningDetail = analysis?.reasoning_detail || '';
   const engineLabel = useMemo(() => {
-    if (mode === 'rule') return '规则引擎';
+    if (mode === 'rule') return '规则参考模式';
     if (mode === 'single_ai') {
       const m = analysis?.engine?.model || '';
-      return `单AI（${toCnModelLabel(m)}）`;
+      return `单AI快速模式（${toCnModelLabel(m)}）`;
     }
-    return '3AI（庄模型 / 闲模型 / 综合模型）';
+    return '三模型协作模式（庄 / 闲 / 综合）';
   }, [mode, analysis?.engine?.model]);
 
   // 分析中状态 - 三模型进度指示器
@@ -56,7 +57,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <span className="section-title">智能分析</span>
           <div style={{ marginLeft: 'auto' }}>
             <Tag color={mode === 'single_ai' ? 'green' : mode === 'rule' ? 'orange' : 'purple'} style={{ borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
-              {mode === 'single_ai' ? '单AI' : mode === 'rule' ? '规则' : '3AI'}
+              {formatAdminModeName(mode)}
             </Tag>
           </div>
         </div>
@@ -65,7 +66,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             <RobotOutlined style={{ fontSize: 28 }} />
           </div>
           <div style={{ color: '#1890ff', fontSize: 14, fontWeight: 600 }}>
-            {mode === 'rule' ? '量化规则引擎正在进行毫秒级推演...' : mode === 'single_ai' ? '单AI正在深度推理中...' : 'AI三模型正在深度交叉分析中...'}
+            {formatAnalysisLoadingText(mode)}
           </div>
           
           {mode === 'ai' && (
@@ -115,7 +116,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 ))}
               </div>
               <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 8 }}>
-                正在并行调用三模型服务
+                正在同时参考三套分析结果
               </div>
             </>
           )}
@@ -142,7 +143,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 </div>
               </div>
               <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 8 }}>
-                正在调用单模型推理服务
+                正在调用当前单AI配置进行分析
               </div>
             </>
           )}
@@ -238,7 +239,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <Tag color="default" style={{ borderRadius: 12, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
             {engineLabel}
           </Tag>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>置信度</span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{formatConfidenceLabel()}</span>
           <Progress
             type="circle"
             percent={(analysis.confidence || 0) * 100}

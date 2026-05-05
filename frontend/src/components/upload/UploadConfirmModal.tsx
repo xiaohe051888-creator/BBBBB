@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Checkbox, Descriptions, Modal, Radio } from 'antd';
 
 import type { SystemState } from '../../hooks';
+import { formatUploadActionLabel } from '../../utils/beginnerCopy';
 
 export type UploadAction = 'reset_current_boot' | 'new_boot';
 export type BalanceMode = 'keep' | 'reset_default';
@@ -32,7 +33,7 @@ export const UploadConfirmModal: React.FC<Props> = ({
   const [balanceMode, setBalanceMode] = React.useState<BalanceMode>('keep');
   const [confirmReset, setConfirmReset] = React.useState(false);
   const isDeepLearning = systemState?.status === '深度学习中';
-  const actionText = action === 'reset_current_boot' ? '重置本靴（覆盖本靴）' : '结束本靴（开启新靴）';
+  const actionText = formatUploadActionLabel(action);
   const balanceText = balanceMode === 'keep' ? '保留当前余额' : '重置余额到 20000';
 
   React.useEffect(() => {
@@ -46,7 +47,7 @@ export const UploadConfirmModal: React.FC<Props> = ({
     onSubmit({ action, balanceMode });
   };
 
-  const okText = action === 'reset_current_boot' ? '确认覆盖本靴并上传' : '确认结束本靴并上传';
+  const okText = action === 'reset_current_boot' ? '确认重做当前这靴并上传' : '确认结束当前这靴并上传';
 
   return (
     <Modal
@@ -110,20 +111,20 @@ export const UploadConfirmModal: React.FC<Props> = ({
               setConfirmReset(false);
             }}
             options={[
-              { label: '重置本靴（覆盖本靴）', value: 'reset_current_boot', disabled: isDeepLearning },
-              { label: '结束本靴（开启新靴）', value: 'new_boot' },
+              { label: '重做当前这靴数据', value: 'reset_current_boot', disabled: isDeepLearning },
+              { label: '结束当前这靴并开始下一靴', value: 'new_boot' },
             ]}
           />
           {isDeepLearning && (
             <div style={{ fontSize: 12, color: 'rgba(250,173,20,0.85)' }}>
-              当前处于深度学习中：为避免破坏学习流程，已禁用“重置本靴”，只能选择“结束本靴（开启新靴）”并排队写入。
+              当前系统正在学习中。为了不打断流程，暂时不能重做当前这靴，只能先结束当前这靴，再把这次上传排队处理。
             </div>
           )}
         </div>
 
         {action === 'reset_current_boot' && (
           <Checkbox checked={confirmReset} onChange={(e) => setConfirmReset(e.target.checked)} disabled={submitting}>
-            我已确认将清空本靴数据（不可恢复）
+            我已确认要清空当前这靴的数据（不可恢复）
           </Checkbox>
         )}
       </div>
@@ -146,7 +147,7 @@ export const UploadConfirmModal: React.FC<Props> = ({
         <div>余额：{balanceText}</div>
         {action === 'reset_current_boot' && (
           <div style={{ color: 'rgba(255,255,255,0.75)' }}>
-            将清空本靴：开奖记录 / 下注记录 / 错题本 / 五路图 / 微学习记忆 及相关运行状态
+            将清空当前这靴的记录、下注、错题记录、路图和相关运行状态
           </div>
         )}
       </div>

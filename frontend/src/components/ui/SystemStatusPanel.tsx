@@ -12,6 +12,7 @@
 import React, { useState } from 'react';
 import { Tooltip, Badge, Tag, Space } from 'antd';
 import type { SystemDiagnostics, SystemIssue, WsStatus, ServiceStatus } from '../../hooks/useSystemDiagnostics';
+import { formatSystemStatusLabel } from '../../utils/beginnerCopy';
 
 // ====== 图标 ======
 const WsIcon = () => (
@@ -247,7 +248,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
           {/* WebSocket状态行 */}
           <StatusRow
             icon={<WsIcon />}
-            label="实时推送"
+            label={formatSystemStatusLabel('realtime')}
             color={wsColor(wsStatus)}
             value={wsLabel(wsStatus)}
             extra={wsLatency !== null ? `延迟${wsLatency}毫秒` : undefined}
@@ -258,7 +259,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
           {/* 后端状态行 */}
           <StatusRow
             icon={<BackendIcon />}
-            label="后端服务"
+            label={formatSystemStatusLabel('backend')}
             color={backendColor(backendStatus)}
             value={backendStatus === 'offline' ? '离线 ⚠' : backendLabel(backendStatus, backendLatency)}
             subInfo={backendStatus === 'offline' ? '请确认后端服务已启动' : undefined}
@@ -268,7 +269,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
           {/* AI模型状态 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 11, color: '#8b949e', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <AIIcon /> AI配置（{modeLabel}）
+              <AIIcon /> {formatSystemStatusLabel('aiConfig')}（{modeLabel}）
             </span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {(expanded ? aiModels : aiModels.filter(m => m.required !== false)).map(model => (
@@ -313,7 +314,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
             </div>
             {!aiAllOk && (
               <span style={{ fontSize: 10, color: '#faad14', marginTop: 2 }}>
-                ⚠ 当前模式必需项未就绪，请先设置接口密钥
+                ⚠ 当前模式还不能使用，请先完成接口配置
               </span>
             )}
           </div>
@@ -322,7 +323,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 11, color: '#8b949e', display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{ width: 12, height: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>⏳</span>
-              后台任务
+              {formatSystemStatusLabel('tasks')}
             </span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {backgroundTasks.runningCount > 0 ? (

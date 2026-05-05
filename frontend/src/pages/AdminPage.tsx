@@ -14,6 +14,7 @@ import dayjs from 'dayjs';
 import * as api from '../services/api';
 import { clearToken } from '../services/api';
 import { copyText } from '../utils/clipboard';
+import { formatAdminModeName } from '../utils/beginnerCopy';
 import { formatMoney } from '../utils/money';
 import { toCnModelLabel, toCnProviderLabel } from '../utils/i18nErrors';
 import { formatModelVersionTagLabel } from '../utils/modelVersionDisplay';
@@ -95,9 +96,9 @@ const Icons = {
 };
 
 const MODE_LABELS: Record<'ai' | 'single_ai' | 'rule', string> = {
-  ai: '3AI模式',
-  single_ai: '单AI模式',
-  rule: '规则引擎模式',
+  ai: formatAdminModeName('ai'),
+  single_ai: formatAdminModeName('single_ai'),
+  rule: formatAdminModeName('rule'),
 };
 
 const DEFAULT_SINGLE_AI_PREDICTION_TEMPLATE = `你是资深百家乐盘口分析员。任务：只预测下一局，且必须给出可执行下注建议。
@@ -264,14 +265,14 @@ const AdminPage: React.FC = () => {
         !!threeModelStatus?.models?.combined?.api_key_set;
 
       if (!isConfigured) {
-        message.warning('无法切换至 3AI 模式：需先配置庄模型、闲模型、综合模型三项接口。');
+        message.warning('无法切换到三模型协作模式：请先完成庄、闲、综合三个接口的配置。');
         return;
       }
     }
     if (newMode === 'single_ai') {
       const isConfigured = threeModelStatus?.models?.single?.api_key_set;
       if (!isConfigured) {
-        message.warning('无法切换至 单AI 模式：您尚未配置单AI模型接口。');
+        message.warning('无法切换到单AI快速模式：你还没有配置单AI接口。');
         return;
       }
     }
@@ -654,19 +655,19 @@ const AdminPage: React.FC = () => {
                           <div style={{ display: 'grid', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Icons.Brain />
-                              <div style={{ fontWeight: 800 }}>3AI模式（3个大模型）</div>
+                              <div style={{ fontWeight: 800 }}>三模型协作模式</div>
                               {predictionMode === 'ai' && <Tag color="purple">当前</Tag>}
                               {(!threeModelStatus?.models?.banker?.api_key_set && !threeModelStatus?.models?.player?.api_key_set && !threeModelStatus?.models?.combined?.api_key_set) && (
                                 <Tag color="error">未配置API</Tag>
                               )}
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
-                              三个模型分工协作，等待开奖期间进行微学习。
+                              三个模型分别判断后再综合结果，适合更重视稳定性的使用方式。
                             </div>
                             <Space wrap className="mobile-action-row" style={{ width: '100%' }}>
-                              <Button size="small" onClick={() => handleOpenApiConfig('banker')}>配置/测试庄模型</Button>
-                              <Button size="small" onClick={() => handleOpenApiConfig('player')}>配置/测试闲模型</Button>
-                              <Button size="small" onClick={() => handleOpenApiConfig('combined')}>配置/测试综合模型</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('banker')}>配置庄方向接口</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('player')}>配置闲方向接口</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('combined')}>配置综合判断接口</Button>
                             </Space>
                           </div>
                           <Button
@@ -679,7 +680,7 @@ const AdminPage: React.FC = () => {
                               setModePickerVisible(false);
                             }}
                           >
-                            启用 3AI 模式
+                            启用三模型协作模式
                           </Button>
                         </div>
                       </Card>
@@ -689,15 +690,15 @@ const AdminPage: React.FC = () => {
                           <div style={{ display: 'grid', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Icons.Robot />
-                              <div style={{ fontWeight: 800 }}>单AI模式（深度求索 V4 专业版）</div>
+                              <div style={{ fontWeight: 800 }}>单AI快速模式</div>
                               {predictionMode === 'single_ai' && <Tag color="green">当前</Tag>}
                               {!threeModelStatus?.models?.single?.api_key_set && <Tag color="error">未配置API</Tag>}
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
-                              单模型直接给出庄/闲预测，等待开奖期间也会进行微学习。
+                              由一个模型直接给出下一局建议，配置更简单，适合快速使用。
                             </div>
                             <Space wrap className="mobile-action-row" style={{ width: '100%' }}>
-                              <Button size="small" onClick={() => handleOpenApiConfig('single')}>配置/测试单AI模型</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('single')}>配置单AI接口</Button>
                             </Space>
                           </div>
                           <Button
@@ -710,7 +711,7 @@ const AdminPage: React.FC = () => {
                               setModePickerVisible(false);
                             }}
                           >
-                            启用 单AI 模式
+                            启用单AI快速模式
                           </Button>
                         </div>
                       </Card>
@@ -853,7 +854,7 @@ const AdminPage: React.FC = () => {
                 </Card>
 
                 <Card
-                  title="单AI提示词与策略模板"
+                  title="单AI说明模板"
                   size="small"
                   extra={
                     <Space size={8} wrap className="admin-template-meta">
@@ -867,28 +868,28 @@ const AdminPage: React.FC = () => {
                   ) : (
                     <Space orientation="vertical" size={10} style={{ width: '100%' }}>
                       <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
-                        单AI模式每一局都会自动分析、自动预测并自动下注。这里配置的是中文分析模板和等待开奖时的策略提炼模板，系统已经内置推荐中文版本。
+                        单AI快速模式每一局都会自动分析、自动预测并自动下注。这里配置的是系统给 AI 的说明文字，默认已经内置推荐版本。
                       </div>
 
                       <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
-                        如果你不想自己编写，直接使用系统推荐中文模板即可；恢复系统中文模板后会立即覆盖当前内容。
+                        如果你不想自己编写，直接使用系统推荐模板即可；恢复后会立即覆盖当前内容并生效。
                       </div>
 
-                      <div style={{ fontWeight: 700 }}>下一局预测分析模板</div>
+                      <div style={{ fontWeight: 700 }}>下一局分析说明</div>
                       <Input.TextArea
                         value={singleAiPredictionTemplate}
                         onChange={(e) => setSingleAiPredictionTemplate(e.target.value)}
                         autoSize={{ minRows: isMobile ? 10 : 8, maxRows: isMobile ? 18 : 16 }}
-                        placeholder="请输入中文分析模板。系统会自动补入当前靴号、局号、完整历史、五路特征、五路原始数据和失误上下文。"
+                        placeholder="请输入给单AI看的中文说明。系统会自动补入靴号、局号、历史记录、路图特征和最近失误信息。"
                         style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                       />
 
-                      <div style={{ fontWeight: 700 }}>等待开奖策略模板</div>
+                      <div style={{ fontWeight: 700 }}>等待开奖时的说明</div>
                       <Input.TextArea
                         value={singleAiRealtimeStrategyTemplate}
                         onChange={(e) => setSingleAiRealtimeStrategyTemplate(e.target.value)}
                         autoSize={{ minRows: isMobile ? 8 : 6, maxRows: isMobile ? 14 : 12 }}
-                        placeholder="请输入中文策略模板。系统会自动补入完整历史、五路特征、五路原始数据和连续失准次数。"
+                        placeholder="请输入等待开奖阶段给单AI看的中文说明。系统会自动补入历史、路图特征和连续失误次数。"
                         style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                       />
 
@@ -941,7 +942,7 @@ const AdminPage: React.FC = () => {
                         loading={aiLearningStatus?.is_learning}
                         style={{ background: 'linear-gradient(135deg, #722ed1, #531dab)', border: 'none', width: '100%', maxWidth: 300, height: 40 }}
                       >
-                        {aiLearningStatus?.is_learning ? `正在学习: ${aiLearningStatus.current_task}` : '启动深度学习'}
+                        {aiLearningStatus?.is_learning ? `正在学习：${aiLearningStatus.current_task}` : '开始系统学习优化'}
                       </Button>
                     </div>
                   </Space>

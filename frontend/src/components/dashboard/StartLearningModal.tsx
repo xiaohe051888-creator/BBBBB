@@ -78,8 +78,8 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
           </div>
         )}
         <p style={{ margin: '12px 0 0', color: 'rgba(255,255,255,0.65)', fontSize: 14, lineHeight: 1.6 }}>
-          管理员操作：启动 AI 模型训练过程<br />
-          系统将对收集的历史数据进行特征提取和模型迭代
+          管理员操作：让系统用已有历史数据做一轮自动优化<br />
+          完成后会生成一版新的可用配置
         </p>
       </div>
 
@@ -93,13 +93,13 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#b37feb', fontWeight: 600 }}>
           <SafetyCertificateOutlined />
-          <span>训练前置提示</span>
+          <span>开始前请先确认</span>
         </div>
         <ul style={{ margin: 0, paddingLeft: 24, color: 'rgba(255,255,255,0.65)', fontSize: 13, lineHeight: 1.8 }}>
-          <li>数据库总历史记录必须在 <span style={{ color: '#fff', fontWeight: 'bold' }}>200 ~ 1000 局</span> 之间才能启动学习</li>
-          <li>学习模式为 <span style={{ color: '#fff', fontWeight: 'bold' }}>分靴学习</span>，系统会逐靴完成数据库内所有数据的学习</li>
+          <li>历史记录总量需要在 <span style={{ color: '#fff', fontWeight: 'bold' }}>200 ~ 1000 局</span> 之间，系统才能开始优化</li>
+          <li>系统会按每一靴的数据依次处理，直到把数据库里的历史内容跑完</li>
           <li>此过程可能需要消耗 <span style={{ color: '#fff' }}>1~3 分钟</span>，请勿关闭服务</li>
-          <li>模型会在所有靴学习完成后，自动保存并生成新版本</li>
+          <li>全部完成后，系统会自动保存并生成一个新版本</li>
         </ul>
       </div>
 
@@ -118,7 +118,7 @@ export const StartLearningModal: React.FC<StartLearningModalProps> = ({
             fontWeight: 500,
           }}
         >
-          暂不学习
+          暂不优化
         </Button>
         <Button
           type="primary"

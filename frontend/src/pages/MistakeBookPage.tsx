@@ -14,6 +14,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useMistakesQuery, type MistakeRecord } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
+import { formatConfidenceLabel } from '../utils/beginnerCopy';
 
 // 错误类型映射
 const ERROR_TYPE_MAP: Record<string, { color: string; label: string; desc: string }> = {
@@ -204,7 +205,7 @@ const MistakeBookPage: React.FC = () => {
       ),
     },
     {
-      title: '置信度',
+      title: formatConfidenceLabel(),
       dataIndex: 'confidence',
       width: '15%',
       align: 'center',
@@ -276,7 +277,7 @@ const MistakeBookPage: React.FC = () => {
       {/* 提示信息 */}
       <Alert
         title="系统说明"
-        description="预测准确时不生成错题记录，仅在预测失误时保存完整现场供后续深度学习"
+        description="预测正确时不会记录；只有预测失误时，系统才会保留当时现场，方便后续复盘和优化。"
         type="info"
         showIcon
         style={{ marginBottom: 24, background: 'rgba(24,144,255,0.1)', border: '1px solid rgba(24,144,255,0.2)' }}
@@ -300,7 +301,7 @@ const MistakeBookPage: React.FC = () => {
           </Card>
           <Card size="small">
             <Statistic
-              title="平均置信度"
+              title={`平均${formatConfidenceLabel()}`}
               value={(summary.avgConfidence * 100).toFixed(0)}
               suffix="%"
               styles={{ content: { fontSize: 18, color: summary.avgConfidence > 0.7 ? '#722ed1' : '#52c41a' } }}
