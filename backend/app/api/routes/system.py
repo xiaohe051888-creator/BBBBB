@@ -616,7 +616,7 @@ async def adjust_balance(
 
         try:
             async with async_session() as db:
-                stmt = select(SystemState).order_by(SystemState.id.desc()).limit(1)
+                stmt = select(SystemState).where(SystemState.singleton_key == 1).limit(1)
                 res = await db.execute(stmt)
                 state = res.scalar_one_or_none()
                 if not state:

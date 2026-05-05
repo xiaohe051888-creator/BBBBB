@@ -22,7 +22,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: process.env.BUILD_BACKEND_STATIC === '1' ? '../backend/static' : 'dist',
+    outDir: 'dist',
     emptyOutDir: true,
     chunkSizeWarningLimit: 1500,
     rollupOptions: {

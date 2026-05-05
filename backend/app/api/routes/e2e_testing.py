@@ -67,7 +67,7 @@ async def e2e_reset(req: ResetReq, _: dict = Depends(get_current_user)):
         state = await get_or_create_state(db)
         state.boot_number = req.boot_number
         state.game_number = 0
-        state.status = "手动模式"
+        state.status = "空闲"
         state.prediction_mode = req.prediction_mode
         if not req.keep_balance:
             state.balance = settings.DEFAULT_BALANCE

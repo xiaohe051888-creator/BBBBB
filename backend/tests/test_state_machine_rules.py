@@ -9,6 +9,7 @@ class StateMachineRulesTest(unittest.TestCase):
     def test_rules_expose_allowed_actions(self):
         from app.services.game.state_machine import can_place_bet, can_reveal, can_reset_current_boot
 
+        self.assertTrue(can_place_bet("分析完成"))
         self.assertTrue(can_place_bet("等待下注"))
         self.assertFalse(can_place_bet("等待开奖"))
         self.assertTrue(can_reveal("等待开奖"))
@@ -25,4 +26,3 @@ class StateMachineRulesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -19,7 +19,7 @@ describe('api interceptor handleApiError', () => {
     clearToken();
   });
 
-  it('redirects to /?session_expired=true only when a token existed', async () => {
+  it('redirects to /mode?session_expired=true only when a token existed', async () => {
     setToken('token');
     expect(getToken()).toBe('token');
     const assign = setLocation('/dashboard/logs');
@@ -34,7 +34,7 @@ describe('api interceptor handleApiError', () => {
     }
 
     expect(getToken()).toBe(null);
-    expect(assign).toHaveBeenCalledWith('/?session_expired=true');
+    expect(assign).toHaveBeenCalledWith('/mode?session_expired=true');
   });
 
   it('does not redirect when there is no token', async () => {
@@ -53,4 +53,3 @@ describe('api interceptor handleApiError', () => {
     expect(assign).not.toHaveBeenCalled();
   });
 });
-

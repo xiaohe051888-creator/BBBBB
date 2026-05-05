@@ -78,7 +78,7 @@ class AdminMaintenanceApiTest(unittest.TestCase):
                 await s.execute(MistakeBook.__table__.delete().where(MistakeBook.boot_number == boot))
                 state = (await s.execute(select(SystemState).where(SystemState.singleton_key == 1))).scalar_one_or_none()
                 if not state:
-                    s.add(SystemState(singleton_key=1, status="手动模式", boot_number=1, game_number=0, prediction_mode="rule"))
+                    s.add(SystemState(singleton_key=1, status="空闲", boot_number=1, game_number=0, prediction_mode="rule"))
                 s.add(GameRecord(boot_number=boot, game_number=1, result="庄"))
                 s.add(BetRecord(boot_number=boot, game_number=1, bet_direction="庄", bet_amount=10, balance_before=100, balance_after=90))
                 s.add(SystemLog(log_time=datetime.now(), boot_number=boot, game_number=1, event_code="UT", event_type="测试", event_result="OK", description="seed", category="测试", priority="P3"))

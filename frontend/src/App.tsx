@@ -12,6 +12,7 @@ import { ConfigProvider, theme, App as AntApp, Spin } from 'antd';
 import { QueryClientProvider } from '@tanstack/react-query';
 import zhCN from 'antd/locale/zh_CN';
 import { getToken } from './services/api';
+import { isModeSelected } from './utils/modeSelection';
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const RoadMapPage = React.lazy(() => import('./pages/RoadMapPage'));
 const BetRecordsPage = React.lazy(() => import('./pages/BetRecordsPage'));
@@ -22,7 +23,6 @@ const UploadDataPage = React.lazy(() => import('./pages/UploadDataPage'));
 const ModeSelectPage = React.lazy(() => import('./pages/ModeSelectPage'));
 import { queryClient } from './lib/queryClient';
 import { PageErrorBoundary } from './components/error';
-import './styles/global.css';
 import './styles/mobile.css';
 
 // 精致SVG图标组件
@@ -230,7 +230,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const RequireModeSelected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const token = getToken();
-  const selected = localStorage.getItem('mode_selected') === '1';
+  const selected = isModeSelected();
   if (token && !selected && location.pathname.startsWith('/dashboard')) {
     return <Navigate to="/mode" replace />;
   }

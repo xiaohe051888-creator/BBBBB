@@ -61,7 +61,7 @@ async def get_latest_analysis():
         player_log = next((l for l in logs if l.event_code == "LOG-MDL-002"), None)
         combined_log = next((l for l in logs if l.event_code == "LOG-MDL-003"), None)
         
-        state_stmt = select(SystemState)
+        state_stmt = select(SystemState).where(SystemState.singleton_key == 1)
         state_result = await session.execute(state_stmt)
         state = state_result.scalar_one_or_none()
         

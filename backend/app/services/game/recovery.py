@@ -10,7 +10,11 @@ async def detect_stuck_state(db: AsyncSession) -> dict:
     from app.models.schemas import SystemState
     from app.services.game.session import list_background_tasks
 
-    state = (await db.execute(select(SystemState).order_by(SystemState.id.desc()).limit(1))).scalars().first()
+    state = (
+        await db.execute(
+            select(SystemState).where(SystemState.singleton_key == 1).limit(1)
+        )
+    ).scalars().first()
     status = state.status if state else None
     expected_task_type = None
     safe_status = None

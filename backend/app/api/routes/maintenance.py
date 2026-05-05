@@ -191,7 +191,7 @@ async def maintenance_reset_all(_: dict = Depends(get_current_user)):
         d_logs = await session.execute(SystemLog.__table__.delete())
 
         state = await get_or_create_state(session)
-        state.status = "手动模式"
+        state.status = "空闲"
         state.boot_number = 1
         state.game_number = 0
         state.prediction_mode = "rule"

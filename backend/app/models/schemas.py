@@ -42,7 +42,7 @@ class SystemStatus(str, PyEnum):
     WAITING = "等待开奖"
     STRATEGY_REVIEW = "策略重评估中"
     ERROR = "异常处理中"
-    STOPPED = "已停止"
+    STOPPED = "空闲"
     SHUFFLE_WAIT = "洗牌等待"
     INSUFFICIENT_BALANCE = "余额不足"
 
@@ -372,7 +372,7 @@ class SystemState(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     singleton_key = Column(Integer, nullable=False, server_default="1")
-    status = Column(String(20), default="已停止")
+    status = Column(String(20), default="空闲", server_default="空闲")
     boot_number = Column(Integer, default=0)
     game_number = Column(Integer, default=0)
     current_game_result = Column(String(4), nullable=True, comment="当前局结果")

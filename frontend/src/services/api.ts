@@ -81,8 +81,8 @@ export const handleApiError = (error: unknown) => {
     if (hadToken) {
       clearToken();
       const currentPath = window.location.pathname;
-      if (!currentPath.includes('/login') && !currentPath.includes('/start') && currentPath !== '/') {
-        window.location.assign('/?session_expired=true');
+      if (!currentPath.startsWith('/mode')) {
+        window.location.assign('/mode?session_expired=true');
       }
     }
   }

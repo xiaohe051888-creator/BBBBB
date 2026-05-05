@@ -585,8 +585,8 @@ body {
 .nav-active-indicator {
   position: absolute;
   left: 0;
-  top: 10;
-  bottom: 10;
+  top: 10px;
+  bottom: 10px;
   width: 3px;
   background: linear-gradient(180deg, #ffd700, #f0b90b);
   border-radius: 0 2px 2px 0;
@@ -1180,11 +1180,6 @@ body {
 .log-error-row { background-color: rgba(255, 173, 0, 0.05) !important; border-left: 3px solid #faad14 !important; }
 
 /* ====== 空状态覆盖 ====== */
-.ant-empty-description { color: #484f58 !important; }
-.ant-descriptions-item-label { font-weight: 500 !important; }
-.ant-alert-message { font-weight: 600 !important; }
-
-/* ====== 动画 ====== */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1537,7 +1532,8 @@ body {
 .table-card-btn::after {
   content: '';
   position: absolute;
-  top: 0; left: '-100%';
+  top: 0;
+  left: -100%;
   width: 200%; height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
   transform: skewX(-20deg);
@@ -1551,8 +1547,8 @@ body {
 /* 管理员入口按钮 */
 .admin-entry-btn {
   position: absolute;
-  top: 20;
-  right: 20;
+  top: 20px;
+  right: 20px;
   color: rgba(255,215,0,0.7);
   font-size: 14px;
   font-weight: 500;

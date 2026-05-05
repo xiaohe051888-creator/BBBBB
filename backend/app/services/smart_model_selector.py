@@ -267,7 +267,7 @@ class SmartModelSelector:
         await self.session.commit()
         
         # 同时更新SystemState中的当前模型版本
-        stmt = select(SystemState)
+        stmt = select(SystemState).where(SystemState.singleton_key == 1)
         state_result = await self.session.execute(stmt)
         state = state_result.scalar_one_or_none()
         

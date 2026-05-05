@@ -20,7 +20,7 @@ async def get_or_create_state(db: AsyncSession) -> SystemState:
     if not state:
         state = SystemState(
             singleton_key=1,
-            status="手动模式",
+            status="空闲",
             balance=settings.DEFAULT_BALANCE,
             boot_number=1,
             game_number=0,
@@ -71,7 +71,7 @@ async def sync_balance_from_db(db: AsyncSession):
     """从数据库同步余额到内存会话（重启后恢复）"""
     from app.models.schemas import GameRecord
     
-    stmt = select(SystemState)
+    stmt = select(SystemState).where(SystemState.singleton_key == 1)
     result = await db.execute(stmt)
     state = result.scalar_one_or_none()
     

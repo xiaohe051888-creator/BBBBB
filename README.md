@@ -93,6 +93,10 @@ python backend/scripts/migrate_sqlite_to_postgres.py
 - 后端接口文档：`/docs`
 - 前端能正常打开，且能连上实时推送
 
+构建产物说明：
+- Render 静态站使用 `frontend/dist`
+- 后端 `backend/static` 仅作为容器内托管产物目录，不再作为前端本地构建输出目录
+
 ---
 
 ## 📁 目录结构摘要

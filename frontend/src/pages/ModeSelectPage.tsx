@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, App, Button, Card, Space, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../services/api';
+import { isModeSelected, markModeSelected } from '../utils/modeSelection';
 
 type Mode = 'ai' | 'single_ai' | 'rule';
 type ModelEntry = Partial<api.ThreeModelStatus['models']['banker']>;
@@ -63,7 +64,7 @@ const ModeSelectPage: React.FC = () => {
     setLoading(true);
     try {
       await api.updatePredictionMode(mode);
-      localStorage.setItem('mode_selected', '1');
+      markModeSelected();
       message.success('模式已启用');
       navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
@@ -87,7 +88,7 @@ const ModeSelectPage: React.FC = () => {
         <Space wrap className="mobile-action-row">
           <Button
             onClick={() => {
-              const selected = localStorage.getItem('mode_selected') === '1';
+              const selected = isModeSelected();
               if (!selected) {
                 message.warning('请先选择模式后再进入总览');
                 return;

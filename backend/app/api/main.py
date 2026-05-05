@@ -96,7 +96,7 @@ async def lifespan(app: FastAPI):
         # 同步持久化状态到内存 Session
         from app.services.game.session import get_session
         from app.models.schemas import SystemState
-        stmt_state = select(SystemState).order_by(SystemState.id.desc()).limit(1)
+        stmt_state = select(SystemState).where(SystemState.singleton_key == 1).limit(1)
         res_state = await session.execute(stmt_state)
         db_state = res_state.scalar_one_or_none()
         

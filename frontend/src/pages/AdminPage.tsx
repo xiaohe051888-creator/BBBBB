@@ -16,6 +16,7 @@ import { clearToken } from '../services/api';
 import { copyText } from '../utils/clipboard';
 import { formatMoney } from '../utils/money';
 import { toCnModelLabel, toCnProviderLabel } from '../utils/i18nErrors';
+import { markModeSelected } from '../utils/modeSelection';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { useSystemStateQuery } from '../hooks/useQueries';
 import { StartLearningModal } from '../components/dashboard/StartLearningModal';
@@ -277,6 +278,7 @@ const AdminPage: React.FC = () => {
     setUpdatingMode(true);
     try {
       await api.updatePredictionMode(newMode);
+      markModeSelected();
       setPredictionMode(newMode);
       message.success(`已切换至${MODE_LABELS[newMode]}`);
     } catch (error: any) {

@@ -61,7 +61,9 @@ class EndBootDeepLearningE2ETest(unittest.TestCase):
             self.assertTrue(res["success"])
 
             async with async_session() as s:
-                state = (await s.execute(select(SystemState).order_by(SystemState.id.desc()).limit(1))).scalars().first()
+                state = (await s.execute(
+                    select(SystemState).where(SystemState.singleton_key == 1).limit(1)
+                )).scalars().first()
                 logs = (await s.execute(select(SystemLog).where(SystemLog.event_code == "LOG-BOOT-001"))).scalars().all()
                 return (state.boot_number if state else None), (state.status if state else None), len(logs)
 
