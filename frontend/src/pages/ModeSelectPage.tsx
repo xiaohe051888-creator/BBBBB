@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, App, Button, Card, Space, Tag } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '../services/api';
 import { isModeSelected, markModeSelected } from '../utils/modeSelection';
 
@@ -9,10 +9,15 @@ type ModelEntry = Partial<api.ThreeModelStatus['models']['banker']>;
 
 const ModeSelectPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
   const [threeModelStatus, setThreeModelStatus] = useState<api.ThreeModelStatus | null>(null);
+  const [showExpiredNotice, setShowExpiredNotice] = useState(() => {
+    const expired = searchParams.get('session_expired');
+    return expired === 'true' || expired === '1';
+  });
 
   const reloadStatus = async () => {
     setStatusLoading(true);
@@ -78,6 +83,23 @@ const ModeSelectPage: React.FC = () => {
 
   return (
     <div className="page-wrapper mode-select-page" style={{ padding: 'clamp(16px, 3vw, 28px)', maxWidth: 980, margin: '0 auto' }}>
+      {showExpiredNotice && (
+        <Alert
+          type="warning"
+          showIcon
+          closable
+          title="登录已过期"
+          description="请重新选择模式后再进入系统。"
+          style={{ marginBottom: 16 }}
+          onClose={() => {
+            const next = new URLSearchParams(searchParams);
+            next.delete('session_expired');
+            setSearchParams(next, { replace: true });
+            setShowExpiredNotice(false);
+          }}
+        />
+      )}
+
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: 0.5 }}>选择模式</div>

@@ -16,7 +16,7 @@ import { clearToken } from '../services/api';
 import { copyText } from '../utils/clipboard';
 import { formatMoney } from '../utils/money';
 import { toCnModelLabel, toCnProviderLabel } from '../utils/i18nErrors';
-import { markModeSelected } from '../utils/modeSelection';
+import { isModeSelected, markModeSelected } from '../utils/modeSelection';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { useSystemStateQuery } from '../hooks/useQueries';
 import { StartLearningModal } from '../components/dashboard/StartLearningModal';
@@ -593,7 +593,7 @@ const AdminPage: React.FC = () => {
           <Button
             icon={<Icons.Back />}
             onClick={() => {
-              const selected = localStorage.getItem('mode_selected') === '1';
+              const selected = isModeSelected();
               navigate(selected ? '/dashboard' : '/mode');
             }}
             size="small"
