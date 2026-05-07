@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.models.schemas import SystemState
 from .session import get_session, get_session_lock
-from app.services.startup_state import build_startup_session_seed
+from app.services.startup_state import build_startup_session_seed, apply_startup_session_seed
 
 
 async def get_or_create_state(db: AsyncSession) -> SystemState:
@@ -88,8 +88,4 @@ async def sync_balance_from_db(db: AsyncSession):
             r2 = await db.execute(stmt2)
             max_game = r2.scalar_one_or_none()
             seed = build_startup_session_seed(state, max_game_number=max_game)
-            sess.balance = float(seed["balance"])
-            sess.boot_number = int(seed["boot_number"])
-            sess.next_game_number = int(seed["next_game_number"])
-            sess.consecutive_errors = int(seed["consecutive_errors"])
-            sess.prediction_mode = str(seed["prediction_mode"])
+            apply_startup_session_seed(sess, seed)

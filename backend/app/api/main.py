@@ -59,7 +59,7 @@ from sqlalchemy import select, desc
 from app.core.config import settings
 from app.core.database import init_db, async_session, close_db
 from app.models.schemas import AdminUser, SystemLog, BetRecord, MistakeBook
-from app.services.startup_state import build_startup_session_seed
+from app.services.startup_state import build_startup_session_seed, apply_startup_session_seed
 
 # ============ 导入路由模块 ============
 from app.api.routes import game, bet, logs, stats, analysis, maintenance
@@ -107,10 +107,7 @@ async def lifespan(app: FastAPI):
             mem_sess = get_session()
             if db_state:
                 seed = build_startup_session_seed(db_state)
-                mem_sess.prediction_mode = str(seed["prediction_mode"])
-                mem_sess.balance = float(seed["balance"])
-                mem_sess.boot_number = int(seed["boot_number"])
-                mem_sess.next_game_number = int(seed["next_game_number"])
+                apply_startup_session_seed(mem_sess, seed)
 
     async with async_session() as session:
         stmt_state = select(SystemState).where(SystemState.singleton_key == 1)
@@ -137,7 +134,7 @@ async def lifespan(app: FastAPI):
             seed = build_startup_session_seed(state, normalized_mode=current_mode) if state else {
                 "prediction_mode": current_mode,
             }
-            mem_sess.prediction_mode = str(seed["prediction_mode"])
+            apply_startup_session_seed(mem_sess, seed)
 
     # 注入广播函数到游戏服务
     from app.services.game import set_broadcast_func

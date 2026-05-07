@@ -15,3 +15,16 @@ def build_startup_session_seed(
         "consecutive_errors": getattr(state, "consecutive_errors", 0) or 0,
         "prediction_mode": normalized_mode or getattr(state, "prediction_mode", None) or "rule",
     }
+
+
+def apply_startup_session_seed(session: Any, seed: dict[str, int | float | str]) -> None:
+    if "balance" in seed:
+        session.balance = float(seed["balance"])
+    if "boot_number" in seed:
+        session.boot_number = int(seed["boot_number"])
+    if "next_game_number" in seed:
+        session.next_game_number = int(seed["next_game_number"])
+    if "consecutive_errors" in seed:
+        session.consecutive_errors = int(seed["consecutive_errors"])
+    if "prediction_mode" in seed:
+        session.prediction_mode = str(seed["prediction_mode"])

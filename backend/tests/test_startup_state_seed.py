@@ -50,6 +50,40 @@ class StartupStateSeedTest(unittest.TestCase):
         self.assertEqual(seed["next_game_number"], 10)
         self.assertEqual(seed["consecutive_errors"], 0)
 
+    def test_apply_startup_session_seed_updates_only_present_fields(self):
+        from app.services.startup_state import apply_startup_session_seed
+
+        session = SimpleNamespace(
+            balance=1.0,
+            boot_number=1,
+            next_game_number=1,
+            consecutive_errors=0,
+            prediction_mode="rule",
+        )
+
+        apply_startup_session_seed(
+            session,
+            {
+                "balance": 99.5,
+                "boot_number": 8,
+                "next_game_number": 12,
+                "consecutive_errors": 3,
+                "prediction_mode": "single_ai",
+            },
+        )
+        self.assertEqual(session.balance, 99.5)
+        self.assertEqual(session.boot_number, 8)
+        self.assertEqual(session.next_game_number, 12)
+        self.assertEqual(session.consecutive_errors, 3)
+        self.assertEqual(session.prediction_mode, "single_ai")
+
+        apply_startup_session_seed(session, {"prediction_mode": "rule"})
+        self.assertEqual(session.balance, 99.5)
+        self.assertEqual(session.boot_number, 8)
+        self.assertEqual(session.next_game_number, 12)
+        self.assertEqual(session.consecutive_errors, 3)
+        self.assertEqual(session.prediction_mode, "rule")
+
 
 if __name__ == "__main__":
     unittest.main()
