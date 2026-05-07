@@ -3,7 +3,7 @@ import { Alert, App, Button, Card, Space, Tag } from 'antd';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '../services/api';
 import { isModeSelected, markModeSelected } from '../utils/modeSelection';
-import { formatAiRoleLabel, formatModeSelectLabel } from '../utils/beginnerCopy';
+import { formatAdminModeName, formatAiRoleLabel, formatModeSelectLabel } from '../utils/beginnerCopy';
 
 type Mode = 'ai' | 'single_ai' | 'rule';
 type ModelEntry = Partial<api.ThreeModelStatus['models']['banker']>;
@@ -155,7 +155,7 @@ const ModeSelectPage: React.FC = () => {
               )}
             </div>
             <Button type="primary" loading={loading} disabled={isCurrentMode('ai') || !readiness.aiReady || loading} onClick={() => applyMode('ai')}>
-              {isCurrentMode('ai') ? '当前模式' : '启用 3AI 模式'}
+              {isCurrentMode('ai') ? '当前模式' : `启用 ${formatAdminModeName('ai')}`}
             </Button>
           </div>
         </Card>
@@ -181,7 +181,7 @@ const ModeSelectPage: React.FC = () => {
               )}
             </div>
             <Button type="primary" loading={loading} disabled={isCurrentMode('single_ai') || !readiness.singleReady || loading} onClick={() => applyMode('single_ai')}>
-              {isCurrentMode('single_ai') ? '当前模式' : '启用 单AI 模式'}
+              {isCurrentMode('single_ai') ? '当前模式' : `启用 ${formatAdminModeName('single_ai')}`}
             </Button>
           </div>
         </Card>
@@ -207,7 +207,7 @@ const ModeSelectPage: React.FC = () => {
               </div>
             </div>
             <Button type="primary" loading={loading} disabled={isCurrentMode('rule') || loading} onClick={() => applyMode('rule')}>
-              {isCurrentMode('rule') ? '当前模式' : '启用 规则模式'}
+              {isCurrentMode('rule') ? '当前模式' : `启用 ${formatAdminModeName('rule')}`}
             </Button>
           </div>
         </Card>

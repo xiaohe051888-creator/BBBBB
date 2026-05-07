@@ -12,7 +12,7 @@
 import React, { useState } from 'react';
 import { Tooltip, Badge, Tag, Space } from 'antd';
 import type { SystemDiagnostics, SystemIssue, WsStatus, ServiceStatus } from '../../hooks/useSystemDiagnostics';
-import { formatSystemStatusLabel } from '../../utils/beginnerCopy';
+import { formatAdminModeName, formatSystemStatusLabel } from '../../utils/beginnerCopy';
 
 // ====== 图标 ======
 const WsIcon = () => (
@@ -113,7 +113,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [showAllIssues, setShowAllIssues] = useState(false);
-  const modeLabel = diagnostics.currentMode === 'single_ai' ? '单AI' : diagnostics.currentMode === 'rule' ? '规则' : diagnostics.currentMode === 'ai' ? '3AI' : '未知';
+  const modeLabel = diagnostics.currentMode ? formatAdminModeName(diagnostics.currentMode) : '未知';
 
   const {
     wsStatus, wsLatency, wsReconnectCount,
@@ -488,7 +488,7 @@ const StatusRow: React.FC<StatusRowProps> = ({ icon, label, color, value, extra,
 // ====== 子组件：Tooltip内容 ======
 const StatusTooltip: React.FC<{ diagnostics: SystemDiagnostics; onRetry?: () => void }> = ({ diagnostics, onRetry }) => {
   const { wsStatus, wsLatency, backendStatus, backendLatency, aiModels, activeIssues, backgroundTasks, currentMode } = diagnostics;
-  const modeLabel = currentMode === 'single_ai' ? '单AI' : currentMode === 'rule' ? '规则' : currentMode === 'ai' ? '3AI' : '未知';
+  const modeLabel = currentMode ? formatAdminModeName(currentMode) : '未知';
   const required = aiModels.filter(m => m.required !== false);
 
   return (

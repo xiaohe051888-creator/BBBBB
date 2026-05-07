@@ -149,7 +149,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
           <Space>
             <CheckCircleOutlined style={{ color: '#52c41a' }} />
             <Text style={{ color: '#52c41a' }}>
-              第{microLearning.game_number}局实时学习完成，已更新最新策略模型
+              第{microLearning.game_number}局实时学习完成，已更新最新判断策略
             </Text>
           </Space>
         </Card>

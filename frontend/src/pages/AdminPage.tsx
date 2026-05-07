@@ -738,7 +738,7 @@ const AdminPage: React.FC = () => {
                               {predictionMode === 'rule' && <Tag color="blue">当前</Tag>}
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
-                              纯规则预测，不需要配置任何大模型接口。
+                              纯规则预测，不需要额外设置任何 AI 接口。
                             </div>
                           </div>
                           <Button
@@ -751,7 +751,7 @@ const AdminPage: React.FC = () => {
                               setModePickerVisible(false);
                             }}
                           >
-                            启用 规则模式
+                            启用{MODE_LABELS.rule}
                           </Button>
                         </div>
                       </Card>
@@ -794,7 +794,7 @@ const AdminPage: React.FC = () => {
                 </Card>
 
                 {/* 三模型状态 */}
-                <Card title="三模型状态" size="small">
+                <Card title="三模型准备情况" size="small">
                   {threeModelStatus ? (
                     <Row gutter={[12, 12]}>
                       <Col xs={24} sm={8}>
@@ -990,7 +990,7 @@ const AdminPage: React.FC = () => {
                       style={{ width: 160 }}
                       options={[
                         { label: '全部', value: 'all' },
-                        { label: '3AI', value: 'ai' },
+                        { label: MODE_LABELS.ai, value: 'ai' },
                         { label: '单AI', value: 'single_ai' },
                       ]}
                       size="small"
@@ -1001,7 +1001,7 @@ const AdminPage: React.FC = () => {
                     className="mobile-card-table admin-model-version-table"
                     columns={withMobileTableLabels([
                       { title: '版本号', dataIndex: 'version', width: '12%', render: (v: string) => formatModelVersionCellLabel(v) },
-                      { title: '模式', dataIndex: 'prediction_mode', width: '10%', align: 'center' as const, render: (v: string) => v === 'single_ai' ? <Tag color="green">单AI</Tag> : <Tag color="purple">3AI</Tag> },
+                      { title: '模式', dataIndex: 'prediction_mode', width: '10%', align: 'center' as const, render: (v: string) => v === 'single_ai' ? <Tag color="green">{MODE_LABELS.single_ai}</Tag> : <Tag color="purple">{MODE_LABELS.ai}</Tag> },
                       { title: '创建时间', dataIndex: 'created_at', width: '18%', render: (v: string) => v ? new Date(v).toLocaleString() : '-' },
                       { title: '样本数', dataIndex: 'training_sample_count', width: '10%', align: 'center' as const },
                       { title: '学习前准确率', dataIndex: 'accuracy_before', width: '12%', align: 'center' as const, render: (v: number) => v ? `${(v*100).toFixed(1)}%` : '-' },

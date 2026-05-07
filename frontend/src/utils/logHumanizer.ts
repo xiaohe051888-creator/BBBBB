@@ -168,7 +168,7 @@ const rule: Record<string, Rule> = {
     title: 'AI分析异常：本次输出已回退为安全结果',
     whatHappened: s(log.description) || 'AI分析发生异常。',
     impact: '可能会使用保守/默认策略继续流程。',
-    suggestion: '如频繁出现，建议检查AI接口配置或切换到规则模式。',
+    suggestion: '如频繁出现，建议检查AI接口配置或切换到规则参考模式。',
   }),
   'LOG-MDL-003': (log) => ({
     title: 'AI分析：综合结论已生成',
@@ -247,7 +247,7 @@ const inferGeneric = (log: LogEntry): Omit<HumanLog, 'fieldsCn'> => {
   const fail = result === '失败' || isErrorPriority(s(log.priority));
 
   const byPrefix = (p: string): { impact: string; suggestion: string } | null => {
-    if (p === 'LOG-MDL') return { impact: '与AI分析相关。', suggestion: fail ? '可尝试刷新或切换规则模式。' : '无需操作。' };
+    if (p === 'LOG-MDL') return { impact: '与AI分析相关。', suggestion: fail ? '可尝试刷新或切换规则参考模式。' : '无需操作。' };
     if (p === 'LOG-BET') return { impact: '与下注相关。', suggestion: fail ? '检查余额/网络后重试。' : '等待开奖即可。' };
     if (p === 'LOG-BOOT') return { impact: '与靴/学习流程相关。', suggestion: fail ? '检查学习配置与网络后重试。' : '按提示继续流程。' };
     if (p === 'LOG-RECOVER') return { impact: '系统在做自动修复/恢复。', suggestion: '一般无需处理。' };

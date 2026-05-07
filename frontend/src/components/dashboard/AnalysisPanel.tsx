@@ -231,7 +231,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   // 显示分析结果
   const modeTag = (
     <Tag color={mode === 'single_ai' ? 'green' : mode === 'rule' ? 'orange' : 'purple'} style={{ borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
-      {mode === 'single_ai' ? '单AI' : mode === 'rule' ? '规则' : '3AI'}
+      {formatAdminModeName(mode)}
     </Tag>
   );
 
@@ -362,11 +362,11 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
         }
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
-        width={520}
+        size={520}
         styles={{
           body: { background: '#0d1117', color: 'rgba(255,255,255,0.85)' },
           header: { background: '#0d1117', borderBottom: '1px solid rgba(255,255,255,0.08)' },
-          content: { background: '#0d1117' },
+          section: { background: '#0d1117' },
         }}
       >
         <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.75, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
