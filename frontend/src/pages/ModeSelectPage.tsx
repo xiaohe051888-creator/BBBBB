@@ -3,7 +3,7 @@ import { Alert, App, Button, Card, Space, Tag } from 'antd';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '../services/api';
 import { isModeSelected, markModeSelected } from '../utils/modeSelection';
-import { formatModeSelectLabel } from '../utils/beginnerCopy';
+import { formatAiRoleLabel, formatModeSelectLabel } from '../utils/beginnerCopy';
 
 type Mode = 'ai' | 'single_ai' | 'rule';
 type ModelEntry = Partial<api.ThreeModelStatus['models']['banker']>;
@@ -58,10 +58,10 @@ const ModeSelectPage: React.FC = () => {
       else if (!m?.last_test_ok) out.push(`${label}${formatModeSelectLabel('notReady')}`);
     };
 
-    check(banker, '庄模型', missing3Ai);
-    check(player, '闲模型', missing3Ai);
-    check(combined, '综合模型', missing3Ai);
-    check(single, '单AI', missingSingle);
+    check(banker, formatAiRoleLabel('banker', 'config'), missing3Ai);
+    check(player, formatAiRoleLabel('player', 'config'), missing3Ai);
+    check(combined, formatAiRoleLabel('combined', 'config'), missing3Ai);
+    check(single, formatAiRoleLabel('single'), missingSingle);
 
     return {
       aiReady: !!threeModelStatus?.ai_ready_for_enable,

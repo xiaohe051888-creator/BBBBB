@@ -135,7 +135,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
           }}
         >
           <Text style={{ color: 'rgba(255,255,255,0.85)' }}>
-            {microLearning.message || `综合模型正在根据第${microLearning.game_number}局现有走势图进行深度微学习与策略进化，以提升下局准确率...`}
+            {microLearning.message || `系统正在根据第${microLearning.game_number}局现有走势图继续优化综合判断，以提升下一局准确率...`}
           </Text>
         </Card>
       )}

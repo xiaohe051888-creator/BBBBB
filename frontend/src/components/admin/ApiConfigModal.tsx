@@ -3,7 +3,7 @@ import { Modal, Form, Input, Select, Button, App, Alert, Grid } from 'antd';
 import type { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
 import * as apiService from '../../services/api';
 import { toCnApiTestError } from '../../utils/i18nErrors';
-import { formatApiConfigLabel } from '../../utils/beginnerCopy';
+import { formatAiRoleLabel, formatApiConfigLabel } from '../../utils/beginnerCopy';
 
 interface ApiConfigModalProps {
   visible: boolean;
@@ -50,7 +50,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
   const [provider, setProvider] = useState<string>('deepseek');
   const initializedRef = useRef(false);
 
-  const roleName = role === 'banker' ? '庄模型' : role === 'player' ? '闲模型' : role === 'combined' ? '综合模型' : '单AI模型';
+  const roleName = role === 'single' ? formatAiRoleLabel('single') : formatAiRoleLabel(role, 'config');
 
   useEffect(() => {
     if (!visible) {
@@ -161,7 +161,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
   return (
     <Modal
-      title={`${formatApiConfigLabel('titlePrefix')}${roleName}接口`}
+      title={`${formatApiConfigLabel('titlePrefix')}${roleName}`}
       open={visible}
       onCancel={onCancel}
       footer={[

@@ -4,6 +4,16 @@ export const formatAdminModeName = (mode: 'ai' | 'single_ai' | 'rule') => {
   return '规则参考模式';
 };
 
+export const formatAiRoleLabel = (
+  role: 'banker' | 'player' | 'combined' | 'single',
+  variant: 'analysis' | 'config' = 'analysis',
+) => {
+  if (role === 'banker') return variant === 'config' ? '庄方向' : '庄方向判断';
+  if (role === 'player') return variant === 'config' ? '闲方向' : '闲方向判断';
+  if (role === 'combined') return variant === 'config' ? '综合判断' : '综合判断';
+  return '单AI';
+};
+
 export const formatAnalysisLoadingText = (mode: 'ai' | 'single_ai' | 'rule') => {
   if (mode === 'ai') return '系统正在综合分析下一局，请稍候...';
   if (mode === 'single_ai') return '系统正在分析下一局，请稍候...';

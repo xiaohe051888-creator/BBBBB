@@ -4,6 +4,7 @@ import {
   formatAdminPageLabel,
   formatApiConfigLabel,
   formatAdminModeName,
+  formatAiRoleLabel,
   formatAnalysisLoadingText,
   formatConfigStatusLabel,
   formatConfidenceLabel,
@@ -27,6 +28,15 @@ describe('beginnerCopy', () => {
     expect(formatAdminModeName('ai')).toBe('三模型协作模式');
     expect(formatAdminModeName('single_ai')).toBe('单AI快速模式');
     expect(formatAdminModeName('rule')).toBe('规则参考模式');
+  });
+
+  it('formats ai role names in plain language', () => {
+    expect(formatAiRoleLabel('banker')).toBe('庄方向判断');
+    expect(formatAiRoleLabel('player')).toBe('闲方向判断');
+    expect(formatAiRoleLabel('combined')).toBe('综合判断');
+    expect(formatAiRoleLabel('single')).toBe('单AI');
+    expect(formatAiRoleLabel('banker', 'config')).toBe('庄方向');
+    expect(formatAiRoleLabel('player', 'config')).toBe('闲方向');
   });
 
   it('formats analysis loading messages in plain language', () => {

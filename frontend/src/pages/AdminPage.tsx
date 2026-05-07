@@ -17,6 +17,7 @@ import { copyText } from '../utils/clipboard';
 import {
   formatAdminPageLabel,
   formatAdminModeName,
+  formatAiRoleLabel,
   formatConfigStatusLabel,
   formatDangerZoneLabel,
   formatLogPriorityLabel,
@@ -799,7 +800,7 @@ const AdminPage: React.FC = () => {
                       <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #ff4d4f', background: 'rgba(255,77,79,0.04)' }}>
                           <div style={{ fontWeight: 700, color: '#ff4d4f', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Banker /> 庄模型</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Banker /> {formatAiRoleLabel('banker', 'config')}</span>
                             <Button type="link" size="small" onClick={() => handleOpenApiConfig('banker')}>
                               {formatConfigStatusLabel('openConfig')}
                             </Button>
@@ -826,7 +827,7 @@ const AdminPage: React.FC = () => {
                       <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #1890ff', background: 'rgba(24,144,255,0.04)' }}>
                           <div style={{ fontWeight: 700, color: '#1890ff', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Player /> 闲模型</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Player /> {formatAiRoleLabel('player', 'config')}</span>
                             <Button type="link" size="small" onClick={() => handleOpenApiConfig('player')}>
                               {formatConfigStatusLabel('openConfig')}
                             </Button>
@@ -853,7 +854,7 @@ const AdminPage: React.FC = () => {
                       <Col xs={24} sm={8}>
                         <Card size="small" style={{ borderLeft: '3px solid #52c41a', background: 'rgba(82,196,26,0.04)' }}>
                           <div style={{ fontWeight: 700, color: '#52c41a', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Brain /> 综合模型</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Brain /> {formatAiRoleLabel('combined', 'config')}</span>
                             <Button type="link" size="small" onClick={() => handleOpenApiConfig('combined')}>
                               {formatConfigStatusLabel('openConfig')}
                             </Button>

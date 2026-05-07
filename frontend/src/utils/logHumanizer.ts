@@ -172,7 +172,7 @@ const rule: Record<string, Rule> = {
   }),
   'LOG-MDL-003': (log) => ({
     title: 'AI分析：综合结论已生成',
-    whatHappened: s(log.description) || '综合模型输出已生成。',
+    whatHappened: s(log.description) || '综合判断结果已生成。',
     impact: '用于最终下注决策。',
     suggestion: '无需操作。',
   }),

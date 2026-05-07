@@ -7,7 +7,12 @@ import React, { useMemo, useState } from 'react';
 import { Tag, Progress, Button, Drawer, Space } from 'antd';
 import { RobotOutlined, BulbOutlined, AimOutlined } from '@ant-design/icons';
 import { useSystemStateQuery } from '../../hooks/useQueries';
-import { formatAdminModeName, formatAnalysisLoadingText, formatConfidenceLabel } from '../../utils/beginnerCopy';
+import {
+  formatAdminModeName,
+  formatAiRoleLabel,
+  formatAnalysisLoadingText,
+  formatConfidenceLabel,
+} from '../../utils/beginnerCopy';
 import { toCnModelLabel } from '../../utils/i18nErrors';
 import { resolvePredictionMode } from '../../utils/systemFlowConsistency';
 
@@ -48,6 +53,35 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     }
     return '三模型协作模式（庄 / 闲 / 综合）';
   }, [mode, analysis?.engine?.model]);
+  const aiRoleCards = useMemo(
+    () => [
+      {
+        name: formatAiRoleLabel('banker'),
+        icon: '庄',
+        color: '#ff4d4f',
+        delay: 0,
+        summary: analysis?.banker_summary || '暂时没有庄方向说明...',
+        source: '独立判断',
+      },
+      {
+        name: formatAiRoleLabel('player'),
+        icon: '闲',
+        color: '#1890ff',
+        delay: 0.5,
+        summary: analysis?.player_summary || '暂时没有闲方向说明...',
+        source: '独立判断',
+      },
+      {
+        name: formatAiRoleLabel('combined'),
+        icon: 'AI',
+        color: '#52c41a',
+        delay: 1,
+        summary: analysis?.combined_summary || '暂时没有综合说明...',
+        source: '汇总判断',
+      },
+    ],
+    [analysis?.banker_summary, analysis?.combined_summary, analysis?.player_summary],
+  );
 
   // 分析中状态 - 三模型进度指示器
   if (aiAnalyzing) {
@@ -73,11 +107,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           {mode === 'ai' && (
             <>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16, marginBottom: 8, flexWrap: 'wrap' }}>
-                {[
-                  { name: '庄模型', icon: '庄', color: '#ff4d4f', delay: 0 },
-                  { name: '闲模型', icon: '闲', color: '#1890ff', delay: 0.5 },
-                  { name: '综合模型', icon: 'AI', color: '#52c41a', delay: 1 },
-                ].map((model) => (
+                {aiRoleCards.map((model) => (
                   <div
                     key={model.name}
                     style={{
@@ -275,46 +305,46 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           </div>
         )}
 
-        {/* 庄模型 */}
+        {/* 庄方向判断 */}
         {mode === 'ai' && (
           <div className="model-block model-block-banker">
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
             <span className="model-icon-badge" style={{ color: '#ff4d4f', fontWeight: 700 }}>庄</span>
-            <span style={{ fontWeight: 700, fontSize: 13, color: '#ff4d4f' }}>庄模型</span>
+            <span style={{ fontWeight: 700, fontSize: 13, color: '#ff4d4f' }}>{formatAiRoleLabel('banker')}</span>
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,77,79,0.5)', background: 'rgba(255,77,79,0.08)', padding: '1px 8px', borderRadius: 8 }}>
-              庄模型接口
+              独立判断
             </span>
           </div>
-          <p className="analysis-text">{analysis.banker_summary || '暂无庄向分析...'}</p>
+          <p className="analysis-text">{aiRoleCards[0].summary}</p>
           </div>
         )}
 
-        {/* 闲模型 */}
+        {/* 闲方向判断 */}
         {mode === 'ai' && (
           <div className="model-block model-block-player">
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
             <span className="model-icon-badge" style={{ color: '#1890ff', fontWeight: 700 }}>闲</span>
-            <span style={{ fontWeight: 700, fontSize: 13, color: '#1890ff' }}>闲模型</span>
+            <span style={{ fontWeight: 700, fontSize: 13, color: '#1890ff' }}>{formatAiRoleLabel('player')}</span>
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(24,144,255,0.5)', background: 'rgba(24,144,255,0.08)', padding: '1px 8px', borderRadius: 8 }}>
-              闲模型接口
+              独立判断
             </span>
           </div>
-          <p className="analysis-text">{analysis.player_summary || '暂无闲向分析...'}</p>
+          <p className="analysis-text">{aiRoleCards[1].summary}</p>
           </div>
         )}
 
-        {/* 综合模型 */}
+        {/* 综合判断 */}
         {mode === 'ai' && (
           <div className="model-block model-block-combined" style={{ marginBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
             <span className="model-icon-badge" style={{ color: '#52c41a', fontWeight: 700 }}>AI</span>
-            <span style={{ fontWeight: 700, fontSize: 13, color: '#52c41a' }}>综合模型</span>
+            <span style={{ fontWeight: 700, fontSize: 13, color: '#52c41a' }}>{formatAiRoleLabel('combined')}</span>
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(82,196,26,0.5)', background: 'rgba(82,196,26,0.08)', padding: '1px 8px', borderRadius: 8 }}>
-              综合模型接口
+              汇总判断
             </span>
           </div>
           <p className="analysis-text" style={{ fontWeight: 500, fontSize: 14 }}>
-            {analysis.combined_summary || '暂无综合分析...'}
+            {aiRoleCards[2].summary}
           </p>
           {renderReasoning(true)}
           </div>

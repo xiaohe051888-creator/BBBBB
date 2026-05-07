@@ -79,9 +79,27 @@ describe('logHumanizer', () => {
     expect(h.whatHappened).toBe('系统学习优化已完成。');
   });
 
+  it('uses beginner-friendly wording for combined analysis logs', () => {
+    const log: LogEntry = {
+      id: 7,
+      log_time: '2026-05-02T00:00:00Z',
+      game_number: 12,
+      event_code: 'LOG-MDL-003',
+      event_type: 'AI分析',
+      event_result: '成功',
+      description: '',
+      category: '系统事件',
+      priority: 'P3',
+      task_id: null,
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.whatHappened).toBe('综合判断结果已生成。');
+  });
+
   it('uses beginner-friendly wording for watchdog-related logs', () => {
     const log: LogEntry = {
-      id: 5,
+      id: 8,
       log_time: '2026-05-02T00:00:00Z',
       game_number: null,
       event_code: 'LOG-WDG-002',
@@ -100,7 +118,7 @@ describe('logHumanizer', () => {
 
   it('uses beginner-friendly field labels for task ids', () => {
     const log: LogEntry = {
-      id: 6,
+      id: 9,
       log_time: '2026-05-02T00:00:00Z',
       game_number: 8,
       event_code: 'LOG-SYS-001',

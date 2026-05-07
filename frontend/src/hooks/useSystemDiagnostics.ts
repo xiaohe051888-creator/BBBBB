@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as api from '../services/api';
 import { wsBus } from '../services/wsBus';
+import { formatAiRoleLabel } from '../utils/beginnerCopy';
 
 // ====== 类型定义 ======
 
@@ -69,6 +70,13 @@ interface UseSystemDiagnosticsOptions {
   enabled?: boolean;
 }
 
+const toAiRoleConfigLabel = (key: AIModelStatus['key']) => {
+  if (key === 'openai') return formatAiRoleLabel('banker', 'config');
+  if (key === 'anthropic') return formatAiRoleLabel('player', 'config');
+  if (key === 'gemini') return formatAiRoleLabel('combined', 'config');
+  return formatAiRoleLabel('single');
+};
+
 /**
  * 系统诊断 Hook - 实时监控所有系统状态
  */
@@ -85,9 +93,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
   const [lastBackendCheck, setLastBackendCheck] = useState<Date | null>(null);
 
   const [aiModels, setAiModels] = useState<AIModelStatus[]>([
-    { name: '庄模型接口', key: 'openai', label: '庄模型', status: 'unknown' },
-    { name: '闲模型接口', key: 'anthropic', label: '闲模型', status: 'unknown' },
-    { name: '综合模型接口', key: 'gemini', label: '综合模型', status: 'unknown' },
+    { name: `${formatAiRoleLabel('banker', 'config')}接口`, key: 'openai', label: formatAiRoleLabel('banker', 'config'), status: 'unknown' },
+    { name: `${formatAiRoleLabel('player', 'config')}接口`, key: 'anthropic', label: formatAiRoleLabel('player', 'config'), status: 'unknown' },
+    { name: `${formatAiRoleLabel('combined', 'config')}接口`, key: 'gemini', label: formatAiRoleLabel('combined', 'config'), status: 'unknown' },
   ]);
   const [currentMode, setCurrentMode] = useState<SystemDiagnostics['currentMode']>(undefined);
   const [modeReadiness, setModeReadiness] = useState<SystemDiagnostics['modeReadiness']>(undefined);
@@ -247,9 +255,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         setCurrentMode(undefined);
         setModeReadiness(undefined);
         setAiModels([
-          { name: '庄模型接口', key: 'openai', label: '庄模型', status: 'unknown' },
-          { name: '闲模型接口', key: 'anthropic', label: '闲模型', status: 'unknown' },
-          { name: '综合模型接口', key: 'gemini', label: '综合模型', status: 'unknown' },
+          { name: `${formatAiRoleLabel('banker', 'config')}接口`, key: 'openai', label: formatAiRoleLabel('banker', 'config'), status: 'unknown' },
+          { name: `${formatAiRoleLabel('player', 'config')}接口`, key: 'anthropic', label: formatAiRoleLabel('player', 'config'), status: 'unknown' },
+          { name: `${formatAiRoleLabel('combined', 'config')}接口`, key: 'gemini', label: formatAiRoleLabel('combined', 'config'), status: 'unknown' },
         ]);
         setBackgroundTasks({ runningCount: 0, runningTypes: [], latestErrors: [] });
         return;
@@ -263,9 +271,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
 
         const newModels: AIModelStatus[] = Array.isArray(diag.models) && diag.models.length > 0
           ? diag.models.map((m) => ({
-            name: `${m.label}接口`,
+            name: `${toAiRoleConfigLabel(m.key)}接口`,
             key: m.key,
-            label: m.label,
+            label: toAiRoleConfigLabel(m.key),
             status: m.enabled ? 'ok' : 'unconfigured',
             message: m.enabled ? undefined : (m.issue || '接口尚未配置完成'),
             required: !!m.required_in_current_mode,
@@ -274,9 +282,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
           }))
           : [
             {
-              name: '庄模型接口',
+              name: `${formatAiRoleLabel('banker', 'config')}接口`,
               key: 'openai',
-              label: '庄模型',
+              label: formatAiRoleLabel('banker', 'config'),
               status: 'unknown',
               message: '诊断数据缺少模型列表',
               required: false,
@@ -284,9 +292,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
               model: null,
             },
             {
-              name: '闲模型接口',
+              name: `${formatAiRoleLabel('player', 'config')}接口`,
               key: 'anthropic',
-              label: '闲模型',
+              label: formatAiRoleLabel('player', 'config'),
               status: 'unknown',
               message: '诊断数据缺少模型列表',
               required: false,
@@ -294,9 +302,9 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
               model: null,
             },
             {
-              name: '综合模型接口',
+              name: `${formatAiRoleLabel('combined', 'config')}接口`,
               key: 'gemini',
-              label: '综合模型',
+              label: formatAiRoleLabel('combined', 'config'),
               status: 'unknown',
               message: '诊断数据缺少模型列表',
               required: false,
