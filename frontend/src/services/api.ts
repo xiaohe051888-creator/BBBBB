@@ -555,11 +555,6 @@ export const getLatestAnalysis = async () => {
 
 // ====== 错题本 ======
 
-// MistakeRecord 类型定义已移至 useQueries.ts，请从那里导入
-// 保留此导出以避免破坏现有导入，但标记为 deprecated
-/** @deprecated 请从 useQueries.ts 导入 MistakeRecord */
-export type MistakeRecord = import('../hooks/useQueries').MistakeRecord;
-
 export const getMistakeRecords = async (params: {
   boot_number?: number;
   page?: number;

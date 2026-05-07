@@ -8,7 +8,6 @@ export { useDataRefreshIndicator } from './useDataRefreshIndicator';
 
 // 智能检测系统
 export { useSmartDetection } from './useSmartDetection';
-export { useWorkflowState } from './useWorkflowState';
 
 // 系统诊断（实时状态监控）
 export { useSystemDiagnostics } from './useSystemDiagnostics';
@@ -52,12 +51,6 @@ export type {
   SmartAlert,
   BettingAdvice,
 } from './useSmartDetection';
-
-export type {
-  WorkflowStatus,
-  WorkflowState,
-  WorkflowTimer,
-} from './useWorkflowState';
 
 export type {
   SystemDiagnostics,
