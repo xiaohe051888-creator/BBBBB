@@ -25,7 +25,7 @@ import {
 } from '../utils/beginnerCopy';
 import { formatMoney } from '../utils/money';
 import { toCnModelLabel, toCnProviderLabel } from '../utils/i18nErrors';
-import { formatModelVersionTagLabel } from '../utils/modelVersionDisplay';
+import { formatModelVersionCellLabel, formatModelVersionTagLabel } from '../utils/modelVersionDisplay';
 import { isModeSelected, markModeSelected } from '../utils/modeSelection';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
 import { useSystemStateQuery } from '../hooks/useQueries';
@@ -999,7 +999,7 @@ const AdminPage: React.FC = () => {
                     dataSource={filteredModelVersions}
                     className="mobile-card-table admin-model-version-table"
                     columns={withMobileTableLabels([
-                      { title: '版本号', dataIndex: 'version', width: '12%' },
+                      { title: '版本号', dataIndex: 'version', width: '12%', render: (v: string) => formatModelVersionCellLabel(v) },
                       { title: '模式', dataIndex: 'prediction_mode', width: '10%', align: 'center' as const, render: (v: string) => v === 'single_ai' ? <Tag color="green">单AI</Tag> : <Tag color="purple">3AI</Tag> },
                       { title: '创建时间', dataIndex: 'created_at', width: '18%', render: (v: string) => v ? new Date(v).toLocaleString() : '-' },
                       { title: '样本数', dataIndex: 'training_sample_count', width: '10%', align: 'center' as const },

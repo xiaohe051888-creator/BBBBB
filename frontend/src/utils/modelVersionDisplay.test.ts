@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatModelVersionCellLabel,
   formatModelVersionLabel,
   formatModelVersionTagLabel,
   getModelVersionDisplay,
@@ -23,6 +24,12 @@ describe('modelVersionDisplay', () => {
   it('builds a compact admin tag label for manual single-ai versions', () => {
     expect(formatModelVersionTagLabel('single_ai-manual-20260505093409')).toBe(
       '版本：单AI · 手动配置 · 2026-05-05 09:34',
+    );
+  });
+
+  it('builds a table-friendly label for manual single-ai versions', () => {
+    expect(formatModelVersionCellLabel('single_ai-manual-20260505093409')).toBe(
+      '单AI · 手动配置 · 2026-05-05 09:34',
     );
   });
 
