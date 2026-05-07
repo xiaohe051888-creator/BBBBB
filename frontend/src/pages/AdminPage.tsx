@@ -665,7 +665,7 @@ const AdminPage: React.FC = () => {
                           <div style={{ display: 'grid', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Icons.Brain />
-                              <div style={{ fontWeight: 800 }}>三模型协作模式</div>
+                              <div style={{ fontWeight: 800 }}>{MODE_LABELS.ai}</div>
                               {predictionMode === 'ai' && <Tag color="purple">当前</Tag>}
                               {(!threeModelStatus?.models?.banker?.api_key_set && !threeModelStatus?.models?.player?.api_key_set && !threeModelStatus?.models?.combined?.api_key_set) && (
                                 <Tag color="error">{formatConfigStatusLabel('unset')}</Tag>
@@ -690,7 +690,7 @@ const AdminPage: React.FC = () => {
                               setModePickerVisible(false);
                             }}
                           >
-                            启用三模型协作模式
+                            启用{MODE_LABELS.ai}
                           </Button>
                         </div>
                       </Card>
@@ -700,7 +700,7 @@ const AdminPage: React.FC = () => {
                           <div style={{ display: 'grid', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Icons.Robot />
-                              <div style={{ fontWeight: 800 }}>单AI快速模式</div>
+                              <div style={{ fontWeight: 800 }}>{MODE_LABELS.single_ai}</div>
                               {predictionMode === 'single_ai' && <Tag color="green">当前</Tag>}
                               {!threeModelStatus?.models?.single?.api_key_set && (
                                 <Tag color="error">{formatConfigStatusLabel('unset')}</Tag>
@@ -723,7 +723,7 @@ const AdminPage: React.FC = () => {
                               setModePickerVisible(false);
                             }}
                           >
-                            启用单AI快速模式
+                            启用{MODE_LABELS.single_ai}
                           </Button>
                         </div>
                       </Card>
@@ -733,7 +733,7 @@ const AdminPage: React.FC = () => {
                           <div style={{ display: 'grid', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <Icons.Trend />
-                              <div style={{ fontWeight: 800 }}>规则引擎模式</div>
+                              <div style={{ fontWeight: 800 }}>{MODE_LABELS.rule}</div>
                               {predictionMode === 'rule' && <Tag color="blue">当前</Tag>}
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
@@ -1243,7 +1243,7 @@ const AdminPage: React.FC = () => {
         visible={startLearningVisible}
         onClose={() => setStartLearningVisible(false)}
         onConfirm={handleStartLearning}
-        modeLabel={predictionMode === 'ai' ? '3AI模式' : '单AI模式（深度求索 V4 专业版）'}
+        modeLabel={predictionMode === 'rule' ? MODE_LABELS.rule : MODE_LABELS[predictionMode]}
       />
 
       {/* 接口配置弹窗 */}
