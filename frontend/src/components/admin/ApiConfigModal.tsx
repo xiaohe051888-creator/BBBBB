@@ -208,7 +208,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
           name="api_key" 
           label={
             <span>
-              接口密钥 
+              {formatApiConfigLabel('secretKey')} 
               {currentStatus?.models?.[role]?.api_key_set && 
                 <span style={{ marginLeft: 8, color: '#52c41a', fontSize: 12 }}>(之前已保存，不修改可留空)</span>
               }
