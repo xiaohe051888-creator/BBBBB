@@ -88,7 +88,7 @@ export const handleApiError = (error: unknown) => {
   }
 
   if (err.message === 'Network Error') {
-    err.message = '网络连接失败，请检查后端服务是否正常运行';
+    err.message = '网络连接失败，请检查系统服务是否正常运行';
   }
   if (err.code === 'ECONNABORTED') {
     err.message = '请求超时，请重试';

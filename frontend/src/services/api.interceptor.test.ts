@@ -52,4 +52,15 @@ describe('api interceptor handleApiError', () => {
 
     expect(assign).not.toHaveBeenCalled();
   });
+
+  it('uses beginner-friendly wording for network errors', async () => {
+    await expect(
+      handleApiError({
+        message: 'Network Error',
+        config: { url: '/system-state' },
+      }),
+    ).rejects.toMatchObject({
+      message: '网络连接失败，请检查系统服务是否正常运行',
+    });
+  });
 });

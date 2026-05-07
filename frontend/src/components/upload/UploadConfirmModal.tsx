@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Checkbox, Descriptions, Modal, Radio } from 'antd';
 
 import type { SystemState } from '../../hooks';
-import { formatUploadActionLabel } from '../../utils/beginnerCopy';
+import { formatUploadActionLabel, formatUploadLabel } from '../../utils/beginnerCopy';
 
 export type UploadAction = 'reset_current_boot' | 'new_boot';
 export type BalanceMode = 'keep' | 'reset_default';
@@ -102,7 +102,9 @@ export const UploadConfirmModal: React.FC<Props> = ({
         </div>
 
         <div style={{ display: 'grid', gap: 6 }}>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>提交动作</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
+            {formatUploadLabel('submitMode')}
+          </div>
           <Radio.Group
             value={action}
             onChange={(e) => {
@@ -117,7 +119,7 @@ export const UploadConfirmModal: React.FC<Props> = ({
           />
           {isDeepLearning && (
             <div style={{ fontSize: 12, color: 'rgba(250,173,20,0.85)' }}>
-              当前系统正在学习中。为了不打断流程，暂时不能重做当前这靴，只能先结束当前这靴，再把这次上传排队处理。
+              {formatUploadLabel('queueHint')}
             </div>
           )}
         </div>
@@ -142,12 +144,12 @@ export const UploadConfirmModal: React.FC<Props> = ({
           lineHeight: 1.7,
         }}
       >
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>本次操作摘要</div>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>{formatUploadLabel('summaryTitle')}</div>
         <div>动作：{actionText}</div>
         <div>余额：{balanceText}</div>
         {action === 'reset_current_boot' && (
           <div style={{ color: 'rgba(255,255,255,0.75)' }}>
-            将清空当前这靴的记录、下注、错题记录、路图和相关运行状态
+            {formatUploadLabel('resetImpact')}
           </div>
         )}
       </div>

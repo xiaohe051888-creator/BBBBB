@@ -8,6 +8,7 @@ import {
   formatDangerZoneLabel,
   formatDetailLabel,
   formatLearningLabel,
+  formatModeSelectLabel,
   formatNavigationLabel,
   formatLogPriorityLabel,
   formatLogsLabel,
@@ -15,6 +16,7 @@ import {
   formatReviewLabel,
   formatSystemStatusLabel,
   formatTaskAreaLabel,
+  formatUploadLabel,
   formatUploadActionLabel,
 } from './beginnerCopy';
 
@@ -38,6 +40,10 @@ describe('beginnerCopy', () => {
   it('formats upload action labels in plain language', () => {
     expect(formatUploadActionLabel('reset_current_boot')).toBe('重做当前这靴数据');
     expect(formatUploadActionLabel('new_boot')).toBe('结束当前这靴并开始下一靴');
+    expect(formatUploadLabel('submitMode')).toBe('上传方式');
+    expect(formatUploadLabel('summaryTitle')).toBe('这次会做什么');
+    expect(formatUploadLabel('queueHint')).toBe('系统正在优化中。为了不打断当前流程，现在只能先结束这靴，再把这次上传排队接着处理。');
+    expect(formatUploadLabel('resetImpact')).toBe('将清空当前这靴的记录、下注、复盘记录、路图和相关运行状态');
   });
 
   it('formats system status labels in plain language', () => {
@@ -51,6 +57,7 @@ describe('beginnerCopy', () => {
     expect(formatSystemStatusLabel('aiReady')).toBe('当前模式已就绪');
     expect(formatSystemStatusLabel('aiNotReady')).toBe('当前模式尚未就绪');
     expect(formatSystemStatusLabel('activeIssues')).toBe('当前需要留意的问题');
+    expect(formatSystemStatusLabel('backendOfflineHint')).toBe('请确认系统服务已经启动');
   });
 
   it('formats task area labels in plain language', () => {
@@ -109,6 +116,14 @@ describe('beginnerCopy', () => {
       mobileLabel: '复盘',
       desc: '查看失误与复盘',
     });
+  });
+
+  it('formats mode-select labels in plain language', () => {
+    expect(formatModeSelectLabel('pageHint')).toBe('先选好使用方式，再进入系统主界面；需要 AI 时，请先完成设置并确认可用。');
+    expect(formatModeSelectLabel('aiCardTitle')).toBe('三模型协作模式（3个AI一起判断）');
+    expect(formatModeSelectLabel('singleCardTitle')).toBe('单AI快速模式（使用你当前设置的单AI）');
+    expect(formatModeSelectLabel('ruleCardTitle')).toBe('规则参考模式（无需额外设置）');
+    expect(formatModeSelectLabel('ruleCardHint')).toBe('按内置规则直接给参考结果，不需要额外设置，随时可用。');
   });
 
   it('formats logs page labels in plain language', () => {

@@ -17,6 +17,17 @@ export const formatUploadActionLabel = (action: 'reset_current_boot' | 'new_boot
   return '结束当前这靴并开始下一靴';
 };
 
+export const formatUploadLabel = (
+  key: 'submitMode' | 'summaryTitle' | 'queueHint' | 'resetImpact',
+) => {
+  if (key === 'submitMode') return '上传方式';
+  if (key === 'summaryTitle') return '这次会做什么';
+  if (key === 'queueHint') {
+    return '系统正在优化中。为了不打断当前流程，现在只能先结束这靴，再把这次上传排队接着处理。';
+  }
+  return '将清空当前这靴的记录、下注、复盘记录、路图和相关运行状态';
+};
+
 export const formatSystemStatusLabel = (
   key:
     | 'realtime'
@@ -28,7 +39,8 @@ export const formatSystemStatusLabel = (
     | 'backendApi'
     | 'aiReady'
     | 'aiNotReady'
-    | 'activeIssues',
+    | 'activeIssues'
+    | 'backendOfflineHint',
 ) => {
   if (key === 'realtime') return '实时连接';
   if (key === 'backend') return '服务状态';
@@ -39,6 +51,7 @@ export const formatSystemStatusLabel = (
   if (key === 'aiReady') return '当前模式已就绪';
   if (key === 'aiNotReady') return '当前模式尚未就绪';
   if (key === 'activeIssues') return '当前需要留意的问题';
+  if (key === 'backendOfflineHint') return '请确认系统服务已经启动';
   return '系统处理进度';
 };
 
@@ -131,6 +144,18 @@ export const formatNavigationLabel = (key: 'logs' | 'mistakes') => {
     mobileLabel: '复盘',
     desc: '查看失误与复盘',
   };
+};
+
+export const formatModeSelectLabel = (
+  key: 'pageHint' | 'aiCardTitle' | 'singleCardTitle' | 'ruleCardTitle' | 'ruleCardHint',
+) => {
+  if (key === 'pageHint') {
+    return '先选好使用方式，再进入系统主界面；需要 AI 时，请先完成设置并确认可用。';
+  }
+  if (key === 'aiCardTitle') return '三模型协作模式（3个AI一起判断）';
+  if (key === 'singleCardTitle') return '单AI快速模式（使用你当前设置的单AI）';
+  if (key === 'ruleCardTitle') return '规则参考模式（无需额外设置）';
+  return '按内置规则直接给参考结果，不需要额外设置，随时可用。';
 };
 
 export const formatLogsLabel = (
