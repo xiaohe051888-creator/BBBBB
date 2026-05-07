@@ -1,2 +1,1 @@
-export const shouldCloseApiConfigModalAfterSave = (): boolean => false;
-
+export const shouldCloseApiConfigModalAfterSave = (): boolean => true;

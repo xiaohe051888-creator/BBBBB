@@ -18,6 +18,7 @@ import { SmartAlerts } from '../components/ui';
 import { debounce } from 'lodash';
 import { AdminAlertsBar } from '../components/dashboard/AdminAlertsBar';
 import { getModelVersionDisplay } from '../utils/modelVersionDisplay';
+import { formatAccuracyPercent } from '../utils/systemFlowConsistency';
 import {
   useSmartDetection,
   useSystemDiagnostics,
@@ -404,7 +405,7 @@ const DashboardPage: React.FC = () => {
                 失误: <span style={{ color: '#ff4d4f' }}>{stats?.miss_count || 0}</span>
               </span>
               <span style={{ color: 'rgba(255,255,255,0.4)' }}>
-                胜率: <span style={{ color: '#ffd700' }}>{((stats?.accuracy || 0) * 100).toFixed(1)}%</span>
+                胜率: <span style={{ color: '#ffd700' }}>{formatAccuracyPercent(stats?.accuracy)}</span>
               </span>
             </div>
             <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

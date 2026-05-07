@@ -9,6 +9,7 @@ import { RobotOutlined, BulbOutlined, AimOutlined } from '@ant-design/icons';
 import { useSystemStateQuery } from '../../hooks/useQueries';
 import { formatAdminModeName, formatAnalysisLoadingText, formatConfidenceLabel } from '../../utils/beginnerCopy';
 import { toCnModelLabel } from '../../utils/i18nErrors';
+import { resolvePredictionMode } from '../../utils/systemFlowConsistency';
 
 interface Analysis {
   prediction?: string | null;
@@ -35,7 +36,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   aiAnalyzing,
 }) => {
   const { data: systemState } = useSystemStateQuery({});
-  const mode = (systemState?.prediction_mode || analysis?.prediction_mode || 'ai') as 'ai' | 'single_ai' | 'rule';
+  const mode = resolvePredictionMode(systemState?.prediction_mode, analysis?.prediction_mode);
   const [detailOpen, setDetailOpen] = useState(false);
   const reasoningPoints = useMemo(() => (analysis?.reasoning_points || []).filter(Boolean).slice(0, 6), [analysis]);
   const reasoningDetail = analysis?.reasoning_detail || '';

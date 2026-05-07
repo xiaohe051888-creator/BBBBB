@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Form, Input, Select, Button, App, Alert, Grid } from 'antd';
 import type { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
 import * as apiService from '../../services/api';
-import { shouldCloseApiConfigModalAfterSave } from './apiConfigFlow';
 import { toCnApiTestError } from '../../utils/i18nErrors';
 import { formatApiConfigLabel } from '../../utils/beginnerCopy';
 
@@ -151,7 +150,6 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       await apiService.updateApiConfig(payload);
       message.success(`${roleName}设置已保存`);
       await Promise.resolve(onSuccess());
-      if (shouldCloseApiConfigModalAfterSave()) onCancel();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       const raw = err.response?.data?.detail || err.message || '保存失败';
