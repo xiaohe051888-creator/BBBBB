@@ -181,7 +181,7 @@ const MistakeBookPage: React.FC = () => {
       render: (v: number) => <span style={{ color: '#8b949e', fontSize: 12 }}>#{v}</span>,
     },
     {
-      title: '错误类型',
+      title: formatReviewLabel('errorTypeColumn'),
       dataIndex: 'error_type',
       width: '15%',
       align: 'center',

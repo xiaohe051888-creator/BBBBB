@@ -109,7 +109,7 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
           style={{ width: 220 }}
         />
         <Button size="small" disabled={!filterTaskId} onClick={onCopyTaskId}>
-          复制任务编号
+          {formatLogsLabel('copyTaskId')}
         </Button>
         <Input
           value={searchText}
@@ -679,7 +679,7 @@ const LogsPage: React.FC = () => {
     if (!filterTaskId) return;
     const ok = await copyText(filterTaskId);
     if (ok) {
-      message.success('任务编号已复制');
+      message.success(formatLogsLabel('taskIdCopied'));
     } else {
       message.error('复制失败');
     }

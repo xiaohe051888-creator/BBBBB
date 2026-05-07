@@ -157,7 +157,7 @@ const RoadMapPage: React.FC = () => {
       ),
     },
     {
-      title: '预测方向',
+      title: '当时建议',
       dataIndex: 'predict_direction',
       width: 80,
       align: 'center',

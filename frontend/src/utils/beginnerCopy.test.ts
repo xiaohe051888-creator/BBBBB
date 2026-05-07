@@ -79,6 +79,7 @@ describe('beginnerCopy', () => {
     expect(formatReviewLabel('bankerErrors')).toBe('庄方向失误');
     expect(formatReviewLabel('playerErrors')).toBe('闲方向失误');
     expect(formatReviewLabel('errorTypeFilter')).toBe('按失误类型');
+    expect(formatReviewLabel('errorTypeColumn')).toBe('失误类型');
     expect(formatReviewLabel('directionFilter')).toBe('按当时建议筛选');
     expect(formatReviewLabel('gameSearch')).toBe('搜索局号');
   });
@@ -111,6 +112,8 @@ describe('beginnerCopy', () => {
     expect(formatLogsLabel('detailTitle')).toBe('记录详情');
     expect(formatLogsLabel('empty')).toBe('暂无运行记录');
     expect(formatLogsLabel('taskFilter')).toBe('按处理编号筛选');
+    expect(formatLogsLabel('copyTaskId')).toBe('复制处理编号');
+    expect(formatLogsLabel('taskIdCopied')).toBe('处理编号已复制');
   });
 
   it('formats admin danger-zone labels in plain language', () => {
@@ -124,6 +127,7 @@ describe('beginnerCopy', () => {
     expect(formatAdminPageLabel('title')).toBe('管理页面');
     expect(formatAdminPageLabel('learningNotNeeded')).toBe('规则参考模式下无需系统学习优化');
     expect(formatAdminPageLabel('learningStarted')).toBe('系统学习优化已开始');
+    expect(formatAdminPageLabel('rechargeHint')).toBe('请到管理页面充值');
   });
 
   it('formats detail labels in plain language', () => {

@@ -71,7 +71,7 @@ const rule: Record<string, Rule> = {
   'LOG-RECOVER-002': (log) => ({
     title: '系统恢复：已把状态回落到安全状态',
     whatHappened: s(log.description) || '系统将状态回落到可继续操作的状态。',
-    impact: '避免状态卡在“分析中/深度学习中”。',
+    impact: '避免状态卡在“分析中/系统学习优化中”。',
     suggestion: '一般无需处理；如仍无法继续操作，点击“刷新”或“一键修复”。',
   }),
   'LOG-RECOVER-003': (log) => ({
@@ -84,11 +84,11 @@ const rule: Record<string, Rule> = {
     title: '系统守护：自动修复已执行',
     whatHappened: s(log.description) || 'Watchdog 执行了自动修复。',
     impact: '用于自动把系统从异常/卡住状态拉回正常。',
-    suggestion: '无需处理；如大量出现，说明系统经常卡住，建议排查后台任务或网络。',
+    suggestion: '无需处理；如大量出现，说明系统经常卡住，建议排查系统处理或网络。',
   }),
   'LOG-WDG-002': (log) => ({
-    title: '系统守护：检测到后台任务积压',
-    whatHappened: s(log.description) || '后台任务出现积压。',
+    title: '系统守护：检测到系统处理积压',
+    whatHappened: s(log.description) || '系统处理出现排队积压。',
     impact: '可能导致分析/学习变慢，页面出现延迟。',
     suggestion: '建议稍候再试；如持续出现，建议重启服务或降低并发操作。',
   }),
@@ -118,19 +118,19 @@ const rule: Record<string, Rule> = {
   }),
   'LOG-BOOT-002': (log) => ({
     title: '系统优化：已完成并生成新版本',
-    whatHappened: s(log.description) || '深度学习已完成。',
+    whatHappened: s(log.description) || '系统学习优化已完成。',
     impact: '可能提升后续预测表现；学习期间部分操作会被锁定。',
     suggestion: '完成后按提示开始新靴即可。',
   }),
   'LOG-BOOT-003': (log) => ({
     title: '系统优化：执行失败',
-    whatHappened: s(log.description) || '深度学习失败。',
+    whatHappened: s(log.description) || '系统学习优化失败。',
     impact: '本次学习结果不会生效，可能需要重新执行。',
     suggestion: '建议检查接口配置/网络后重试，或联系维护人员。',
   }),
   'LOG-BOOT-004': (log) => ({
     title: '系统优化：已取消',
-    whatHappened: s(log.description) || '深度学习被取消。',
+    whatHappened: s(log.description) || '系统学习优化已取消。',
     impact: '本次学习不会生成新版本。',
     suggestion: '如需学习可再次启动；也可直接开始新靴。',
   }),
@@ -220,8 +220,8 @@ const rule: Record<string, Rule> = {
   }),
   'LOG-ASYNC-001': (log) => ({
     title: '系统处理异常',
-    whatHappened: s(log.description) || '后台任务执行发生异常。',
-    impact: '可能影响分析/学习等后台功能。',
+    whatHappened: s(log.description) || '系统处理执行发生异常。',
+    impact: '可能影响分析或系统学习优化等功能。',
     suggestion: '建议联系维护人员查看后端日志。',
   }),
   'LOG-MAINT-RET': (log) => ({

@@ -7,6 +7,7 @@ import React from 'react';
 import { Button } from 'antd';
 
 import { useWaitTimer } from '../../hooks/useWaitTimer';
+import { formatAdminPageLabel, formatLearningLabel } from '../../utils/beginnerCopy';
 import {
   ClockCircleOutlined as ClockIcon,
   BulbOutlined as BulbIcon,
@@ -52,7 +53,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
         <div className="status-content">
           <div className="status-title" style={{ color: '#faad14' }}>余额不足，系统已挂起</div>
           <div className="status-subtitle" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            当前系统余额不足以下一局预测，预测与开奖流程已暂停。请前往【管理员控制台】充值。
+            当前系统余额不足以下一局预测，预测与开奖流程已暂停。{formatAdminPageLabel('rechargeHint')}。
           </div>
         </div>
       </div>
@@ -115,7 +116,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
         icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>,
         iconColor: '#ff4d4f',
         title: `本靴已满（共72局），请结束本靴`,
-        subtitle: '请点击右侧【结束本靴】按钮开始新靴；深度学习需在管理员控制台手动启动',
+        subtitle: `请点击右侧【结束本靴】按钮开始新靴；${formatLearningLabel('manualStartHint')}`,
         bgGradient: 'linear-gradient(135deg, rgba(255,77,79,0.15), rgba(255,77,79,0.08))',
         borderColor: 'rgba(255,77,79,0.25)',
       };

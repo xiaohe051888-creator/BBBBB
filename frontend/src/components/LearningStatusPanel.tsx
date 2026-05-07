@@ -5,6 +5,7 @@ import React from 'react';
 import { Card, Progress, Tag, Typography, Space, Alert } from 'antd';
 import { CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { RobotIcon } from './ui/Icons';
+import { formatLearningLabel } from '../utils/beginnerCopy';
 
 const { Text, Title } = Typography;
 
@@ -74,7 +75,9 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
           title={
             <Space>
               <RobotIcon />
-              <Title level={5} style={{ margin: 0 }}>深度学习进行中</Title>
+              <Title level={5} style={{ margin: 0 }}>
+                {formatLearningLabel('runningTitle')}
+              </Title>
               <Tag color={getDeepLearningColor(deepLearning.status)}>
                 {deepLearning.status}
               </Tag>
@@ -84,7 +87,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
         >
           <Space orientation="vertical" style={{ width: '100%' }}>
             <Text type="secondary">
-              第{deepLearning.boot_number}靴数据学习，生成新版本模型...
+              第{deepLearning.boot_number}靴数据正在整理，并生成新的可用版本...
             </Text>
             
             <Progress
@@ -97,7 +100,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
             
             {deepLearning.status === '完成' && (
               <Alert
-                title="深度学习完成！系统已准备好开始新靴"
+                title={formatLearningLabel('doneTitle')}
                 type="success"
                 showIcon
               />
@@ -105,7 +108,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
             
             {deepLearning.status === '失败' && deepLearning.error && (
               <Alert
-                title={`学习失败: ${deepLearning.error}`}
+                title={`系统学习优化失败：${deepLearning.error}`}
                 type="error"
                 showIcon
               />

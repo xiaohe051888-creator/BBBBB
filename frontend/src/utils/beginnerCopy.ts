@@ -61,6 +61,7 @@ export const formatReviewLabel = (
     | 'bankerErrors'
     | 'playerErrors'
     | 'errorTypeFilter'
+    | 'errorTypeColumn'
     | 'directionFilter'
     | 'gameSearch',
 ) => {
@@ -74,6 +75,7 @@ export const formatReviewLabel = (
   if (key === 'bankerErrors') return '庄方向失误';
   if (key === 'playerErrors') return '闲方向失误';
   if (key === 'errorTypeFilter') return '按失误类型';
+  if (key === 'errorTypeColumn') return '失误类型';
   if (key === 'directionFilter') return '按当时建议筛选';
   if (key === 'gameSearch') return '搜索局号';
   return '预测正确时，这里不会新增记录';
@@ -118,11 +120,13 @@ export const formatNavigationLabel = (key: 'logs' | 'mistakes') => {
 };
 
 export const formatLogsLabel = (
-  key: 'pageTitle' | 'detailTitle' | 'empty' | 'taskFilter',
+  key: 'pageTitle' | 'detailTitle' | 'empty' | 'taskFilter' | 'copyTaskId' | 'taskIdCopied',
 ) => {
   if (key === 'pageTitle') return '运行记录';
   if (key === 'detailTitle') return '记录详情';
   if (key === 'empty') return '暂无运行记录';
+  if (key === 'copyTaskId') return '复制处理编号';
+  if (key === 'taskIdCopied') return '处理编号已复制';
   return '按处理编号筛选';
 };
 
@@ -136,10 +140,11 @@ export const formatDangerZoneLabel = (
 };
 
 export const formatAdminPageLabel = (
-  key: 'title' | 'learningNotNeeded' | 'learningStarted',
+  key: 'title' | 'learningNotNeeded' | 'learningStarted' | 'rechargeHint',
 ) => {
   if (key === 'title') return '管理页面';
   if (key === 'learningNotNeeded') return '规则参考模式下无需系统学习优化';
+  if (key === 'rechargeHint') return '请到管理页面充值';
   return '系统学习优化已开始';
 };
 

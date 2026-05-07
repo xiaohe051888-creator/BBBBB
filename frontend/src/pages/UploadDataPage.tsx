@@ -8,6 +8,7 @@ import { BeadGridInput } from '../components/upload/BeadGridInput';
 import { UploadConfirmModal, type UploadConfirmValues } from '../components/upload/UploadConfirmModal';
 import { uploadGameResultsV2 } from '../services/api';
 import { toggleResultAt, undoLast } from '../components/upload/sequence';
+import { formatLearningLabel } from '../utils/beginnerCopy';
 
 const MAX_GAMES = 72;
 
@@ -118,7 +119,7 @@ const UploadDataPage: React.FC = () => {
               lineHeight: 1.6,
             }}
           >
-            当前正在深度学习中：如果你此时上传并选择“结束本靴 + 执行深度学习”，系统会把本次数据加入队列，学习完成后自动写入新靴并继续分析。
+            {formatLearningLabel('queueNotice')}
           </div>
         )}
       </Card>
