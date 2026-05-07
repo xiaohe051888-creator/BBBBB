@@ -17,6 +17,7 @@ import { copyText } from '../utils/clipboard';
 import {
   formatAdminPageLabel,
   formatAdminModeName,
+  formatConfigStatusLabel,
   formatDangerZoneLabel,
   formatLogPriorityLabel,
   formatMaintenanceLabel,
@@ -667,16 +668,16 @@ const AdminPage: React.FC = () => {
                               <div style={{ fontWeight: 800 }}>三模型协作模式</div>
                               {predictionMode === 'ai' && <Tag color="purple">当前</Tag>}
                               {(!threeModelStatus?.models?.banker?.api_key_set && !threeModelStatus?.models?.player?.api_key_set && !threeModelStatus?.models?.combined?.api_key_set) && (
-                                <Tag color="error">未配置API</Tag>
+                                <Tag color="error">{formatConfigStatusLabel('unset')}</Tag>
                               )}
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
                               三个模型分别判断后再综合结果，适合更重视稳定性的使用方式。
                             </div>
                             <Space wrap className="mobile-action-row" style={{ width: '100%' }}>
-                              <Button size="small" onClick={() => handleOpenApiConfig('banker')}>配置庄方向接口</Button>
-                              <Button size="small" onClick={() => handleOpenApiConfig('player')}>配置闲方向接口</Button>
-                              <Button size="small" onClick={() => handleOpenApiConfig('combined')}>配置综合判断接口</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('banker')}>设置庄方向接口</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('player')}>设置闲方向接口</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('combined')}>设置综合判断接口</Button>
                             </Space>
                           </div>
                           <Button
@@ -701,13 +702,15 @@ const AdminPage: React.FC = () => {
                               <Icons.Robot />
                               <div style={{ fontWeight: 800 }}>单AI快速模式</div>
                               {predictionMode === 'single_ai' && <Tag color="green">当前</Tag>}
-                              {!threeModelStatus?.models?.single?.api_key_set && <Tag color="error">未配置API</Tag>}
+                              {!threeModelStatus?.models?.single?.api_key_set && (
+                                <Tag color="error">{formatConfigStatusLabel('unset')}</Tag>
+                              )}
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
                               由一个模型直接给出下一局建议，配置更简单，适合快速使用。
                             </div>
                             <Space wrap className="mobile-action-row" style={{ width: '100%' }}>
-                              <Button size="small" onClick={() => handleOpenApiConfig('single')}>配置单AI接口</Button>
+                              <Button size="small" onClick={() => handleOpenApiConfig('single')}>设置单AI接口</Button>
                             </Space>
                           </div>
                           <Button
@@ -797,7 +800,9 @@ const AdminPage: React.FC = () => {
                         <Card size="small" style={{ borderLeft: '3px solid #ff4d4f', background: 'rgba(255,77,79,0.04)' }}>
                           <div style={{ fontWeight: 700, color: '#ff4d4f', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Banker /> 庄模型</span>
-                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('banker')}>配置接口</Button>
+                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('banker')}>
+                              {formatConfigStatusLabel('openConfig')}
+                            </Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {getProviderModelSummary(
@@ -807,9 +812,13 @@ const AdminPage: React.FC = () => {
                           </div>
                           <div style={{ marginTop: 8 }}>
                             {threeModelStatus.models?.banker?.api_key_set ? (
-                              <Tag color="success" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Check /> 已配置</Tag>
+                              <Tag color="success" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}>
+                                <Icons.Check /> {formatConfigStatusLabel('set')}
+                              </Tag>
                             ) : (
-                              <Tag color="error" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Close /> 未配置</Tag>
+                              <Tag color="error" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}>
+                                <Icons.Close /> {formatConfigStatusLabel('unset')}
+                              </Tag>
                             )}
                           </div>
                         </Card>
@@ -818,7 +827,9 @@ const AdminPage: React.FC = () => {
                         <Card size="small" style={{ borderLeft: '3px solid #1890ff', background: 'rgba(24,144,255,0.04)' }}>
                           <div style={{ fontWeight: 700, color: '#1890ff', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Player /> 闲模型</span>
-                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('player')}>配置接口</Button>
+                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('player')}>
+                              {formatConfigStatusLabel('openConfig')}
+                            </Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {getProviderModelSummary(
@@ -828,9 +839,13 @@ const AdminPage: React.FC = () => {
                           </div>
                           <div style={{ marginTop: 8 }}>
                             {threeModelStatus.models?.player?.api_key_set ? (
-                              <Tag color="success" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Check /> 已配置</Tag>
+                              <Tag color="success" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}>
+                                <Icons.Check /> {formatConfigStatusLabel('set')}
+                              </Tag>
                             ) : (
-                              <Tag color="error" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Close /> 未配置</Tag>
+                              <Tag color="error" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}>
+                                <Icons.Close /> {formatConfigStatusLabel('unset')}
+                              </Tag>
                             )}
                           </div>
                         </Card>
@@ -839,7 +854,9 @@ const AdminPage: React.FC = () => {
                         <Card size="small" style={{ borderLeft: '3px solid #52c41a', background: 'rgba(82,196,26,0.04)' }}>
                           <div style={{ fontWeight: 700, color: '#52c41a', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Brain /> 综合模型</span>
-                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('combined')}>配置接口</Button>
+                            <Button type="link" size="small" onClick={() => handleOpenApiConfig('combined')}>
+                              {formatConfigStatusLabel('openConfig')}
+                            </Button>
                           </div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {getProviderModelSummary(
@@ -849,9 +866,13 @@ const AdminPage: React.FC = () => {
                           </div>
                           <div style={{ marginTop: 8 }}>
                             {threeModelStatus.models?.combined?.api_key_set ? (
-                              <Tag color="success" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Check /> 已配置</Tag>
+                              <Tag color="success" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}>
+                                <Icons.Check /> {formatConfigStatusLabel('set')}
+                              </Tag>
                             ) : (
-                              <Tag color="error" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}><Icons.Close /> 未配置</Tag>
+                              <Tag color="error" style={{ display: 'flex', alignItems: 'center', gap: 2, width: 'fit-content' }}>
+                                <Icons.Close /> {formatConfigStatusLabel('unset')}
+                              </Tag>
                             )}
                           </div>
                         </Card>

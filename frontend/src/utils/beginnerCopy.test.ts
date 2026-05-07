@@ -4,6 +4,7 @@ import {
   formatAdminPageLabel,
   formatAdminModeName,
   formatAnalysisLoadingText,
+  formatConfigStatusLabel,
   formatConfidenceLabel,
   formatDangerZoneLabel,
   formatDetailLabel,
@@ -124,6 +125,8 @@ describe('beginnerCopy', () => {
     expect(formatModeSelectLabel('singleCardTitle')).toBe('单AI快速模式（使用你当前设置的单AI）');
     expect(formatModeSelectLabel('ruleCardTitle')).toBe('规则参考模式（无需额外设置）');
     expect(formatModeSelectLabel('ruleCardHint')).toBe('按内置规则直接给参考结果，不需要额外设置，随时可用。');
+    expect(formatModeSelectLabel('notConfigured')).toBe('还没完成设置');
+    expect(formatModeSelectLabel('notReady')).toBe('还不能正常使用');
   });
 
   it('formats logs page labels in plain language', () => {
@@ -147,6 +150,14 @@ describe('beginnerCopy', () => {
     expect(formatAdminPageLabel('learningNotNeeded')).toBe('规则参考模式下无需系统学习优化');
     expect(formatAdminPageLabel('learningStarted')).toBe('系统学习优化已开始');
     expect(formatAdminPageLabel('rechargeHint')).toBe('请到管理页面充值');
+  });
+
+  it('formats config-status labels in plain language', () => {
+    expect(formatConfigStatusLabel('unset')).toBe('未完成设置');
+    expect(formatConfigStatusLabel('set')).toBe('已完成设置');
+    expect(formatConfigStatusLabel('openConfig')).toBe('设置接口');
+    expect(formatConfigStatusLabel('missing')).toBe('还没设置');
+    expect(formatConfigStatusLabel('notReady')).toBe('还不能正常使用');
   });
 
   it('formats detail labels in plain language', () => {

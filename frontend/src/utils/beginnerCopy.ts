@@ -147,7 +147,14 @@ export const formatNavigationLabel = (key: 'logs' | 'mistakes') => {
 };
 
 export const formatModeSelectLabel = (
-  key: 'pageHint' | 'aiCardTitle' | 'singleCardTitle' | 'ruleCardTitle' | 'ruleCardHint',
+  key:
+    | 'pageHint'
+    | 'aiCardTitle'
+    | 'singleCardTitle'
+    | 'ruleCardTitle'
+    | 'ruleCardHint'
+    | 'notConfigured'
+    | 'notReady',
 ) => {
   if (key === 'pageHint') {
     return '先选好使用方式，再进入系统主界面；需要 AI 时，请先完成设置并确认可用。';
@@ -155,7 +162,19 @@ export const formatModeSelectLabel = (
   if (key === 'aiCardTitle') return '三模型协作模式（3个AI一起判断）';
   if (key === 'singleCardTitle') return '单AI快速模式（使用你当前设置的单AI）';
   if (key === 'ruleCardTitle') return '规则参考模式（无需额外设置）';
+  if (key === 'notConfigured') return '还没完成设置';
+  if (key === 'notReady') return '还不能正常使用';
   return '按内置规则直接给参考结果，不需要额外设置，随时可用。';
+};
+
+export const formatConfigStatusLabel = (
+  key: 'unset' | 'set' | 'openConfig' | 'missing' | 'notReady',
+) => {
+  if (key === 'unset') return '未完成设置';
+  if (key === 'set') return '已完成设置';
+  if (key === 'openConfig') return '设置接口';
+  if (key === 'missing') return '还没设置';
+  return '还不能正常使用';
 };
 
 export const formatLogsLabel = (

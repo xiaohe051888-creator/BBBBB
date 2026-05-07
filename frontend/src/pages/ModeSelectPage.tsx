@@ -49,8 +49,8 @@ const ModeSelectPage: React.FC = () => {
     const missingSingle: string[] = [];
 
     const check = (m: ModelEntry | undefined, label: string, out: string[]) => {
-      if (!m?.api_key_set) out.push(`${label}未配置`);
-      else if (!m?.last_test_ok) out.push(`${label}未测试通过`);
+      if (!m?.api_key_set) out.push(`${label}${formatModeSelectLabel('notConfigured')}`);
+      else if (!m?.last_test_ok) out.push(`${label}${formatModeSelectLabel('notReady')}`);
     };
 
     check(banker, '庄模型', missing3Ai);
