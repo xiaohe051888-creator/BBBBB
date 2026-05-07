@@ -2,7 +2,6 @@
 认证相关路由
 """
 import base64
-import bcrypt as _bcrypt
 from datetime import datetime, timedelta, UTC
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy import select, desc, update
@@ -13,6 +12,7 @@ from app.core.config import settings
 from jose import jwt
 import os
 from app.services.ai_config_status import compute_config_hash, normalize_base_url
+from app.core.env_migration import upsert_env_value
 
 from app.api.routes.schemas import (
     LoginRequest,
@@ -22,25 +22,16 @@ from app.api.routes.schemas import (
     SingleAiPromptTemplatesUpdateRequest,
 )
 from app.api.routes.utils import get_current_user
+from app.api.routes.api_key_resolution import resolve_api_key_for_role
 
 router = APIRouter(prefix="/api/admin", tags=["认证"])
-
-def resolve_api_key_for_role(role: str, api_key: str) -> str:
-    role_map = {
-        "banker": "OPENAI_API_KEY",
-        "player": "ANTHROPIC_API_KEY",
-        "combined": "GEMINI_API_KEY",
-        "single": "SINGLE_AI_API_KEY",
-    }
-    if api_key:
-        return api_key
-    key = role_map.get(role)
-    return (getattr(settings, key, "") or "") if key else ""
 
 
 @router.post("/login")
 async def admin_login(req: LoginRequest):
     """管理员登录"""
+    import bcrypt as _bcrypt
+
     async with async_session() as session:
         stmt = select(AdminUser).where(AdminUser.username == "admin")
         result = await session.execute(stmt)
@@ -90,6 +81,8 @@ async def admin_login(req: LoginRequest):
 @router.post("/change-password")
 async def change_password(req: ChangePasswordRequest, _: dict = Depends(get_current_user)):
     """修改密码（需认证）"""
+    import bcrypt as _bcrypt
+
     async with async_session() as session:
         stmt = select(AdminUser).where(AdminUser.username == "admin")
         result = await session.execute(stmt)
@@ -224,22 +217,7 @@ async def update_single_ai_prompt_templates(
             except Exception:
                 env_content = ""
 
-        def set_env_var(content: str, key: str, val: str) -> str:
-            lines = content.split("\n") if content else []
-            updated = False
-            next_lines: list[str] = []
-            for line in lines:
-                if line.startswith(f"{key}="):
-                    if not updated:
-                        next_lines.append(f"{key}={val}")
-                        updated = True
-                    continue
-                next_lines.append(line)
-            if not updated:
-                next_lines.append(f"{key}={val}")
-            return "\n".join(next_lines).rstrip() + "\n"
-
-        env_content = set_env_var(env_content, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", b64)
+        env_content = upsert_env_value(env_content, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", b64)
         with open(env_path, "w", encoding="utf-8") as f:
             f.write(env_content)
 
@@ -378,25 +356,11 @@ async def update_api_config(
         with open(env_path, "r", encoding="utf-8") as f:
             env_content = f.read()
     
-    def set_env_var(content, key, val):
-        if not val:
-            return content
-        lines = content.split('\n')
-        updated = False
-        for i, line in enumerate(lines):
-            if line.startswith(f"{key}="):
-                lines[i] = f"{key}={val}"
-                updated = True
-                break
-        if not updated:
-            lines.append(f"{key}={val}")
-        return '\n'.join(lines)
-
     if req.api_key:
-        env_content = set_env_var(env_content, k_key, req.api_key)
-    env_content = set_env_var(env_content, m_key, req.model)
+        env_content = upsert_env_value(env_content, k_key, req.api_key)
+    env_content = upsert_env_value(env_content, m_key, req.model)
     if req.base_url:
-        env_content = set_env_var(env_content, b_key, req.base_url)
+        env_content = upsert_env_value(env_content, b_key, req.base_url)
 
     with open(env_path, "w", encoding="utf-8") as f:
         f.write(env_content)

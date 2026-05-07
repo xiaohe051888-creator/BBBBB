@@ -7,11 +7,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 class ApiConfigTestKeyResolutionTest(unittest.TestCase):
     def test_resolve_api_key_for_role_prefers_payload(self):
-        from app.api.routes.auth import resolve_api_key_for_role
+        from app.api.routes.api_key_resolution import resolve_api_key_for_role
         self.assertEqual(resolve_api_key_for_role("single", "k1"), "k1")
 
     def test_resolve_api_key_for_role_falls_back_to_settings(self):
-        from app.api.routes.auth import resolve_api_key_for_role
+        from app.api.routes.api_key_resolution import resolve_api_key_for_role
         from app.core.config import settings
 
         old = getattr(settings, "SINGLE_AI_API_KEY", "")
@@ -24,4 +24,3 @@ class ApiConfigTestKeyResolutionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

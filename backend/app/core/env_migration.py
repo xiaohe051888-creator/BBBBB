@@ -48,6 +48,32 @@ def _parse_env(content: str) -> Dict[str, str]:
     return out
 
 
+def upsert_env_value(content: str, key: str, value: str) -> str:
+    if not value:
+        return content.rstrip() + ("\n" if content else "")
+
+    lines = content.splitlines() if content else []
+    wrote = False
+    next_lines: list[str] = []
+
+    for raw in lines:
+        line = raw.strip()
+        if line and not line.startswith("#") and "=" in line:
+            current_key, _ = line.split("=", 1)
+            if current_key.strip() == key:
+                if wrote:
+                    continue
+                next_lines.append(f"{key}={value}")
+                wrote = True
+                continue
+        next_lines.append(raw)
+
+    if not wrote:
+        next_lines.append(f"{key}={value}")
+
+    return "\n".join(next_lines).rstrip() + "\n"
+
+
 def merge_legacy_env(legacy_path: str, env_path: str) -> Dict[str, object]:
     if not os.path.exists(legacy_path):
         return {"migrated": False, "reason": "legacy_missing", "merged_keys": []}
@@ -137,28 +163,14 @@ def ensure_env_key(
         except Exception:
             env_content = ""
 
-    lines = env_content.splitlines() if env_content else []
-    wrote = False
-    next_lines: list[str] = []
-    for raw in lines:
-        line = raw.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            if k.strip() == key:
-                if wrote:
-                    continue
-                if overwrite_if is not None:
-                    next_lines.append(f"{key}={value}")
-                else:
-                    next_lines.append(raw)
-                wrote = True
-                continue
-        next_lines.append(raw)
-
-    if not wrote:
-        next_lines.append(f"{key}={value}")
+    existing_file_value = _parse_env(env_content).get(key)
 
     with open(env_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(next_lines).rstrip() + "\n")
+        if overwrite_if is not None:
+            f.write(upsert_env_value(env_content, key, value))
+        elif existing_file_value:
+            f.write(env_content if env_content.endswith("\n") or not env_content else env_content + "\n")
+        else:
+            f.write(upsert_env_value(env_content, key, value))
 
     return True
