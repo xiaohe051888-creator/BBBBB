@@ -4,6 +4,7 @@ import type { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
 import * as apiService from '../../services/api';
 import { shouldCloseApiConfigModalAfterSave } from './apiConfigFlow';
 import { toCnApiTestError } from '../../utils/i18nErrors';
+import { formatApiConfigLabel } from '../../utils/beginnerCopy';
 
 interface ApiConfigModalProps {
   visible: boolean;
@@ -115,7 +116,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
     if (!payload) return;
 
     if (!payload.api_key && !currentStatus?.models?.[role]?.api_key_set) {
-      message.warning('请输入接口密钥进行测试');
+      message.warning(`${formatApiConfigLabel('enterSecretKey')}后再测试`);
       return;
     }
 
@@ -123,13 +124,13 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
     setTestResult(null);
     try {
       await apiService.testApiConnection(payload);
-      setTestResult({ success: true, message: '测试成功！接口连接正常，模型响应符合预期。' });
-      message.success('接口测试成功');
+      setTestResult({ success: true, message: '测试成功，当前设置可以正常连接并返回结果。' });
+      message.success('当前设置测试通过');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       const raw = err.response?.data?.detail || err.message || '连接失败';
       const errorMsg = toCnApiTestError(String(raw));
-      setTestResult({ success: false, message: `测试失败: ${errorMsg}` });
+      setTestResult({ success: false, message: `测试失败：${errorMsg}` });
     } finally {
       await Promise.resolve(onSuccess());
       setTesting(false);
@@ -141,14 +142,14 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
     if (!payload) return;
 
     if (!payload.api_key && !currentStatus?.models?.[role]?.api_key_set) {
-      message.warning('首次配置必须输入接口密钥');
+      message.warning(`第一次设置时必须填写${formatApiConfigLabel('secretKey')}`);
       return;
     }
 
     setSaving(true);
     try {
       await apiService.updateApiConfig(payload);
-      message.success(`${roleName}接口配置保存成功`);
+      message.success(`${roleName}设置已保存`);
       await Promise.resolve(onSuccess());
       if (shouldCloseApiConfigModalAfterSave()) onCancel();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -162,7 +163,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
   return (
     <Modal
-      title={`配置${roleName}接口`}
+      title={`${formatApiConfigLabel('titlePrefix')}${roleName}接口`}
       open={visible}
       onCancel={onCancel}
       footer={[
@@ -170,10 +171,10 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
           取消
         </Button>,
         <Button key="test" onClick={handleTest} loading={testing}>
-          测试连通性
+          {formatApiConfigLabel('testConnection')}
         </Button>,
         <Button key="save" type="primary" onClick={handleSave} loading={saving}>
-          保存配置
+          {formatApiConfigLabel('saveConfig')}
         </Button>,
       ]}
       width={500}
@@ -181,25 +182,25 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       mask={{ closable: false }}
     >
       <div style={{ marginBottom: 16, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-        配置专属的大模型接口密钥。如果留空接口密钥，将保留现有的密钥不变。
+        在这里填写当前模型要用的访问信息。如果访问密钥留空，就继续沿用之前已保存的内容。
       </div>
 
       <Form form={form} layout="vertical" requiredMark="optional">
         <Form.Item 
           name="provider" 
-          label="模型服务商" 
-          rules={[{ required: true, message: '请选择服务商' }]}
+          label={formatApiConfigLabel('provider')}
+          rules={[{ required: true, message: '请选择服务平台' }]}
         >
           <Select options={PROVIDERS} onChange={handleProviderChange} popupMatchSelectWidth={!isMobile} />
         </Form.Item>
 
         <Form.Item 
           name="model" 
-          label="模型名称（模型编号）" 
+          label={formatApiConfigLabel('modelName')}
           rules={[{ required: true, message: '请输入模型名称' }]}
         >
           {provider === 'custom' ? (
-            <Input placeholder="例如：模型编号" />
+            <Input placeholder="例如：具体模型名称" />
           ) : (
             <Select options={MODEL_OPTIONS[provider] || []} popupMatchSelectWidth={!isMobile} />
           )}
@@ -211,19 +212,19 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
             <span>
               接口密钥 
               {currentStatus?.models?.[role]?.api_key_set && 
-                <span style={{ marginLeft: 8, color: '#52c41a', fontSize: 12 }}>(已保存过密钥，不修改请留空)</span>
+                <span style={{ marginLeft: 8, color: '#52c41a', fontSize: 12 }}>(之前已保存，不修改可留空)</span>
               }
             </span>
           }
-          rules={[{ required: !currentStatus?.models?.[role]?.api_key_set, message: '请输入接口密钥' }]}
+          rules={[{ required: !currentStatus?.models?.[role]?.api_key_set, message: formatApiConfigLabel('enterSecretKey') }]}
         >
-          <Input.Password placeholder="请输入接口密钥" />
+          <Input.Password placeholder={formatApiConfigLabel('enterSecretKey')} />
         </Form.Item>
 
         <Form.Item 
           name="base_url" 
-          label="接口地址（可选）" 
-          tooltip="如果使用代理或自定义兼容接口，请填写完整的接口地址"
+          label="接口地址（可选）"
+          tooltip="如果你使用代理地址或自定义兼容接口，请填写完整地址"
           hidden={provider !== 'custom' && role !== 'single'}
         >
           <Input placeholder="例如：接口地址" />

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formatAdminPageLabel,
+  formatApiConfigLabel,
   formatAdminModeName,
   formatAnalysisLoadingText,
   formatConfigStatusLabel,
@@ -158,6 +159,16 @@ describe('beginnerCopy', () => {
     expect(formatConfigStatusLabel('openConfig')).toBe('设置接口');
     expect(formatConfigStatusLabel('missing')).toBe('还没设置');
     expect(formatConfigStatusLabel('notReady')).toBe('还不能正常使用');
+  });
+
+  it('formats api-config labels in plain language', () => {
+    expect(formatApiConfigLabel('titlePrefix')).toBe('设置');
+    expect(formatApiConfigLabel('secretKey')).toBe('访问密钥');
+    expect(formatApiConfigLabel('provider')).toBe('服务平台');
+    expect(formatApiConfigLabel('modelName')).toBe('模型名称');
+    expect(formatApiConfigLabel('testConnection')).toBe('测试是否可用');
+    expect(formatApiConfigLabel('saveConfig')).toBe('保存设置');
+    expect(formatApiConfigLabel('enterSecretKey')).toBe('请输入访问密钥');
   });
 
   it('formats detail labels in plain language', () => {

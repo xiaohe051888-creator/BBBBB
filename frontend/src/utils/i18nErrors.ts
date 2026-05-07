@@ -24,7 +24,7 @@ export const toCnProviderLabel = (provider?: string | null): string => {
     aliyun: '阿里云通义千问',
     custom: '自定义接口',
   };
-  return map[key] || '未配置服务商';
+  return map[key] || '暂未选择服务商';
 };
 
 export const toCnModelLabel = (model?: string | null): string => {

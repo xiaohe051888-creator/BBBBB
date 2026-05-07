@@ -177,6 +177,25 @@ export const formatConfigStatusLabel = (
   return '还不能正常使用';
 };
 
+export const formatApiConfigLabel = (
+  key:
+    | 'titlePrefix'
+    | 'secretKey'
+    | 'provider'
+    | 'modelName'
+    | 'testConnection'
+    | 'saveConfig'
+    | 'enterSecretKey',
+) => {
+  if (key === 'titlePrefix') return '设置';
+  if (key === 'secretKey') return '访问密钥';
+  if (key === 'provider') return '服务平台';
+  if (key === 'modelName') return '模型名称';
+  if (key === 'testConnection') return '测试是否可用';
+  if (key === 'saveConfig') return '保存设置';
+  return '请输入访问密钥';
+};
+
 export const formatLogsLabel = (
   key: 'pageTitle' | 'detailTitle' | 'empty' | 'taskFilter' | 'copyTaskId' | 'taskIdCopied',
 ) => {

@@ -21,6 +21,7 @@ describe('中文显示映射', () => {
   it('translates provider keys to Chinese labels', () => {
     expect(toCnProviderLabel('openai')).toBe('开放AI平台');
     expect(toCnProviderLabel('anthropic')).toBe('克劳德平台');
+    expect(toCnProviderLabel(undefined)).toBe('暂未选择服务商');
   });
 
   it('translates common model ids to Chinese labels', () => {
