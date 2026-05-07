@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+import asyncio
 from types import SimpleNamespace
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -136,6 +137,44 @@ class StartupStateSeedTest(unittest.TestCase):
         self.assertEqual(seed["prediction_mode"], "rule")
         self.assertEqual(seed["next_game_number"], 5)
         self.assertEqual(seed["boot_number"], 3)
+
+    def test_reconcile_startup_runtime_state_persists_changed_mode_and_applies_seed(self):
+        from app.services.startup_state import reconcile_startup_runtime_state
+
+        state = SimpleNamespace(
+            balance=500,
+            boot_number=9,
+            game_number=2,
+            consecutive_errors=1,
+            prediction_mode="ai",
+        )
+        settings = SimpleNamespace(
+            OPENAI_API_KEY="openai-key-123",
+            ANTHROPIC_API_KEY="",
+            GEMINI_API_KEY="gemini-key-123",
+            SINGLE_AI_API_KEY="single-key-123",
+        )
+        applied: list[dict[str, int | float | str]] = []
+        persisted: list[str] = []
+
+        async def _apply(seed):
+            applied.append(seed)
+
+        async def _persist(mode: str):
+            persisted.append(mode)
+
+        current_mode = asyncio.run(
+            reconcile_startup_runtime_state(
+                state,
+                settings,
+                apply_seed=_apply,
+                persist_mode=_persist,
+            )
+        )
+
+        self.assertEqual(current_mode, "rule")
+        self.assertEqual(persisted, ["rule"])
+        self.assertEqual(applied[0]["prediction_mode"], "rule")
 
 
 if __name__ == "__main__":

@@ -62,7 +62,7 @@ from app.models.schemas import AdminUser, SystemLog, BetRecord, MistakeBook
 from app.services.startup_state import (
     build_startup_session_seed,
     apply_startup_session_seed,
-    resolve_startup_session_seed_from_settings,
+    reconcile_startup_runtime_state,
 )
 
 # ============ 导入路由模块 ============
@@ -116,18 +116,25 @@ async def lifespan(app: FastAPI):
         stmt_state = select(SystemState).where(SystemState.singleton_key == 1)
         res_state = await session.execute(stmt_state)
         state = res_state.scalar_one_or_none()
-        seed = resolve_startup_session_seed_from_settings(state, settings)
-        current_mode = str(seed["prediction_mode"])
-
-        if state and state.prediction_mode != current_mode:
-            state.prediction_mode = current_mode
-            await session.commit()
-
         from app.services.game.session import get_session_lock
         lock = get_session_lock()
-        async with lock:
-            mem_sess = get_session()
-            apply_startup_session_seed(mem_sess, seed)
+
+        async def _persist_mode(mode: str) -> None:
+            if state:
+                state.prediction_mode = mode
+                await session.commit()
+
+        async def _apply_seed(seed: dict[str, int | float | str]) -> None:
+            async with lock:
+                mem_sess = get_session()
+                apply_startup_session_seed(mem_sess, seed)
+
+        await reconcile_startup_runtime_state(
+            state,
+            settings,
+            apply_seed=_apply_seed,
+            persist_mode=_persist_mode,
+        )
 
     # 注入广播函数到游戏服务
     from app.services.game import set_broadcast_func

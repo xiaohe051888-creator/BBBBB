@@ -1,4 +1,4 @@
-from typing import Any, Mapping
+from typing import Any, Mapping, Awaitable, Callable
 
 from app.services.startup_mode import normalize_startup_prediction_mode
 
@@ -65,3 +65,19 @@ def resolve_startup_session_seed_from_settings(
         },
         max_game_number=max_game_number,
     )
+
+
+async def reconcile_startup_runtime_state(
+    state: Any,
+    settings: Any,
+    apply_seed: Callable[[dict[str, int | float | str]], Awaitable[None]],
+    persist_mode: Callable[[str], Awaitable[None]] | None = None,
+) -> str:
+    seed = resolve_startup_session_seed_from_settings(state, settings)
+    current_mode = str(seed["prediction_mode"])
+
+    if state and getattr(state, "prediction_mode", None) != current_mode and persist_mode is not None:
+        await persist_mode(current_mode)
+
+    await apply_seed(seed)
+    return current_mode
