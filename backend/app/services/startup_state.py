@@ -1,4 +1,6 @@
-from typing import Any
+from typing import Any, Mapping
+
+from app.services.startup_mode import normalize_startup_prediction_mode
 
 
 def build_startup_session_seed(
@@ -28,3 +30,21 @@ def apply_startup_session_seed(session: Any, seed: dict[str, int | float | str])
         session.consecutive_errors = int(seed["consecutive_errors"])
     if "prediction_mode" in seed:
         session.prediction_mode = str(seed["prediction_mode"])
+
+
+def resolve_startup_session_seed(
+    state: Any,
+    secrets_by_key: Mapping[str, str | None],
+    max_game_number: int | None = None,
+) -> dict[str, int | float | str]:
+    normalized_mode = normalize_startup_prediction_mode(
+        getattr(state, "prediction_mode", None) if state else None,
+        secrets_by_key,
+    )
+    if not state:
+        return {"prediction_mode": normalized_mode}
+    return build_startup_session_seed(
+        state,
+        normalized_mode=normalized_mode,
+        max_game_number=max_game_number,
+    )

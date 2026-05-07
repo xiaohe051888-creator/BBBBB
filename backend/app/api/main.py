@@ -59,12 +59,15 @@ from sqlalchemy import select, desc
 from app.core.config import settings
 from app.core.database import init_db, async_session, close_db
 from app.models.schemas import AdminUser, SystemLog, BetRecord, MistakeBook
-from app.services.startup_state import build_startup_session_seed, apply_startup_session_seed
+from app.services.startup_state import (
+    build_startup_session_seed,
+    apply_startup_session_seed,
+    resolve_startup_session_seed,
+)
 
 # ============ 导入路由模块 ============
 from app.api.routes import game, bet, logs, stats, analysis, maintenance
 from app.api.routes import system as system_routes
-from app.services.startup_mode import normalize_startup_prediction_mode
 
 
 # ============ 全局状态 ============
@@ -113,8 +116,8 @@ async def lifespan(app: FastAPI):
         stmt_state = select(SystemState).where(SystemState.singleton_key == 1)
         res_state = await session.execute(stmt_state)
         state = res_state.scalar_one_or_none()
-        current_mode = normalize_startup_prediction_mode(
-            getattr(state, "prediction_mode", None),
+        seed = resolve_startup_session_seed(
+            state,
             {
                 "OPENAI_API_KEY": settings.OPENAI_API_KEY,
                 "ANTHROPIC_API_KEY": settings.ANTHROPIC_API_KEY,
@@ -122,6 +125,7 @@ async def lifespan(app: FastAPI):
                 "SINGLE_AI_API_KEY": getattr(settings, "SINGLE_AI_API_KEY", ""),
             },
         )
+        current_mode = str(seed["prediction_mode"])
 
         if state and state.prediction_mode != current_mode:
             state.prediction_mode = current_mode
@@ -131,9 +135,6 @@ async def lifespan(app: FastAPI):
         lock = get_session_lock()
         async with lock:
             mem_sess = get_session()
-            seed = build_startup_session_seed(state, normalized_mode=current_mode) if state else {
-                "prediction_mode": current_mode,
-            }
             apply_startup_session_seed(mem_sess, seed)
 
     # 注入广播函数到游戏服务

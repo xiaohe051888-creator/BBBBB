@@ -84,6 +84,36 @@ class StartupStateSeedTest(unittest.TestCase):
         self.assertEqual(session.consecutive_errors, 3)
         self.assertEqual(session.prediction_mode, "rule")
 
+    def test_resolve_startup_session_seed_normalizes_mode_before_building_seed(self):
+        from app.services.startup_state import resolve_startup_session_seed
+
+        seed = resolve_startup_session_seed(
+            SimpleNamespace(
+                balance=888,
+                boot_number=4,
+                game_number=5,
+                consecutive_errors=2,
+                prediction_mode="ai",
+            ),
+            {
+                "OPENAI_API_KEY": "openai-key-123",
+                "ANTHROPIC_API_KEY": "",
+                "GEMINI_API_KEY": "gemini-key-123",
+                "SINGLE_AI_API_KEY": "single-key-123",
+            },
+        )
+
+        self.assertEqual(
+            seed,
+            {
+                "balance": 888.0,
+                "boot_number": 4,
+                "next_game_number": 6,
+                "consecutive_errors": 2,
+                "prediction_mode": "rule",
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
