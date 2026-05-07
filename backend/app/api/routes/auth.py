@@ -12,7 +12,7 @@ from app.core.config import settings
 from jose import jwt
 import os
 from app.services.ai_config_status import compute_config_hash, normalize_base_url
-from app.core.env_migration import upsert_env_value
+from app.core.env_migration import write_env_updates
 
 from app.api.routes.schemas import (
     LoginRequest,
@@ -209,17 +209,10 @@ async def update_single_ai_prompt_templates(
         os.environ["SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64"] = b64
         setattr(settings, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", b64)
 
-        env_content = ""
-        if os.path.exists(env_path):
-            try:
-                with open(env_path, "r", encoding="utf-8") as f:
-                    env_content = f.read()
-            except Exception:
-                env_content = ""
-
-        env_content = upsert_env_value(env_content, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", b64)
-        with open(env_path, "w", encoding="utf-8") as f:
-            f.write(env_content)
+        write_env_updates(
+            env_path,
+            {"SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64": b64},
+        )
 
     return await get_single_ai_prompt_templates(_)
 
@@ -351,19 +344,14 @@ async def update_api_config(
         os.environ[b_key] = req.base_url
         
     # Save to .env
-    env_content = ""
-    if os.path.exists(env_path):
-        with open(env_path, "r", encoding="utf-8") as f:
-            env_content = f.read()
-    
-    if req.api_key:
-        env_content = upsert_env_value(env_content, k_key, req.api_key)
-    env_content = upsert_env_value(env_content, m_key, req.model)
-    if req.base_url:
-        env_content = upsert_env_value(env_content, b_key, req.base_url)
-
-    with open(env_path, "w", encoding="utf-8") as f:
-        f.write(env_content)
+    write_env_updates(
+        env_path,
+        {
+            k_key: req.api_key,
+            m_key: req.model,
+            b_key: req.base_url,
+        },
+    )
 
     new_hash = compute_config_hash(req.provider, effective_model, effective_api_key, effective_base_url or None)
     async with async_session() as session:

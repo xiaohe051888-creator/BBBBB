@@ -63,7 +63,7 @@ from app.models.schemas import AdminUser, SystemLog, BetRecord, MistakeBook
 # ============ 导入路由模块 ============
 from app.api.routes import game, bet, logs, stats, analysis, maintenance
 from app.api.routes import system as system_routes
-from app.api.routes.utils import is_secret_configured
+from app.services.startup_mode import normalize_startup_prediction_mode
 
 
 # ============ 全局状态 ============
@@ -114,16 +114,15 @@ async def lifespan(app: FastAPI):
         stmt_state = select(SystemState).where(SystemState.singleton_key == 1)
         res_state = await session.execute(stmt_state)
         state = res_state.scalar_one_or_none()
-        current_mode = getattr(state, "prediction_mode", None) or "rule"
-
-        if current_mode == "ai":
-            ok = is_secret_configured(settings.OPENAI_API_KEY) and is_secret_configured(settings.ANTHROPIC_API_KEY) and is_secret_configured(settings.GEMINI_API_KEY)
-            if not ok:
-                current_mode = "rule"
-        elif current_mode == "single_ai":
-            ok = is_secret_configured(getattr(settings, "SINGLE_AI_API_KEY", ""))
-            if not ok:
-                current_mode = "rule"
+        current_mode = normalize_startup_prediction_mode(
+            getattr(state, "prediction_mode", None),
+            {
+                "OPENAI_API_KEY": settings.OPENAI_API_KEY,
+                "ANTHROPIC_API_KEY": settings.ANTHROPIC_API_KEY,
+                "GEMINI_API_KEY": settings.GEMINI_API_KEY,
+                "SINGLE_AI_API_KEY": getattr(settings, "SINGLE_AI_API_KEY", ""),
+            },
+        )
 
         if state and state.prediction_mode != current_mode:
             state.prediction_mode = current_mode

@@ -74,6 +74,25 @@ def upsert_env_value(content: str, key: str, value: str) -> str:
     return "\n".join(next_lines).rstrip() + "\n"
 
 
+def write_env_updates(env_path: str, updates: Dict[str, str]) -> None:
+    env_content = ""
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                env_content = f.read()
+        except Exception:
+            env_content = ""
+
+    next_content = env_content
+    for key, value in updates.items():
+        if not value:
+            continue
+        next_content = upsert_env_value(next_content, key, value)
+
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write(next_content if next_content.endswith("\n") or not next_content else next_content + "\n")
+
+
 def merge_legacy_env(legacy_path: str, env_path: str) -> Dict[str, object]:
     if not os.path.exists(legacy_path):
         return {"migrated": False, "reason": "legacy_missing", "merged_keys": []}
