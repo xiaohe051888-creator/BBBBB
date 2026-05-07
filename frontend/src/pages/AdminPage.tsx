@@ -1177,7 +1177,7 @@ const AdminPage: React.FC = () => {
                         { label: '开奖记录', value: 'game_records' },
                         { label: '下注记录', value: 'bet_records' },
                         { label: '系统日志', value: 'system_logs' },
-                        { label: '错题本', value: 'mistake_book' },
+                        { label: '复盘记录', value: 'mistake_book' },
                       ]}
                     />
                   </Space>

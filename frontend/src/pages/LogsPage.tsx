@@ -537,7 +537,7 @@ const LogsPage: React.FC = () => {
 
   const exportToCSV = async () => {
     const exportLogs = await fetchExportLogs();
-    const headers = ['时间', '局号', '优先级', '类别', '事件', '小白解读', '解读摘要', '原始说明', '事件编码', '任务编号'];
+    const headers = ['时间', '局号', '优先级', '类别', '事件', '通俗说明', '解读摘要', '原始说明', '事件编码', '处理编号'];
     const rows = exportLogs.map(l => [
       l.log_time ? formatBeijing(l.log_time, 'YYYY-MM-DD HH:mm:ss') : '',
       l.game_number ?? '',

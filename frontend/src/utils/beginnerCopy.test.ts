@@ -47,6 +47,10 @@ describe('beginnerCopy', () => {
     expect(formatSystemStatusLabel('tasks')).toBe('系统处理进度');
     expect(formatSystemStatusLabel('tasksIdle')).toBe('当前没有正在处理的事项');
     expect(formatSystemStatusLabel('tasksAlert')).toBe('最近有处理失败，可到管理页面查看');
+    expect(formatSystemStatusLabel('backendApi')).toBe('服务接口');
+    expect(formatSystemStatusLabel('aiReady')).toBe('当前模式已就绪');
+    expect(formatSystemStatusLabel('aiNotReady')).toBe('当前模式尚未就绪');
+    expect(formatSystemStatusLabel('activeIssues')).toBe('当前需要留意的问题');
   });
 
   it('formats task area labels in plain language', () => {

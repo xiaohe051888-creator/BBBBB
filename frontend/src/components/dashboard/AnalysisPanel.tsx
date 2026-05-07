@@ -143,7 +143,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 </div>
               </div>
               <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 8 }}>
-                正在调用当前单AI配置进行分析
+                正在使用你当前设置好的单AI进行分析
               </div>
             </>
           )}

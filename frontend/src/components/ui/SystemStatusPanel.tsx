@@ -227,10 +227,16 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
             <Tooltip title={`实时推送：${wsLabel(wsStatus)}`}>
               <span style={{ color: wsColor(wsStatus), fontSize: 12 }}><WsIcon /></span>
             </Tooltip>
-            <Tooltip title={`后端: ${backendLabel(backendStatus, backendLatency)}`}>
+            <Tooltip title={`${formatSystemStatusLabel('backendApi')}：${backendLabel(backendStatus, backendLatency)}`}>
               <span style={{ color: backendColor(backendStatus), fontSize: 12 }}><BackendIcon /></span>
             </Tooltip>
-            <Tooltip title={aiAllOk ? `AI配置（${modeLabel}）：就绪` : `AI配置（${modeLabel}）：未就绪`}>
+            <Tooltip
+              title={
+                aiAllOk
+                  ? `${formatSystemStatusLabel('aiConfig')}（${modeLabel}）：${formatSystemStatusLabel('aiReady')}`
+                  : `${formatSystemStatusLabel('aiConfig')}（${modeLabel}）：${formatSystemStatusLabel('aiNotReady')}`
+              }
+            >
               <span style={{ color: aiAllOk ? '#52c41a' : '#faad14', fontSize: 12 }}><AIIcon /></span>
             </Tooltip>
           </Space>
@@ -314,7 +320,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
             </div>
             {!aiAllOk && (
               <span style={{ fontSize: 10, color: '#faad14', marginTop: 2 }}>
-                ⚠ 当前模式还不能使用，请先完成接口配置
+                ⚠ 当前模式暂时还不能使用，请先完成当前模式设置
               </span>
             )}
           </div>
@@ -369,7 +375,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
                 }}
               >
                 <AlertIcon />
-                <span>活跃问题 ({activeIssues.length})</span>
+                <span>{formatSystemStatusLabel('activeIssues')} ({activeIssues.length})</span>
                 <span style={{ marginLeft: 'auto', color: '#58a6ff' }}>
                   {showAllIssues ? '▲ 收起' : '▼ 展开'}
                 </span>
@@ -495,13 +501,13 @@ const StatusTooltip: React.FC<{ diagnostics: SystemDiagnostics; onRetry?: () => 
           <span style={{ color: wsColor(wsStatus) }}>{wsLabel(wsStatus)}{wsLatency !== null ? `（${wsLatency}毫秒）` : ''}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-          <span style={{ color: '#8b949e' }}>后端接口</span>
+          <span style={{ color: '#8b949e' }}>{formatSystemStatusLabel('backendApi')}</span>
           <span style={{ color: backendColor(backendStatus) }}>
             {backendStatus === 'online' ? `在线 ${backendLatency ?? '--'}毫秒` : backendStatus === 'offline' ? '离线' : backendStatus}
           </span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-          <span style={{ color: '#8b949e' }}>AI配置（{modeLabel}）</span>
+          <span style={{ color: '#8b949e' }}>{formatSystemStatusLabel('aiConfig')}（{modeLabel}）</span>
           <span>
             {required.map(m => (
               <span key={m.key} style={{ marginLeft: 4, color: m.status === 'ok' ? '#52c41a' : '#ff4d4f' }}>

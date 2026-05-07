@@ -26,7 +26,7 @@ const baseFields = (log: LogEntry): HumanLogField[] => [
   { label: '类别', value: s(log.category) || '-' },
   { label: '严重程度', value: priorityCn(s(log.priority)) },
   { label: '事件编码', value: s(log.event_code) || '-' },
-  { label: '任务编号', value: s(log.task_id) || '-' },
+  { label: '处理编号', value: s(log.task_id) || '-' },
 ];
 
 type Rule = (log: LogEntry) => Omit<HumanLog, 'fieldsCn'>;
@@ -82,7 +82,7 @@ const rule: Record<string, Rule> = {
   }),
   'LOG-WDG-001': (log) => ({
     title: '系统守护：自动修复已执行',
-    whatHappened: s(log.description) || 'Watchdog 执行了自动修复。',
+    whatHappened: s(log.description) || '系统守护已自动执行修复。',
     impact: '用于自动把系统从异常/卡住状态拉回正常。',
     suggestion: '无需处理；如大量出现，说明系统经常卡住，建议排查系统处理或网络。',
   }),
@@ -102,11 +102,11 @@ const rule: Record<string, Rule> = {
     title: '系统维护：清理任务失败',
     whatHappened: s(log.description) || '日志/历史数据清理失败。',
     impact: '一般不影响下注/开奖，但可能导致数据增长过快。',
-    suggestion: '建议联系维护人员查看后端日志。',
+    suggestion: '建议联系维护人员查看服务运行记录。',
   }),
   'LOG-WDG-ERR': (log) => ({
-    title: '系统守护：Watchdog 执行异常',
-    whatHappened: s(log.description) || 'Watchdog 执行发生异常。',
+    title: '系统守护：自动修复执行异常',
+    whatHappened: s(log.description) || '系统守护在自动修复时发生异常。',
     impact: '可能导致无法自动修复卡住状态。',
     suggestion: '建议联系维护人员排查。',
   }),
@@ -222,7 +222,7 @@ const rule: Record<string, Rule> = {
     title: '系统处理异常',
     whatHappened: s(log.description) || '系统处理执行发生异常。',
     impact: '可能影响分析或系统学习优化等功能。',
-    suggestion: '建议联系维护人员查看后端日志。',
+    suggestion: '建议联系维护人员查看服务运行记录。',
   }),
   'LOG-MAINT-RET': (log) => ({
     title: '系统维护：已执行数据清理',

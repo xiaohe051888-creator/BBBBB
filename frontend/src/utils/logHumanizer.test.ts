@@ -78,4 +78,41 @@ describe('logHumanizer', () => {
     const h = humanizeLog(log);
     expect(h.whatHappened).toBe('系统学习优化已完成。');
   });
+
+  it('uses beginner-friendly wording for watchdog-related logs', () => {
+    const log: LogEntry = {
+      id: 5,
+      log_time: '2026-05-02T00:00:00Z',
+      game_number: null,
+      event_code: 'LOG-WDG-002',
+      event_type: '系统守护',
+      event_result: '告警',
+      description: '',
+      category: '系统事件',
+      priority: 'P2',
+      task_id: null,
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.title).toBe('系统守护：检测到系统处理积压');
+    expect(h.whatHappened).toBe('系统处理出现排队积压。');
+  });
+
+  it('uses beginner-friendly field labels for task ids', () => {
+    const log: LogEntry = {
+      id: 6,
+      log_time: '2026-05-02T00:00:00Z',
+      game_number: 8,
+      event_code: 'LOG-SYS-001',
+      event_type: '上传',
+      event_result: '成功',
+      description: 'ok',
+      category: '系统事件',
+      priority: 'P3',
+      task_id: 'task-123',
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.fieldsCn.some((field) => field.label === '处理编号' && field.value === 'task-123')).toBe(true);
+  });
 });

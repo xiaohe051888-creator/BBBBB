@@ -194,8 +194,8 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
         setBackendStatus('degraded');
         addIssue({
           level: 'warning',
-          title: '后端响应缓慢',
-          detail: `后端接口响应延迟 ${latency}毫秒，可能影响使用体验`,
+          title: '服务响应较慢',
+          detail: `服务接口响应延迟 ${latency}毫秒，可能影响使用体验`,
           source: 'backend',
         });
       }
@@ -204,8 +204,8 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
       setLastBackendCheck(new Date());
       addIssue({
         level: 'critical',
-        title: '后端服务离线',
-        detail: '无法连接后端API（/api），请确认后端服务已启动',
+        title: '服务连接异常',
+        detail: '暂时无法连接系统服务，请确认服务已经启动',
         source: 'backend',
       });
     }
@@ -267,7 +267,7 @@ export const useSystemDiagnostics = (options: UseSystemDiagnosticsOptions) => {
             key: m.key,
             label: m.label,
             status: m.enabled ? 'ok' : 'unconfigured',
-            message: m.enabled ? undefined : (m.issue || '接口密钥未配置'),
+            message: m.enabled ? undefined : (m.issue || '接口尚未配置完成'),
             required: !!m.required_in_current_mode,
             provider: m.provider,
             model: m.model ?? null,

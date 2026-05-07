@@ -18,13 +18,27 @@ export const formatUploadActionLabel = (action: 'reset_current_boot' | 'new_boot
 };
 
 export const formatSystemStatusLabel = (
-  key: 'realtime' | 'backend' | 'aiConfig' | 'tasks' | 'tasksIdle' | 'tasksAlert',
+  key:
+    | 'realtime'
+    | 'backend'
+    | 'aiConfig'
+    | 'tasks'
+    | 'tasksIdle'
+    | 'tasksAlert'
+    | 'backendApi'
+    | 'aiReady'
+    | 'aiNotReady'
+    | 'activeIssues',
 ) => {
   if (key === 'realtime') return '实时连接';
   if (key === 'backend') return '服务状态';
   if (key === 'aiConfig') return '当前模式配置';
   if (key === 'tasksIdle') return '当前没有正在处理的事项';
   if (key === 'tasksAlert') return '最近有处理失败，可到管理页面查看';
+  if (key === 'backendApi') return '服务接口';
+  if (key === 'aiReady') return '当前模式已就绪';
+  if (key === 'aiNotReady') return '当前模式尚未就绪';
+  if (key === 'activeIssues') return '当前需要留意的问题';
   return '系统处理进度';
 };
 
