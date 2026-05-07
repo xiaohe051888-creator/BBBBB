@@ -54,6 +54,44 @@ class SystemStateSingletonReadsTest(unittest.TestCase):
         self.assertEqual(boot_number, 2)
         self.assertEqual(prediction_mode, "rule")
 
+    def test_sync_balance_falls_back_to_state_game_number_when_game_records_missing(self):
+        async def _run():
+            from sqlalchemy import delete
+
+            from app.core.database import async_session, init_db
+            from app.models.schemas import SystemState, GameRecord
+            from app.services.game.state import sync_balance_from_db
+
+            await init_db()
+
+            async with async_session() as session:
+                await session.execute(delete(GameRecord))
+                await session.execute(delete(SystemState))
+                session.add(
+                    SystemState(
+                        id=1,
+                        singleton_key=1,
+                        balance=456,
+                        boot_number=7,
+                        game_number=8,
+                        prediction_mode="single_ai",
+                    )
+                )
+                await session.commit()
+
+            async with async_session() as session:
+                await sync_balance_from_db(session)
+
+            from app.services.game.session import get_session
+
+            sess = get_session()
+            return sess.next_game_number, sess.boot_number, sess.prediction_mode
+
+        next_game_number, boot_number, prediction_mode = asyncio.run(_run())
+        self.assertEqual(next_game_number, 9)
+        self.assertEqual(boot_number, 7)
+        self.assertEqual(prediction_mode, "single_ai")
+
 
 if __name__ == "__main__":
     unittest.main()

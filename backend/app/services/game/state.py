@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.models.schemas import SystemState
 from .session import get_session, get_session_lock
+from app.services.startup_state import build_startup_session_seed
 
 
 async def get_or_create_state(db: AsyncSession) -> SystemState:
@@ -79,17 +80,16 @@ async def sync_balance_from_db(db: AsyncSession):
         lock = get_session_lock()
         async with lock:
             sess = get_session()
-            sess.balance = float(state.balance)
-            sess.boot_number = state.boot_number or 1
-            sess.consecutive_errors = state.consecutive_errors or 0
-            if hasattr(state, "prediction_mode") and state.prediction_mode:
-                sess.prediction_mode = state.prediction_mode
-            
+
             # 恢复下一局号
             stmt2 = select(GameRecord.game_number).where(
-                GameRecord.boot_number == sess.boot_number,
+                GameRecord.boot_number == (state.boot_number or 1),
             ).order_by(GameRecord.game_number.desc()).limit(1)
             r2 = await db.execute(stmt2)
             max_game = r2.scalar_one_or_none()
-            if max_game:
-                sess.next_game_number = max_game + 1
+            seed = build_startup_session_seed(state, max_game_number=max_game)
+            sess.balance = float(seed["balance"])
+            sess.boot_number = int(seed["boot_number"])
+            sess.next_game_number = int(seed["next_game_number"])
+            sess.consecutive_errors = int(seed["consecutive_errors"])
+            sess.prediction_mode = str(seed["prediction_mode"])
