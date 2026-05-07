@@ -642,7 +642,7 @@ const AdminPage: React.FC = () => {
                     <div className="admin-summary-inline" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <div style={{ color: 'rgba(255,255,255,0.7)' }}>当前模式</div>
                       <Tag color={predictionMode === 'ai' ? 'purple' : predictionMode === 'single_ai' ? 'green' : 'blue'}>
-                        {predictionMode === 'ai' ? '3AI模式' : predictionMode === 'single_ai' ? '单AI模式' : '规则引擎模式'}
+                        {MODE_LABELS[predictionMode]}
                       </Tag>
                     </div>
                     <Button type="primary" onClick={() => setModePickerVisible(true)} loading={updatingMode}>
