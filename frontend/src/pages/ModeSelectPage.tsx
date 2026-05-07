@@ -147,6 +147,9 @@ const ModeSelectPage: React.FC = () => {
                   {readiness.aiReady ? <Tag color="success">可用</Tag> : <Tag color="error">不可用</Tag>}
                 </Space>
               </div>
+              {isCurrentMode('ai') && (
+                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>当前正在使用这个模式</div>
+              )}
               {!readiness.aiReady && readiness.missing3Ai.length > 0 && (
                 <Alert type="warning" showIcon title={`原因：${readiness.missing3Ai.join('、')}`} />
               )}
@@ -170,6 +173,9 @@ const ModeSelectPage: React.FC = () => {
                   {readiness.singleReady ? <Tag color="success">可用</Tag> : <Tag color="error">不可用</Tag>}
                 </Space>
               </div>
+              {isCurrentMode('single_ai') && (
+                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>当前正在使用这个模式</div>
+              )}
               {!readiness.singleReady && readiness.missingSingle.length > 0 && (
                 <Alert type="warning" showIcon title={`原因：${readiness.missingSingle.join('、')}`} />
               )}
@@ -193,6 +199,9 @@ const ModeSelectPage: React.FC = () => {
                   <Tag color="success">可用</Tag>
                 </Space>
               </div>
+              {isCurrentMode('rule') && (
+                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>当前正在使用这个模式</div>
+              )}
               <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13 }}>
                 {formatModeSelectLabel('ruleCardHint')}
               </div>

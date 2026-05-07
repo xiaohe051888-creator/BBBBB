@@ -84,6 +84,7 @@ describe('ModeSelectPage', () => {
     const html = container.innerHTML;
     expect(html).toContain('当前');
     expect(html).toContain('当前模式');
+    expect(html).toContain('当前正在使用这个模式');
     expect(html).not.toContain('启用 单AI 模式');
 
     await act(async () => {
