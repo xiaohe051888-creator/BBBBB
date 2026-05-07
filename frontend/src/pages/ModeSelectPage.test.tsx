@@ -12,6 +12,7 @@ import * as api from '../services/api';
 describe('ModeSelectPage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    document.body.innerHTML = '';
   });
 
   it('shows an explicit expired-session notice from the query string', async () => {
@@ -23,6 +24,11 @@ describe('ModeSelectPage', () => {
         models: {},
       },
     } as Awaited<ReturnType<typeof api.getThreeModelStatus>>);
+    vi.spyOn(api, 'getSystemStatePublic').mockResolvedValue({
+      data: {
+        prediction_mode: 'rule',
+      },
+    } as Awaited<ReturnType<typeof api.getSystemStatePublic>>);
 
     const container = document.createElement('div');
     document.body.appendChild(container);
