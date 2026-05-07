@@ -48,3 +48,20 @@ def resolve_startup_session_seed(
         normalized_mode=normalized_mode,
         max_game_number=max_game_number,
     )
+
+
+def resolve_startup_session_seed_from_settings(
+    state: Any,
+    settings: Any,
+    max_game_number: int | None = None,
+) -> dict[str, int | float | str]:
+    return resolve_startup_session_seed(
+        state,
+        {
+            "OPENAI_API_KEY": getattr(settings, "OPENAI_API_KEY", ""),
+            "ANTHROPIC_API_KEY": getattr(settings, "ANTHROPIC_API_KEY", ""),
+            "GEMINI_API_KEY": getattr(settings, "GEMINI_API_KEY", ""),
+            "SINGLE_AI_API_KEY": getattr(settings, "SINGLE_AI_API_KEY", ""),
+        },
+        max_game_number=max_game_number,
+    )

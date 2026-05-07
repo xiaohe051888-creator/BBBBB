@@ -62,7 +62,7 @@ from app.models.schemas import AdminUser, SystemLog, BetRecord, MistakeBook
 from app.services.startup_state import (
     build_startup_session_seed,
     apply_startup_session_seed,
-    resolve_startup_session_seed,
+    resolve_startup_session_seed_from_settings,
 )
 
 # ============ 导入路由模块 ============
@@ -116,15 +116,7 @@ async def lifespan(app: FastAPI):
         stmt_state = select(SystemState).where(SystemState.singleton_key == 1)
         res_state = await session.execute(stmt_state)
         state = res_state.scalar_one_or_none()
-        seed = resolve_startup_session_seed(
-            state,
-            {
-                "OPENAI_API_KEY": settings.OPENAI_API_KEY,
-                "ANTHROPIC_API_KEY": settings.ANTHROPIC_API_KEY,
-                "GEMINI_API_KEY": settings.GEMINI_API_KEY,
-                "SINGLE_AI_API_KEY": getattr(settings, "SINGLE_AI_API_KEY", ""),
-            },
-        )
+        seed = resolve_startup_session_seed_from_settings(state, settings)
         current_mode = str(seed["prediction_mode"])
 
         if state and state.prediction_mode != current_mode:

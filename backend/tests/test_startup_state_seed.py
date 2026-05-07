@@ -114,6 +114,29 @@ class StartupStateSeedTest(unittest.TestCase):
             },
         )
 
+    def test_resolve_startup_session_seed_from_settings_reads_secret_keys_from_settings(self):
+        from app.services.startup_state import resolve_startup_session_seed_from_settings
+
+        settings = SimpleNamespace(
+            OPENAI_API_KEY="openai-key-123",
+            ANTHROPIC_API_KEY="",
+            GEMINI_API_KEY="gemini-key-123",
+            SINGLE_AI_API_KEY="single-key-123",
+        )
+        state = SimpleNamespace(
+            balance=666,
+            boot_number=3,
+            game_number=4,
+            consecutive_errors=1,
+            prediction_mode="ai",
+        )
+
+        seed = resolve_startup_session_seed_from_settings(state, settings)
+
+        self.assertEqual(seed["prediction_mode"], "rule")
+        self.assertEqual(seed["next_game_number"], 5)
+        self.assertEqual(seed["boot_number"], 3)
+
 
 if __name__ == "__main__":
     unittest.main()
