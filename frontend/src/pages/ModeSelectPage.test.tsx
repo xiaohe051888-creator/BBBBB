@@ -46,4 +46,49 @@ describe('ModeSelectPage', () => {
     });
     container.remove();
   });
+
+  it('marks the current mode and disables re-enabling it', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    vi.spyOn(api, 'getThreeModelStatus').mockResolvedValue({
+      data: {
+        ai_ready_for_enable: false,
+        single_ai_ready_for_enable: true,
+        models: {
+          single: {
+            api_key_set: true,
+            last_test_ok: true,
+          },
+        },
+      },
+    } as Awaited<ReturnType<typeof api.getThreeModelStatus>>);
+    vi.spyOn(api, 'getSystemStatePublic').mockResolvedValue({
+      data: {
+        prediction_mode: 'single_ai',
+      },
+    } as Awaited<ReturnType<typeof api.getSystemStatePublic>>);
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <App>
+          <MemoryRouter initialEntries={['/mode']}>
+            <ModeSelectPage />
+          </MemoryRouter>
+        </App>
+      );
+    });
+
+    const html = container.innerHTML;
+    expect(html).toContain('当前');
+    expect(html).toContain('当前模式');
+    expect(html).not.toContain('启用 单AI 模式');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });

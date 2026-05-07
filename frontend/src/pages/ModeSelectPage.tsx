@@ -15,6 +15,7 @@ const ModeSelectPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
   const [threeModelStatus, setThreeModelStatus] = useState<api.ThreeModelStatus | null>(null);
+  const [currentMode, setCurrentMode] = useState<Mode>('rule');
   const [showExpiredNotice, setShowExpiredNotice] = useState(() => {
     const expired = searchParams.get('session_expired');
     return expired === 'true' || expired === '1';
@@ -23,8 +24,12 @@ const ModeSelectPage: React.FC = () => {
   const reloadStatus = async () => {
     setStatusLoading(true);
     try {
-      const res = await api.getThreeModelStatus();
-      setThreeModelStatus(res.data);
+      const [statusRes, stateRes] = await Promise.all([
+        api.getThreeModelStatus(),
+        api.getSystemStatePublic(),
+      ]);
+      setThreeModelStatus(statusRes.data);
+      setCurrentMode((stateRes.data?.prediction_mode as Mode) || 'rule');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '加载模型状态失败';
       message.error(msg);
@@ -82,6 +87,8 @@ const ModeSelectPage: React.FC = () => {
     }
   };
 
+  const isCurrentMode = (mode: Mode) => currentMode === mode;
+
   return (
     <div className="page-wrapper mode-select-page" style={{ padding: 'clamp(16px, 3vw, 28px)', maxWidth: 980, margin: '0 auto' }}>
       {showExpiredNotice && (
@@ -135,14 +142,17 @@ const ModeSelectPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'grid', gap: 8 }}>
               <div>
-                {readiness.aiReady ? <Tag color="success">可用</Tag> : <Tag color="error">不可用</Tag>}
+                <Space size={6} wrap>
+                  {isCurrentMode('ai') && <Tag color="processing">当前</Tag>}
+                  {readiness.aiReady ? <Tag color="success">可用</Tag> : <Tag color="error">不可用</Tag>}
+                </Space>
               </div>
               {!readiness.aiReady && readiness.missing3Ai.length > 0 && (
                 <Alert type="warning" showIcon title={`原因：${readiness.missing3Ai.join('、')}`} />
               )}
             </div>
-            <Button type="primary" loading={loading} disabled={!readiness.aiReady || loading} onClick={() => applyMode('ai')}>
-              启用 3AI 模式
+            <Button type="primary" loading={loading} disabled={isCurrentMode('ai') || !readiness.aiReady || loading} onClick={() => applyMode('ai')}>
+              {isCurrentMode('ai') ? '当前模式' : '启用 3AI 模式'}
             </Button>
           </div>
         </Card>
@@ -155,14 +165,17 @@ const ModeSelectPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'grid', gap: 8 }}>
               <div>
-                {readiness.singleReady ? <Tag color="success">可用</Tag> : <Tag color="error">不可用</Tag>}
+                <Space size={6} wrap>
+                  {isCurrentMode('single_ai') && <Tag color="processing">当前</Tag>}
+                  {readiness.singleReady ? <Tag color="success">可用</Tag> : <Tag color="error">不可用</Tag>}
+                </Space>
               </div>
               {!readiness.singleReady && readiness.missingSingle.length > 0 && (
                 <Alert type="warning" showIcon title={`原因：${readiness.missingSingle.join('、')}`} />
               )}
             </div>
-            <Button type="primary" loading={loading} disabled={!readiness.singleReady || loading} onClick={() => applyMode('single_ai')}>
-              启用 单AI 模式
+            <Button type="primary" loading={loading} disabled={isCurrentMode('single_ai') || !readiness.singleReady || loading} onClick={() => applyMode('single_ai')}>
+              {isCurrentMode('single_ai') ? '当前模式' : '启用 单AI 模式'}
             </Button>
           </div>
         </Card>
@@ -173,11 +186,19 @@ const ModeSelectPage: React.FC = () => {
           title={formatModeSelectLabel('ruleCardTitle')}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13 }}>
-              {formatModeSelectLabel('ruleCardHint')}
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div>
+                <Space size={6} wrap>
+                  {isCurrentMode('rule') && <Tag color="processing">当前</Tag>}
+                  <Tag color="success">可用</Tag>
+                </Space>
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13 }}>
+                {formatModeSelectLabel('ruleCardHint')}
+              </div>
             </div>
-            <Button type="primary" loading={loading} disabled={loading} onClick={() => applyMode('rule')}>
-              启用 规则模式
+            <Button type="primary" loading={loading} disabled={isCurrentMode('rule') || loading} onClick={() => applyMode('rule')}>
+              {isCurrentMode('rule') ? '当前模式' : '启用 规则模式'}
             </Button>
           </div>
         </Card>
