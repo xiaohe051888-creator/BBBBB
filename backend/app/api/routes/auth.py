@@ -23,6 +23,7 @@ from app.api.routes.schemas import (
 )
 from app.api.routes.utils import get_current_user
 from app.api.routes.api_key_resolution import resolve_api_key_for_role
+from app.services.ai_config_store import apply_ai_role_runtime_config, encrypt_api_key
 
 router = APIRouter(prefix="/api/admin", tags=["认证"])
 
@@ -209,10 +210,11 @@ async def update_single_ai_prompt_templates(
         os.environ["SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64"] = b64
         setattr(settings, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", b64)
 
-        write_env_updates(
-            env_path,
-            {"SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64": b64},
-        )
+        if settings.ENVIRONMENT.lower() != "production":
+            write_env_updates(
+                env_path,
+                {"SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64": b64},
+            )
 
     return await get_single_ai_prompt_templates(_)
 
@@ -337,21 +339,22 @@ async def update_api_config(
     if req.api_key:
         setattr(settings, k_key, req.api_key)
         os.environ[k_key] = req.api_key
-    setattr(settings, m_key, req.model)
-    os.environ[m_key] = req.model
-    if req.base_url:
-        setattr(settings, b_key, req.base_url)
-        os.environ[b_key] = req.base_url
-        
-    # Save to .env
-    write_env_updates(
-        env_path,
-        {
-            k_key: req.api_key,
-            m_key: req.model,
-            b_key: req.base_url,
-        },
+    apply_ai_role_runtime_config(
+        req.role,
+        model=req.model,
+        base_url=req.base_url or "",
+        api_key=req.api_key or (getattr(settings, k_key, "") or ""),
     )
+        
+    if settings.ENVIRONMENT.lower() != "production":
+        write_env_updates(
+            env_path,
+            {
+                k_key: req.api_key,
+                m_key: req.model,
+                b_key: req.base_url,
+            },
+        )
 
     new_hash = compute_config_hash(req.provider, effective_model, effective_api_key, effective_base_url or None)
     async with async_session() as session:
@@ -363,6 +366,8 @@ async def update_api_config(
                     provider=req.provider,
                     model=effective_model,
                     base_url=effective_base_url,
+                    api_key_encrypted=encrypt_api_key(req.api_key),
+                    api_key_last4=(req.api_key[-4:] if req.api_key else ""),
                     config_hash=new_hash,
                     last_test_ok=False,
                     last_test_at=None,
@@ -375,6 +380,9 @@ async def update_api_config(
             existing.provider = req.provider
             existing.model = effective_model
             existing.base_url = effective_base_url
+            if req.api_key:
+                existing.api_key_encrypted = encrypt_api_key(req.api_key)
+                existing.api_key_last4 = req.api_key[-4:]
             existing.config_hash = new_hash
             if changed:
                 existing.last_test_ok = False

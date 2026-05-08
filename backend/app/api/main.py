@@ -64,6 +64,7 @@ from app.services.startup_state import (
     apply_startup_session_seed,
     reconcile_startup_runtime_state,
 )
+from app.services.ai_config_store import load_saved_ai_model_configs
 
 # ============ 导入路由模块 ============
 from app.api.routes import game, bet, logs, stats, analysis, maintenance
@@ -79,6 +80,7 @@ async def lifespan(app: FastAPI):
     from app.core.security import validate_production_security
     validate_production_security()
     await init_db()
+    await load_saved_ai_model_configs()
     
     # 初始化默认管理员
     async with async_session() as session:

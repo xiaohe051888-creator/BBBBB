@@ -349,6 +349,8 @@ class AiModelConfig(Base):
     provider = Column(String(50), nullable=False)
     model = Column(String(100), nullable=False)
     base_url = Column(String(200), nullable=True)
+    api_key_encrypted = Column(Text, nullable=True)
+    api_key_last4 = Column(String(8), nullable=True)
     config_hash = Column(String(64), nullable=False)
     last_test_ok = Column(Boolean, default=False, nullable=False)
     last_test_at = Column(DateTime, nullable=True)
