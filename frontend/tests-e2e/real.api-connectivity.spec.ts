@@ -2,7 +2,7 @@ import { test, expect, request } from '@playwright/test';
 
 import { adminLogin } from './helpers';
 
-test('真实上游：已保存密钥时单AI连通性应通过', async ({ baseURL }) => {
+test('真实上游：已保存密钥时单 AI 连通性应通过', async ({ baseURL }) => {
   if (process.env.E2E_REAL_AI !== '1') test.skip(true, '未开启 E2E_REAL_AI=1，跳过真实上游用例');
   const token = await adminLogin(baseURL!);
   const ctx = await request.newContext({
@@ -15,7 +15,7 @@ test('真实上游：已保存密钥时单AI连通性应通过', async ({ baseUR
   const single = statusJson.models?.single;
   if (!single?.api_key_set) {
     await ctx.dispose();
-    test.skip(true, '未保存单AI密钥，跳过真实上游连通性用例');
+    test.skip(true, '未保存单 AI 密钥，跳过真实上游连通性用例');
   }
 
   const testRes = await ctx.post('/api/admin/api-config/test', {

@@ -49,7 +49,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     if (mode === 'rule') return '规则参考模式';
     if (mode === 'single_ai') {
       const m = analysis?.engine?.model || '';
-      return `单AI快速模式（${toCnModelLabel(m)}）`;
+      return `单 AI 模式（${toCnModelLabel(m)}）`;
     }
     return '三模型协作模式（庄 / 闲 / 综合）';
   }, [mode, analysis?.engine?.model]);

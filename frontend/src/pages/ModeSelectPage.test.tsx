@@ -91,7 +91,7 @@ describe('ModeSelectPage', () => {
     expect(html).toContain('当前');
     expect(html).toContain('当前模式');
     expect(html).toContain('当前正在使用这个模式');
-    expect(html).not.toContain('启用 单AI 模式');
+    expect(html).not.toContain('启用 单 AI 模式');
     expect(html).toContain('启用 三模型协作模式');
     expect(html).toContain('启用 规则参考模式');
 

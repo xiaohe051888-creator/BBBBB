@@ -324,7 +324,7 @@ async def get_three_model_status(_: dict = Depends(get_current_user)):
             "role": "综合分析并给出最终预测",
         },
         "single": {
-            "name": f"DeepSeek V4 Pro (单AI快速模式)",
+            "name": f"DeepSeek V4 Pro (单 AI 模式)",
             "provider": (by_role.get("single").provider if by_role.get("single") else "deepseek"),
             "model": settings.SINGLE_AI_MODEL,
             "base_url": getattr(settings, "SINGLE_AI_API_BASE", "") or "",

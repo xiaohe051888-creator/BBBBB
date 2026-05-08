@@ -89,7 +89,7 @@ python backend/scripts/migrate_sqlite_to_postgres.py
 
 4) 配置 AI（可选）：
 - 三模型协作模式：`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY`
-- 单AI快速模式：`SINGLE_AI_API_KEY` / `SINGLE_AI_MODEL` / `SINGLE_AI_API_BASE`
+- 单 AI 模式：`SINGLE_AI_API_KEY` / `SINGLE_AI_MODEL` / `SINGLE_AI_API_BASE`
 
 5) 部署后验证：
 - 后端健康检查：`/api/system/ping`

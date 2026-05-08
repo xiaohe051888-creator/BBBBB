@@ -26,7 +26,7 @@ import {
 describe('beginnerCopy', () => {
   it('formats mode names for beginners', () => {
     expect(formatAdminModeName('ai')).toBe('三模型协作模式');
-    expect(formatAdminModeName('single_ai')).toBe('单AI快速模式');
+    expect(formatAdminModeName('single_ai')).toBe('单 AI 模式');
     expect(formatAdminModeName('rule')).toBe('规则参考模式');
   });
 
@@ -34,7 +34,7 @@ describe('beginnerCopy', () => {
     expect(formatAiRoleLabel('banker')).toBe('庄方向判断');
     expect(formatAiRoleLabel('player')).toBe('闲方向判断');
     expect(formatAiRoleLabel('combined')).toBe('综合判断');
-    expect(formatAiRoleLabel('single')).toBe('单AI');
+    expect(formatAiRoleLabel('single')).toBe('单 AI');
     expect(formatAiRoleLabel('banker', 'config')).toBe('庄方向');
     expect(formatAiRoleLabel('player', 'config')).toBe('闲方向');
   });
@@ -133,7 +133,7 @@ describe('beginnerCopy', () => {
   it('formats mode-select labels in plain language', () => {
     expect(formatModeSelectLabel('pageHint')).toBe('先选好使用方式，再进入系统主界面；需要 AI 时，请先完成设置并确认可用。');
     expect(formatModeSelectLabel('aiCardTitle')).toBe('三模型协作模式（3个AI一起判断）');
-    expect(formatModeSelectLabel('singleCardTitle')).toBe('单AI快速模式（使用你当前设置的单AI）');
+    expect(formatModeSelectLabel('singleCardTitle')).toBe('单 AI 模式（使用你当前设置的单 AI）');
     expect(formatModeSelectLabel('ruleCardTitle')).toBe('规则参考模式（无需额外设置）');
     expect(formatModeSelectLabel('ruleCardHint')).toBe('按内置规则直接给参考结果，不需要额外设置，随时可用。');
     expect(formatModeSelectLabel('notConfigured')).toBe('还没完成设置');

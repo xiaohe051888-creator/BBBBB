@@ -1,6 +1,6 @@
 export const formatAdminModeName = (mode: 'ai' | 'single_ai' | 'rule') => {
   if (mode === 'ai') return '三模型协作模式';
-  if (mode === 'single_ai') return '单AI快速模式';
+  if (mode === 'single_ai') return '单 AI 模式';
   return '规则参考模式';
 };
 
@@ -11,7 +11,7 @@ export const formatAiRoleLabel = (
   if (role === 'banker') return variant === 'config' ? '庄方向' : '庄方向判断';
   if (role === 'player') return variant === 'config' ? '闲方向' : '闲方向判断';
   if (role === 'combined') return variant === 'config' ? '综合判断' : '综合判断';
-  return '单AI';
+  return '单 AI';
 };
 
 export const formatAnalysisLoadingText = (mode: 'ai' | 'single_ai' | 'rule') => {
@@ -170,7 +170,7 @@ export const formatModeSelectLabel = (
     return '先选好使用方式，再进入系统主界面；需要 AI 时，请先完成设置并确认可用。';
   }
   if (key === 'aiCardTitle') return '三模型协作模式（3个AI一起判断）';
-  if (key === 'singleCardTitle') return '单AI快速模式（使用你当前设置的单AI）';
+  if (key === 'singleCardTitle') return '单 AI 模式（使用你当前设置的单 AI）';
   if (key === 'ruleCardTitle') return '规则参考模式（无需额外设置）';
   if (key === 'notConfigured') return '还没完成设置';
   if (key === 'notReady') return '还不能正常使用';

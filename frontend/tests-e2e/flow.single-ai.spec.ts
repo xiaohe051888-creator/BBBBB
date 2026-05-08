@@ -32,10 +32,10 @@ test('单AI配置→测试→启用→日志页刷新与导出', async ({ page, 
   expect(testJson.success).toBe(true);
 
   await page.keyboard.press('Escape');
-  const enableSingle = page.getByRole('button', { name: /启用 单AI 模式/ });
+  const enableSingle = page.getByRole('button', { name: /启用 单 AI 模式/ });
   await expect(enableSingle).toBeEnabled({ timeout: 20_000 });
   await enableSingle.click();
-  await expect(page.getByText(/已切换至.*单AI快速模式/)).toBeVisible();
+  await expect(page.getByText(/已切换至.*单 AI 模式/)).toBeVisible();
 
   await page.goto('/dashboard/logs', { waitUntil: 'networkidle' });
 

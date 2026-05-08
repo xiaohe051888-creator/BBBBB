@@ -10,26 +10,26 @@ import {
 describe('modelVersionDisplay', () => {
   it('formats manual single-ai versions into a user-friendly label', () => {
     expect(formatModelVersionLabel('single_ai-manual-20260505093409')).toBe(
-      '单AI · 手动配置 · 2026-05-05 09:34',
+      '单 AI · 手动配置 · 2026-05-05 09:34',
     );
   });
 
   it('builds a two-line display for manual single-ai versions', () => {
     expect(getModelVersionDisplay('single_ai-manual-20260505093409')).toEqual({
-      title: '单AI · 手动配置',
+      title: '单 AI · 手动配置',
       subtitle: '生效于 2026-05-05 09:34',
     });
   });
 
   it('builds a compact admin tag label for manual single-ai versions', () => {
     expect(formatModelVersionTagLabel('single_ai-manual-20260505093409')).toBe(
-      '版本：单AI · 手动配置 · 2026-05-05 09:34',
+      '版本：单 AI · 手动配置 · 2026-05-05 09:34',
     );
   });
 
   it('builds a table-friendly label for manual single-ai versions', () => {
     expect(formatModelVersionCellLabel('single_ai-manual-20260505093409')).toBe(
-      '单AI · 手动配置 · 2026-05-05 09:34',
+      '单 AI · 手动配置 · 2026-05-05 09:34',
     );
   });
 

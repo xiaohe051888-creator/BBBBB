@@ -11,13 +11,18 @@ export interface ModeReadiness {
   missingSingle: string[];
 }
 
+const joinLabel = (label: string, suffix: string) => {
+  if (/[A-Za-z0-9]$/.test(label)) return `${label} ${suffix}`;
+  return `${label}${suffix}`;
+};
+
 const pushReason = (model: ModelEntry | undefined, label: string, out: string[]) => {
   if (!model?.api_key_set) {
-    out.push(`${label}${formatModeSelectLabel('notConfigured')}`);
+    out.push(joinLabel(label, formatModeSelectLabel('notConfigured')));
     return;
   }
   if (!model?.last_test_ok) {
-    out.push(`${label}${formatModeSelectLabel('notReady')}`);
+    out.push(joinLabel(label, formatModeSelectLabel('notReady')));
   }
 };
 

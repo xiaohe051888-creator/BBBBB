@@ -35,7 +35,7 @@ describe('buildModeReadiness', () => {
       '庄方向还没完成设置',
       '闲方向还不能正常使用',
     ]);
-    expect(readiness.missingSingle).toEqual(['单AI还没完成设置']);
+    expect(readiness.missingSingle).toEqual(['单 AI 还没完成设置']);
   });
 
   it('treats rule mode as always available when all ai checks are empty', () => {

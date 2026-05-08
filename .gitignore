@@ -12,6 +12,7 @@ data/
 backend/data/
 backend/*.db
 backend/*.db-*
+backend/static/
 
 # IDE
 .vscode/
@@ -45,3 +46,9 @@ scripts/*.json
 *.png
 *.jpg
 *.jpeg
+
+# E2E / 报告产物（不提交）
+frontend/playwright-report/
+frontend/test-results/
+dogfood-output*/
+.hex-skills/

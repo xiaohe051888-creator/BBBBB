@@ -285,7 +285,7 @@ const AdminPage: React.FC = () => {
     if (newMode === 'single_ai') {
       const isConfigured = threeModelStatus?.models?.single?.api_key_set;
       if (!isConfigured) {
-        message.warning('无法切换到单AI快速模式：你还没有配置单AI接口。');
+        message.warning('无法切换到单 AI 模式：你还没有配置单 AI 接口。');
         return;
       }
     }
@@ -892,7 +892,7 @@ const AdminPage: React.FC = () => {
                   ) : (
                     <Space orientation="vertical" size={10} style={{ width: '100%' }}>
                       <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
-                        单AI快速模式每一局都会自动分析、自动预测并自动下注。这里配置的是系统给 AI 的说明文字，默认已经内置推荐版本。
+                        单 AI 模式每一局都会自动分析、自动预测并自动下注。这里配置的是系统给 AI 的说明文字，默认已经内置推荐版本。
                       </div>
 
                       <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
@@ -984,7 +984,7 @@ const AdminPage: React.FC = () => {
                       options={[
                         { label: '全部', value: 'all' },
                         { label: MODE_LABELS.ai, value: 'ai' },
-                        { label: '单AI', value: 'single_ai' },
+                        { label: '单 AI', value: 'single_ai' },
                       ]}
                       size="small"
                     />

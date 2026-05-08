@@ -24,7 +24,7 @@ def _mode_label(v: str) -> str:
     return (
         "三模型协作模式"
         if v == "ai"
-        else "单AI快速模式"
+        else "单 AI 模式"
         if v == "single_ai"
         else "规则参考模式"
         if v == "rule"
@@ -40,7 +40,7 @@ def _role_label(v: str) -> str:
         if v == "anthropic"
         else "综合判断"
         if v == "gemini"
-        else "单AI"
+        else "单 AI"
         if v == "single_ai"
         else v
     )
@@ -686,7 +686,7 @@ async def update_prediction_mode(
             "banker": "庄方向(OpenAI)",
             "player": "闲方向(Claude)",
             "combined": "综合判断(Gemini)",
-            "single": "单AI(DeepSeek)",
+            "single": "单 AI(DeepSeek)",
         }
 
         missing = []
@@ -704,7 +704,7 @@ async def update_prediction_mode(
         if missing:
             if req.mode == "ai":
                 raise HTTPException(409, f"无法切换至三模型协作模式：请先配置并测试通过：{'、'.join(missing)}")
-            raise HTTPException(409, f"无法切换至单AI快速模式：请先配置并测试通过：{'、'.join(missing)}")
+            raise HTTPException(409, f"无法切换至单 AI 模式：请先配置并测试通过：{'、'.join(missing)}")
 
     if req.mode == "ai":
         ok = is_secret_configured(settings.OPENAI_API_KEY) and is_secret_configured(settings.ANTHROPIC_API_KEY) and is_secret_configured(settings.GEMINI_API_KEY)
@@ -713,7 +713,7 @@ async def update_prediction_mode(
     elif req.mode == "single_ai":
         ok = is_secret_configured(getattr(settings, "SINGLE_AI_API_KEY", ""))
         if not ok:
-            raise HTTPException(400, "无法切换至单AI快速模式：请先配置单AI(DeepSeek)访问密钥")
+            raise HTTPException(400, "无法切换至单 AI 模式：请先配置单 AI(DeepSeek)访问密钥")
     
     async with async_session() as session:
         await _require_test_ok(session)

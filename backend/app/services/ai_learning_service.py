@@ -116,7 +116,7 @@ class AILearningService:
         from app.core.config import settings
         if prediction_mode == "single_ai":
             if not (settings.SINGLE_AI_API_KEY and len(settings.SINGLE_AI_API_KEY) > 10):
-                return False, "未配置单AI快速模式访问密钥，无法启动系统学习优化"
+                return False, "未配置单 AI 模式访问密钥，无法启动系统学习优化"
         else:
             api_configured = bool(
                 (settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10)
@@ -656,7 +656,7 @@ class AILearningService:
         key_insight = ai_analysis.get("key_insight", "")
         
         if prediction_mode == "single_ai":
-            template = f"""你是百家乐分析预测引擎（单AI快速模式 - 学习优化版）。你必须基于全量历史局与全量五路走势做出下一局庄/闲预测。
+            template = f"""你是百家乐分析预测引擎（单 AI 模式 - 学习优化版）。你必须基于全量历史局与全量五路走势做出下一局庄/闲预测。
 
 【学习优化内容 - 基于深度学习生成】
 - 本版本关键优化：{key_changes}

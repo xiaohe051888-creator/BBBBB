@@ -1,1 +1,0 @@
-var e={P0:`#ff4d4f`,P1:`#ff4d4f`,P2:`#faad14`,P3:`#1890ff`},t={待开奖:`#1890ff`,已结算:`#52c41a`,异常退回:`#faad14`,数据异常:`#ff4d4f`};export{e as n,t};
