@@ -275,6 +275,25 @@ class TaskRegistry:
             meta.task.cancel()
         return True
 
+    async def cancel_running_and_wait(self, timeout_seconds: float = 3.0) -> dict[str, int]:
+        running = [meta for meta in self._tasks.values() if meta.status == "running"]
+        waited_tasks: list[asyncio.Task] = []
+
+        for meta in running:
+            self.cancel(meta.task_id)
+            if meta.task and not meta.task.done():
+                waited_tasks.append(meta.task)
+
+        if not waited_tasks:
+            return {"cancelled": len(running), "done": 0, "pending": 0}
+
+        done, pending = await asyncio.wait(waited_tasks, timeout=timeout_seconds)
+        return {
+            "cancelled": len(running),
+            "done": len(done),
+            "pending": len(pending),
+        }
+
     def list(self, limit: int = 50) -> list[dict]:
         items = list(self._tasks.values())
         items.sort(key=lambda x: x.created_at, reverse=True)

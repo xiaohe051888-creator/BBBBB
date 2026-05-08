@@ -107,6 +107,47 @@ class AdminMaintenanceApiTest(unittest.TestCase):
         self.assertEqual(counts.get("bet_records_total"), 0)
         self.assertEqual(counts.get("system_logs_total"), 0)
 
+    def test_reset_all_waits_for_running_background_tasks_to_cancel(self):
+        async def _run():
+            from sqlalchemy import delete
+
+            from app.core.database import init_db, async_session
+            from app.models.schemas import BackgroundTask
+            from app.api.routes.maintenance import maintenance_reset_all
+            from app.services.game.session import start_background_task
+
+            await init_db()
+            async with async_session() as s:
+                await s.execute(delete(BackgroundTask))
+                await s.commit()
+
+            started = asyncio.Event()
+            cancelled = asyncio.Event()
+
+            async def worker():
+                started.set()
+                try:
+                    await asyncio.sleep(60)
+                except asyncio.CancelledError:
+                    await asyncio.sleep(0.5)
+                    cancelled.set()
+                    raise
+
+            meta = start_background_task("background", worker(), boot_number=1)
+            await started.wait()
+
+            try:
+                await maintenance_reset_all(_={"sub": "admin"})
+                self.assertIsNotNone(meta.task)
+                self.assertTrue(meta.task.done())
+                self.assertTrue(cancelled.is_set())
+            finally:
+                if meta.task and not meta.task.done():
+                    meta.task.cancel()
+                    await asyncio.gather(meta.task, return_exceptions=True)
+
+        asyncio.run(_run())
+
 
 if __name__ == "__main__":
     unittest.main()

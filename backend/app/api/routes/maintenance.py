@@ -175,9 +175,9 @@ async def maintenance_reset_all(_: dict = Depends(get_current_user)):
 
     lock = get_session_lock()
     async with lock:
-        for t in registry.list(limit=500):
-            if t.get("status") == "running":
-                registry.cancel(str(t.get("task_id")))
+        cancel_info = await registry.cancel_running_and_wait(timeout_seconds=3.0)
+        if cancel_info.get("pending", 0) > 0:
+            raise HTTPException(status_code=409, detail="仍有后台任务未停止，请稍后重试")
         clear_session()
 
     async with async_session() as session:
