@@ -62,3 +62,10 @@ export const e2eSeedLogs = async (baseURL: string, token: string, payload: Recor
   await ctx.dispose();
   if (!r.ok()) throw new Error(`e2eSeedLogs failed: ${r.status()}`);
 };
+
+export const e2eSeedMistakes = async (baseURL: string, token: string, payload: Record<string, unknown>) => {
+  const ctx = await authedContext(baseURL, token);
+  const r = await ctx.post('/api/admin/e2e/seed/mistakes', { data: payload });
+  await ctx.dispose();
+  if (!r.ok()) throw new Error(`e2eSeedMistakes failed: ${r.status()}`);
+};

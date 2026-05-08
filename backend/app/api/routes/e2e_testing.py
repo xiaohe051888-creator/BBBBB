@@ -9,7 +9,7 @@ from sqlalchemy import delete
 from app.api.routes.utils import get_current_user
 from app.core.config import settings
 from app.core.database import async_session
-from app.models.schemas import BackgroundTask, BetRecord, GameRecord, SystemLog
+from app.models.schemas import BackgroundTask, BetRecord, GameRecord, MistakeBook, SystemLog
 from app.services.game.state import get_or_create_state
 from app.services.game.upload import upload_games
 
@@ -51,12 +51,19 @@ class SeedLogsReq(BaseModel):
     priority: Literal["P1", "P2", "P3"] = "P3"
 
 
+class SeedMistakesReq(BaseModel):
+    boot_number: int = 1
+    count: int = Field(20, ge=1, le=200)
+    prediction_mode: Literal["rule", "single_ai", "ai"] = "rule"
+
+
 @router.post("/reset")
 async def e2e_reset(req: ResetReq, _: dict = Depends(get_current_user)):
     _require_enabled()
     async with async_session() as db:
         if req.scope in ("all", "games"):
             await db.execute(delete(GameRecord))
+            await db.execute(delete(MistakeBook))
         if req.scope in ("all", "bets"):
             await db.execute(delete(BetRecord))
         if req.scope in ("all", "logs"):
@@ -160,3 +167,31 @@ async def e2e_seed_logs(req: SeedLogsReq, _: dict = Depends(get_current_user)):
             )
         await db.commit()
     return {"ok": True}
+
+
+@router.post("/seed/mistakes")
+async def e2e_seed_mistakes(req: SeedMistakesReq, _: dict = Depends(get_current_user)):
+    _require_enabled()
+    async with async_session() as db:
+        await db.execute(delete(MistakeBook).where(MistakeBook.boot_number == req.boot_number))
+        for i in range(req.count):
+            game_number = i + 1
+            db.add(
+                MistakeBook(
+                    boot_number=req.boot_number,
+                    game_number=game_number,
+                    prediction_mode=req.prediction_mode,
+                    error_id=f"E2E-{req.boot_number}-{game_number}",
+                    error_type="趋势误判" if game_number % 2 == 1 else "转折误判",
+                    predict_direction="庄" if game_number % 2 == 1 else "闲",
+                    actual_result="闲" if game_number % 2 == 1 else "庄",
+                    confidence=0.8 if game_number % 2 == 1 else 0.62,
+                    banker_summary="E2E 庄方向摘要",
+                    player_summary="E2E 闲方向摘要",
+                    combined_summary="E2E 综合摘要",
+                    analysis=f"E2E 复盘原因 {game_number}",
+                    correction=f"E2E 改进建议 {game_number}",
+                )
+            )
+        await db.commit()
+    return {"ok": True, "boot_number": req.boot_number, "count": req.count}

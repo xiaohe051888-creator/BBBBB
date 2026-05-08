@@ -1,0 +1,1 @@
+var e=(e,t=2)=>typeof e!=`number`||Number.isNaN(e)||!Number.isFinite(e)?`-`:e.toLocaleString(void 0,{minimumFractionDigits:t,maximumFractionDigits:t}),t=(e,t=2)=>{if(typeof e!=`number`||Number.isNaN(e)||!Number.isFinite(e))return`-`;let n=e.toFixed(t);return e>0?`+${n}`:n};export{t as n,e as t};
