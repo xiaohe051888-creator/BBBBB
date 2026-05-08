@@ -15,10 +15,10 @@ import { FiveRoadChart } from '../components/roads';
 import { GameTable, BetTable, LogTable } from '../components/tables';
 import { LearningStatusPanel } from '../components/learning';
 import { SmartAlerts } from '../components/ui';
-import { debounce } from 'lodash';
 import { AdminAlertsBar } from '../components/dashboard/AdminAlertsBar';
 import { getModelVersionDisplay } from '../utils/modelVersionDisplay';
 import { formatAccuracyPercent } from '../utils/systemFlowConsistency';
+import { debounce } from '../utils/debounce';
 import {
   useSmartDetection,
   useSystemDiagnostics,
