@@ -13,6 +13,8 @@ services:
           property: connectionString
       - key: JWT_SECRET_KEY
         sync: false
+      - key: AI_CONFIG_ENCRYPTION_KEY
+        sync: false
       - key: DEBUG
         value: "false"
       - key: ENVIRONMENT

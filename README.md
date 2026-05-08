@@ -82,8 +82,10 @@ python backend/scripts/migrate_sqlite_to_postgres.py
 3) 配置后端必须环境变量（在 Render 后端服务的 Environment 中设置）：
 - `ENVIRONMENT`：生产环境必须为 `production`（Render 已在 render.yaml 中默认设置）
 - `JWT_SECRET_KEY`：必须设置为强随机字符串
+- `AI_CONFIG_ENCRYPTION_KEY`：必须设置为独立强随机字符串，用于加密存储 AI 配置，不要与 JWT 共用
 - `ADMIN_DEFAULT_PASSWORD`：管理员默认密码（上线建议改成强密码）
-- `CORS_ORIGINS`：允许访问的来源（建议设置为你的前端域名；生产环境不允许 `*`）
+- `CORS_ORIGINS`：允许访问的来源（必须设置为真实前端域名；生产环境不允许 `*`、`localhost`、`127.0.0.1`）
+- `DATABASE_URL`：生产必须使用 Postgres（Render 会自动注入）
 
 4) 配置 AI（可选）：
 - 三模型协作模式：`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY`
@@ -91,12 +93,18 @@ python backend/scripts/migrate_sqlite_to_postgres.py
 
 5) 部署后验证：
 - 后端健康检查：`/api/system/ping`
-- 后端接口文档：`/docs`
 - 前端能正常打开，且能连上实时推送
 
 构建产物说明：
 - Render 静态站使用 `frontend/dist`
 - 后端 `backend/static` 仅作为容器内托管产物目录，不再作为前端本地构建输出目录
+
+生产注意事项：
+- 生产环境默认关闭 `/docs`、`/redoc`、`/openapi.json`
+- `.env` 只用于本地补缺省值，云平台注入的环境变量优先级更高
+- 首次部署或升级后执行：`cd backend && alembic upgrade head`
+
+更多上线细节见：[docs/production-deployment.md](file:///workspace/docs/production-deployment.md)
 
 ---
 
