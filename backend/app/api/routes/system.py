@@ -19,6 +19,36 @@ router = APIRouter(
 )
 logger = logging.getLogger(__name__)
 
+
+def _mode_label(v: str) -> str:
+    return (
+        "三模型协作模式"
+        if v == "ai"
+        else "单AI快速模式"
+        if v == "single_ai"
+        else "规则参考模式"
+        if v == "rule"
+        else v
+    )
+
+
+def _role_label(v: str) -> str:
+    return (
+        "庄方向"
+        if v == "openai"
+        else "闲方向"
+        if v == "anthropic"
+        else "综合判断"
+        if v == "gemini"
+        else "单AI"
+        if v == "single_ai"
+        else v
+    )
+
+
+def _missing_role_issue(v: str) -> str:
+    return f"{_role_label(v)}接口未配置"
+
 @router.get("/ping")
 async def ping():
     return {"ok": True}
@@ -113,9 +143,6 @@ async def get_health_score(_: dict = Depends(get_current_user)):
     gemini_ok = is_secret_configured(settings.GEMINI_API_KEY)
     single_ok = is_secret_configured(getattr(settings, "SINGLE_AI_API_KEY", ""))
 
-    def _mode_label(v: str) -> str:
-        return "3AI" if v == "ai" else "单AI" if v == "single_ai" else "规则" if v == "rule" else v
-
     health_details["ai_by_mode"] = {
         "current_mode": mode,
         "current_mode_ai": {"score": 0, "max": 40, "issues": []},
@@ -125,11 +152,11 @@ async def get_health_score(_: dict = Depends(get_current_user)):
     def _other_issues() -> dict:
         return {
             "ai": [i for i in [
-                None if openai_ok else "庄模型接口未配置",
-                None if anthropic_ok else "闲模型接口未配置",
-                None if gemini_ok else "综合模型接口未配置",
+                None if openai_ok else _missing_role_issue("openai"),
+                None if anthropic_ok else _missing_role_issue("anthropic"),
+                None if gemini_ok else _missing_role_issue("gemini"),
             ] if i],
-            "single_ai": [] if single_ok else ["单AI接口未配置"],
+            "single_ai": [] if single_ok else [_missing_role_issue("single_ai")],
             "rule": [],
         }
 
@@ -148,29 +175,29 @@ async def get_health_score(_: dict = Depends(get_current_user)):
             current_ai["score"] = 40
             health_details["ai_models"]["score"] = 40
         else:
-            current_ai["issues"].append("单AI接口未配置")
-            health_details["ai_models"]["issues"].append("单AI接口未配置")
+            current_ai["issues"].append(_missing_role_issue("single_ai"))
+            health_details["ai_models"]["issues"].append(_missing_role_issue("single_ai"))
     else:
         if openai_ok:
             current_ai["score"] += 15
             health_details["ai_models"]["score"] += 15
         else:
-            current_ai["issues"].append("庄模型接口未配置")
-            health_details["ai_models"]["issues"].append("庄模型接口未配置")
+            current_ai["issues"].append(_missing_role_issue("openai"))
+            health_details["ai_models"]["issues"].append(_missing_role_issue("openai"))
 
         if anthropic_ok:
             current_ai["score"] += 15
             health_details["ai_models"]["score"] += 15
         else:
-            current_ai["issues"].append("闲模型接口未配置")
-            health_details["ai_models"]["issues"].append("闲模型接口未配置")
+            current_ai["issues"].append(_missing_role_issue("anthropic"))
+            health_details["ai_models"]["issues"].append(_missing_role_issue("anthropic"))
 
         if gemini_ok:
             current_ai["score"] += 10
             health_details["ai_models"]["score"] += 10
         else:
-            current_ai["issues"].append("综合模型接口未配置")
-            health_details["ai_models"]["issues"].append("综合模型接口未配置")
+            current_ai["issues"].append(_missing_role_issue("gemini"))
+            health_details["ai_models"]["issues"].append(_missing_role_issue("gemini"))
     
     # 2. 数据库健康检查 (30分)
     try:
@@ -293,9 +320,6 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
     current_session_state = await get_current_state()
     current_mode = current_session_state.get("prediction_mode", "rule")
 
-    def _mode_label(v: str) -> str:
-        return "3AI" if v == "ai" else "单AI" if v == "single_ai" else "规则" if v == "rule" else v
-
     openai_enabled = is_secret_configured(settings.OPENAI_API_KEY)
     anthropic_enabled = is_secret_configured(settings.ANTHROPIC_API_KEY)
     gemini_enabled = is_secret_configured(settings.GEMINI_API_KEY)
@@ -345,7 +369,7 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
     models = [
         {
             "key": "openai",
-            "label": "庄模型",
+            "label": _role_label("openai"),
             "provider": "openai",
             "model": getattr(settings, "OPENAI_MODEL", "gpt-4o-mini"),
             "enabled": openai_enabled,
@@ -353,7 +377,7 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
         },
         {
             "key": "anthropic",
-            "label": "闲模型",
+            "label": _role_label("anthropic"),
             "provider": "anthropic",
             "model": getattr(settings, "ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
             "enabled": anthropic_enabled,
@@ -361,7 +385,7 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
         },
         {
             "key": "gemini",
-            "label": "综合模型",
+            "label": _role_label("gemini"),
             "provider": "gemini",
             "model": getattr(settings, "GEMINI_MODEL", "gemini-1.5-flash"),
             "enabled": gemini_enabled,
@@ -369,7 +393,7 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
         },
         {
             "key": "single_ai",
-            "label": "单AI",
+            "label": _role_label("single_ai"),
             "provider": "deepseek",
             "model": getattr(settings, "SINGLE_AI_MODEL", "deepseek-v4-pro"),
             "enabled": single_ai_enabled,
@@ -379,7 +403,7 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
 
     for m in models:
         m["required_in_current_mode"] = current_mode in (m.get("required_in_modes") or [])
-        m["issue"] = None if m["enabled"] else "接口密钥未配置"
+        m["issue"] = None if m["enabled"] else "访问密钥未配置"
     
     from app.api.routes.websocket import get_ws_client_count
     ws_count = await get_ws_client_count()
@@ -402,7 +426,7 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
         issues_current_mode.append({
             "level": "critical",
             "title": "当前模式AI未就绪",
-            "detail": f"当前模式({_mode_label(current_mode)})缺少必要配置：{'、'.join(current_missing)}",
+            "detail": f"当前模式（{_mode_label(current_mode)}）缺少必要配置：{'、'.join(_role_label(v) for v in current_missing)}",
         })
 
     issues_other_modes = []
@@ -412,7 +436,7 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
             issues_other_modes.append({
                 "level": "info",
                 "title": f"其它模式({_mode_label(om)})未就绪",
-                "detail": f"缺少配置：{'、'.join(missing)}（不影响当前模式）",
+                "detail": f"缺少配置：{'、'.join(_role_label(v) for v in missing)}（不影响当前模式）",
             })
     
     issues = issues_current_mode + issues_other_modes
@@ -640,9 +664,9 @@ async def update_prediction_mode(
         by_role = {r.role: r for r in rows if getattr(r, "role", None)}
 
         labels = {
-            "banker": "庄模型(OpenAI)",
-            "player": "闲模型(Claude)",
-            "combined": "综合模型(Gemini)",
+            "banker": "庄方向(OpenAI)",
+            "player": "闲方向(Claude)",
+            "combined": "综合判断(Gemini)",
             "single": "单AI(DeepSeek)",
         }
 
@@ -660,17 +684,17 @@ async def update_prediction_mode(
 
         if missing:
             if req.mode == "ai":
-                raise HTTPException(409, f"无法切换至3AI模式：请先配置并测试通过：{'、'.join(missing)}")
-            raise HTTPException(409, f"无法切换至单AI模式：请先配置并测试通过：{'、'.join(missing)}")
+                raise HTTPException(409, f"无法切换至三模型协作模式：请先配置并测试通过：{'、'.join(missing)}")
+            raise HTTPException(409, f"无法切换至单AI快速模式：请先配置并测试通过：{'、'.join(missing)}")
 
     if req.mode == "ai":
         ok = is_secret_configured(settings.OPENAI_API_KEY) and is_secret_configured(settings.ANTHROPIC_API_KEY) and is_secret_configured(settings.GEMINI_API_KEY)
         if not ok:
-            raise HTTPException(400, "无法切换至3AI模式：需同时配置 庄模型(OpenAI)、闲模型(Claude)、综合模型(Gemini) 三项接口密钥")
+            raise HTTPException(400, "无法切换至三模型协作模式：需同时配置庄方向(OpenAI)、闲方向(Claude)、综合判断(Gemini) 三项访问密钥")
     elif req.mode == "single_ai":
         ok = is_secret_configured(getattr(settings, "SINGLE_AI_API_KEY", ""))
         if not ok:
-            raise HTTPException(400, "无法切换至单AI模式：请先配置 单AI(DeepSeek) 接口密钥")
+            raise HTTPException(400, "无法切换至单AI快速模式：请先配置单AI(DeepSeek)访问密钥")
     
     async with async_session() as session:
         await _require_test_ok(session)

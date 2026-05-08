@@ -113,7 +113,7 @@ class AiAnalysisFallbacksTest(unittest.TestCase):
         res, mode = asyncio.run(_run())
         self.assertFalse(res["success"])
         self.assertEqual(mode, "ai")
-        self.assertIn("接口密钥", res.get("error", ""))
+        self.assertIn("访问密钥", res.get("error", ""))
 
 
 if __name__ == "__main__":

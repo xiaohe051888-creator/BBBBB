@@ -15,7 +15,7 @@ test('单AI配置→测试→启用→日志页刷新与导出', async ({ page, 
 
   await page.getByRole('button', { name: /配置\/测试 DeepSeek V4 Pro/ }).click();
 
-  await page.getByPlaceholder('请输入接口密钥').fill('sk-test-1234567890');
+  await page.getByPlaceholder('请输入访问密钥').fill('sk-test-1234567890');
   await page.getByPlaceholder('例如：接口地址').fill(mock.baseURL);
 
   await page.getByRole('button', { name: '保存配置' }).click();
@@ -35,7 +35,7 @@ test('单AI配置→测试→启用→日志页刷新与导出', async ({ page, 
   const enableSingle = page.getByRole('button', { name: /启用 单AI 模式/ });
   await expect(enableSingle).toBeEnabled({ timeout: 20_000 });
   await enableSingle.click();
-  await expect(page.getByText(/已切换至.*单AI模式/)).toBeVisible();
+  await expect(page.getByText(/已切换至.*单AI快速模式/)).toBeVisible();
 
   await page.goto('/dashboard/logs', { waitUntil: 'networkidle' });
 

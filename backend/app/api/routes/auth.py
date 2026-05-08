@@ -277,7 +277,7 @@ async def get_three_model_status(_: dict = Depends(get_current_user)):
             "role": "综合分析并给出最终预测",
         },
         "single": {
-            "name": f"DeepSeek V4 Pro (单AI模式)",
+            "name": f"DeepSeek V4 Pro (单AI快速模式)",
             "provider": (by_role.get("single").provider if by_role.get("single") else "deepseek"),
             "model": settings.SINGLE_AI_MODEL,
             "base_url": getattr(settings, "SINGLE_AI_API_BASE", "") or "",
@@ -401,7 +401,7 @@ async def test_api_config(
 
         effective_api_key = resolve_api_key_for_role(req.role, req.api_key)
         if not effective_api_key:
-            raise Exception("未填写接口密钥，且系统未保存过密钥")
+            raise Exception("未填写访问密钥，且系统未保存过密钥")
 
         def _cn_error(raw: str) -> str:
             if not raw:
@@ -430,7 +430,7 @@ async def test_api_config(
                 return "连接被拒绝，请检查接口地址或代理是否可用"
             if "no module named" in s.lower():
                 return "服务端缺少依赖，已切换为直连测试方式仍失败"
-            return "接口调用失败，请检查接口密钥/模型/接口地址"
+            return "接口调用失败，请检查访问密钥/模型名称/接口地址"
 
         async def _openai_compatible(base_url: str, api_key: str, model: str) -> None:
             if not base_url:

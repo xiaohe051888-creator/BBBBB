@@ -103,7 +103,7 @@ async def run_ai_analysis(
                     state = await get_or_create_state(db)
                     state.status = sess.status
                     await db.commit()
-                    return {"success": False, "error": "无法执行3AI分析：庄/闲/综合模型接口密钥未配置，请先配置密钥或切换到规则模式"}
+                    return {"success": False, "error": "无法执行三模型协作分析：庄方向、闲方向、综合判断的访问密钥未配置，请先完成设置或切换到规则参考模式"}
             elif prediction_mode == "single_ai":
                 from app.core.config import settings
                 api_configured = bool(settings.SINGLE_AI_API_KEY and len(settings.SINGLE_AI_API_KEY) > 10)
@@ -112,7 +112,7 @@ async def run_ai_analysis(
                     state = await get_or_create_state(db)
                     state.status = sess.status
                     await db.commit()
-                    return {"success": False, "error": "无法执行单AI分析：单AI接口密钥未配置，请先配置密钥或切换到规则模式"}
+                    return {"success": False, "error": "无法执行单AI分析：单AI访问密钥未配置，请先完成设置或切换到规则参考模式"}
 
             # 获取AI记忆库 (提取最新生成的实时微学习策略经验)
             from app.models.schemas import AIMemory
