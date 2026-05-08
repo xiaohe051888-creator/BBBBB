@@ -20,6 +20,7 @@ class Settings:
     
     # 安全配置
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "")
+    AI_CONFIG_ENCRYPTION_KEY: str = os.getenv("AI_CONFIG_ENCRYPTION_KEY", "")
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_HOURS: int = 24
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173")

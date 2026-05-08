@@ -18,6 +18,11 @@ ROLE_ENV_MAP = {
 }
 
 
+def _fernet_from_secret(secret: str) -> Fernet:
+    key = base64.urlsafe_b64encode(hashlib.sha256(secret.encode("utf-8")).digest())
+    return Fernet(key)
+
+
 def apply_single_ai_runtime_prompt_template(prompt_b64: str | None) -> None:
     value = prompt_b64 or ""
     setattr(settings, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", value)
@@ -28,9 +33,14 @@ def apply_single_ai_runtime_prompt_template(prompt_b64: str | None) -> None:
 
 
 def _fernet() -> Fernet:
-    secret = (os.getenv("JWT_SECRET_KEY") or getattr(settings, "JWT_SECRET_KEY", "") or "dev-jwt-secret").encode("utf-8")
-    key = base64.urlsafe_b64encode(hashlib.sha256(secret).digest())
-    return Fernet(key)
+    secret = (
+        os.getenv("AI_CONFIG_ENCRYPTION_KEY")
+        or getattr(settings, "AI_CONFIG_ENCRYPTION_KEY", "")
+        or os.getenv("JWT_SECRET_KEY")
+        or getattr(settings, "JWT_SECRET_KEY", "")
+        or "dev-ai-config-secret"
+    )
+    return _fernet_from_secret(secret)
 
 
 def encrypt_api_key(value: str) -> str:
@@ -42,10 +52,21 @@ def encrypt_api_key(value: str) -> str:
 def decrypt_api_key(value: str | None) -> str:
     if not value:
         return ""
-    try:
-        return _fernet().decrypt(value.encode("utf-8")).decode("utf-8")
-    except (InvalidToken, ValueError, TypeError):
-        return ""
+    candidate_secrets = [
+        os.getenv("AI_CONFIG_ENCRYPTION_KEY") or getattr(settings, "AI_CONFIG_ENCRYPTION_KEY", ""),
+        os.getenv("JWT_SECRET_KEY") or getattr(settings, "JWT_SECRET_KEY", ""),
+        "dev-ai-config-secret",
+    ]
+    tried: set[str] = set()
+    for secret in candidate_secrets:
+        if not secret or secret in tried:
+            continue
+        tried.add(secret)
+        try:
+            return _fernet_from_secret(secret).decrypt(value.encode("utf-8")).decode("utf-8")
+        except (InvalidToken, ValueError, TypeError):
+            continue
+    return ""
 
 
 def apply_ai_role_runtime_config(role: str, *, model: str, base_url: str | None, api_key: str | None) -> None:

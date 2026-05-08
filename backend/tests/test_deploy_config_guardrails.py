@@ -46,6 +46,28 @@ class DeployConfigGuardrailsTest(unittest.TestCase):
             self.assertIn("SINGLE_AI_MODEL", content)
             self.assertIn("SINGLE_AI_API_BASE", content)
 
+    def test_env_examples_document_independent_ai_config_encryption_key(self):
+        root_content = (ROOT / ".env.example").read_text(encoding="utf-8")
+        backend_content = (ROOT / "backend" / ".env.example").read_text(encoding="utf-8")
+        for content in (root_content, backend_content):
+            self.assertIn("AI_CONFIG_ENCRYPTION_KEY", content)
+
+    def test_production_env_examples_do_not_use_localhost_cors(self):
+        root_content = (ROOT / ".env.example").read_text(encoding="utf-8")
+        backend_content = (ROOT / "backend" / ".env.example").read_text(encoding="utf-8")
+        for content in (root_content, backend_content):
+            self.assertNotIn("localhost", content.lower())
+            self.assertNotIn("127.0.0.1", content.lower())
+
+    def test_backend_production_env_example_uses_postgres_not_sqlite(self):
+        content = (ROOT / "backend" / ".env.example").read_text(encoding="utf-8")
+        self.assertIn("postgresql+asyncpg://", content)
+        self.assertNotIn("sqlite+aiosqlite", content)
+
+    def test_gitignore_blocks_backend_env_files(self):
+        content = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("backend/.env", content)
+
     def test_docker_runtime_creates_persisted_backend_data_dir(self):
         content = (ROOT / "Dockerfile").read_text(encoding="utf-8")
         self.assertIn("/app/backend/data", content)

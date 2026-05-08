@@ -2,19 +2,20 @@
 统计和走势图路由
 """
 from typing import Optional
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from sqlalchemy import select, func
 
 from app.core.database import async_session
 from app.models.schemas import GameRecord, SystemState, MistakeBook
 from app.core.config import settings
+from app.api.routes.utils import get_current_user
 from app.services.road_engine import UnifiedRoadEngine
 
 router = APIRouter(prefix="/api", tags=["统计和走势"])
 
 
 @router.get("/stats")
-async def get_statistics():
+async def get_statistics(_: dict = Depends(get_current_user)):
     """获取统计信息"""
     async with async_session() as session:
         total_stmt = select(func.count()).select_from(
@@ -60,6 +61,7 @@ async def _get_balance(session) -> float:
 @router.get("/roads")
 async def get_road_maps(
     boot_number: Optional[int] = Query(None),
+    _: dict = Depends(get_current_user),
 ):
     """获取五路走势图数据"""
     async with async_session() as session:
@@ -146,6 +148,7 @@ async def get_road_maps(
 @router.get("/roads/raw")
 async def get_road_raw_data(
     boot_number: Optional[int] = Query(None),
+    _: dict = Depends(get_current_user),
 ):
     """获取原始开奖结果列表（用于前端本地计算走势图）"""
     async with async_session() as session:

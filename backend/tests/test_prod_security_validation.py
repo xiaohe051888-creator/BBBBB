@@ -10,12 +10,14 @@ class ProdSecurityValidationTest(unittest.TestCase):
         prev = {
             "ENVIRONMENT": os.environ.get("ENVIRONMENT"),
             "JWT_SECRET_KEY": os.environ.get("JWT_SECRET_KEY"),
+            "AI_CONFIG_ENCRYPTION_KEY": os.environ.get("AI_CONFIG_ENCRYPTION_KEY"),
             "ADMIN_DEFAULT_PASSWORD": os.environ.get("ADMIN_DEFAULT_PASSWORD"),
             "CORS_ORIGINS": os.environ.get("CORS_ORIGINS"),
         }
         try:
             os.environ["ENVIRONMENT"] = "production"
             os.environ["JWT_SECRET_KEY"] = "change-me-in-production"
+            os.environ["AI_CONFIG_ENCRYPTION_KEY"] = ""
             os.environ["ADMIN_DEFAULT_PASSWORD"] = "8888"
             os.environ["CORS_ORIGINS"] = "*"
 
@@ -34,14 +36,42 @@ class ProdSecurityValidationTest(unittest.TestCase):
         prev = {
             "ENVIRONMENT": os.environ.get("ENVIRONMENT"),
             "JWT_SECRET_KEY": os.environ.get("JWT_SECRET_KEY"),
+            "AI_CONFIG_ENCRYPTION_KEY": os.environ.get("AI_CONFIG_ENCRYPTION_KEY"),
             "ADMIN_DEFAULT_PASSWORD": os.environ.get("ADMIN_DEFAULT_PASSWORD"),
             "CORS_ORIGINS": os.environ.get("CORS_ORIGINS"),
         }
         try:
             os.environ["ENVIRONMENT"] = "production"
             os.environ["JWT_SECRET_KEY"] = "your-super-secret-key-change-this-in-production"
+            os.environ["AI_CONFIG_ENCRYPTION_KEY"] = "change-me-ai-config-key"
             os.environ["ADMIN_DEFAULT_PASSWORD"] = "YourSecurePassword123!"
             os.environ["CORS_ORIGINS"] = "http://localhost:5173"
+
+            from app.core.security import validate_production_security
+
+            with self.assertRaises(RuntimeError):
+                validate_production_security()
+        finally:
+            for k, v in prev.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+    def test_production_requires_independent_ai_config_encryption_key(self):
+        prev = {
+            "ENVIRONMENT": os.environ.get("ENVIRONMENT"),
+            "JWT_SECRET_KEY": os.environ.get("JWT_SECRET_KEY"),
+            "AI_CONFIG_ENCRYPTION_KEY": os.environ.get("AI_CONFIG_ENCRYPTION_KEY"),
+            "ADMIN_DEFAULT_PASSWORD": os.environ.get("ADMIN_DEFAULT_PASSWORD"),
+            "CORS_ORIGINS": os.environ.get("CORS_ORIGINS"),
+        }
+        try:
+            os.environ["ENVIRONMENT"] = "production"
+            os.environ["JWT_SECRET_KEY"] = "jwt-secret-prod-1234567890"
+            os.environ["AI_CONFIG_ENCRYPTION_KEY"] = ""
+            os.environ["ADMIN_DEFAULT_PASSWORD"] = "prod-admin-password-123456"
+            os.environ["CORS_ORIGINS"] = "https://frontend.example.com"
 
             from app.core.security import validate_production_security
 

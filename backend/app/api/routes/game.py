@@ -255,6 +255,7 @@ async def get_game_records(
     page_size: int = Query(20, ge=1, le=100),
     sort_by: str = Query("game_number", pattern="^(game_number|profit_loss|bet_amount)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
+    _: dict = Depends(get_current_user),
 ):
     """获取开奖记录（分页）"""
     async with async_session() as session:

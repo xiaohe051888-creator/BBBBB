@@ -19,6 +19,17 @@ def validate_production_security() -> None:
     ):
         errors.append("必须设置 JWT_SECRET_KEY（且不能使用占位值）")
 
+    ai_config_key = (os.getenv("AI_CONFIG_ENCRYPTION_KEY") or "").strip()
+    ai_key_placeholder_markers = (
+        "change-me-ai-config-key",
+        "your-ai-config-encryption-key",
+    )
+    if (
+        not ai_config_key
+        or any(marker in ai_config_key.lower() for marker in ai_key_placeholder_markers)
+    ):
+        errors.append("必须设置 AI_CONFIG_ENCRYPTION_KEY（且不能使用占位值）")
+
     admin_pwd = (os.getenv("ADMIN_DEFAULT_PASSWORD") or "").strip()
     admin_placeholder_values = {
         "8888",

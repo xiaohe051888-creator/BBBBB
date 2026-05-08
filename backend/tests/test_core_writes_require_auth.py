@@ -10,6 +10,26 @@ from app.api.main import app
 
 
 class CoreWritesRequireAuthTest(unittest.TestCase):
+    def test_stats_requires_auth(self):
+        client = TestClient(app)
+        r = client.get("/api/stats")
+        self.assertEqual(r.status_code, 401)
+
+    def test_roads_requires_auth(self):
+        client = TestClient(app)
+        r = client.get("/api/roads")
+        self.assertEqual(r.status_code, 401)
+
+    def test_roads_raw_requires_auth(self):
+        client = TestClient(app)
+        r = client.get("/api/roads/raw")
+        self.assertEqual(r.status_code, 401)
+
+    def test_game_records_requires_auth(self):
+        client = TestClient(app)
+        r = client.get("/api/games")
+        self.assertEqual(r.status_code, 401)
+
     def test_latest_analysis_requires_auth(self):
         client = TestClient(app)
         r = client.get("/api/analysis/latest")

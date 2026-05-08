@@ -36,7 +36,7 @@ from app.core.env_migration import get_env_paths, merge_legacy_env, ensure_env_k
 env_path, legacy_path = get_env_paths()
 merge_info = merge_legacy_env(legacy_path, env_path)
 if os.path.exists(env_path):
-    load_dotenv(env_path, override=True)
+    load_dotenv(env_path, override=False)
     logger.info(f"✅ [api/main.py] 已加载环境变量: {env_path}")
 else:
     logger.warning(f"⚠️  [api/main.py] 环境变量文件不存在: {env_path}")
@@ -177,6 +177,9 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     lifespan=lifespan,
+    docs_url=None if settings.ENVIRONMENT.lower() == "production" else "/docs",
+    redoc_url=None if settings.ENVIRONMENT.lower() == "production" else "/redoc",
+    openapi_url=None if settings.ENVIRONMENT.lower() == "production" else "/openapi.json",
 )
 
 # ============ 全局异常处理器 (Global Exception Handler) ============
@@ -342,6 +345,14 @@ def get_broadcast_func():
 @app.get("/")
 @app.get("/{full_path:path}")
 async def spa_fallback(full_path: str = ""):
+    reserved_prefixes = ("api", "docs", "redoc", "openapi.json", "assets", "ws")
+    normalized = (full_path or "").lstrip("/")
+    if normalized and any(
+        normalized == prefix or normalized.startswith(f"{prefix}/")
+        for prefix in reserved_prefixes
+    ):
+        raise HTTPException(404, "Not Found")
+
     index_path = os.path.join(_static_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(
