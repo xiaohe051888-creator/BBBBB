@@ -55,12 +55,16 @@ services:
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-flash}
       - GEMINI_API_BASE=${GEMINI_API_BASE:-}
 
+      - SINGLE_AI_API_KEY=${SINGLE_AI_API_KEY:-}
+      - SINGLE_AI_MODEL=${SINGLE_AI_MODEL:-deepseek-v4-pro}
+      - SINGLE_AI_API_BASE=${SINGLE_AI_API_BASE:-}
+
       - OFOX_API_BASE=${OFOX_API_BASE:-}
       - OFOX_API_KEY=${OFOX_API_KEY:-}
       
     volumes:
       # Data persistence (Database + Logs)
-      - baccarat-data:/app/data
+      - baccarat-data:/app/backend/data
     depends_on:
       - postgres
     restart: unless-stopped

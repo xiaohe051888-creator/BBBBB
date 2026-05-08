@@ -7,6 +7,7 @@
 services:
   baccarat-app:
     environment:
+      - ENVIRONMENT=production
       - DEBUG=false
       # ⚠️ Must provide via .env file or command line in production
       - DATABASE_URL=${DATABASE_URL}
@@ -17,6 +18,9 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SINGLE_AI_API_KEY=${SINGLE_AI_API_KEY}
+      - SINGLE_AI_MODEL=${SINGLE_AI_MODEL}
+      - SINGLE_AI_API_BASE=${SINGLE_AI_API_BASE}
     restart: always
     deploy:
       resources:

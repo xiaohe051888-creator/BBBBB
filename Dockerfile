@@ -36,11 +36,12 @@ RUN rm -rf ./backend/static && mkdir -p ./backend/static
 COPY --from=frontend-builder /app/frontend/dist ./backend/static
 
 # Create data persistence directory
-RUN mkdir -p /app/data /app/backend/static
+RUN mkdir -p /app/backend/data /app/backend/static
 
 # Default Environment Variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
+    ENVIRONMENT=production \
     DEBUG=false \
     HOST=0.0.0.0 \
     PORT=8001 \

@@ -5,7 +5,37 @@
 import axios from 'axios';
 import { normalizeBackendDetail } from '../utils/errorMessage';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
+
+export const normalizeApiBaseUrl = (rawBase = import.meta.env.VITE_API_BASE_URL): string => {
+  if (!rawBase) return '/api';
+  if (!isAbsoluteUrl(rawBase)) return rawBase;
+  const url = new URL(rawBase);
+  if (url.pathname === '/' || !url.pathname) {
+    url.pathname = '/api';
+  }
+  return url.toString().replace(/\/$/, '');
+};
+
+export const normalizeWsBaseUrl = (rawBase?: string): string => {
+  let base = rawBase;
+  if (!base) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    base = `${protocol}//${window.location.host}`;
+  }
+
+  if (/^https?:\/\//i.test(base)) {
+    base = base.replace(/^http:/i, 'ws:').replace(/^https:/i, 'wss:');
+  }
+
+  if (!base.includes('/ws')) {
+    base = `${base.replace(/\/$/, '')}/ws`;
+  }
+
+  return base;
+};
+
+const API_BASE = normalizeApiBaseUrl();
 
 // ============ Token 工具函数 ============
 
@@ -528,20 +558,8 @@ export const getRoadRawData = async (bootNumber?: number) => {
 // ====== WebSocket ======
 
 export const createWebSocket = (): WebSocket => {
-  // 智能推断 WebSocket URL：
-  // 1. 如果配置了 VITE_WS_URL，直接使用
-  // 2. 如果在开发环境或没有配置，根据当前页面地址自动生成 ws(s)://host:port/ws
-  let baseWsUrl = import.meta.env.VITE_WS_URL;
-  if (!baseWsUrl) {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host; // 包含端口
-    baseWsUrl = `${protocol}//${host}`;
-  }
+  const wsUrl = normalizeWsBaseUrl(import.meta.env.VITE_WS_URL);
 
-  const wsUrl = baseWsUrl.includes('/ws')
-    ? baseWsUrl
-    : `${baseWsUrl}/ws`;
-    
   return new WebSocket(wsUrl);
 };
 

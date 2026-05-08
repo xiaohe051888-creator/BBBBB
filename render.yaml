@@ -6,7 +6,7 @@ services:
     startCommand: "bash backend/scripts/render_start.sh"
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.0
+        value: 3.11.0
       - key: DATABASE_URL
         fromDatabase:
           name: baccarat-db
@@ -27,6 +27,12 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: SINGLE_AI_API_KEY
+        sync: false
+      - key: SINGLE_AI_MODEL
+        sync: false
+      - key: SINGLE_AI_API_BASE
+        sync: false
 
   - type: web
     name: baccarat-frontend
@@ -35,9 +41,15 @@ services:
     staticPublishPath: "./frontend/dist"
     envVars:
       - key: VITE_API_BASE_URL
-        value: "https://baccarat-backend.onrender.com/api"
+        fromService:
+          type: web
+          name: baccarat-backend
+          envVarKey: RENDER_EXTERNAL_URL
       - key: VITE_WS_URL
-        value: "wss://baccarat-backend.onrender.com/ws"
+        fromService:
+          type: web
+          name: baccarat-backend
+          envVarKey: RENDER_EXTERNAL_URL
 
 databases:
   - name: baccarat-db

@@ -43,7 +43,7 @@
 ```
 
 ### 方式二：Docker 容器化部署
-支持基于 Docker Compose 的多阶段构建，完美隔离运行环境，自动挂载 SQLite 数据卷保证数据持久化。
+支持基于 Docker Compose 的多阶段构建，默认同时拉起后端服务与 Postgres，并挂载持久卷保存数据库数据。
 ```bash
 docker compose up --build -d
 ```
@@ -86,7 +86,8 @@ python backend/scripts/migrate_sqlite_to_postgres.py
 - `CORS_ORIGINS`：允许访问的来源（建议设置为你的前端域名；生产环境不允许 `*`）
 
 4) 配置 AI（可选）：
-- `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY`
+- 三模型协作模式：`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY`
+- 单AI快速模式：`SINGLE_AI_API_KEY` / `SINGLE_AI_MODEL` / `SINGLE_AI_API_BASE`
 
 5) 部署后验证：
 - 后端健康检查：`/api/system/ping`
