@@ -171,10 +171,20 @@ async def start_ai_learning(
 async def get_ai_learning_status(_: dict = Depends(get_current_user)):
     """获取AI学习状态（需认证）"""
     from app.services.ai_learning_service import AILearningService
-    
+    from app.services.game.task_registry import registry
+
+    running = next(
+        (
+            task
+            for task in registry.list(limit=200)
+            if task.get("task_type") == "ai_learning" and task.get("status") == "running"
+        ),
+        None,
+    )
+
     return {
-        "is_learning": AILearningService._is_learning,
-        "current_task": AILearningService._current_task,
+        "is_learning": bool(running) or AILearningService._is_learning,
+        "current_task": (running or {}).get("task_id") or AILearningService._current_task,
         "min_samples": getattr(AILearningService, '_min_samples', 200),
         "max_versions": getattr(AILearningService, '_max_versions', 5),
     }

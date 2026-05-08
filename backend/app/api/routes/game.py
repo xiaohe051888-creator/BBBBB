@@ -32,13 +32,94 @@ def _reveal_error_to_http_exception(reveal_result: dict) -> HTTPException:
     return HTTPException(400, reveal_result.get("message") or (error_message(code) if code else "开奖失败"))
 
 
+async def _finalize_analysis_cycle(final_status: str = "等待开奖") -> None:
+    from app.services.game.session import get_session, broadcast_event
+
+    sess = get_session()
+    if sess.status != "分析中":
+        return
+
+    sess.status = final_status
+    try:
+        async with async_session() as final_session:
+            from app.services.game.state import get_or_create_state
+            state = await get_or_create_state(final_session)
+            state.status = final_status
+            await final_session.commit()
+        await broadcast_event("state_update", {"status": final_status})
+    except Exception:
+        logger.exception("同步最终状态/广播失败")
+
+
+async def _run_followup_analysis(boot_number: int, failure_description: str) -> None:
+    from app.services.game import run_ai_analysis
+
+    try:
+        async with async_session() as session:
+            res = await run_ai_analysis(
+                db=session,
+                boot_number=boot_number,
+            )
+            if res and res.get("success"):
+                prediction = res.get("prediction")
+                if prediction not in ("庄", "闲"):
+                    logging.getLogger(__name__).warning(
+                        "AI 返回了非法的下注方向 '%s'，系统强制接管并兜底下注 '庄'",
+                        prediction,
+                    )
+                    prediction = "庄"
+
+                from app.services.game.betting import place_bet
+                await place_bet(
+                    db=session,
+                    game_number=res["game_number"],
+                    direction=prediction,
+                    amount=res.get("bet_amount", 100),
+                )
+                await session.commit()
+    except Exception as e:
+        from app.services.game.logging import write_game_log
+        from app.services.game.session import get_session, broadcast_event
+
+        logging.getLogger("uvicorn.error").error("%s: %s", failure_description, e, exc_info=True)
+        sess = get_session()
+        if failure_description.startswith("下一局"):
+            sess.status = "等待开奖"
+        try:
+            async with async_session() as log_session:
+                from app.services.game.state import get_or_create_state
+
+                state = await get_or_create_state(log_session)
+                state.status = "错误" if failure_description.startswith("上传") else "等待开奖"
+                await write_game_log(
+                    log_session,
+                    boot_number,
+                    sess.next_game_number if not failure_description.startswith("上传") else 0,
+                    "LOG-SYS-ERR" if failure_description.startswith("上传") else "LOG-MDL-002",
+                    "AI分析报错" if failure_description.startswith("上传") else "AI分析异常",
+                    "失败",
+                    f"{failure_description}: {str(e)}",
+                    category="系统异常" if not failure_description.startswith("上传") else "工作流事件",
+                    priority="P1",
+                )
+                await log_session.commit()
+            await broadcast_event(
+                "state_update",
+                {"status": "错误" if failure_description.startswith("上传") else "等待开奖"},
+            )
+        except Exception:
+            logger.exception("写入 AI 分析异常日志/广播失败")
+    finally:
+        await _finalize_analysis_cycle("等待开奖")
+
+
 @router.post("/upload")
 async def upload_game_results(req: UploadRequest, _: dict = Depends(get_current_user)):
     """
     手动上传批量开奖记录（最多72局）
     上传后自动计算五路走势图，触发AI分析预测下一局
     """
-    from app.services.game import upload_games, run_ai_analysis, get_session
+    from app.services.game import upload_games, get_session
 
     effective_mode = req.mode
     if effective_mode is None:
@@ -62,69 +143,10 @@ async def upload_game_results(req: UploadRequest, _: dict = Depends(get_current_
     
     # 异步触发AI分析（不阻塞上传响应）
     async def _trigger_analysis():
-        try:
-            async with async_session() as session:
-                res = await run_ai_analysis(
-                    db=session,
-                    boot_number=upload_result["boot_number"],
-                )
-                if res and res.get("success"):
-                    prediction = res.get("prediction")
-                    # 强制每局必下：如果AI返回了“观望”等非庄闲结果，强制回退为默认下注（根据某种简单规则，这里简单退避为“庄”或基于历史的某种默认值）
-                    # 为了保证全自动托管系统不中断，必须将异常结果清洗为合法的方向
-                    if prediction not in ("庄", "闲"):
-                        import logging
-                        logging.getLogger(__name__).warning(f"AI 返回了非法的下注方向 '{prediction}'，系统强制接管并兜底下注 '庄'")
-                        prediction = "庄"
-                        
-                    from app.services.game.betting import place_bet
-                    await place_bet(
-                        db=session,
-                        game_number=res["game_number"],
-                        direction=prediction,
-                        amount=res.get("bet_amount", 100)
-                    )
-                    await session.commit()
-        except Exception as e:
-            import logging
-            from app.services.game.logging import write_game_log
-            from app.services.game.session import broadcast_event
-            logging.getLogger("uvicorn.error").error(f"AI分析失败(upload): {e}", exc_info=True)
-            try:
-                from app.services.game.session import get_session
-                from app.services.game.state import get_or_create_state
-                sess = get_session()
-                sess.status = "错误"
-                async with async_session() as log_session:
-                    state = await get_or_create_state(log_session)
-                    state.status = "错误"
-                    await log_session.commit()
-                    await write_game_log(
-                        log_session, upload_result["boot_number"], 0,
-                        "LOG-SYS-ERR", "AI分析报错", "失败",
-                        f"上传触发分析时发生系统错误: {str(e)}", priority="P1"
-                    )
-                    await log_session.commit()
-                await broadcast_event("state_update", {"status": "错误"})
-            except Exception as inner_e:
-                import logging
-                logging.getLogger(__name__).error(f"处理分析错误时发生次生异常: {inner_e}", exc_info=True)
-        finally:
-            # 无论如何，确保状态机不会死锁在“分析中”
-            from app.services.game.session import get_session, broadcast_event
-            sess = get_session()
-            if sess.status == "分析中":
-                sess.status = "等待开奖"
-                try:
-                    async with async_session() as final_session:
-                        from app.services.game.state import get_or_create_state
-                        state = await get_or_create_state(final_session)
-                        state.status = "等待开奖"
-                        await final_session.commit()
-                    await broadcast_event("state_update", {"status": "等待开奖"})
-                except Exception as final_e:
-                    import logging
-                    logging.getLogger(__name__).error(f"清理状态机遇错: {final_e}", exc_info=True)
+        await _run_followup_analysis(
+            upload_result["boot_number"],
+            "上传触发分析时发生系统错误",
+        )
 
     from app.services.game.session import start_background_task
     start_background_task(
@@ -149,7 +171,7 @@ async def reveal_game_route(req: RevealRequest, _: dict = Depends(get_current_us
     """
     开奖 - 输入开奖结果，结算注单，走势图更新，触发下一局AI分析
     """
-    from app.services.game import reveal_game as _reveal, run_ai_analysis, get_session
+    from app.services.game import reveal_game as _reveal, get_session
     
     async with async_session() as session:
         result = await _reveal(
@@ -166,64 +188,10 @@ async def reveal_game_route(req: RevealRequest, _: dict = Depends(get_current_us
     boot_number = sess.boot_number
     
     async def _trigger_next_analysis():
-        try:
-            async with async_session() as session:
-                res = await run_ai_analysis(
-                    db=session,
-                    boot_number=boot_number,
-                )
-                if res and res.get("success"):
-                    prediction = res.get("prediction")
-                    # 强制每局必下兜底逻辑
-                    if prediction not in ("庄", "闲"):
-                        import logging
-                        logging.getLogger(__name__).warning(f"AI 返回了非法的下注方向 '{prediction}'，系统强制接管并兜底下注 '庄'")
-                        prediction = "庄"
-                        
-                    from app.services.game.betting import place_bet
-                    await place_bet(
-                        db=session,
-                        game_number=res["game_number"],
-                        direction=prediction,
-                        amount=res.get("bet_amount", 100)
-                    )
-                    await session.commit()
-        except Exception as e:
-            import logging
-            from app.services.game.logging import write_game_log
-            from app.services.game.session import broadcast_event
-            logging.getLogger("uvicorn.error").error(f"下一局AI分析失败(reveal): {e}", exc_info=True)
-            sess.status = "等待开奖"
-            try:
-                async with async_session() as log_session:
-                    from app.services.game.state import get_or_create_state
-                    state = await get_or_create_state(log_session)
-                    state.status = "等待开奖"
-                    await write_game_log(
-                        log_session, boot_number, sess.next_game_number,
-                        "LOG-MDL-002", "AI分析异常", "失败",
-                        f"触发下一局AI三模型分析失败: {str(e)}",
-                        category="系统异常",
-                        priority="P1"
-                    )
-                    await log_session.commit()
-                await broadcast_event("state_update", {"status": "等待开奖"})
-            except Exception:
-                logger.exception("写入 AI 分析异常日志/广播失败(reveal)")
-        finally:
-            from app.services.game.session import get_session, broadcast_event
-            sess = get_session()
-            if sess.status == "分析中":
-                sess.status = "等待开奖"
-                try:
-                    async with async_session() as final_session:
-                        from app.services.game.state import get_or_create_state
-                        state = await get_or_create_state(final_session)
-                        state.status = "等待开奖"
-                        await final_session.commit()
-                    await broadcast_event("state_update", {"status": "等待开奖"})
-                except Exception:
-                    logger.exception("同步最终状态/广播失败(reveal)")
+        await _run_followup_analysis(
+            boot_number,
+            "下一局AI分析失败(reveal)",
+        )
 
     from app.services.game.session import start_background_task
     start_background_task(

@@ -21,6 +21,7 @@ import { humanizeLog, toHumanCopyText } from '../utils/logHumanizer';
 import { formatBeijing, beijingValueOf } from '../utils/datetime';
 import { useQueryClient } from '@tanstack/react-query';
 import * as api from '../services/api';
+import { getLogFiltersFromSearch } from './logFilters';
 
 // Mock components since the real ones were deleted from the repository
 const Icons = {
@@ -398,13 +399,11 @@ const LogsPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(50);
 
   // 筛选
-  const [filterCategory, setFilterCategory] = useState<string>('');
-  const [filterPriority, setFilterPriority] = useState<string>('');
-  const [filterTaskId, setFilterTaskId] = useState<string>(() => {
-    const params = new URLSearchParams(location.search);
-    return params.get('task_id') || '';
-  });
-  const [searchText, setSearchText] = useState('');
+  const initialFilters = useMemo(() => getLogFiltersFromSearch(location.search), [location.search]);
+  const [filterCategory, setFilterCategory] = useState<string>(initialFilters.category);
+  const [filterPriority, setFilterPriority] = useState<string>(initialFilters.priority);
+  const [filterTaskId, setFilterTaskId] = useState<string>(initialFilters.taskId);
+  const [searchText, setSearchText] = useState(initialFilters.q);
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
 
   // 搜索防抖
@@ -416,12 +415,23 @@ const LogsPage: React.FC = () => {
   }, [searchText]);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const taskId = params.get('task_id') || '';
-    if (!taskId || taskId === filterTaskId) return;
-    const t = setTimeout(() => setFilterTaskId(taskId), 0);
+    const next = getLogFiltersFromSearch(location.search);
+    const hasChanged = (
+      next.category !== filterCategory ||
+      next.priority !== filterPriority ||
+      next.taskId !== filterTaskId ||
+      next.q !== searchText
+    );
+    if (!hasChanged) return;
+    const t = setTimeout(() => {
+      setFilterCategory(next.category);
+      setFilterPriority(next.priority);
+      setFilterTaskId(next.taskId);
+      setSearchText(next.q);
+      setPage(1);
+    }, 0);
     return () => clearTimeout(t);
-  }, [location.search, filterTaskId]);
+  }, [location.search, filterCategory, filterPriority, filterTaskId, searchText]);
 
   // React Query获取数据（乐观UI：永远不显示loading，数据来了直接渲染）
   const {

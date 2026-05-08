@@ -540,22 +540,35 @@ export interface MistakeRecord {
 interface UseMistakesQueryOptions {
   page?: number;
   pageSize?: number;
+  errorType?: string;
+  predictDirection?: string;
+  gameNumberKeyword?: string;
   enabled?: boolean;
 }
 
 export const useMistakesQuery = (options: UseMistakesQueryOptions) => {
-  const { page = 1, pageSize = 20, enabled = true } = options;
+  const {
+    page = 1,
+    pageSize = 20,
+    errorType,
+    predictDirection,
+    gameNumberKeyword,
+    enabled = true,
+  } = options;
   const queryClient = useQueryClient();
 
   return useQuery<{
     mistakes: MistakeRecord[];
     total: number;
   }>({
-    queryKey: queryKeys.mistakes(page, pageSize),
+    queryKey: queryKeys.mistakes(page, pageSize, errorType || '', predictDirection || '', gameNumberKeyword || ''),
     queryFn: async () => {
             const res = await api.getMistakeRecords({
-                page,
+        page,
         page_size: pageSize,
+        error_type: errorType || undefined,
+        predict_direction: predictDirection || undefined,
+        game_number: gameNumberKeyword || undefined,
       });
       const rawData = res.data.data || [];
       const mapped: MistakeRecord[] = rawData.map((r: unknown) => {
@@ -584,7 +597,7 @@ export const useMistakesQuery = (options: UseMistakesQueryOptions) => {
     enabled: enabled,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
-            return queryClient.getQueryData(queryKeys.mistakes(page, pageSize)) || { mistakes: [], total: 0 };
+            return queryClient.getQueryData(queryKeys.mistakes(page, pageSize, errorType || '', predictDirection || '', gameNumberKeyword || '')) || { mistakes: [], total: 0 };
     },
     notifyOnChangeProps: ['data', 'error'],
   });

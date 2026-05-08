@@ -1134,8 +1134,10 @@ class AILearningService:
     
     async def _write_log(self, **kwargs):
         """写入日志"""
-        log = SystemLog(
-            log_time=datetime.now(),
+        log = await write_game_log(
+            session=self.session,
+            boot_number=kwargs.get("boot_number", 0) or 0,
+            game_number=kwargs.get("game_number"),
             event_code=kwargs.get("event_code", ""),
             event_type=kwargs.get("event_type", ""),
             event_result=kwargs.get("event_result", ""),
@@ -1144,11 +1146,6 @@ class AILearningService:
             priority=kwargs.get("priority", LogPriority.P3),
             source_module="AI学习模块",
             is_pinned=kwargs.get("is_pinned", False),
-            retention_tier="cold_perm"
-            if kwargs.get("priority") == LogPriority.P1
-            else "warm30"
-            if kwargs.get("priority") == LogPriority.P2
-            else "hot7",
         )
-        self.session.add(log)
         await self.session.commit()
+        return log

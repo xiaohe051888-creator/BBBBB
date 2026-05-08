@@ -49,6 +49,26 @@ def _role_label(v: str) -> str:
 def _missing_role_issue(v: str) -> str:
     return f"{_role_label(v)}接口未配置"
 
+
+def _clear_runtime_prediction_snapshot(sess, *, keep_pending_bet: bool = True) -> None:
+    sess.predict_direction = None
+    sess.predict_confidence = None
+    sess.predict_bet_tier = None
+    sess.predict_bet_amount = None
+    sess.banker_summary = None
+    sess.player_summary = None
+    sess.combined_summary = None
+    sess.combined_reasoning_points = None
+    sess.combined_reasoning_detail = None
+    sess.analysis_engine = None
+    sess.analysis_time = None
+    if not keep_pending_bet:
+        sess.pending_bet_direction = None
+        sess.pending_bet_amount = None
+        sess.pending_bet_tier = None
+        sess.pending_bet_time = None
+        sess.pending_game_number = None
+
 @router.get("/ping")
 async def ping():
     return {"ok": True}
@@ -519,8 +539,7 @@ async def get_system_diagnostics(_: dict = Depends(get_current_user)):
 @router.post("/repair")
 async def repair_system(_: dict = Depends(get_current_user)):
     async with async_session() as session:
-        from app.services.game.recovery import recover_on_startup, repair_stuck_state
-        await recover_on_startup(session)
+        from app.services.game.recovery import repair_stuck_state
         repaired = await repair_stuck_state(session)
         return {"success": True, "repaired": repaired}
 
@@ -699,16 +718,22 @@ async def update_prediction_mode(
     async with async_session() as session:
         await _require_test_ok(session)
         from app.services.game.state import get_or_create_state
-        state = await get_or_create_state(session)
-        state.prediction_mode = req.mode
-        await session.commit()
-            
         from app.services.game.session import get_session_lock
         lock = get_session_lock()
         async with lock:
             mem_sess = get_session()
+            keep_waiting = bool(mem_sess.pending_bet_direction and mem_sess.pending_game_number)
+            state = await get_or_create_state(session)
+            state.prediction_mode = req.mode
+            state.status = "等待开奖" if keep_waiting else "空闲"
+            state.predict_direction = None
+            state.predict_confidence = None
+            state.current_bet_tier = "标准"
             mem_sess.prediction_mode = req.mode
-        
+            mem_sess.status = "等待开奖" if keep_waiting else "空闲"
+            _clear_runtime_prediction_snapshot(mem_sess, keep_pending_bet=True)
+            await session.commit()
+
     return {"status": "success", "prediction_mode": req.mode}
 
 

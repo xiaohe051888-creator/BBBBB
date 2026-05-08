@@ -22,6 +22,7 @@ async def write_game_log(
     category: str = "工作流事件",
     priority: str = "P3",
     source_module: str = "ManualGameService",
+    is_pinned: bool = False,
 ) -> SystemLog:
     """写入系统日志并广播到WebSocket"""
     tier = "hot7"
@@ -41,6 +42,7 @@ async def write_game_log(
         category=category,
         priority=priority,
         source_module=source_module,
+        is_pinned=is_pinned,
         task_id=current_task_id.get(),
         retention_tier=tier,
     )

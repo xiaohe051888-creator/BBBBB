@@ -74,6 +74,31 @@ class ApiConfigAndPredictionModeFlowTest(unittest.TestCase):
             state = result.scalar_one()
             return state.prediction_mode
 
+    async def _seed_runtime_prediction_snapshot(self) -> None:
+        from app.services.game.session import get_session
+
+        async with async_session() as session:
+            state = await get_or_create_state(session)
+            state.status = "分析完成"
+            state.predict_direction = "庄"
+            state.predict_confidence = 0.91
+            state.current_bet_tier = "激进"
+            await session.commit()
+
+        mem = get_session()
+        mem.status = "分析完成"
+        mem.predict_direction = "庄"
+        mem.predict_confidence = 0.91
+        mem.predict_bet_tier = "激进"
+        mem.predict_bet_amount = 300
+        mem.banker_summary = "旧庄方向摘要"
+        mem.player_summary = "旧闲方向摘要"
+        mem.combined_summary = "旧综合摘要"
+        mem.combined_reasoning_points = ["旧推理"]
+        mem.combined_reasoning_detail = "旧推理详情"
+        mem.analysis_engine = {"provider": "3ai"}
+        mem.analysis_time = datetime.now(UTC)
+
     def test_saving_single_ai_config_invalidates_previous_test_result(self):
         old_key = "sk-old-1234567890"
         new_key = "sk-new-1234567890"
@@ -148,6 +173,64 @@ class ApiConfigAndPredictionModeFlowTest(unittest.TestCase):
                 "single_ai",
             )
             self.assertEqual(get_session().prediction_mode, "single_ai")
+
+    def test_switching_mode_clears_stale_prediction_snapshot(self):
+        api_key = "sk-pass-clear-1234567890"
+        with TestClient(app) as client:
+            headers = self._login_headers(client)
+            self._save_single_ai_config(
+                client,
+                headers,
+                model="deepseek-chat",
+                api_key=api_key,
+            )
+            self._run_async(
+                self._mark_single_ai_config_tested(
+                    model="deepseek-chat",
+                    api_key=api_key,
+                )
+            )
+            self._run_async(self._seed_runtime_prediction_snapshot())
+
+            mode_res = client.post(
+                "/api/system/prediction-mode",
+                json={"mode": "single_ai"},
+                headers=headers,
+            )
+            self.assertEqual(mode_res.status_code, 200)
+
+            mem = get_session()
+            self.assertEqual(mem.prediction_mode, "single_ai")
+            self.assertEqual(mem.status, "空闲")
+            self.assertIsNone(mem.predict_direction)
+            self.assertIsNone(mem.predict_confidence)
+            self.assertIsNone(mem.predict_bet_tier)
+            self.assertIsNone(mem.predict_bet_amount)
+            self.assertIsNone(mem.banker_summary)
+            self.assertIsNone(mem.player_summary)
+            self.assertIsNone(mem.combined_summary)
+            self.assertIsNone(mem.combined_reasoning_points)
+            self.assertIsNone(mem.combined_reasoning_detail)
+            self.assertIsNone(mem.analysis_engine)
+            self.assertIsNone(mem.analysis_time)
+
+            async def _check_state():
+                async with async_session() as session:
+                    state = await get_or_create_state(session)
+                    return (
+                        state.prediction_mode,
+                        state.status,
+                        state.predict_direction,
+                        state.predict_confidence,
+                        state.current_bet_tier,
+                    )
+
+            prediction_mode, status, predict_direction, predict_confidence, bet_tier = self._run_async(_check_state())
+            self.assertEqual(prediction_mode, "single_ai")
+            self.assertEqual(status, "空闲")
+            self.assertIsNone(predict_direction)
+            self.assertIsNone(predict_confidence)
+            self.assertEqual(bet_tier, "标准")
 
 
 if __name__ == "__main__":

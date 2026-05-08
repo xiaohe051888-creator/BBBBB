@@ -17,13 +17,16 @@ async def detect_stuck_state(db: AsyncSession) -> dict:
     ).scalars().first()
     status = state.status if state else None
     expected_task_type = None
+    accepted_task_types: list[str] = []
     safe_status = None
 
     if status == "分析中":
         expected_task_type = "analysis"
+        accepted_task_types = ["analysis"]
         safe_status = "等待开奖"
     elif status == "深度学习中":
         expected_task_type = "deep_learning"
+        accepted_task_types = ["deep_learning", "ai_learning"]
         safe_status = "等待新靴"
 
     if not expected_task_type:
@@ -33,13 +36,13 @@ async def detect_stuck_state(db: AsyncSession) -> dict:
     mem_running = [
         t
         for t in mem_tasks
-        if t.get("status") == "running" and t.get("task_type") == expected_task_type
+        if t.get("status") == "running" and t.get("task_type") in accepted_task_types
     ]
 
     running = (await db.execute(
         select(BackgroundTask).where(
             BackgroundTask.status == "running",
-            BackgroundTask.task_type == expected_task_type,
+            BackgroundTask.task_type.in_(accepted_task_types),
         )
     )).scalars().all()
 

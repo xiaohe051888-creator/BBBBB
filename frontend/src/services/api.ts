@@ -468,8 +468,15 @@ export const updateSingleAiPromptTemplates = async (payload: {
   return api.post<SingleAiPromptTemplates>('/admin/prompt-templates/single-ai', payload);
 };
 
-export const getDatabaseRecords = async (tableName: string, page: number = 1, pageSize: number = 50) => {
-  return api.get('/admin/database-records', { params: { table_name: tableName, page, page_size: pageSize } });
+export const getDatabaseRecords = async (
+  tableName: string,
+  page: number = 1,
+  pageSize: number = 50,
+  extraParams?: Record<string, string | number | undefined>,
+) => {
+  return api.get('/admin/database-records', {
+    params: { table_name: tableName, page, page_size: pageSize, ...(extraParams || {}) },
+  });
 };
 
 // ====== 走势图 API ======
@@ -559,6 +566,9 @@ export const getMistakeRecords = async (params: {
   boot_number?: number;
   page?: number;
   page_size?: number;
+  error_type?: string;
+  predict_direction?: string;
+  game_number?: string;
 }) => {
   return api.get('/admin/database-records', { params: { ...params, table_name: 'mistake_book' } });
 };

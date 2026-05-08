@@ -54,7 +54,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func, cast, String
 
 from app.core.config import settings
 from app.core.database import init_db, async_session, close_db
@@ -270,6 +270,9 @@ async def get_database_records(
     table_name: str = Query(..., pattern="^(game_records|bet_records|system_logs|mistake_book)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
+    error_type: str | None = Query(None),
+    predict_direction: str | None = Query(None),
+    game_number: str | None = Query(None),
     _: dict = Depends(get_current_user),
 ):
     """查看数据库记录（需认证）"""
@@ -283,7 +286,22 @@ async def get_database_records(
     model = table_map[table_name]
     
     async with async_session() as session:
-        query = select(model).order_by(desc(model.id)).offset((page - 1) * page_size).limit(page_size)
+        query = select(model)
+        if table_name == "mistake_book":
+            if error_type:
+                query = query.where(MistakeBook.error_type == error_type)
+            if predict_direction:
+                query = query.where(MistakeBook.predict_direction == predict_direction)
+            if game_number:
+                query = query.where(cast(MistakeBook.game_number, String).contains(game_number))
+
+        total = (
+            await session.execute(
+                select(func.count()).select_from(query.subquery())
+            )
+        ).scalar() or 0
+
+        query = query.order_by(desc(model.id)).offset((page - 1) * page_size).limit(page_size)
         result = await session.execute(query)
         records = result.scalars().all()
         
@@ -299,7 +317,7 @@ async def get_database_records(
                 row[column.name] = val
             data.append(row)
         
-        return {"table": table_name, "data": data, "page": page, "page_size": page_size}
+        return {"table": table_name, "data": data, "page": page, "page_size": page_size, "total": total}
 
 
 # ============ WebSocket路由 ============

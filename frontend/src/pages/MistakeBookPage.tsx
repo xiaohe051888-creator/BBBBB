@@ -19,6 +19,7 @@ import {
   formatDetailLabel,
   formatReviewLabel,
 } from '../utils/beginnerCopy';
+import { buildMistakeQueryParams } from './mistakeQuery';
 
 // 错误类型映射
 const ERROR_TYPE_MAP: Record<string, { color: string; label: string; desc: string }> = {
@@ -102,17 +103,25 @@ const MistakeBookPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // React Query获取数据（乐观UI：立即显示缓存数据）
-  const { data: mistakesData } = useMistakesQuery({});
-
-  // 使用useMemo缓存数据，避免useMemo依赖变化
-  const mistakes = useMemo(() => mistakesData?.mistakes || [], [mistakesData]);
-  const total = useMemo(() => mistakesData?.total || 0, [mistakesData]);
-
   // 筛选状态
   const [filterErrorType, setFilterErrorType] = useState<string>('');
   const [filterPredictDir, setFilterPredictDir] = useState<string>('');
   const [searchGameNumber, setSearchGameNumber] = useState('');
+
+  const queryParams = useMemo(() => buildMistakeQueryParams({
+    page,
+    pageSize,
+    errorType: filterErrorType,
+    predictDirection: filterPredictDir,
+    gameNumberKeyword: searchGameNumber,
+  }), [page, pageSize, filterErrorType, filterPredictDir, searchGameNumber]);
+
+  // React Query获取数据（乐观UI：立即显示缓存数据）
+  const { data: mistakesData } = useMistakesQuery(queryParams);
+
+  // 使用useMemo缓存数据，避免useMemo依赖变化
+  const mistakes = useMemo(() => mistakesData?.mistakes || [], [mistakesData]);
+  const total = useMemo(() => mistakesData?.total || 0, [mistakesData]);
 
   // 详情弹窗
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -153,16 +162,6 @@ const MistakeBookPage: React.FC = () => {
       latestBootNumber: latestBoot,
     };
   }, [mistakes, total]);
-
-  // 筛选后的数据（客户端筛选）
-  const filtered = useMemo(() => {
-    return mistakes.filter(m => {
-      if (filterErrorType && m.error_type !== filterErrorType) return false;
-      if (filterPredictDir && m.predict_direction !== filterPredictDir) return false;
-      if (searchGameNumber && !String(m.game_number).includes(searchGameNumber)) return false;
-      return true;
-    });
-  }, [mistakes, filterErrorType, filterPredictDir, searchGameNumber]);
 
   // 表格列定义 - 自适应宽度，无横向滚动
   const columns: ColumnsType<MistakeRecord> = [
@@ -265,7 +264,7 @@ const MistakeBookPage: React.FC = () => {
             <Icons.Experiment />
             {formatReviewLabel('pageTitle')}
           </span>
-          <Badge count={filtered.length} showZero style={{ backgroundColor: filtered.length > 10 ? '#ff4d4f' : '#58a6ff' }} />
+          <Badge count={total} showZero style={{ backgroundColor: total > 10 ? '#ff4d4f' : '#58a6ff' }} />
         </div>
         <div className="page-nav-right mobile-action-row">
           <Button 
@@ -352,7 +351,7 @@ const MistakeBookPage: React.FC = () => {
             placeholder={formatReviewLabel('errorTypeFilter')}
             allowClear
             value={filterErrorType || undefined}
-            onChange={setFilterErrorType}
+            onChange={(v) => { setFilterErrorType(v || ''); setPage(1); }}
             className="mobile-fill-control"
             style={{ width: 130 }}
             size="small"
@@ -363,7 +362,7 @@ const MistakeBookPage: React.FC = () => {
             placeholder={formatReviewLabel('directionFilter')}
             allowClear
             value={filterPredictDir || undefined}
-            onChange={setFilterPredictDir}
+            onChange={(v) => { setFilterPredictDir(v || ''); setPage(1); }}
             className="mobile-fill-control"
             style={{ width: 110 }}
             size="small"
@@ -377,7 +376,7 @@ const MistakeBookPage: React.FC = () => {
             placeholder={formatReviewLabel('gameSearch')}
             size="small"
             value={searchGameNumber}
-            onChange={(e) => setSearchGameNumber(e.target.value)}
+            onChange={(e) => { setSearchGameNumber(e.target.value); setPage(1); }}
             prefix={<Icons.Search />}
             className="mobile-fill-control"
             style={{ width: 120 }}
@@ -389,13 +388,14 @@ const MistakeBookPage: React.FC = () => {
               setFilterErrorType('');
               setFilterPredictDir('');
               setSearchGameNumber('');
+              setPage(1);
             }}
           >
             重置
           </Button>
 
           <span style={{ marginLeft: isMobile ? 0 : 'auto', color: '#8b949e', fontSize: 13 }}>
-            共 {filtered.length} 条记录
+            共 {total} 条记录
           </span>
         </Space>
       </Card>
@@ -404,7 +404,7 @@ const MistakeBookPage: React.FC = () => {
       <Card size="small">
         <Table
           className="mobile-card-table"
-          dataSource={filtered}
+          dataSource={mistakes}
           columns={columns.map(col => ({
             ...col,
             onCell: () => ({
@@ -416,7 +416,7 @@ const MistakeBookPage: React.FC = () => {
           pagination={{
             current: page,
             pageSize: pageSize,
-            total: filtered.length,
+            total,
             onChange: (p, ps) => { setPage(p); if (ps !== pageSize) setPageSize(ps); },
             showSizeChanger: true,
             showTotal: total => `共 ${total} 条`,

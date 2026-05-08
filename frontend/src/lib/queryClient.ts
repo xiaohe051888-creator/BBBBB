@@ -42,7 +42,13 @@ export const queryKeys = {
   // 下注记录
   bets: (page: number = 1, pageSize: number = 20) => ['bets', page, pageSize] as const,
   // 复盘记录
-  mistakes: (page: number = 1, pageSize: number = 20) => ['mistakes', page, pageSize] as const,
+  mistakes: (
+    page: number = 1,
+    pageSize: number = 20,
+    errorType: string = '',
+    predictDirection: string = '',
+    gameNumberKeyword: string = '',
+  ) => ['mistakes', page, pageSize, errorType, predictDirection, gameNumberKeyword] as const,
   // 走势图
   roads: () => ['roads'] as const,
   // AI分析

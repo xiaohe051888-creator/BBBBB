@@ -34,6 +34,7 @@ import { StartLearningModal } from '../components/dashboard/StartLearningModal';
 import { ApiConfigModal } from '../components/admin/ApiConfigModal';
 import { shouldCloseApiConfigModalAfterSave } from '../components/admin/apiConfigFlow';
 import { useQueryClient } from '@tanstack/react-query';
+import { buildAdminDbTableColumns } from './adminDbColumns';
 
 // 精致图标组件
 const Icons = {
@@ -227,6 +228,7 @@ const AdminPage: React.FC = () => {
   const [modelVersions, setModelVersions] = useState<any[]>([]);
   const [modelVersionModeFilter, setModelVersionModeFilter] = useState<'all' | 'ai' | 'single_ai'>('all');
   const [dbRecords, setDbRecords] = useState<any[]>([]);
+  const [dbTotal, setDbTotal] = useState(0);
   const [dbTable, setDbTable] = useState('game_records');
   const [dbPage, setDbPage] = useState(1);
   const [maintenanceStats, setMaintenanceStats] = useState<api.AdminMaintenanceStatsResponse | null>(null);
@@ -339,6 +341,7 @@ const AdminPage: React.FC = () => {
     try {
       const res = await api.getDatabaseRecords(dbTable, dbPage);
       setDbRecords(res.data.data || []);
+      setDbTotal(res.data.total || 0);
     } catch {
       // 加载失败，静默处理
     }
@@ -583,18 +586,6 @@ const AdminPage: React.FC = () => {
       });
     }
   };
-
-  const tableColumns = [
-    { title: '编号', dataIndex: 'id', width: '8%' },
-    
-    { title: '靴号', dataIndex: 'boot_number', width: '8%', align: 'center' as const },
-    { title: '局号', dataIndex: 'game_number', width: '8%', align: 'center' as const },
-    { title: '结果', dataIndex: 'result', width: '8%', align: 'center' as const },
-    { title: '预测', dataIndex: 'predict_direction', width: '8%', align: 'center' as const },
-    { title: '正确', dataIndex: 'predict_correct', width: '8%', align: 'center' as const, render: (v: boolean | null) => v === null ? '-' : v ? <Tag color="success" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}><Icons.Check /> 是</Tag> : <Tag color="error" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}><Icons.Close /> 否</Tag> },
-    { title: '盈亏', dataIndex: 'profit_loss', width: '12%', align: 'center' as const },
-    { title: '余额', dataIndex: 'balance_after', width: '12%', align: 'center' as const },
-  ];
 
   return (
     <div className="page-wrapper admin-page" style={{ padding: '16px' }}>
@@ -1206,11 +1197,11 @@ const AdminPage: React.FC = () => {
                   <Table
                     className="mobile-card-table admin-db-table"
                     dataSource={dbRecords}
-                    columns={withMobileTableLabels(tableColumns)}
+                    columns={withMobileTableLabels(buildAdminDbTableColumns(dbTable as 'game_records' | 'bet_records' | 'system_logs' | 'mistake_book') as any[])}
                     rowKey="id"
                     size="small"
                     scroll={{ x: 'max-content' }}
-                    pagination={{ current: dbPage, pageSize: 50, onChange: setDbPage, total: 1000 }}
+                    pagination={{ current: dbPage, pageSize: 50, onChange: setDbPage, total: dbTotal }}
                   />
                 </Card>
               </Space>
