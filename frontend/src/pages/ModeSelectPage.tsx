@@ -3,10 +3,10 @@ import { Alert, App, Button, Card, Space, Tag } from 'antd';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '../services/api';
 import { isModeSelected, markModeSelected } from '../utils/modeSelection';
-import { formatAdminModeName, formatAiRoleLabel, formatModeSelectLabel } from '../utils/beginnerCopy';
+import { formatAdminModeName, formatModeSelectLabel } from '../utils/beginnerCopy';
+import { buildModeReadiness } from './modeReadiness';
 
 type Mode = 'ai' | 'single_ai' | 'rule';
-type ModelEntry = Partial<api.ThreeModelStatus['models']['banker']>;
 
 const ModeSelectPage: React.FC = () => {
   const navigate = useNavigate();
@@ -43,33 +43,7 @@ const ModeSelectPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const readiness = useMemo(() => {
-    const models = threeModelStatus?.models;
-    const banker = models?.banker;
-    const player = models?.player;
-    const combined = models?.combined;
-    const single = models?.single;
-
-    const missing3Ai: string[] = [];
-    const missingSingle: string[] = [];
-
-    const check = (m: ModelEntry | undefined, label: string, out: string[]) => {
-      if (!m?.api_key_set) out.push(`${label}${formatModeSelectLabel('notConfigured')}`);
-      else if (!m?.last_test_ok) out.push(`${label}${formatModeSelectLabel('notReady')}`);
-    };
-
-    check(banker, formatAiRoleLabel('banker', 'config'), missing3Ai);
-    check(player, formatAiRoleLabel('player', 'config'), missing3Ai);
-    check(combined, formatAiRoleLabel('combined', 'config'), missing3Ai);
-    check(single, formatAiRoleLabel('single'), missingSingle);
-
-    return {
-      aiReady: !!threeModelStatus?.ai_ready_for_enable,
-      singleReady: !!threeModelStatus?.single_ai_ready_for_enable,
-      missing3Ai,
-      missingSingle,
-    };
-  }, [threeModelStatus]);
+  const readiness = useMemo(() => buildModeReadiness(threeModelStatus), [threeModelStatus]);
 
   const applyMode = async (mode: Mode) => {
     setLoading(true);

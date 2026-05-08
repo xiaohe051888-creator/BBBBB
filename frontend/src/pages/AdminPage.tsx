@@ -35,6 +35,7 @@ import { ApiConfigModal } from '../components/admin/ApiConfigModal';
 import { shouldCloseApiConfigModalAfterSave } from '../components/admin/apiConfigFlow';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildAdminDbTableColumns } from './adminDbColumns';
+import { buildModeReadiness } from './modeReadiness';
 
 // 精致图标组件
 const Icons = {
@@ -235,6 +236,7 @@ const AdminPage: React.FC = () => {
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
   const [aiLearningStatus, setAiLearningStatus] = useState<any>(null);
   const [threeModelStatus, setThreeModelStatus] = useState<any>(null);
+  const modeReadiness = useMemo(() => buildModeReadiness(threeModelStatus), [threeModelStatus]);
   const [systemTasks, setSystemTasks] = useState<api.BackgroundTaskItem[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [singleAiPromptLoading, setSingleAiPromptLoading] = useState(false);
@@ -675,7 +677,7 @@ const AdminPage: React.FC = () => {
                           <Button
                             className="admin-mode-option-action"
                             type="primary"
-                            disabled={predictionMode === 'ai' || !threeModelStatus?.ai_ready_for_enable}
+                            disabled={predictionMode === 'ai' || !modeReadiness.aiReady}
                             loading={updatingMode}
                             onClick={async () => {
                               await applyModeChange('ai');
@@ -708,7 +710,7 @@ const AdminPage: React.FC = () => {
                           <Button
                             className="admin-mode-option-action"
                             type="primary"
-                            disabled={predictionMode === 'single_ai' || !threeModelStatus?.single_ai_ready_for_enable}
+                            disabled={predictionMode === 'single_ai' || !modeReadiness.singleReady}
                             loading={updatingMode}
                             onClick={async () => {
                               await applyModeChange('single_ai');
