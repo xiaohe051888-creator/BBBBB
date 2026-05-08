@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from app.api.main import app
 from app.core.config import settings
 from app.core.database import async_session, init_db
-from app.models.schemas import GameRecord, SystemState
+from app.models.schemas import AiModelConfig, GameRecord, SystemState
 from app.services.game.session import clear_session, get_session
 from app.services.game.state import get_or_create_state
 
@@ -19,6 +19,7 @@ from app.services.game.state import get_or_create_state
 class StartupLifespanRecoveryFlowTest(unittest.TestCase):
     def setUp(self) -> None:
         self._original_single_ai_api_key = getattr(settings, "SINGLE_AI_API_KEY", "")
+        self._run_async(self._clear_single_ai_config())
 
     def tearDown(self) -> None:
         setattr(settings, "SINGLE_AI_API_KEY", self._original_single_ai_api_key)
@@ -26,6 +27,7 @@ class StartupLifespanRecoveryFlowTest(unittest.TestCase):
             os.environ["SINGLE_AI_API_KEY"] = self._original_single_ai_api_key
         else:
             os.environ.pop("SINGLE_AI_API_KEY", None)
+        self._run_async(self._clear_single_ai_config())
         clear_session()
 
     def _run_async(self, coro):
@@ -58,6 +60,12 @@ class StartupLifespanRecoveryFlowTest(unittest.TestCase):
                         prediction_mode=prediction_mode,
                     )
                 )
+            await session.commit()
+
+    async def _clear_single_ai_config(self) -> None:
+        await init_db()
+        async with async_session() as session:
+            await session.execute(delete(AiModelConfig).where(AiModelConfig.role == "single"))
             await session.commit()
 
     async def _get_db_state(self) -> SystemState:

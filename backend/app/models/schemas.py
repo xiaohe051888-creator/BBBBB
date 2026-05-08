@@ -351,6 +351,7 @@ class AiModelConfig(Base):
     base_url = Column(String(200), nullable=True)
     api_key_encrypted = Column(Text, nullable=True)
     api_key_last4 = Column(String(8), nullable=True)
+    realtime_strategy_prompt_b64 = Column(Text, nullable=True)
     config_hash = Column(String(64), nullable=False)
     last_test_ok = Column(Boolean, default=False, nullable=False)
     last_test_at = Column(DateTime, nullable=True)

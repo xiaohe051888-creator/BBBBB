@@ -23,7 +23,11 @@ from app.api.routes.schemas import (
 )
 from app.api.routes.utils import get_current_user
 from app.api.routes.api_key_resolution import resolve_api_key_for_role
-from app.services.ai_config_store import apply_ai_role_runtime_config, encrypt_api_key
+from app.services.ai_config_store import (
+    apply_ai_role_runtime_config,
+    apply_single_ai_runtime_prompt_template,
+    encrypt_api_key,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["认证"])
 
@@ -153,11 +157,26 @@ async def get_single_ai_prompt_templates(_: dict = Depends(get_current_user)):
             result2 = await session.execute(stmt2)
             v = result2.scalar_one_or_none()
 
+        single_cfg = await session.get(AiModelConfig, "single")
+
+    realtime_strategy_template = getattr(
+        settings,
+        "SINGLE_AI_REALTIME_STRATEGY_PROMPT_TEMPLATE",
+        "",
+    ) or ""
+    if not realtime_strategy_template and single_cfg and getattr(single_cfg, "realtime_strategy_prompt_b64", ""):
+        try:
+            realtime_strategy_template = base64.urlsafe_b64decode(
+                single_cfg.realtime_strategy_prompt_b64.encode("utf-8")
+            ).decode("utf-8")
+        except Exception:
+            realtime_strategy_template = ""
+
     return SingleAiPromptTemplatesResponse(
         prediction_mode="single_ai",
         active_version=v.version if v else None,
         prediction_template=v.prompt_template if v else None,
-        realtime_strategy_template=getattr(settings, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_TEMPLATE", "") or None,
+        realtime_strategy_template=realtime_strategy_template or None,
     ).model_dump()
 
 
@@ -207,8 +226,34 @@ async def update_single_ai_prompt_templates(
     if req.realtime_strategy_template is not None:
         raw = req.realtime_strategy_template or ""
         b64 = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("utf-8") if raw else ""
-        os.environ["SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64"] = b64
-        setattr(settings, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", b64)
+        apply_single_ai_runtime_prompt_template(b64)
+
+        async with async_session() as session:
+            existing = await session.get(AiModelConfig, "single")
+            if existing is None:
+                provider = "deepseek"
+                model = getattr(settings, "SINGLE_AI_MODEL", "") or "deepseek-v4-pro"
+                base_url = getattr(settings, "SINGLE_AI_API_BASE", "") or ""
+                api_key = getattr(settings, "SINGLE_AI_API_KEY", "") or ""
+                session.add(
+                    AiModelConfig(
+                        role="single",
+                        provider=provider,
+                        model=model,
+                        base_url=base_url,
+                        api_key_encrypted=encrypt_api_key(api_key),
+                        api_key_last4=(api_key[-4:] if api_key else ""),
+                        realtime_strategy_prompt_b64=b64,
+                        config_hash=compute_config_hash(provider, model, api_key, base_url or None),
+                        last_test_ok=False,
+                        last_test_at=None,
+                        last_test_error=None,
+                        last_test_config_hash=None,
+                    )
+                )
+            else:
+                existing.realtime_strategy_prompt_b64 = b64
+            await session.commit()
 
         if settings.ENVIRONMENT.lower() != "production":
             write_env_updates(

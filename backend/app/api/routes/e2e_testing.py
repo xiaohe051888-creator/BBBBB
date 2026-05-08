@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete
 
 from app.api.routes.utils import get_current_user
-from app.core.config import settings
 from app.core.database import async_session
 from app.models.schemas import BackgroundTask, BetRecord, GameRecord, MistakeBook, SystemLog
 from app.services.game.state import get_or_create_state
@@ -17,9 +16,20 @@ from app.services.game.upload import upload_games
 router = APIRouter(prefix="/api/admin/e2e", tags=["E2E测试"])
 
 
+def _settings():
+    from app.core.config import settings
+
+    return settings
+
+
 def _require_enabled():
+    settings = _settings()
     if (not settings.E2E_TESTING) or (settings.ENVIRONMENT == "production"):
         raise HTTPException(status_code=404, detail="Not Found")
+
+
+def require_e2e_enabled() -> None:
+    _require_enabled()
 
 
 class ResetReq(BaseModel):
@@ -57,9 +67,8 @@ class SeedMistakesReq(BaseModel):
     prediction_mode: Literal["rule", "single_ai", "ai"] = "rule"
 
 
-@router.post("/reset")
+@router.post("/reset", dependencies=[Depends(require_e2e_enabled)])
 async def e2e_reset(req: ResetReq, _: dict = Depends(get_current_user)):
-    _require_enabled()
     async with async_session() as db:
         if req.scope in ("all", "games"):
             await db.execute(delete(GameRecord))
@@ -77,15 +86,14 @@ async def e2e_reset(req: ResetReq, _: dict = Depends(get_current_user)):
         state.status = "空闲"
         state.prediction_mode = req.prediction_mode
         if not req.keep_balance:
-            state.balance = settings.DEFAULT_BALANCE
+            state.balance = _settings().DEFAULT_BALANCE
 
         await db.commit()
     return {"ok": True}
 
 
-@router.post("/seed/games")
+@router.post("/seed/games", dependencies=[Depends(require_e2e_enabled)])
 async def e2e_seed_games(req: SeedGamesReq, _: dict = Depends(get_current_user)):
-    _require_enabled()
     results = []
     for i in range(req.count):
         n = i + 1
@@ -115,9 +123,8 @@ async def e2e_seed_games(req: SeedGamesReq, _: dict = Depends(get_current_user))
     return {"ok": True, "boot_number": req.boot_number, "count": req.count}
 
 
-@router.post("/seed/bets")
+@router.post("/seed/bets", dependencies=[Depends(require_e2e_enabled)])
 async def e2e_seed_bets(req: SeedBetsReq, _: dict = Depends(get_current_user)):
-    _require_enabled()
     async with async_session() as db:
         state = await get_or_create_state(db)
         balance = Decimal(str(state.balance))
@@ -146,9 +153,8 @@ async def e2e_seed_bets(req: SeedBetsReq, _: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
-@router.post("/seed/logs")
+@router.post("/seed/logs", dependencies=[Depends(require_e2e_enabled)])
 async def e2e_seed_logs(req: SeedLogsReq, _: dict = Depends(get_current_user)):
-    _require_enabled()
     async with async_session() as db:
         now = datetime.now()
         for i in range(req.count):
@@ -169,9 +175,8 @@ async def e2e_seed_logs(req: SeedLogsReq, _: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
-@router.post("/seed/mistakes")
+@router.post("/seed/mistakes", dependencies=[Depends(require_e2e_enabled)])
 async def e2e_seed_mistakes(req: SeedMistakesReq, _: dict = Depends(get_current_user)):
-    _require_enabled()
     async with async_session() as db:
         await db.execute(delete(MistakeBook).where(MistakeBook.boot_number == req.boot_number))
         for i in range(req.count):

@@ -18,6 +18,15 @@ ROLE_ENV_MAP = {
 }
 
 
+def apply_single_ai_runtime_prompt_template(prompt_b64: str | None) -> None:
+    value = prompt_b64 or ""
+    setattr(settings, "SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", value)
+    if value:
+        os.environ["SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64"] = value
+    else:
+        os.environ.pop("SINGLE_AI_REALTIME_STRATEGY_PROMPT_B64", None)
+
+
 def _fernet() -> Fernet:
     secret = (os.getenv("JWT_SECRET_KEY") or getattr(settings, "JWT_SECRET_KEY", "") or "dev-jwt-secret").encode("utf-8")
     key = base64.urlsafe_b64encode(hashlib.sha256(secret).digest())
@@ -75,5 +84,9 @@ async def load_saved_ai_model_configs() -> int:
             base_url=getattr(row, "base_url", "") or "",
             api_key=decrypt_api_key(getattr(row, "api_key_encrypted", "") or ""),
         )
+        if role == "single":
+            apply_single_ai_runtime_prompt_template(
+                getattr(row, "realtime_strategy_prompt_b64", "") or ""
+            )
         restored += 1
     return restored
