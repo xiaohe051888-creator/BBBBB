@@ -214,6 +214,7 @@ interface UseAnalysisQueryOptions {
 export const useAnalysisQuery = (options: UseAnalysisQueryOptions) => {
   const { enabled = true } = options;
   const queryClient = useQueryClient();
+  const authed = !!api.getToken();
 
   return useQuery<AnalysisData | null>({
     queryKey: queryKeys.analysis(),
@@ -236,7 +237,7 @@ export const useAnalysisQuery = (options: UseAnalysisQueryOptions) => {
       }
       return null;
     },
-    enabled: enabled,
+    enabled: enabled && authed,
     // 乐观UI：使用缓存数据立即显示
     placeholderData: () => {
             return queryClient.getQueryData(queryKeys.analysis()) || null;

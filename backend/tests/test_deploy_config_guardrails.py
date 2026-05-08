@@ -75,6 +75,16 @@ class DeployConfigGuardrailsTest(unittest.TestCase):
         self.assertIn("envVarKey: RENDER_EXTERNAL_URL", render)
         self.assertNotIn("baccarat-backend.onrender.com", render)
 
+    def test_prod_compose_does_not_publish_postgres_port(self):
+        content = (ROOT / "docker-compose.prod.yml").read_text(encoding="utf-8")
+        self.assertNotIn('"5432:5432"', content)
+
+    def test_prod_compose_overrides_postgres_default_credentials(self):
+        content = (ROOT / "docker-compose.prod.yml").read_text(encoding="utf-8")
+        self.assertIn("POSTGRES_USER=${POSTGRES_USER}", content)
+        self.assertIn("POSTGRES_PASSWORD=${POSTGRES_PASSWORD}", content)
+        self.assertIn("POSTGRES_DB=${POSTGRES_DB}", content)
+
 
 if __name__ == "__main__":
     unittest.main()

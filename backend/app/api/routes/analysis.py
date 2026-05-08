@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api", tags=["AI分析"])
 
 
 @router.get("/analysis/latest")
-async def get_latest_analysis():
+async def get_latest_analysis(_: dict = Depends(get_current_user)):
     """获取最新一局的AI三模型分析结果"""
     from app.services.game import get_current_state
     

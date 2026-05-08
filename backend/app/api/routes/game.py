@@ -228,7 +228,7 @@ async def end_current_boot(
 
 
 @router.get("/deep-learning-status")
-async def get_deep_learning_status():
+async def get_deep_learning_status(_: dict = Depends(get_current_user)):
     """获取深度学习状态"""
     from app.services.game import get_session
     
@@ -242,7 +242,7 @@ async def get_deep_learning_status():
 
 
 @router.get("/current-state")
-async def get_game_current_state():
+async def get_game_current_state(_: dict = Depends(get_current_user)):
     """获取当前游戏内存状态（等待开奖、预测结果等）"""
     from app.services.game import get_current_state
     return await get_current_state()
