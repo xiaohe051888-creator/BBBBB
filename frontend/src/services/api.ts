@@ -553,7 +553,7 @@ export const getLatestAnalysis = async () => {
   return api.get<LatestAnalysis>('/analysis/latest', { params: { } });
 };
 
-// ====== 错题本 ======
+// ====== 复盘记录 ======
 
 export const getMistakeRecords = async (params: {
   boot_number?: number;
@@ -572,19 +572,19 @@ export interface AILearningStatus {
   max_versions: number;
 }
 
-/** 启动AI学习（需管理员认证） */
+/** 启动系统学习优化（需管理员认证） */
 export const startAiLearning = async (bootNumber: number, mode: 'ai' | 'single_ai') => {
   return api.post('/admin/ai-learning/start', null, {
     params: { boot_number: bootNumber, mode },
   });
 };
 
-/** 获取AI学习状态（需管理员认证） */
+/** 获取系统学习优化状态（需管理员认证） */
 export const getAiLearningStatus = async () => {
   return api.get<AILearningStatus>('/admin/ai-learning/status');
 };
 
-// ====== 三模型状态 ======
+// ====== 模式配置状态 ======
 
 export interface ThreeModelStatus {
   status: 'ready' | 'incomplete';

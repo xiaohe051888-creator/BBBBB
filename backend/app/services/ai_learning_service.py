@@ -116,7 +116,7 @@ class AILearningService:
         from app.core.config import settings
         if prediction_mode == "single_ai":
             if not (settings.SINGLE_AI_API_KEY and len(settings.SINGLE_AI_API_KEY) > 10):
-                return False, "未配置单AI模式接口密钥，无法启动深度学习"
+                return False, "未配置单AI快速模式访问密钥，无法启动系统学习优化"
         else:
             api_configured = bool(
                 (settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10)
@@ -124,7 +124,7 @@ class AILearningService:
                 and (settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 10)
             )
             if not api_configured:
-                return False, "未配置完整3AI模式接口密钥（庄/闲/综合），无法启动深度学习"
+                return False, "未配置完整三模型协作模式访问密钥（庄方向/闲方向/综合判断），无法启动系统学习优化"
 
         if boot_number == 0:
             stmt = select(func.count()).select_from(
@@ -473,7 +473,7 @@ class AILearningService:
             )
             return await client.call(prompt)
 
-        raise RuntimeError("未配置3AI模式接口密钥，无法启动深度学习")
+        raise RuntimeError("未配置三模型协作模式访问密钥，无法启动系统学习优化")
     
     async def _create_model_version(
         self,

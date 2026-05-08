@@ -1,6 +1,6 @@
 /**
  * 系统诊断 Hook
- * 实时监控：实时推送连接状态、后端服务、AI模型状态、错误告警
+ * 实时监控：实时推送连接状态、服务状态、AI 配置状态、错误告警
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as api from '../services/api';
@@ -30,12 +30,12 @@ export interface SystemDiagnostics {
   wsLastMessage: Date | null;
   wsReconnectCount: number;
 
-  // 后端服务
+  // 服务状态
   backendStatus: ServiceStatus;
   backendLatency: number | null;     // ms
   lastBackendCheck: Date | null;
 
-  // AI模型状态
+  // AI 配置状态
   aiModels: AIModelStatus[];
   aiAnyOk: boolean;
   aiAllOk: boolean;
@@ -49,7 +49,7 @@ export interface SystemDiagnostics {
   // 系统整体健康
   overallHealth: 'healthy' | 'warning' | 'critical' | 'unknown';
 
-  // 后台任务摘要
+  // 系统处理摘要
   backgroundTasks: {
     runningCount: number;
     runningTypes: string[];

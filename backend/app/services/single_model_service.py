@@ -175,9 +175,9 @@ class SingleModelService:
                     "final_prediction": "庄",
                     "confidence": 0.5,
                     "bet_tier": "标准",
-                    "summary": "单AI模式未配置接口密钥，返回模拟结果",
-                    "reasoning_points": ["单AI模式未配置接口密钥，当前为模拟输出"],
-                    "reasoning_detail": "单AI模式未配置接口密钥，因此无法调用模型进行推理。本次展示为模拟结果，仅用于流程联调。",
+                    "summary": "单AI快速模式未配置访问密钥，当前返回演示结果",
+                    "reasoning_points": ["单AI快速模式未配置访问密钥，当前为演示输出"],
+                    "reasoning_detail": "单AI快速模式未配置访问密钥，因此暂时无法调用模型进行推理。本次展示为演示结果，仅用于流程联调。",
                 },
                 ensure_ascii=False,
             )
@@ -226,16 +226,16 @@ class SingleModelService:
                 "final_prediction": "庄",
                 "confidence": 0.0,
                 "bet_tier": "保守",
-                "summary": f"单AI模式调用失败: {str(last_error)[:200]}",
+                "summary": f"单AI快速模式调用失败: {str(last_error)[:200]}",
                 "reasoning_points": ["上游接口调用失败，已触发安全降级输出"],
-                "reasoning_detail": f"单AI模式调用上游接口失败，因此无法获得完整推理结果。错误摘要：{str(last_error)[:200]}",
+                "reasoning_detail": f"单AI快速模式调用上游接口失败，因此无法获得完整推理结果。错误摘要：{str(last_error)[:200]}",
             },
             ensure_ascii=False,
         )
 
     async def _call_raw(self, prompt: str) -> str:
         if not settings.SINGLE_AI_API_KEY:
-            return "单AI模式未配置接口密钥，无法提取实时策略。"
+            return "单AI快速模式未配置访问密钥，无法提取实时策略。"
 
         base_url = settings.SINGLE_AI_API_BASE or "https://api.deepseek.com/v1"
         url = f"{base_url.rstrip('/')}/chat/completions"

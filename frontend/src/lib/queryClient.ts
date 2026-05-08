@@ -41,7 +41,7 @@ export const queryKeys = {
   games: (page: number = 1, pageSize: number = 20) => ['games', page, pageSize] as const,
   // 下注记录
   bets: (page: number = 1, pageSize: number = 20) => ['bets', page, pageSize] as const,
-  // 错题本
+  // 复盘记录
   mistakes: (page: number = 1, pageSize: number = 20) => ['mistakes', page, pageSize] as const,
   // 走势图
   roads: () => ['roads'] as const,

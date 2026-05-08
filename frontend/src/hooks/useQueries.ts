@@ -288,7 +288,7 @@ export const useRevealResultMutation = () => {
       queryClient.invalidateQueries({ queryKey: ['bets'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.roads() });
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
-      // 补齐对错题本和 AI 记忆的刷新，防止因缓存导致复盘数据不更新
+      // 补齐对复盘记录和 AI 记忆的刷新，防止因缓存导致复盘数据不更新
       queryClient.invalidateQueries({ queryKey: ['mistakes'] });
     },
   });

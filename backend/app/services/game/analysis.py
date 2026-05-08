@@ -64,7 +64,7 @@ async def run_ai_analysis(
             # 构建五路走势供AI参考
             engine = UnifiedRoadEngine()
             
-            # 获取错题本（需要在设置错误标记之前）
+            # 获取复盘记录（需要在设置错误标记之前）
             # 修复重大业务 Bug: 移除 `.limit(5)` 硬编码限制
             # 必须将本靴内发生的所有错误血迹完整传递给 AI 引擎，否则会导致 AI 看到的五路图错题标记残缺，胜率大幅下降
             stmt2 = select(MistakeBook).where(
@@ -244,7 +244,7 @@ async def run_ai_analysis(
                     "bet_tier": "保守", 
                     "summary": f"系统异常，AI回退安全输出: {str(e)}",
                     "reasoning_points": ["系统异常触发回退输出"],
-                    "reasoning_detail": f"3AI分析发生异常，无法完成推理，已输出安全结果。错误摘要：{str(e)[:200]}",
+                    "reasoning_detail": f"三模型协作分析发生异常，无法完成推理，已输出安全结果。错误摘要：{str(e)[:200]}",
                 },
                 "banker_model": {"summary": "分析失败"},
                 "player_model": {"summary": "分析失败"},
