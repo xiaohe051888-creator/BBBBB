@@ -347,7 +347,7 @@ class ThreeModelService:
             boot_number: 靴号
             game_history: 历史开奖记录
             road_data: 五路走势图数据
-            mistake_context: 错题本上下文
+            mistake_context: 复盘记录上下文
             consecutive_errors: 连续失准次数
         
         Returns:
@@ -683,7 +683,7 @@ class ThreeModelService:
 走势图可视化（含血迹标记）：
 {road_visual}
 
-历史错误分析（错题本）：
+历史错误分析（复盘记录）：
 {mistake_str}
 
 连续失准次数：{consecutive_errors}
@@ -895,9 +895,9 @@ class ThreeModelService:
         return "\n".join(lines) if lines else "暂无走势图数据"
     
     def _format_mistakes(self, mistakes: List[Dict]) -> str:
-        """格式化错题本"""
+        """格式化复盘记录"""
         if not mistakes:
-            return "本靴无错题记录"
+            return "本靴无复盘记录"
         
         lines = []
         for m in mistakes[-15:]:  # 最近15条

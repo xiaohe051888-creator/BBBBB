@@ -279,7 +279,7 @@ class AILearningService:
         result = await self.session.execute(stmt)
         records = result.scalars().all()
         
-        # 获取错题本记录
+        # 获取复盘记录
         mistake_stmt = select(MistakeBook).where(
             MistakeBook.boot_number == boot_number,
             MistakeBook.prediction_mode == prediction_mode,
@@ -405,7 +405,7 @@ class AILearningService:
 ## 最近开奖记录（全靴完整数据）
 {json.dumps(jsonable_encoder(training_data['records'][-80:]), ensure_ascii=False, indent=2)}
 
-## 错误案例（错题本）
+## 错误案例（复盘记录）
 {json.dumps(jsonable_encoder(mistakes[-40:]), ensure_ascii=False, indent=2)}
 
 ## 请输出以下JSON格式分析结果：
@@ -656,7 +656,7 @@ class AILearningService:
         key_insight = ai_analysis.get("key_insight", "")
         
         if prediction_mode == "single_ai":
-            template = f"""你是百家乐分析预测引擎（单AI模式 - 学习优化版）。你必须基于全量历史局与全量五路走势做出下一局庄/闲预测。
+            template = f"""你是百家乐分析预测引擎（单AI快速模式 - 学习优化版）。你必须基于全量历史局与全量五路走势做出下一局庄/闲预测。
 
 【学习优化内容 - 基于深度学习生成】
 - 本版本关键优化：{key_changes}
@@ -675,7 +675,7 @@ class AILearningService:
 连续失准：{{CONSECUTIVE_ERRORS}}
 历史：{{GAME_HISTORY}}
 五路：{{ROAD_DATA}}
-错题：{{MISTAKE_CONTEXT}}"""
+复盘记录：{{MISTAKE_CONTEXT}}"""
             return template
 
         # 构建优化后的提示词模板
@@ -751,7 +751,7 @@ class AILearningService:
 走势图可视化（含血迹标记）：
 {{road_visual}}
 
-历史错误分析（错题本）：
+历史错误分析（复盘记录）：
 {{mistake_str}}
 
 连续失准次数：{{consecutive_errors}}

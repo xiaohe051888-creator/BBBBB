@@ -200,9 +200,9 @@ class BackgroundTask(Base):
     )
 
 
-# ============ 错题本表 ============
+# ============ 复盘记录表（物理表名保持 mistake_book） ============
 class MistakeBook(Base):
-    """错题本 - 本靴内生效，不跨靴"""
+    """复盘记录 - 本靴内生效，不跨靴"""
     __tablename__ = "mistake_book"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
