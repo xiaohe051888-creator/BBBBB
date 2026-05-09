@@ -934,8 +934,18 @@ body {
   padding: clamp(16px, 3vw, 28px);
 }
 
+.mode-select-option-action {
+  max-width: 100%;
+}
+
 .upload-page {
   padding: 24px 24px 48px;
+}
+
+.upload-workspace,
+.upload-sequence-panel,
+.roadmap-chart-shell {
+  max-width: 100%;
 }
 
 .admin-template-meta,
@@ -2096,6 +2106,25 @@ body {
     overflow: hidden;
   }
 
+  .mode-select-option {
+    width: 100%;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .mode-select-option-action {
+    width: 100%;
+  }
+
+  .upload-workspace {
+    width: 100%;
+  }
+
+  .upload-sequence-panel {
+    width: 100%;
+    min-width: 0 !important;
+  }
+
   .admin-page .ant-card-extra {
     width: 100%;
     margin-inline-start: 0 !important;
@@ -2274,6 +2303,11 @@ body {
 
   .upload-page {
     padding: 16px 12px 36px;
+  }
+
+  .roadmap-chart-shell,
+  .roadmap-raw-shell {
+    min-height: auto !important;
   }
 }
 

@@ -125,14 +125,14 @@ const UploadDataPage: React.FC = () => {
       </Card>
 
       <Card>
-        <div className="mobile-section-stack" style={{ display: 'flex', gap: isMobile ? 12 : 16, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
+        <div className="mobile-section-stack upload-workspace" style={{ display: 'flex', gap: isMobile ? 12 : 16, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
           <div style={{ flex: '1 1 520px', minWidth: isMobile ? 'auto' : 320 }}>
             <QuickKeyInput results={results} onChange={setResults} max={MAX_GAMES} />
             <div style={{ height: 12 }} />
             <BeadGridInput results={results} onChange={setResults} max={MAX_GAMES} />
           </div>
 
-          <div style={{ flex: '1 1 360px', minWidth: isMobile ? 'auto' : 300 }}>
+          <div className="upload-sequence-panel" style={{ flex: '1 1 360px', minWidth: isMobile ? 'auto' : 300 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
               <div style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 700 }}>局序列</div>
               <Space size={8} wrap className={isMobile ? 'mobile-action-row' : undefined}>

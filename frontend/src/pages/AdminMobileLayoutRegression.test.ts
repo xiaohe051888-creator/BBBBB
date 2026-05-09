@@ -33,4 +33,26 @@ describe('admin mobile layout regressions', () => {
 
     expect(css).toContain('.mobile-card-table .ant-table-summary');
   });
+
+  it('keeps mode select cards and upload layout on shared mobile layout classes', () => {
+    const modeSelect = readFileSync(resolve(__dirname, './ModeSelectPage.tsx'), 'utf8');
+    const upload = readFileSync(resolve(__dirname, './UploadDataPage.tsx'), 'utf8');
+    const roadmap = readFileSync(resolve(__dirname, './RoadMapPage.tsx'), 'utf8');
+
+    expect(modeSelect).toContain('mode-select-option');
+    expect(modeSelect).toContain('mode-select-option-action');
+    expect(upload).toContain('upload-workspace');
+    expect(upload).toContain('upload-sequence-panel');
+    expect(roadmap).toContain('roadmap-chart-shell');
+  });
+
+  it('defines shared mobile overrides for mode select, upload workspace, and roadmap shells', () => {
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(css).toContain('.mode-select-option');
+    expect(css).toContain('.mode-select-option-action');
+    expect(css).toContain('.upload-workspace');
+    expect(css).toContain('.upload-sequence-panel');
+    expect(css).toContain('.roadmap-chart-shell');
+  });
 });

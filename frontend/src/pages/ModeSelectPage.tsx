@@ -117,7 +117,7 @@ const ModeSelectPage: React.FC = () => {
           styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}
           title={formatModeSelectLabel('aiCardTitle')}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div className="mode-select-option" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'grid', gap: 8 }}>
               <div>
                 <Space size={6} wrap>
@@ -132,7 +132,7 @@ const ModeSelectPage: React.FC = () => {
                 <Alert type="warning" showIcon title={`原因：${readiness.missing3Ai.join('、')}`} />
               )}
             </div>
-            <Button type="primary" loading={loading} disabled={isCurrentMode('ai') || !readiness.aiReady || loading} onClick={() => applyMode('ai')}>
+            <Button className="mode-select-option-action" type="primary" loading={loading} disabled={isCurrentMode('ai') || !readiness.aiReady || loading} onClick={() => applyMode('ai')}>
               {isCurrentMode('ai') ? '当前模式' : `启用 ${formatAdminModeName('ai')}`}
             </Button>
           </div>
@@ -143,7 +143,7 @@ const ModeSelectPage: React.FC = () => {
           styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}
           title={formatModeSelectLabel('singleCardTitle')}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div className="mode-select-option" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'grid', gap: 8 }}>
               <div>
                 <Space size={6} wrap>
@@ -158,7 +158,7 @@ const ModeSelectPage: React.FC = () => {
                 <Alert type="warning" showIcon title={`原因：${readiness.missingSingle.join('、')}`} />
               )}
             </div>
-            <Button type="primary" loading={loading} disabled={isCurrentMode('single_ai') || !readiness.singleReady || loading} onClick={() => applyMode('single_ai')}>
+            <Button className="mode-select-option-action" type="primary" loading={loading} disabled={isCurrentMode('single_ai') || !readiness.singleReady || loading} onClick={() => applyMode('single_ai')}>
               {isCurrentMode('single_ai') ? '当前模式' : `启用 ${formatAdminModeName('single_ai')}`}
             </Button>
           </div>
@@ -169,7 +169,7 @@ const ModeSelectPage: React.FC = () => {
           styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}
           title={formatModeSelectLabel('ruleCardTitle')}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div className="mode-select-option" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'grid', gap: 8 }}>
               <div>
                 <Space size={6} wrap>
@@ -184,7 +184,7 @@ const ModeSelectPage: React.FC = () => {
                 {formatModeSelectLabel('ruleCardHint')}
               </div>
             </div>
-            <Button type="primary" loading={loading} disabled={isCurrentMode('rule') || loading} onClick={() => applyMode('rule')}>
+            <Button className="mode-select-option-action" type="primary" loading={loading} disabled={isCurrentMode('rule') || loading} onClick={() => applyMode('rule')}>
               {isCurrentMode('rule') ? '当前模式' : `启用 ${formatAdminModeName('rule')}`}
             </Button>
           </div>
