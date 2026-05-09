@@ -14,7 +14,13 @@
  */
 import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
-import { DERIVED_ROAD_CONFIG, ROAD_COLORS, calculateRoadHeight } from '../../types/road';
+import {
+  DERIVED_ROAD_CONFIG,
+  ROAD_COLORS,
+  calculateResponsiveColumnGap,
+  calculateRoadContentWidth,
+  calculateRoadHeight,
+} from '../../types/road';
 import {
   getPointColor,
   drawRoadPoint,
@@ -64,20 +70,25 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
     };
   }, []);
   
-  // 根据容器宽度计算可显示的列数
-  const visibleCols = useMemo(() => {
-    if (containerWidth <= 0) return 10;
-    const { cellSize, cellGap, padding } = mergedConfig;
-    const availableWidth = containerWidth - padding * 2;
-    return Math.max(10, Math.floor(availableWidth / (cellSize + cellGap)));
-  }, [containerWidth, mergedConfig]);
+  const totalCols = useMemo(() => {
+    return Math.max(data?.max_columns || 0, 8);
+  }, [data]);
+
+  const responsiveColumnGap = useMemo(() => {
+    return calculateResponsiveColumnGap({
+      containerWidth,
+      cols: totalCols,
+      cellSize: mergedConfig.cellSize,
+      minGap: mergedConfig.cellGap,
+      maxGap: Math.max(mergedConfig.cellGap, 16),
+      padding: mergedConfig.padding,
+    });
+  }, [containerWidth, totalCols, mergedConfig]);
   
   // 计算内容宽度：根据容器宽度显示满列，数据超出时扩展
   const contentWidth = useMemo(() => {
-    const dataCols = data?.max_columns || 0;
-    const totalCols = Math.max(dataCols, visibleCols);
-    return mergedConfig.padding * 2 + totalCols * (mergedConfig.cellSize + mergedConfig.cellGap);
-  }, [data, visibleCols, mergedConfig]);
+    return calculateRoadContentWidth(mergedConfig, totalCols, responsiveColumnGap);
+  }, [mergedConfig, responsiveColumnGap, totalCols]);
 
   // 固定6格高度
   const fixedHeight = useMemo(() => calculateRoadHeight(mergedConfig), [mergedConfig]);
@@ -113,15 +124,16 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
     const cellSize = mergedConfig.cellSize;
-    const cellGap = mergedConfig.cellGap;
+    const columnGap = responsiveColumnGap;
+    const rowGap = mergedConfig.cellGap;
     const padding = mergedConfig.padding;
-
-    // 根据容器宽度显示满列，至少10列
-    const totalCols = Math.max(data?.max_columns || 0, visibleCols);
 
     // 网格（只画6行）
     if (mergedConfig.showGrid) {
-      drawGrid(ctx, mergedConfig, totalCols, 6);
+      drawGrid(ctx, mergedConfig, totalCols, 6, {
+        columnGap,
+        rowGap,
+      });
     }
 
     // 无数据时不绘制点
@@ -131,8 +143,8 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
 
     // 绘制点
     for (const point of data.points) {
-      const x = padding + point.column * (cellSize + cellGap) + cellSize / 2;
-      const y = padding + point.row * (cellSize + cellGap) + cellSize / 2;
+      const x = padding + point.column * (cellSize + columnGap) + cellSize / 2;
+      const y = padding + point.row * (cellSize + rowGap) + cellSize / 2;
 
       const color = getPointColor(point.value, true);
 
@@ -147,7 +159,7 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
 
       drawRoadPoint(ctx, x, y, cellSize / 2 - 1, color, roadStyle, !!point.error_id);
     }
-  }, [data, mergedConfig, canvasPixelSize, visibleCols]);
+  }, [data, mergedConfig, canvasPixelSize, responsiveColumnGap, totalCols]);
 
   useEffect(() => {
     draw();

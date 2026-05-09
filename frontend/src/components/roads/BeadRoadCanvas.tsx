@@ -12,7 +12,13 @@
  */
 import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
-import { BEAD_ROAD_CONFIG, ROAD_COLORS, calculateBeadRoadSize } from '../../types/road';
+import {
+  BEAD_ROAD_CONFIG,
+  ROAD_COLORS,
+  calculateResponsiveColumnGap,
+  calculateRoadContentWidth,
+  calculateRoadHeight,
+} from '../../types/road';
 import {
   getPointColor,
   drawGrid,
@@ -35,6 +41,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const mergedConfig = useMemo(() => ({ ...BEAD_ROAD_CONFIG, ...customConfig }), [customConfig]);
   const [containerWidth, setContainerWidth] = useState(0);
+  const fixedRows = 6;
 
   useEffect(() => {
     const updateWidth = () => {
@@ -58,23 +65,27 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     };
   }, []);
 
-  const responsiveConfig = useMemo(() => {
-    const width = containerWidth || calculateBeadRoadSize(mergedConfig).width;
-    const availableWidth = Math.max(width - mergedConfig.padding * 2, 144);
-    const nextCellSize = Math.max(
-      14,
-      Math.min(24, Math.floor((availableWidth - 11 * mergedConfig.cellGap) / 12))
-    );
+  const visibleCols = useMemo(() => {
+    if (!data?.points.length) return 6;
+    const maxCol = Math.max(...data.points.map((point) => point.column)) + 1;
+    return Math.min(12, Math.max(6, maxCol));
+  }, [data]);
 
-    return {
-      ...mergedConfig,
-      cellSize: nextCellSize,
-      fontSize: Math.max(8, Math.floor(nextCellSize * 0.38)),
-    };
-  }, [containerWidth, mergedConfig]);
+  const responsiveColumnGap = useMemo(() => {
+    return calculateResponsiveColumnGap({
+      containerWidth,
+      cols: visibleCols,
+      cellSize: mergedConfig.cellSize,
+      minGap: mergedConfig.cellGap,
+      maxGap: Math.max(mergedConfig.cellGap, 16),
+      padding: mergedConfig.padding,
+    });
+  }, [containerWidth, mergedConfig, visibleCols]);
 
-  // 固定尺寸
-  const fixedSize = useMemo(() => calculateBeadRoadSize(responsiveConfig), [responsiveConfig]);
+  const fixedSize = useMemo(() => ({
+    width: calculateRoadContentWidth(mergedConfig, visibleCols, responsiveColumnGap),
+    height: calculateRoadHeight(mergedConfig),
+  }), [mergedConfig, responsiveColumnGap, visibleCols]);
 
   // Canvas像素尺寸
   const canvasPixelSize = useMemo(() => {
@@ -108,21 +119,23 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     ctx.fillStyle = ROAD_COLORS.background;
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
-    const cellSize = responsiveConfig.cellSize;
-    const cellGap = responsiveConfig.cellGap;
-    const padding = responsiveConfig.padding;
-    const fixedCols = 12; // 珠盘路永远显示完整的 6x12
-    const fixedRows = 6;
+    const cellSize = mergedConfig.cellSize;
+    const columnGap = responsiveColumnGap;
+    const rowGap = mergedConfig.cellGap;
+    const padding = mergedConfig.padding;
 
     // 计算列偏移量（如果超过12列，向左移动以显示最新数据）
     const maxCol = data && data.points.length > 0 
-      ? Math.max(...data.points.map(p => p.column)) 
+      ? Math.max(...data.points.map(p => p.column))
       : 0;
-    const offsetCol = Math.max(0, maxCol - 11);
+    const offsetCol = Math.max(0, maxCol - (visibleCols - 1));
 
     // 始终绘制完整网格
-    if (responsiveConfig.showGrid) {
-      drawGrid(ctx, responsiveConfig, fixedCols, fixedRows);
+    if (mergedConfig.showGrid) {
+      drawGrid(ctx, mergedConfig, visibleCols, fixedRows, {
+        columnGap,
+        rowGap,
+      });
     }
 
     // 无数据时直接返回（不显示文字，由父组件处理空状态）
@@ -133,11 +146,10 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     // 按坐标绘制点
     for (const point of data.points) {
       const displayCol = point.column - offsetCol;
-      // 只绘制当前可视范围内的 12 列数据
-      if (displayCol < 0 || displayCol >= fixedCols || point.row >= fixedRows) continue;
+      if (displayCol < 0 || displayCol >= visibleCols || point.row >= fixedRows) continue;
 
-      const x = padding + displayCol * (cellSize + cellGap) + cellSize / 2;
-      const y = padding + point.row * (cellSize + cellGap) + cellSize / 2;
+      const x = padding + displayCol * (cellSize + columnGap) + cellSize / 2;
+      const y = padding + point.row * (cellSize + rowGap) + cellSize / 2;
 
       const color = getPointColor(point.value, false);
       
@@ -150,7 +162,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
       
       // 绘制文字
       ctx.fillStyle = '#ffffff';
-      ctx.font = `bold ${Math.max(8, responsiveConfig.fontSize)}px -apple-system, "PingFang SC", sans-serif`;
+      ctx.font = `bold ${Math.max(8, mergedConfig.fontSize)}px -apple-system, "PingFang SC", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
@@ -175,7 +187,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
         ctx.fill();
       }
     }
-  }, [data, responsiveConfig, canvasPixelSize]);
+  }, [data, mergedConfig, canvasPixelSize, fixedRows, responsiveColumnGap, visibleCols]);
 
   useEffect(() => {
     draw();

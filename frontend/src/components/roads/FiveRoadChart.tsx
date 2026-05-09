@@ -3,6 +3,7 @@ import type { SingleRoadData } from '../../services/api';
 import BeadRoadCanvas from './BeadRoadCanvas';
 import BigRoadCanvas from './BigRoadCanvas';
 import DerivedRoadCanvas from './DerivedRoadCanvas';
+import { calculateRoadHeight } from '../../types/road';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
 
 interface RoadDataMap {
@@ -159,8 +160,8 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
 
   // 计算各路高度（6格）- 使用minHeight确保不被压缩
   const roadHeight = useMemo(() => {
-    return PADDING * 2 + 6 * (BASE_CELL_SIZE + CELL_GAP);
-  }, []);
+    return calculateRoadHeight(baseConfig);
+  }, [baseConfig]);
 
   return (
       <div className="five-road-chart" style={{

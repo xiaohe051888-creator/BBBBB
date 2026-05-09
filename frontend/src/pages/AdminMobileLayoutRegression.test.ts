@@ -180,12 +180,20 @@ describe('admin mobile layout regressions', () => {
   it('uses responsive bead road sizing instead of a fixed pixel width shell', () => {
     const fiveRoadChart = readFileSync(resolve(__dirname, '../components/roads/FiveRoadChart.tsx'), 'utf8');
     const beadRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/BeadRoadCanvas.tsx'), 'utf8');
+    const bigRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/BigRoadCanvas.tsx'), 'utf8');
+    const derivedRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/DerivedRoadCanvas.tsx'), 'utf8');
+    const roadTypes = readFileSync(resolve(__dirname, '../types/road.ts'), 'utf8');
     const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
 
     expect(fiveRoadChart).toContain('className="roadmap-board-card bead-road-responsive-card"');
     expect(fiveRoadChart).toContain('className="bead-road-responsive-shell"');
     expect(beadRoadCanvas).toContain('const [containerWidth, setContainerWidth] = useState(0);');
     expect(beadRoadCanvas).toContain('ResizeObserver');
+    expect(beadRoadCanvas).toContain('const responsiveColumnGap = useMemo(() =>');
+    expect(bigRoadCanvas).toContain('const responsiveColumnGap = useMemo(() =>');
+    expect(derivedRoadCanvas).toContain('const responsiveColumnGap = useMemo(() =>');
+    expect(roadTypes).toContain('export const calculateResponsiveColumnGap =');
+    expect(roadTypes).toContain('export const calculateRoadContentWidth =');
     expect(css).toContain('.bead-road-responsive-card {');
     expect(css).toContain('.bead-road-responsive-shell {');
   });

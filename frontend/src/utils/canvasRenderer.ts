@@ -314,31 +314,36 @@ export function drawGrid(
   config: RoadCanvasConfig,
   totalCols: number,
   totalRows: number,
+  spacing?: {
+    columnGap?: number;
+    rowGap?: number;
+  },
 ): void {
   ctx.save();
   ctx.strokeStyle = ROAD_COLORS.gridLine;
   ctx.lineWidth = 0.5;
   ctx.setLineDash([2, 4]);
 
-  const cellW = config.cellSize + config.cellGap;
+  const columnStep = config.cellSize + (spacing?.columnGap ?? config.cellGap);
+  const rowStep = config.cellSize + (spacing?.rowGap ?? config.cellGap);
   const offsetX = config.padding;
   const offsetY = config.padding;
 
   // 垂直线
   for (let c = 0; c <= totalCols; c++) {
-    const x = offsetX + c * cellW - config.cellGap / 2;
+    const x = offsetX + c * columnStep - (spacing?.columnGap ?? config.cellGap) / 2;
     ctx.beginPath();
     ctx.moveTo(x, offsetY - 5);
-    ctx.lineTo(x, offsetY + totalRows * cellW + 5);
+    ctx.lineTo(x, offsetY + totalRows * rowStep + 5);
     ctx.stroke();
   }
 
   // 水平线
   for (let r = 0; r <= totalRows; r++) {
-    const y = offsetY + r * cellW - config.cellGap / 2;
+    const y = offsetY + r * rowStep - (spacing?.rowGap ?? config.cellGap) / 2;
     ctx.beginPath();
     ctx.moveTo(offsetX - 5, y);
-    ctx.lineTo(offsetX + totalCols * cellW + 5, y);
+    ctx.lineTo(offsetX + totalCols * columnStep + 5, y);
     ctx.stroke();
   }
 

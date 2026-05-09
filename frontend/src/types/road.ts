@@ -123,13 +123,47 @@ export const DERIVED_ROAD_CONFIG: RoadCanvasConfig = {
   animationDuration: 0,
 };
 
+const calculateAxisSpan = (cells: number, cellSize: number, gap: number): number => {
+  if (cells <= 0) return 0;
+  return cells * cellSize + Math.max(0, cells - 1) * gap;
+};
+
+export const calculateRoadContentWidth = (
+  config: RoadCanvasConfig,
+  cols: number,
+  columnGap: number = config.cellGap,
+): number => {
+  return config.padding * 2 + calculateAxisSpan(cols, config.cellSize, columnGap);
+};
+
+export const calculateResponsiveColumnGap = ({
+  containerWidth,
+  cols,
+  cellSize,
+  minGap,
+  maxGap,
+  padding,
+}: {
+  containerWidth: number;
+  cols: number;
+  cellSize: number;
+  minGap: number;
+  maxGap: number;
+  padding: number;
+}): number => {
+  if (containerWidth <= 0 || cols <= 1) return minGap;
+  const availableWidth = containerWidth - padding * 2 - cols * cellSize;
+  const nextGap = availableWidth / Math.max(1, cols - 1);
+  return Math.max(minGap, Math.min(maxGap, nextGap));
+};
+
 /** 
  * 计算路的精确高度（刚好显示6格，禁止垂直滚动）
  * @param config Canvas配置
  * @returns 精确高度（px）
  */
 export const calculateRoadHeight = (config: RoadCanvasConfig): number => {
-  return config.padding * 2 + 6 * (config.cellSize + config.cellGap);
+  return config.padding * 2 + calculateAxisSpan(6, config.cellSize, config.cellGap);
 };
 
 /**
@@ -138,7 +172,7 @@ export const calculateRoadHeight = (config: RoadCanvasConfig): number => {
  * @returns 精确宽高
  */
 export const calculateBeadRoadSize = (config: RoadCanvasConfig): { width: number; height: number } => {
-  const width = config.padding * 2 + 14 * (config.cellSize + config.cellGap);
-  const height = config.padding * 2 + 6 * (config.cellSize + config.cellGap);
+  const width = config.padding * 2 + calculateAxisSpan(14, config.cellSize, config.cellGap);
+  const height = config.padding * 2 + calculateAxisSpan(6, config.cellSize, config.cellGap);
   return { width, height };
 };
