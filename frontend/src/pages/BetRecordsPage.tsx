@@ -434,9 +434,9 @@ const BetRecordsPage: React.FC = () => {
       </Card>
 
       {/* 数据表格 - 自适应布局 */}
-      <Card size="small">
+      <Card size="small" className="mobile-data-card">
         <Table
-          className="mobile-card-table"
+          className="mobile-card-table user-data-table"
           dataSource={filteredBets}
           columns={columns.map(col => ({
             ...col,

@@ -401,9 +401,9 @@ const MistakeBookPage: React.FC = () => {
       </Card>
 
       {/* 数据表格 - 自适应布局，无横向滚动 */}
-      <Card size="small">
+      <Card size="small" className="mobile-data-card">
         <Table
-          className="mobile-card-table"
+          className="mobile-card-table user-data-table"
           dataSource={mistakes}
           columns={columns.map(col => ({
             ...col,

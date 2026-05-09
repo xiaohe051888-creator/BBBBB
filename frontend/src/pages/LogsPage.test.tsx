@@ -61,6 +61,14 @@ describe('LogsPage', () => {
         getPropertyValue: () => '',
       }),
     });
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+      writable: true,
+      value: class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    });
     useLogsQueryMock.mockReturnValue({
       data: { logs: [], total: 2 },
       refetch: vi.fn(),

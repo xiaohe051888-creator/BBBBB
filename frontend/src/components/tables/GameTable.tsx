@@ -135,7 +135,7 @@ const GameTable: React.FC<GameTableProps> = ({
 
   return (
     <Table
-      className="mobile-card-table dashboard-game-table"
+      className="mobile-card-table dashboard-game-table user-data-table"
       dataSource={data}
       columns={columnsWithCell}
       rowKey="game_number"

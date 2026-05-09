@@ -680,6 +680,15 @@ const LogsPage: React.FC = () => {
     },
   ];
 
+  const columnsWithCell = useMemo(() => (
+    columns.map(col => ({
+      ...col,
+      onCell: () => ({
+        'data-label': typeof col.title === 'string' ? col.title : '',
+      } as React.HTMLAttributes<HTMLElement>),
+    }))
+  ), [columns]);
+
   // 重置筛选
   const handleResetFilters = () => {
     setFilterCategory('');
@@ -788,15 +797,16 @@ const LogsPage: React.FC = () => {
           />
 
           {/* 日志表格 - 乐观UI：永远不显示loading，数据来了直接渲染 */}
-          <Card size="small">
+          <Card size="small" className="mobile-data-card">
             {logsError ? (
               <div style={{ padding: '8px 0', color: '#ff7875', fontSize: 12 }}>
                 {logsError instanceof Error ? logsError.message : '运行记录加载失败'}
               </div>
             ) : null}
             <Table
+              className="mobile-card-table user-data-table"
               dataSource={logs}
-              columns={columns}
+              columns={columnsWithCell}
               rowKey="id"
               size="small"
               pagination={{
@@ -810,7 +820,7 @@ const LogsPage: React.FC = () => {
                 pageSizeOptions: ['20', '50', '100', '200'],
                 size: 'small',
               }}
-              scroll={{ y: isMobile ? undefined : 'calc(100vh - 380px)' }}
+              scroll={{ x: 'max-content', y: isMobile ? undefined : 'calc(100vh - 380px)' }}
               locale={{ emptyText: formatLogsLabel('empty') }}
               rowClassName={(record) => {
                 if (record.is_pinned) return 'log-pinned';

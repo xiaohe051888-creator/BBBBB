@@ -142,7 +142,7 @@ const LogTable: React.FC<LogTableProps> = ({
 
   return (
     <Table
-      className="mobile-card-table dashboard-log-table"
+      className="mobile-card-table dashboard-log-table user-data-table"
       dataSource={data}
       columns={columnsWithCell}
       rowKey={rowKey}

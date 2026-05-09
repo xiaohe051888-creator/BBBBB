@@ -89,4 +89,32 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.admin-table-card .mobile-card-table .ant-table-container');
     expect(css).toContain('.admin-table-card .mobile-card-table .ant-table-placeholder .ant-empty');
   });
+
+  it('keeps user-facing data tables on shared mobile flattening classes', () => {
+    const gameTable = readFileSync(resolve(__dirname, '../components/tables/GameTable.tsx'), 'utf8');
+    const betTable = readFileSync(resolve(__dirname, '../components/tables/BetTable.tsx'), 'utf8');
+    const logTable = readFileSync(resolve(__dirname, '../components/tables/LogTable.tsx'), 'utf8');
+    const betRecords = readFileSync(resolve(__dirname, './BetRecordsPage.tsx'), 'utf8');
+    const mistakes = readFileSync(resolve(__dirname, './MistakeBookPage.tsx'), 'utf8');
+    const roadmap = readFileSync(resolve(__dirname, './RoadMapPage.tsx'), 'utf8');
+    const logs = readFileSync(resolve(__dirname, './LogsPage.tsx'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(gameTable).toContain('mobile-card-table dashboard-game-table user-data-table');
+    expect(betTable).toContain('mobile-card-table dashboard-bet-table user-data-table');
+    expect(logTable).toContain('mobile-card-table dashboard-log-table user-data-table');
+    expect(betRecords).toContain('className="mobile-data-card"');
+    expect(betRecords).toContain('className="mobile-card-table user-data-table"');
+    expect(mistakes).toContain('className="mobile-data-card"');
+    expect(mistakes).toContain('className="mobile-card-table user-data-table"');
+    expect(roadmap).toContain('className="roadmap-raw-shell mobile-data-card"');
+    expect(roadmap).toContain('className="mobile-card-table user-data-table"');
+    expect(logs).toContain('className="mobile-data-card"');
+    expect(logs).toContain('className="mobile-card-table user-data-table"');
+    expect(logs).toContain("'data-label'");
+    expect(css).toContain('.mobile-data-card .ant-card-body');
+    expect(css).toContain('.mobile-data-card .user-data-table .ant-table-container');
+    expect(css).toContain('.mobile-data-card .user-data-table .ant-table-placeholder .ant-empty');
+    expect(css).toContain('.mobile-card-table.user-data-table .ant-table-container');
+  });
 });

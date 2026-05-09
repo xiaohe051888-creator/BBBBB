@@ -115,7 +115,7 @@ const BetTable: React.FC<BetTableProps> = ({
 
   return (
     <Table
-      className="mobile-card-table dashboard-bet-table"
+      className="mobile-card-table dashboard-bet-table user-data-table"
       dataSource={data}
       columns={columnsWithCell}
       rowKey={(r) => String(r.id)}

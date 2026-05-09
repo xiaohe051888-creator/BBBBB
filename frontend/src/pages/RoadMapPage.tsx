@@ -303,9 +303,9 @@ const RoadMapPage: React.FC = () => {
       )}
 
       {activeTab === 'raw' && (
-        <Card className="roadmap-raw-shell" title={<span><Icons.File /> 原始开奖数据</span>} style={{ minHeight: 'calc(100vh - 160px)' }}>
+        <Card className="roadmap-raw-shell mobile-data-card" title={<span><Icons.File /> 原始开奖数据</span>} style={{ minHeight: 'calc(100vh - 160px)' }}>
           <Table
-            className="mobile-card-table"
+            className="mobile-card-table user-data-table"
             dataSource={rawData}
             columns={rawColumns.map(col => ({
               ...col,

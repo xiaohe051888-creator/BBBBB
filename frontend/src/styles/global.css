@@ -2211,6 +2211,48 @@ body {
     background: transparent !important;
   }
 
+  .mobile-data-card .ant-card-body {
+    padding: 10px 12px !important;
+  }
+
+  .mobile-data-card .user-data-table,
+  .mobile-data-card .user-data-table .ant-table-wrapper,
+  .mobile-data-card .user-data-table .ant-spin-nested-loading,
+  .mobile-data-card .user-data-table .ant-spin-container,
+  .mobile-data-card .user-data-table .ant-table-container,
+  .mobile-data-card .user-data-table .ant-table-content,
+  .mobile-data-card .user-data-table .ant-table-body,
+  .mobile-card-table.user-data-table,
+  .mobile-card-table.user-data-table .ant-table-wrapper,
+  .mobile-card-table.user-data-table .ant-spin-nested-loading,
+  .mobile-card-table.user-data-table .ant-spin-container,
+  .mobile-card-table.user-data-table .ant-table-container,
+  .mobile-card-table.user-data-table .ant-table-content,
+  .mobile-card-table.user-data-table .ant-table-body {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .mobile-data-card .user-data-table .ant-table-tbody > tr {
+    margin-bottom: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-data-card .user-data-table .ant-table-tbody > tr:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  .mobile-data-card .user-data-table .ant-table-placeholder > td {
+    padding-top: 4px !important;
+  }
+
+  .mobile-data-card .user-data-table .ant-table-placeholder .ant-empty {
+    padding: 18px 8px !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
   .admin-users-toolbar {
     display: grid !important;
     grid-template-columns: 1fr;
