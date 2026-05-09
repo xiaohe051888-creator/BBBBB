@@ -2592,6 +2592,17 @@ body {
     width: 100%;
   }
 
+.five-road-chart-derived-row {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+}
+
+.five-road-chart-derived-row > .roadmap-board-card {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
   .five-road-chart .roadmap-board-card {
     box-shadow: none !important;
   }
@@ -2636,6 +2647,10 @@ body {
 
   .five-road-chart-secondary-row {
     flex-direction: column !important;
+  }
+
+  .five-road-chart-derived-row {
+    align-items: stretch;
   }
 
 

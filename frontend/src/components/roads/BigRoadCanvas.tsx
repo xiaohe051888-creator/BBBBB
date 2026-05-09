@@ -89,7 +89,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
       cols: totalCols,
       cellSize: mergedConfig.cellSize,
       minGap: mergedConfig.cellGap,
-      maxGap: Math.max(mergedConfig.cellGap, 10),
+      maxGap: Math.max(mergedConfig.cellGap, 6),
       padding: mergedConfig.padding,
     });
   }, [containerWidth, totalCols, mergedConfig]);
