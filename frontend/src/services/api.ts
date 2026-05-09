@@ -504,8 +504,8 @@ export const adminMaintenanceRunRetention = async () => {
   return api.post<AdminMaintenanceRetentionRunResponse>('/admin/maintenance/retention/run');
 };
 
-export const adminMaintenanceResetAll = async () => {
-  return api.post<AdminMaintenanceResetAllResponse>('/admin/maintenance/reset-all');
+export const adminMaintenanceResetAll = async (payload?: { confirm_password?: string }) => {
+  return api.post<AdminMaintenanceResetAllResponse>('/admin/maintenance/reset-all', payload || {});
 };
 
 export const getModelVersions = async () => {

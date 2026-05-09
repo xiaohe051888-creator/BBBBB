@@ -31,6 +31,24 @@ class AdminMaintenanceApiTest(unittest.TestCase):
 
         asyncio.run(_run())
 
+    def _set_environment(self, value: str):
+        from app.core.config import settings
+
+        old_env = os.environ.get("ENVIRONMENT")
+        old_setting = settings.ENVIRONMENT
+        os.environ["ENVIRONMENT"] = value
+        settings.ENVIRONMENT = value
+        return old_env, old_setting
+
+    def _restore_environment(self, old_env: str | None, old_setting: str):
+        from app.core.config import settings
+
+        if old_env is None:
+            os.environ.pop("ENVIRONMENT", None)
+        else:
+            os.environ["ENVIRONMENT"] = old_env
+        settings.ENVIRONMENT = old_setting
+
     def test_stats_requires_auth(self):
         client = TestClient(app)
         r = client.get("/api/admin/maintenance/stats")
@@ -107,6 +125,66 @@ class AdminMaintenanceApiTest(unittest.TestCase):
         self.assertEqual(counts.get("bet_records_total"), 0)
         self.assertEqual(counts.get("system_logs_total"), 0)
 
+    def test_reset_all_requires_confirm_password_in_production(self):
+        old_env, old_setting = self._set_environment("production")
+        try:
+            self._ensure_admin_password("8888")
+            client = TestClient(app)
+            token = client.post("/api/admin/login", json={"password": "8888"}).json()["token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
+            r = client.post("/api/admin/maintenance/reset-all", headers=headers, json={})
+            self.assertEqual(r.status_code, 400)
+            self.assertIn("再次输入管理员密码", r.json()["detail"])
+        finally:
+            self._restore_environment(old_env, old_setting)
+
+    def test_reset_all_rejects_wrong_confirm_password_in_production(self):
+        old_env, old_setting = self._set_environment("production")
+        try:
+            self._ensure_admin_password("8888")
+            client = TestClient(app)
+            token = client.post("/api/admin/login", json={"password": "8888"}).json()["token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
+            r = client.post(
+                "/api/admin/maintenance/reset-all",
+                headers=headers,
+                json={"confirm_password": "wrong"},
+            )
+            self.assertEqual(r.status_code, 401)
+            self.assertIn("确认密码错误", r.json()["detail"])
+        finally:
+            self._restore_environment(old_env, old_setting)
+
+    def test_reset_all_accepts_confirm_password_in_production(self):
+        async def _seed():
+            from app.core.database import init_db, async_session
+            from app.models.schemas import GameRecord
+
+            await init_db()
+            async with async_session() as s:
+                s.add(GameRecord(boot_number=777777, game_number=1, result="庄"))
+                await s.commit()
+
+        old_env, old_setting = self._set_environment("production")
+        try:
+            asyncio.run(_seed())
+            self._ensure_admin_password("8888")
+            client = TestClient(app)
+            token = client.post("/api/admin/login", json={"password": "8888"}).json()["token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
+            r = client.post(
+                "/api/admin/maintenance/reset-all",
+                headers=headers,
+                json={"confirm_password": "8888"},
+            )
+            self.assertEqual(r.status_code, 200)
+            self.assertIn("deleted", r.json())
+        finally:
+            self._restore_environment(old_env, old_setting)
+
     def test_reset_all_waits_for_running_background_tasks_to_cancel(self):
         async def _run():
             from sqlalchemy import delete
@@ -114,6 +192,7 @@ class AdminMaintenanceApiTest(unittest.TestCase):
             from app.core.database import init_db, async_session
             from app.models.schemas import BackgroundTask
             from app.api.routes.maintenance import maintenance_reset_all
+            from app.api.routes.schemas import MaintenanceResetAllRequest
             from app.services.game.session import start_background_task
 
             await init_db()
@@ -137,7 +216,10 @@ class AdminMaintenanceApiTest(unittest.TestCase):
             await started.wait()
 
             try:
-                await maintenance_reset_all(_={"sub": "admin"})
+                await maintenance_reset_all(
+                    req=MaintenanceResetAllRequest(confirm_password="8888"),
+                    actor={"username": "admin", "role": "admin", "uid": 1},
+                )
                 self.assertIsNotNone(meta.task)
                 self.assertTrue(meta.task.done())
                 self.assertTrue(cancelled.is_set())

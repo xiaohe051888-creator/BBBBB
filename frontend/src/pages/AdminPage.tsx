@@ -246,6 +246,9 @@ const AdminPage: React.FC = () => {
   const [resetPwdValue, setResetPwdValue] = useState('');
   const [maintenanceStats, setMaintenanceStats] = useState<api.AdminMaintenanceStatsResponse | null>(null);
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [resetConfirmVisible, setResetConfirmVisible] = useState(false);
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [resetConfirmSubmitting, setResetConfirmSubmitting] = useState(false);
   const [aiLearningStatus, setAiLearningStatus] = useState<any>(null);
   const [threeModelStatus, setThreeModelStatus] = useState<any>(null);
   const modeReadiness = useMemo(() => buildModeReadiness(threeModelStatus), [threeModelStatus]);
@@ -273,6 +276,7 @@ const AdminPage: React.FC = () => {
   const [balanceAmount, setBalanceAmount] = useState<string>('');
   const [adjustingBalance, setAdjustingBalance] = useState(false);
   const { data: systemState } = useSystemStateQuery({});
+  const isProductionEnvironment = import.meta.env.PROD;
 
   useEffect(() => {
     if (systemState?.prediction_mode) {
@@ -545,35 +549,58 @@ const AdminPage: React.FC = () => {
     });
   }, [loadMaintenanceStats, maintenanceStats?.config, message, modal]);
 
-  const resetAllData = useCallback(async () => {
+  const closeResetConfirmModal = useCallback(() => {
+    if (resetConfirmSubmitting) return;
+    setResetConfirmVisible(false);
+    setResetConfirmPassword('');
+  }, [resetConfirmSubmitting]);
+
+  const doResetAll = useCallback(async (confirmPassword?: string) => {
+    setResetConfirmSubmitting(true);
+    try {
+      const res = await api.adminMaintenanceResetAll(
+        confirmPassword ? { confirm_password: confirmPassword } : undefined,
+      );
+      const d = res.data.deleted || {};
+      message.success(`已清空：局记录 ${d.game_records || 0}、下注记录 ${d.bet_records || 0}、运行记录 ${d.system_logs || 0}`);
+      setDbRecords([]);
+      setDbPage(1);
+      setResetConfirmVisible(false);
+      setResetConfirmPassword('');
+      queryClient.invalidateQueries({ queryKey: ['systemState'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      loadMaintenanceStats();
+      navigate('/dashboard');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || err.message || '清空失败';
+      message.error(errorMessage);
+    } finally {
+      setResetConfirmSubmitting(false);
+    }
+  }, [loadMaintenanceStats, message, navigate, queryClient]);
+
+  const resetAllData = useCallback(() => {
+    if (isProductionEnvironment) {
+      setResetConfirmPassword('');
+      setResetConfirmVisible(true);
+      return;
+    }
     modal.confirm({
       title: formatDangerZoneLabel('resetAllTitle'),
       content: (
         <div>
           <div>将清空所有演示用的数据，包括开奖记录、下注记录、复盘记录、路图缓存、系统记忆、当前可用版本、系统处理记录和运行记录。</div>
-          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.65)' }}>仅开发环境允许执行，清空后不可恢复。</div>
+          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.65)' }}>清空后不可恢复。</div>
         </div>
       ),
       okText: '确认清空',
       okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
-        try {
-          const res = await api.adminMaintenanceResetAll();
-          const d = res.data.deleted || {};
-          message.success(`已清空：局记录 ${d.game_records || 0}、下注记录 ${d.bet_records || 0}、运行记录 ${d.system_logs || 0}`);
-          setDbRecords([]);
-          setDbPage(1);
-          queryClient.invalidateQueries({ queryKey: ['systemState'] });
-          queryClient.invalidateQueries({ queryKey: ['stats'] });
-          loadMaintenanceStats();
-          navigate('/dashboard');
-        } catch (err: any) {
-          message.error(err instanceof Error ? err.message : '清空失败');
-        }
+        await doResetAll();
       },
     });
-  }, [loadMaintenanceStats, message, modal, navigate, queryClient]);
+  }, [doResetAll, isProductionEnvironment, modal]);
 
   const saveSingleAiPromptTemplates = useCallback(async () => {
     setSingleAiPromptSaving(true);
@@ -1437,6 +1464,35 @@ const AdminPage: React.FC = () => {
         <Space orientation="vertical" style={{ width: '100%' }}>
           <Input.Password placeholder="当前密码" value={oldPwd} onChange={e => setOldPwd(e.target.value)} />
           <Input.Password placeholder="新密码" value={newPwd} onChange={e => setNewPwd(e.target.value)} />
+        </Space>
+      </Modal>
+
+      <Modal
+        title="生产环境二次确认"
+        open={resetConfirmVisible}
+        onCancel={closeResetConfirmModal}
+        onOk={async () => {
+          await doResetAll(resetConfirmPassword);
+        }}
+        okText="验证并清空"
+        cancelText="取消"
+        okButtonProps={{ danger: true, disabled: !resetConfirmPassword.trim() }}
+        confirmLoading={resetConfirmSubmitting}
+        width={isMobile ? 360 : 520}
+        style={{ maxWidth: 'calc(100vw - 20px)' }}
+        destroyOnHidden
+      >
+        <Space orientation="vertical" style={{ width: '100%' }}>
+          <div>你正在清空生产环境数据，此操作不可恢复，请再次输入当前管理员密码确认。</div>
+          <Input.Password
+            placeholder="请输入当前管理员密码"
+            value={resetConfirmPassword}
+            onChange={(e) => setResetConfirmPassword(e.target.value)}
+            onPressEnter={() => {
+              if (!resetConfirmPassword.trim() || resetConfirmSubmitting) return;
+              void doResetAll(resetConfirmPassword);
+            }}
+          />
         </Space>
       </Modal>
 

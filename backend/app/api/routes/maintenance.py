@@ -7,9 +7,11 @@ from sqlalchemy import func, select, or_
 from sqlalchemy.engine.url import make_url
 
 from app.api.routes.utils import get_current_admin
+from app.api.routes.schemas import MaintenanceResetAllRequest
 from app.core.config import settings
 from app.core.database import async_session
 from app.models.schemas import (
+    AdminUser,
     BetRecord,
     GameRecord,
     SystemLog,
@@ -169,14 +171,86 @@ async def maintenance_retention_run(_: dict = Depends(get_current_admin)):
 
 
 @router.post("/reset-all")
-async def maintenance_reset_all(_: dict = Depends(get_current_admin)):
-    if settings.ENVIRONMENT.lower() == "production":
-        raise HTTPException(status_code=403, detail="生产环境禁止执行清空数据操作")
+async def maintenance_reset_all(
+    req: MaintenanceResetAllRequest | None = None,
+    actor: dict = Depends(get_current_admin),
+):
+    import bcrypt as _bcrypt
+
+    is_production = settings.ENVIRONMENT.lower() == "production"
+    confirm_password = (req.confirm_password if req else None) or ""
+
+    if is_production:
+        if not confirm_password:
+            async with async_session() as session:
+                await write_game_log(
+                    session,
+                    boot_number=0,
+                    game_number=0,
+                    event_code="ADMIN-RESET-ALL",
+                    event_type="系统维护",
+                    event_result="REJECTED",
+                    description="生产环境清空被拒绝：未提供确认密码",
+                    category="系统维护",
+                    priority="P1",
+                    source_module="maintenance",
+                )
+                await session.commit()
+            raise HTTPException(status_code=400, detail="生产环境清空需要再次输入管理员密码确认")
+
+        async with async_session() as session:
+            admin_username = (actor or {}).get("username") or "admin"
+            admin = (
+                await session.execute(
+                    select(AdminUser).where(AdminUser.username == admin_username)
+                )
+            ).scalar_one_or_none()
+            if not admin:
+                raise HTTPException(status_code=401, detail="管理员账号不存在")
+
+            try:
+                valid = _bcrypt.checkpw(
+                    confirm_password.encode("utf-8"),
+                    admin.password_hash.encode("utf-8"),
+                )
+            except Exception:
+                valid = False
+
+            if not valid:
+                await write_game_log(
+                    session,
+                    boot_number=0,
+                    game_number=0,
+                    event_code="ADMIN-RESET-ALL",
+                    event_type="系统维护",
+                    event_result="REJECTED",
+                    description="生产环境清空被拒绝：确认密码错误",
+                    category="系统维护",
+                    priority="P1",
+                    source_module="maintenance",
+                )
+                await session.commit()
+                raise HTTPException(status_code=401, detail="确认密码错误")
 
     lock = get_session_lock()
     async with lock:
         cancel_info = await registry.cancel_running_and_wait(timeout_seconds=3.0)
         if cancel_info.get("pending", 0) > 0:
+            if is_production:
+                async with async_session() as session:
+                    await write_game_log(
+                        session,
+                        boot_number=0,
+                        game_number=0,
+                        event_code="ADMIN-RESET-ALL",
+                        event_type="系统维护",
+                        event_result="REJECTED",
+                        description="生产环境清空被拒绝：仍有后台任务未停止",
+                        category="系统维护",
+                        priority="P1",
+                        source_module="maintenance",
+                    )
+                    await session.commit()
             raise HTTPException(status_code=409, detail="仍有后台任务未停止，请稍后重试")
         clear_session()
 
@@ -202,6 +276,22 @@ async def maintenance_reset_all(_: dict = Depends(get_current_admin)):
         state.balance = settings.DEFAULT_BALANCE
         state.consecutive_errors = 0
         await session.commit()
+
+    if is_production:
+        async with async_session() as session:
+            await write_game_log(
+                session,
+                boot_number=1,
+                game_number=0,
+                event_code="ADMIN-RESET-ALL",
+                event_type="系统维护",
+                event_result="OK",
+                description="生产环境全量清空执行成功",
+                category="系统维护",
+                priority="P1",
+                source_module="maintenance",
+            )
+            await session.commit()
 
     await broadcast_event("state_update", {"status": "空闲", "boot_number": 1, "game_number": 0})
 

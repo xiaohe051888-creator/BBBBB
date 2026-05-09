@@ -66,6 +66,12 @@ class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., min_length=1, max_length=128)
     new_password: str = Field(..., min_length=4, max_length=128, description="新密码至少需要4个字符")
 
+
+class MaintenanceResetAllRequest(BaseModel):
+    """全量清空请求"""
+    confirm_password: str | None = Field(None, min_length=1, max_length=128)
+
+
 class ApiConfigPayload(BaseModel):
     role: str = Field(..., description="banker | player | combined")
     provider: str = Field(..., description="Model provider")
