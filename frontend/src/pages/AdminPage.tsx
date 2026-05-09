@@ -1250,8 +1250,9 @@ const AdminPage: React.FC = () => {
                 title="用户管理"
                 size="small"
                 extra={(
-                  <Space size={8} wrap className="mobile-action-row">
+                  <Space size={8} wrap className="mobile-action-row admin-users-toolbar">
                     <Input
+                      className="mobile-fill-control admin-users-search"
                       placeholder="搜索用户名"
                       value={usersQuery}
                       onChange={(e) => {
@@ -1261,8 +1262,8 @@ const AdminPage: React.FC = () => {
                       allowClear
                       style={{ width: 180, maxWidth: '100%' }}
                     />
-                    <Button size="small" onClick={loadUsers} loading={usersLoading}>刷新</Button>
-                    <Button size="small" type="primary" onClick={() => setCreateUserVisible(true)}>新增用户</Button>
+                    <Button className="mobile-fill-control" size="small" onClick={loadUsers} loading={usersLoading}>刷新</Button>
+                    <Button className="mobile-fill-control" size="small" type="primary" onClick={() => setCreateUserVisible(true)}>新增用户</Button>
                   </Space>
                 )}
               >
