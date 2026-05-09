@@ -14,6 +14,7 @@ import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react'
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
 import {
   BEAD_ROAD_CONFIG,
+  calculateViewportColumns,
   ROAD_COLORS,
   calculateResponsiveColumnGap,
   calculateRoadContentWidth,
@@ -65,27 +66,42 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     };
   }, []);
 
-  const visibleCols = useMemo(() => {
+  const actualCols = useMemo(() => {
     if (!data?.points.length) return 6;
     const maxCol = Math.max(...data.points.map((point) => point.column)) + 1;
-    return Math.min(12, Math.max(6, maxCol));
+    return Math.max(6, maxCol);
   }, [data]);
+
+  const viewportCols = useMemo(() => {
+    return calculateViewportColumns({
+      containerWidth,
+      cellSize: mergedConfig.cellSize,
+      gap: mergedConfig.cellGap,
+      padding: mergedConfig.padding,
+      minCols: 6,
+      maxCols: 14,
+    });
+  }, [containerWidth, mergedConfig.cellGap, mergedConfig.cellSize, mergedConfig.padding]);
+
+  const totalCols = useMemo(() => {
+    return Math.min(14, Math.max(actualCols, viewportCols));
+  }, [actualCols, viewportCols]);
 
   const responsiveColumnGap = useMemo(() => {
     return calculateResponsiveColumnGap({
       containerWidth,
-      cols: visibleCols,
+      cols: totalCols,
       cellSize: mergedConfig.cellSize,
       minGap: mergedConfig.cellGap,
       maxGap: Math.max(mergedConfig.cellGap, 24),
       padding: mergedConfig.padding,
     });
-  }, [containerWidth, mergedConfig, visibleCols]);
+  }, [containerWidth, mergedConfig, totalCols]);
 
   const fixedSize = useMemo(() => ({
-    width: calculateRoadContentWidth(mergedConfig, visibleCols, responsiveColumnGap),
+    width: calculateRoadContentWidth(mergedConfig, totalCols, responsiveColumnGap),
     height: calculateRoadHeight(mergedConfig),
-  }), [mergedConfig, responsiveColumnGap, visibleCols]);
+  }), [mergedConfig, responsiveColumnGap, totalCols]);
 
   // Canvas像素尺寸
   const canvasPixelSize = useMemo(() => {
@@ -128,11 +144,11 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     const maxCol = data && data.points.length > 0 
       ? Math.max(...data.points.map(p => p.column))
       : 0;
-    const offsetCol = Math.max(0, maxCol - (visibleCols - 1));
+    const offsetCol = Math.max(0, maxCol - (totalCols - 1));
 
     // 始终绘制完整网格
     if (mergedConfig.showGrid) {
-      drawGrid(ctx, mergedConfig, visibleCols, fixedRows, {
+      drawGrid(ctx, mergedConfig, totalCols, fixedRows, {
         columnGap,
         rowGap,
       });
@@ -146,7 +162,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     // 按坐标绘制点
     for (const point of data.points) {
       const displayCol = point.column - offsetCol;
-      if (displayCol < 0 || displayCol >= visibleCols || point.row >= fixedRows) continue;
+      if (displayCol < 0 || displayCol >= totalCols || point.row >= fixedRows) continue;
 
       const x = padding + displayCol * (cellSize + columnGap) + cellSize / 2;
       const y = padding + point.row * (cellSize + rowGap) + cellSize / 2;
@@ -187,7 +203,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
         ctx.fill();
       }
     }
-  }, [data, mergedConfig, canvasPixelSize, fixedRows, responsiveColumnGap, visibleCols]);
+  }, [data, mergedConfig, canvasPixelSize, fixedRows, responsiveColumnGap, totalCols]);
 
   useEffect(() => {
     draw();

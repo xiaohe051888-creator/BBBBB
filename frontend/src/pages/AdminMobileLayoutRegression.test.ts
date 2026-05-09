@@ -206,16 +206,23 @@ describe('admin mobile layout regressions', () => {
     const beadRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/BeadRoadCanvas.tsx'), 'utf8');
     const bigRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/BigRoadCanvas.tsx'), 'utf8');
     const derivedRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/DerivedRoadCanvas.tsx'), 'utf8');
+    const roadTypes = readFileSync(resolve(__dirname, '../types/road.ts'), 'utf8');
 
     expect(fiveRoadChart).toContain('const beadConfig: RoadCanvasConfig = useMemo(() => ({');
     expect(fiveRoadChart).toContain('const CELL_GAP = 1;');
     expect(fiveRoadChart).toContain('cellSize: 28');
     expect(fiveRoadChart).toContain('fontSize: 12');
     expect(fiveRoadChart).toContain('<BeadRoadCanvas data={roads.bead} config={beadConfig} className="bead-road-responsive-canvas" />');
+    expect(roadTypes).toContain('export const calculateViewportColumns =');
+    expect(beadRoadCanvas).toContain('const viewportCols = useMemo(() =>');
+    expect(beadRoadCanvas).toContain('const totalCols = useMemo(() =>');
+    expect(beadRoadCanvas).toContain('Math.min(14, Math.max(actualCols, viewportCols))');
     expect(beadRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 24)');
-    expect(bigRoadCanvas).toContain('return Math.max(data?.max_columns || 0, 6);');
+    expect(bigRoadCanvas).toContain('const viewportCols = useMemo(() =>');
+    expect(bigRoadCanvas).toContain('return Math.max(data?.max_columns || 0, viewportCols);');
     expect(bigRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 6)');
-    expect(derivedRoadCanvas).toContain('return Math.max(data?.max_columns || 0, 3);');
+    expect(derivedRoadCanvas).toContain('const viewportCols = useMemo(() =>');
+    expect(derivedRoadCanvas).toContain('return Math.max(data?.max_columns || 0, viewportCols);');
     expect(derivedRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 6)');
   });
 

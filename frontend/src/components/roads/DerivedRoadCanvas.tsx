@@ -16,6 +16,7 @@ import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react'
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
 import {
   DERIVED_ROAD_CONFIG,
+  calculateViewportColumns,
   ROAD_COLORS,
   calculateResponsiveColumnGap,
   calculateRoadContentWidth,
@@ -70,9 +71,19 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
     };
   }, []);
   
+  const viewportCols = useMemo(() => {
+    return calculateViewportColumns({
+      containerWidth,
+      cellSize: mergedConfig.cellSize,
+      gap: mergedConfig.cellGap,
+      padding: mergedConfig.padding,
+      minCols: 3,
+    });
+  }, [containerWidth, mergedConfig.cellGap, mergedConfig.cellSize, mergedConfig.padding]);
+
   const totalCols = useMemo(() => {
-    return Math.max(data?.max_columns || 0, 3);
-  }, [data]);
+    return Math.max(data?.max_columns || 0, viewportCols);
+  }, [data, viewportCols]);
 
   const responsiveColumnGap = useMemo(() => {
     return calculateResponsiveColumnGap({

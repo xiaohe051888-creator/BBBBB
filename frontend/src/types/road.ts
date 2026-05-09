@@ -157,6 +157,30 @@ export const calculateResponsiveColumnGap = ({
   return Math.max(minGap, Math.min(maxGap, nextGap));
 };
 
+export const calculateViewportColumns = ({
+  containerWidth,
+  cellSize,
+  gap,
+  padding,
+  minCols,
+  maxCols,
+}: {
+  containerWidth: number;
+  cellSize: number;
+  gap: number;
+  padding: number;
+  minCols: number;
+  maxCols?: number;
+}): number => {
+  if (containerWidth <= 0) return minCols;
+  const availableWidth = containerWidth - padding * 2;
+  if (availableWidth <= 0) return minCols;
+
+  const nextCols = Math.floor((availableWidth + gap) / Math.max(1, cellSize + gap));
+  const boundedCols = Math.max(minCols, nextCols);
+  return typeof maxCols === 'number' ? Math.min(maxCols, boundedCols) : boundedCols;
+};
+
 /** 
  * 计算路的精确高度（刚好显示6格，禁止垂直滚动）
  * @param config Canvas配置
