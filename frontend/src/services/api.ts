@@ -39,24 +39,39 @@ const API_BASE = normalizeApiBaseUrl();
 
 // ============ Token 工具函数 ============
 
-const TOKEN_KEY = 'admin_token';
+const USER_TOKEN_KEY = 'user_token';
+const ADMIN_TOKEN_KEY = 'admin_token';
 
 /** 获取存储的JWT token */
 export const getToken = (): string | null => {
-  return localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(USER_TOKEN_KEY);
 };
 
 /** 保存token */
 export const setToken = (token: string): void => {
-  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_TOKEN_KEY, token);
   localStorage.removeItem('mode_selected');
   window.dispatchEvent(new Event('auth_token_changed'));
 };
 
 /** 清除token（登出） */
 export const clearToken = (): void => {
-  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_TOKEN_KEY);
   localStorage.removeItem('mode_selected');
+  window.dispatchEvent(new Event('auth_token_changed'));
+};
+
+export const getAdminToken = (): string | null => {
+  return localStorage.getItem(ADMIN_TOKEN_KEY);
+};
+
+export const setAdminToken = (token: string): void => {
+  localStorage.setItem(ADMIN_TOKEN_KEY, token);
+  window.dispatchEvent(new Event('auth_token_changed'));
+};
+
+export const clearAdminToken = (): void => {
+  localStorage.removeItem(ADMIN_TOKEN_KEY);
   window.dispatchEvent(new Event('auth_token_changed'));
 };
 
@@ -70,9 +85,14 @@ const api = axios.create({
 
 // ====== 请求拦截器：自动附加 JWT Token ======
 api.interceptors.request.use((config) => {
-  const token = getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const url = String(config.url || '');
+  const isAdminRequest = /(^|\/)admin(\/|$)/.test(url);
+  const isLoginRequest = /(^|\/)admin\/login\b/.test(url) || /(^|\/)auth\/login\b/.test(url);
+  if (!isLoginRequest) {
+    const token = isAdminRequest ? getAdminToken() : getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -91,8 +111,9 @@ export const handleApiError = (error: unknown) => {
   const detail = err.response?.data?.detail;
   const hasDetail = !!detail;
   const requestUrl = String(err.config?.url || '');
-  const isLoginRequest = requestUrl.includes('/admin/login');
-  const hadToken = !!getToken();
+  const isLoginRequest = requestUrl.includes('/admin/login') || requestUrl.includes('/auth/login');
+  const isAdminRequest = requestUrl.includes('/admin/');
+  const hadToken = isAdminRequest ? !!getAdminToken() : !!getToken();
 
   if (hasDetail) {
     const message = Array.isArray(detail)
@@ -109,10 +130,17 @@ export const handleApiError = (error: unknown) => {
 
   if (status === 401 && !isLoginRequest) {
     if (hadToken) {
-      clearToken();
       const currentPath = window.location.pathname;
-      if (!currentPath.startsWith('/mode')) {
-        window.location.assign('/mode?session_expired=true');
+      if (isAdminRequest) {
+        clearAdminToken();
+        if (!currentPath.startsWith('/admin')) {
+          window.location.assign('/admin?session_expired=true');
+        }
+      } else {
+        clearToken();
+        if (!currentPath.startsWith('/login')) {
+          window.location.assign('/login?session_expired=true');
+        }
       }
     }
   }
@@ -397,8 +425,12 @@ export const getStatistics = async () => {
 
 // ====== 管理员 ======
 
-export const adminLogin = async (password: string) => {
-  return api.post('/admin/login', { password });
+export const adminLogin = async (password: string, username?: string) => {
+  return api.post('/admin/login', { password, username });
+};
+
+export const userLogin = async (username: string, password: string) => {
+  return api.post('/auth/login', { username, password });
 };
 
 export const changePassword = async (oldPassword: string, newPassword: string) => {
@@ -507,6 +539,42 @@ export const getDatabaseRecords = async (
   return api.get('/admin/database-records', {
     params: { table_name: tableName, page, page_size: pageSize, ...(extraParams || {}) },
   });
+};
+
+export interface AdminUserItem {
+  id: number;
+  username: string;
+  is_active: boolean;
+  must_change_password: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface AdminUsersListResponse {
+  data: AdminUserItem[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export const adminListUsers = async (params?: { page?: number; page_size?: number; q?: string }) => {
+  return api.get<AdminUsersListResponse>('/admin/users', { params });
+};
+
+export const adminCreateUser = async (payload: {
+  username: string;
+  password: string;
+  is_active?: boolean;
+  must_change_password?: boolean;
+}) => {
+  return api.post<AdminUserItem>('/admin/users', payload);
+};
+
+export const adminUpdateUser = async (
+  userId: number,
+  payload: { username?: string; password?: string; is_active?: boolean; must_change_password?: boolean },
+) => {
+  return api.patch<AdminUserItem>(`/admin/users/${userId}`, payload);
 };
 
 // ====== 走势图 API ======

@@ -7,7 +7,7 @@
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Grid, Progress, Tag } from 'antd';
-import { getToken } from '../services/api';
+import { getAdminToken, getToken } from '../services/api';
 import { MAX_GAMES_PER_BOOT } from '../utils/constants';
 import { RevealModal, DashboardHeader, WorkflowStatusBar, AnalysisPanel } from '../components/dashboard';
 import LoginModal from '../components/admin/LoginModal';
@@ -264,19 +264,15 @@ const DashboardPage: React.FC = () => {
   const closeReveal = useCallback(() => setRevealVisible(false), []);
 
   // 管理员登录
-  const [loginVisible, setLoginVisible] = useState(false);
-  const openLogin = () => setLoginVisible(true);
-  const closeLogin = () => setLoginVisible(false);
+  const [adminLoginVisible, setAdminLoginVisible] = useState(false);
+  const openAdminLogin = () => setAdminLoginVisible(true);
+  const closeAdminLogin = () => setAdminLoginVisible(false);
 
   // 学习状态
   const [microLearning] = useState<any>(null);
   const [deepLearning] = useState<any>(null);
 
   const handleOpenReveal = () => {
-    if (!getToken()) {
-      openLogin();
-      return;
-    }
     if (systemState?.status === '余额不足') {
       addIssue({
         level: 'critical',
@@ -323,7 +319,8 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const isLoggedIn = !!getToken();
+  const isUserLoggedIn = !!getToken();
+  const isAdminLoggedIn = !!getAdminToken();
 
   return (
     <div className="dashboard-container">
@@ -338,8 +335,9 @@ const DashboardPage: React.FC = () => {
         diagnostics={diagnostics}
         onDismissIssue={dismissIssue}
         onRetryConnection={retryConnection}
-        isLoggedIn={isLoggedIn}
-        onOpenLogin={openLogin}
+        isUserLoggedIn={isUserLoggedIn}
+        isAdminLoggedIn={isAdminLoggedIn}
+        onOpenAdminLogin={openAdminLogin}
         gameCount={games.length}
       />
 
@@ -480,7 +478,7 @@ const DashboardPage: React.FC = () => {
           gameNumber={systemState?.pending_bet?.game_number ?? systemState?.next_game_number}
         />
       )}
-      {loginVisible && <LoginModal visible={true} onCancel={closeLogin} onSuccess={closeLogin} />}
+      {adminLoginVisible && <LoginModal visible={true} onCancel={closeAdminLogin} onSuccess={closeAdminLogin} />}
     </div>
   );
 };

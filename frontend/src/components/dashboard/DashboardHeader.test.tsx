@@ -56,8 +56,9 @@ describe('DashboardHeader', () => {
             diagnostics={diagnostics as never}
             onDismissIssue={() => {}}
             onRetryConnection={() => {}}
-            isLoggedIn={false}
-            onOpenLogin={() => {}}
+            isUserLoggedIn={false}
+            isAdminLoggedIn={false}
+            onOpenAdminLogin={() => {}}
             gameCount={28}
           />
         </MemoryRouter>

@@ -8,7 +8,7 @@ export const AdminAlertsBar: React.FC = () => {
   const navigate = useNavigate();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const isLoggedIn = !!api.getToken();
+  const isLoggedIn = !!api.getAdminToken();
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [data, setData] = useState<api.AdminMaintenanceAlertsResponse | null>(null);

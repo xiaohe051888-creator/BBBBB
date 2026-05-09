@@ -32,6 +32,7 @@ const Icons = {
 };
 
 export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuccess }) => {
+  const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { message } = App.useApp();
@@ -40,20 +41,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    if (!password) {
-      message.warning('请输入管理密码');
+    if (!username.trim() || !password) {
+      message.warning('请输入用户名和密码');
       return;
     }
     
     setLoading(true);
     try {
-      const res = await api.adminLogin(password);
+      const res = await api.adminLogin(password, username.trim());
       if (res.data && res.data.token) {
-        api.setToken(res.data.token);
+        api.setAdminToken(res.data.token);
       }
       message.success('登录成功');
       onSuccess();
-      navigate('/mode', { replace: true });
+      navigate('/admin', { replace: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       // 兼容 FastAPI 返回的 {"detail": "错误原因"} 格式，否则前端提示永远是 undefined
@@ -64,6 +65,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
   };
 
   const handleClose = () => {
+    setUsername('admin');
     setPassword('');
     onCancel();
   };
@@ -101,6 +103,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel, onSuc
           仅限授权人员访问
         </p>
       </div>
+      <Input
+        value={username}
+        onChange={e => setUsername(e.target.value)}
+        onPressEnter={handleLogin}
+        placeholder="管理员用户名"
+        size="large"
+        style={{ height: isMobile ? 46 : 48, borderRadius: 10, fontSize: isMobile ? 13 : 14, marginBottom: 10 }}
+        styles={{ input: { color: '#fff' } }}
+      />
       <Input.Password
         value={password}
         onChange={e => setPassword(e.target.value)}

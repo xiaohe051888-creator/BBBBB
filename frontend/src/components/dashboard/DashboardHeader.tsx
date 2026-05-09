@@ -32,8 +32,9 @@ interface DashboardHeaderProps {
   diagnostics: SystemDiagnostics;
   onDismissIssue: (id: string) => void;
   onRetryConnection: () => void;
-  isLoggedIn: boolean;
-  onOpenLogin: () => void;
+  isUserLoggedIn: boolean;
+  isAdminLoggedIn: boolean;
+  onOpenAdminLogin: () => void;
   gameCount: number;
 }
 
@@ -42,8 +43,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   diagnostics,
   onDismissIssue,
   onRetryConnection,
-  isLoggedIn,
-  onOpenLogin,
+  isUserLoggedIn,
+  isAdminLoggedIn,
+  onOpenAdminLogin,
 }) => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -54,10 +56,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       <Button
         icon={<CloudUploadOutlined />}
         onClick={() => {
-          if (!isLoggedIn) {
-            onOpenLogin();
-            return;
-          }
+          if (!isUserLoggedIn) return navigate('/login');
           navigate('/upload');
         }}
         title="上传数据"
@@ -75,7 +74,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <span>上传数据</span>
       </Button>
 
-      {isLoggedIn ? (
+      {isAdminLoggedIn ? (
         <Button
           icon={<UnlockOutlined />}
           onClick={() => navigate('/admin')}
@@ -87,7 +86,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       ) : (
         <Button
           icon={<LockOutlined />}
-          onClick={onOpenLogin}
+          onClick={onOpenAdminLogin}
           title="管理员登录"
           aria-label="管理员登录"
           style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: 8, height: 36 }}
