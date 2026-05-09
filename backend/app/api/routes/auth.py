@@ -32,6 +32,11 @@ from app.services.ai_config_store import (
 router = APIRouter(prefix="/api/admin", tags=["认证"])
 
 
+def build_single_ai_manual_version_name(now: datetime | None = None) -> str:
+    current = now or datetime.now()
+    return f"single_ai_manual_{current.strftime('%y%m%d%H%M%S')}"
+
+
 @router.post("/login")
 async def admin_login(req: LoginRequest):
     """管理员登录"""
@@ -200,7 +205,7 @@ async def update_single_ai_prompt_templates(
 
         if req.prediction_template is not None:
             if v is None:
-                version_name = f"single_ai-manual-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                version_name = build_single_ai_manual_version_name()
                 v = ModelVersion(
                     version=version_name,
                     prediction_mode="single_ai",

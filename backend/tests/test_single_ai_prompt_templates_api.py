@@ -85,6 +85,14 @@ class SingleAiPromptTemplatesApiTest(unittest.TestCase):
             self.assertEqual(r2.status_code, 200)
             self.assertIn("REAL", r2.json().get("realtime_strategy_template") or "")
 
+    def test_single_ai_manual_version_name_fits_database_limit(self):
+        from app.api.routes.auth import build_single_ai_manual_version_name
+
+        version = build_single_ai_manual_version_name()
+
+        self.assertLessEqual(len(version), 30)
+        self.assertTrue(version.startswith("single_ai_manual_"))
+
 
 if __name__ == "__main__":
     unittest.main()
