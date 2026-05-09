@@ -209,10 +209,13 @@ describe('admin mobile layout regressions', () => {
     const roadTypes = readFileSync(resolve(__dirname, '../types/road.ts'), 'utf8');
 
     expect(fiveRoadChart).toContain('const beadConfig: RoadCanvasConfig = useMemo(() => ({');
+    expect(fiveRoadChart).toContain('const beadRoadHeight = useMemo(() => {');
+    expect(fiveRoadChart).toContain('return calculateRoadHeight(beadConfig);');
     expect(fiveRoadChart).toContain('const CELL_GAP = 1;');
     expect(fiveRoadChart).toContain('cellSize: 28');
     expect(fiveRoadChart).toContain('fontSize: 12');
     expect(fiveRoadChart).toContain('<BeadRoadCanvas data={roads.bead} config={beadConfig} className="bead-road-responsive-canvas" />');
+    expect(fiveRoadChart).toContain("height: `${beadRoadHeight}px`");
     expect(roadTypes).toContain('export const calculateViewportColumns =');
     expect(beadRoadCanvas).toContain('const viewportCols = useMemo(() =>');
     expect(beadRoadCanvas).toContain('const totalCols = useMemo(() =>');

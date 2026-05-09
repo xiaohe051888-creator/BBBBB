@@ -172,6 +172,10 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
     return calculateRoadHeight(baseConfig);
   }, [baseConfig]);
 
+  const beadRoadHeight = useMemo(() => {
+    return calculateRoadHeight(beadConfig);
+  }, [beadConfig]);
+
   const renderRoadCard = (
     title: string,
     scrollRef: React.RefObject<HTMLDivElement | null>,
@@ -238,14 +242,14 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
           beadRoadScrollRef,
           <div className="bead-road-responsive-shell" style={{
             overflow: 'hidden',
-            height: `${roadHeight}px`,
+            height: `${beadRoadHeight}px`,
             width: '100%',
           }}>
-            <div style={{ height: `${roadHeight}px`, width: '100%' }}>
+            <div style={{ height: `${beadRoadHeight}px`, width: '100%' }}>
               {hasData.bead ? (
                 <BeadRoadCanvas data={roads.bead} config={beadConfig} className="bead-road-responsive-canvas" />
               ) : (
-                <EmptyState height={roadHeight} />
+                <EmptyState height={beadRoadHeight} />
               )}
             </div>
           </div>,
