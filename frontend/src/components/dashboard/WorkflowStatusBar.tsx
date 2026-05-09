@@ -46,7 +46,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
 
   if (systemState?.status === '余额不足') {
     return (
-      <div className="status-bar warning" style={{ background: 'rgba(250, 173, 20, 0.1)', border: '1px solid #faad14' }}>
+      <div className="status-bar warning workflow-status-shell" style={{ background: 'rgba(250, 173, 20, 0.1)', border: '1px solid #faad14' }}>
         <div className="status-icon-wrapper" style={{ background: '#faad14', color: '#141414' }}>
           <ClockIcon />
         </div>
@@ -134,7 +134,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
   const config = getStatusConfig();
 
   return (
-    <div className="status-bar workflow-status-main" style={{
+    <div className="status-bar workflow-status-main workflow-status-shell" style={{
       padding: '10px 20px',
       background: config.bgGradient,
       borderBottom: `1px solid ${config.borderColor}`,

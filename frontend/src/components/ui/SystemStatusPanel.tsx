@@ -189,7 +189,7 @@ export const SystemStatusPanel: React.FC<SystemStatusPanelProps> = ({
 
   // ====== 完整模式 ======
   return (
-    <div style={{
+    <div className="system-status-card" style={{
       background: 'rgba(22,27,34,0.95)',
       border: `1px solid ${hasIssues ? '#ff4d4f40' : '#30363d'}`,
       borderRadius: 12,

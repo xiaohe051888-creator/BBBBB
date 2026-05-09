@@ -142,4 +142,29 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.five-road-chart {');
     expect(css).toContain('.five-road-chart .roadmap-board-card {');
   });
+
+  it('keeps user-facing status and form pages on shared mobile shell classes', () => {
+    const workflow = readFileSync(resolve(__dirname, '../components/dashboard/WorkflowStatusBar.tsx'), 'utf8');
+    const systemStatus = readFileSync(resolve(__dirname, '../components/ui/SystemStatusPanel.tsx'), 'utf8');
+    const smartAlerts = readFileSync(resolve(__dirname, '../components/ui/SmartAlerts.tsx'), 'utf8');
+    const upload = readFileSync(resolve(__dirname, './UploadDataPage.tsx'), 'utf8');
+    const modeSelect = readFileSync(resolve(__dirname, './ModeSelectPage.tsx'), 'utf8');
+    const login = readFileSync(resolve(__dirname, './LoginPage.tsx'), 'utf8');
+    const beadGrid = readFileSync(resolve(__dirname, '../components/upload/BeadGridInput.tsx'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(workflow).toContain('className="status-bar workflow-status-main workflow-status-shell"');
+    expect(systemStatus).toContain('className="system-status-card"');
+    expect(smartAlerts).toContain('className="smart-alerts-stack"');
+    expect(upload).toContain('className="mobile-status-card"');
+    expect(modeSelect).toContain('className="mode-select-card mobile-status-card"');
+    expect(login).toContain('className="page-auth-card mobile-status-card"');
+    expect(beadGrid).toContain('className="bead-grid-shell"');
+    expect(css).toContain('.workflow-status-shell,');
+    expect(css).toContain('.system-status-card,');
+    expect(css).toContain('.mobile-status-card,');
+    expect(css).toContain('.page-auth-card,');
+    expect(css).toContain('.bead-grid-shell {');
+    expect(css).toContain('.smart-alerts-stack {');
+  });
 });

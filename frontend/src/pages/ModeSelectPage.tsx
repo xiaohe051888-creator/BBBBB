@@ -113,6 +113,7 @@ const ModeSelectPage: React.FC = () => {
 
       <div style={{ marginTop: 16, display: 'grid', gap: 12 }}>
         <Card
+          className="mode-select-card mobile-status-card"
           size="small"
           styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}
           title={formatModeSelectLabel('aiCardTitle')}
@@ -139,6 +140,7 @@ const ModeSelectPage: React.FC = () => {
         </Card>
 
         <Card
+          className="mode-select-card mobile-status-card"
           size="small"
           styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}
           title={formatModeSelectLabel('singleCardTitle')}
@@ -165,6 +167,7 @@ const ModeSelectPage: React.FC = () => {
         </Card>
 
         <Card
+          className="mode-select-card mobile-status-card"
           size="small"
           styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}
           title={formatModeSelectLabel('ruleCardTitle')}

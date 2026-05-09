@@ -2292,6 +2292,10 @@ body {
   .progress-card,
   .analysis-card,
   .learning-status-card,
+  .workflow-status-shell,
+  .system-status-card,
+  .mobile-status-card,
+  .page-auth-card,
   .roadmap-chart-shell,
   .roadmap-analysis-shell {
     background: transparent !important;
@@ -2306,13 +2310,19 @@ body {
 
   .road-card,
   .progress-card,
-  .analysis-card {
+  .analysis-card,
+  .workflow-status-shell,
+  .system-status-card {
     padding-left: 0 !important;
     padding-right: 0 !important;
   }
 
   .learning-status-card .ant-card-head,
-  .learning-status-card .ant-card-body {
+  .learning-status-card .ant-card-body,
+  .mobile-status-card .ant-card-head,
+  .mobile-status-card .ant-card-body,
+  .page-auth-card .ant-card-head,
+  .page-auth-card .ant-card-body {
     padding-left: 0 !important;
     padding-right: 0 !important;
   }
@@ -2320,6 +2330,17 @@ body {
   .learning-status-card .ant-card-head {
     background: transparent !important;
     border-bottom: none !important;
+  }
+
+  .mobile-status-card .ant-card-head,
+  .page-auth-card .ant-card-head {
+    background: transparent !important;
+    border-bottom: none !important;
+  }
+
+  .mobile-status-card .ant-card-body,
+  .page-auth-card .ant-card-body {
+    padding-top: 10px !important;
   }
 
   .five-road-chart {
@@ -2330,6 +2351,15 @@ body {
 
   .five-road-chart .roadmap-board-card {
     box-shadow: none !important;
+  }
+
+  .bead-grid-shell {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .smart-alerts-stack {
+    width: 100%;
   }
 
   .admin-users-toolbar {

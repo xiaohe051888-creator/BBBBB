@@ -78,7 +78,7 @@ const UploadDataPage: React.FC = () => {
         </Space>
       </Space>
 
-      <Card style={{ marginBottom: 16 }}>
+      <Card className="mobile-status-card" style={{ marginBottom: 16 }}>
         <div className="upload-status-bar" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="upload-status-pills" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <div className="upload-summary-badge" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.18)' }}>
@@ -124,7 +124,7 @@ const UploadDataPage: React.FC = () => {
         )}
       </Card>
 
-      <Card>
+      <Card className="mobile-status-card">
         <div className="mobile-section-stack upload-workspace" style={{ display: 'flex', gap: isMobile ? 12 : 16, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
           <div style={{ flex: '1 1 520px', minWidth: isMobile ? 'auto' : 320 }}>
             <QuickKeyInput results={results} onChange={setResults} max={MAX_GAMES} />

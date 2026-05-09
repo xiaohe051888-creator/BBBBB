@@ -38,6 +38,7 @@ export const BeadGridInput: React.FC<Props> = ({ results, onChange, max }) => {
       }}
     >
       <div
+        className="bead-grid-shell"
         style={{
         display: 'grid',
         gridTemplateColumns: `repeat(12, ${isMobile ? 42 : 1}fr)`,

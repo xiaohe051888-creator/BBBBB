@@ -58,6 +58,7 @@ const LoginPage: React.FC = () => {
           />
         )}
         <Card
+          className="page-auth-card mobile-status-card"
           title={<div style={{ fontWeight: 900, fontSize: 18, color: '#fff' }}>用户登录</div>}
           styles={{ header: { borderBottom: '1px solid rgba(255,255,255,0.08)' } }}
         >
@@ -89,4 +90,3 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
-
