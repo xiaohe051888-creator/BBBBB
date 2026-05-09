@@ -79,4 +79,14 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.upload-summary-badge');
     expect(css).toContain('.roadmap-analysis-shell');
   });
+
+  it('marks admin table cards and flattens nested mobile table shells', () => {
+    const adminPage = readFileSync(resolve(__dirname, './AdminPage.tsx'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(adminPage).toContain('className="admin-table-card"');
+    expect(css).toContain('.admin-table-card .ant-card-body');
+    expect(css).toContain('.admin-table-card .mobile-card-table .ant-table-container');
+    expect(css).toContain('.admin-table-card .mobile-card-table .ant-table-placeholder .ant-empty');
+  });
 });

@@ -1095,7 +1095,7 @@ const AdminPage: React.FC = () => {
                 </Card>
 
                 {/* 模型版本列表 */}
-                <Card title={`${formatDangerZoneLabel('modelVersion')}管理`} size="small">
+                <Card className="admin-table-card" title={`${formatDangerZoneLabel('modelVersion')}管理`} size="small">
                   <Space style={{ marginBottom: 12, flexWrap: 'wrap' }} className="mobile-action-row">
                     <span style={{ color: 'rgba(255,255,255,0.65)' }}>模式筛选</span>
                     <Select
@@ -1139,7 +1139,7 @@ const AdminPage: React.FC = () => {
             key: 'tasks',
             label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Experiment /> {isMobile ? '处理' : formatTaskAreaLabel('tab')}</span>,
             children: (
-              <Card title={formatTaskAreaLabel('card')} size="small">
+              <Card className="admin-table-card" title={formatTaskAreaLabel('card')} size="small">
                 <Space style={{ marginBottom: 12, flexWrap: 'wrap' }} className="mobile-action-row">
                   <Button size="small" onClick={loadSystemTasks} loading={tasksLoading}>刷新</Button>
                 </Space>
@@ -1247,6 +1247,7 @@ const AdminPage: React.FC = () => {
             label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Key /> 用户管理</span>,
             children: (
               <Card
+                className="admin-table-card"
                 title="用户管理"
                 size="small"
                 extra={(
@@ -1416,7 +1417,7 @@ const AdminPage: React.FC = () => {
                   </div>
                 </Card>
 
-                <Card title="数据库记录查看" size="small">
+                <Card className="admin-table-card" title="数据库记录查看" size="small">
                   <Space style={{ marginBottom: 16, flexWrap: 'wrap' }} className="mobile-action-row">
                     <span>查看内容：</span>
                     <Select

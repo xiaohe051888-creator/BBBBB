@@ -2176,6 +2176,41 @@ body {
     justify-content: flex-start;
   }
 
+  .admin-table-card .ant-card-body {
+    padding: 10px 12px !important;
+  }
+
+  .admin-table-card .mobile-card-table,
+  .admin-table-card .mobile-card-table .ant-table-wrapper,
+  .admin-table-card .mobile-card-table .ant-spin-nested-loading,
+  .admin-table-card .mobile-card-table .ant-spin-container,
+  .admin-table-card .mobile-card-table .ant-table-container,
+  .admin-table-card .mobile-card-table .ant-table-content,
+  .admin-table-card .mobile-card-table .ant-table-body {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .admin-table-card .mobile-card-table .ant-table-tbody > tr {
+    margin-bottom: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .admin-table-card .mobile-card-table .ant-table-tbody > tr:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  .admin-table-card .mobile-card-table .ant-table-placeholder > td {
+    padding-top: 4px !important;
+  }
+
+  .admin-table-card .mobile-card-table .ant-table-placeholder .ant-empty {
+    padding: 18px 8px !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
   .admin-users-toolbar {
     display: grid !important;
     grid-template-columns: 1fr;
