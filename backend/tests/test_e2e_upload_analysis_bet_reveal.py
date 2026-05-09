@@ -44,7 +44,7 @@ class UploadAnalysisBetRevealE2ETest(unittest.TestCase):
         async def _run():
             from sqlalchemy import select
             from app.core.database import init_db, async_session
-            from app.models.schemas import BetRecord
+            from app.models.schemas import BetRecord, MistakeBook
             from app.services.game.upload import upload_games
             from app.services.game.analysis import run_ai_analysis
             from app.services.game.betting import place_bet
@@ -106,9 +106,19 @@ class UploadAnalysisBetRevealE2ETest(unittest.TestCase):
                     ).order_by(BetRecord.id.desc())
                 )).scalars().first()
 
+                mistakes = (await s.execute(
+                    select(MistakeBook).where(
+                        MistakeBook.boot_number == actual_boot,
+                        MistakeBook.game_number == analysis_res["game_number"],
+                    )
+                )).scalars().all()
+
             self.assertTrue(reveal_res["success"])
             self.assertIsNotNone(bet2)
             self.assertIn(bet2.status, ("已结算", "和局退回"))
+            self.assertEqual(len(mistakes), 1)
+            self.assertEqual(mistakes[0].prediction_mode, "rule")
+            self.assertEqual(mistakes[0].predict_direction, prediction)
 
             async with async_session() as s:
                 next_analysis = await run_ai_analysis(db=s, boot_number=actual_boot)
