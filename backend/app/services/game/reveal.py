@@ -105,6 +105,19 @@ async def reveal_game(
                 game_record.result = result
                 game_record.result_time = datetime.now()
             
+            # 兜底恢复当前预测：重启后内存态可能丢失，但数据库 state/待开奖注单仍在。
+            state = await get_or_create_state(db)
+            if not sess.predict_direction and sess.pending_game_number == game_number:
+                if state.predict_direction:
+                    sess.predict_direction = state.predict_direction
+                    sess.predict_confidence = state.predict_confidence
+                    if not sess.predict_bet_tier:
+                        sess.predict_bet_tier = state.current_bet_tier
+                elif sess.pending_bet_direction:
+                    sess.predict_direction = sess.pending_bet_direction
+                    if not sess.predict_bet_tier:
+                        sess.predict_bet_tier = sess.pending_bet_tier
+
             # 预测是否正确
             predict_correct = None
             if sess.predict_direction:
@@ -125,7 +138,6 @@ async def reveal_game(
             sess.status = "分析中"
             
             # 更新系统状态
-            state = await get_or_create_state(db)
             state.status = "分析中"
             state.game_number = game_number
             state.current_game_result = result

@@ -131,6 +131,95 @@ class UploadAnalysisBetRevealE2ETest(unittest.TestCase):
         self.assertTrue(ok)
         self.assertIn(status, ("分析完成", "等待下注", "等待开奖"))
 
+    def test_reveal_recovers_prediction_from_persisted_state_when_session_prediction_missing(self):
+        async def _run():
+            from sqlalchemy import select
+            from app.core.database import init_db, async_session
+            from app.models.schemas import BetRecord, GameRecord, MistakeBook
+            from app.services.game.upload import upload_games
+            from app.services.game.analysis import run_ai_analysis
+            from app.services.game.betting import place_bet
+            from app.services.game.reveal import reveal_game
+            from app.services.game.session import get_session
+            from app.services.game.state import get_or_create_state
+
+            await init_db()
+            boot = self._new_boot_number()
+            await self._prepare_state(boot, balance=1000, status="等待下注", next_game_number=1)
+
+            async with async_session() as s:
+                upload_res = await upload_games(
+                    db=s,
+                    games=[{"game_number": 1, "result": "庄"}],
+                    mode="new_boot",
+                    balance_mode="keep",
+                    run_deep_learning=False,
+                )
+                await s.commit()
+
+            actual_boot = upload_res["boot_number"]
+
+            async with async_session() as s:
+                analysis_res = await run_ai_analysis(db=s, boot_number=actual_boot)
+                await s.commit()
+
+                prediction = analysis_res["prediction"]
+                self.assertIn(prediction, ("庄", "闲"))
+
+                bet_res = await place_bet(
+                    s,
+                    game_number=analysis_res["game_number"],
+                    direction=prediction,
+                    amount=analysis_res["bet_amount"],
+                )
+                await s.commit()
+                self.assertTrue(bet_res["success"])
+
+                state = await get_or_create_state(s)
+                self.assertEqual(state.predict_direction, prediction)
+
+            sess = get_session()
+            sess.predict_direction = None
+            sess.predict_confidence = None
+
+            async with async_session() as s:
+                reveal_res = await reveal_game(
+                    s,
+                    game_number=analysis_res["game_number"],
+                    result="闲" if prediction == "庄" else "庄",
+                )
+                await s.commit()
+
+                game_record = (await s.execute(
+                    select(GameRecord).where(
+                        GameRecord.boot_number == actual_boot,
+                        GameRecord.game_number == analysis_res["game_number"],
+                    )
+                )).scalar_one()
+                bet_record = (await s.execute(
+                    select(BetRecord).where(
+                        BetRecord.boot_number == actual_boot,
+                        BetRecord.game_number == analysis_res["game_number"],
+                    ).order_by(BetRecord.id.desc())
+                )).scalars().first()
+                mistakes = (await s.execute(
+                    select(MistakeBook).where(
+                        MistakeBook.boot_number == actual_boot,
+                        MistakeBook.game_number == analysis_res["game_number"],
+                    )
+                )).scalars().all()
+
+            self.assertEqual(reveal_res["predict_direction"], prediction)
+            self.assertFalse(reveal_res["predict_correct"])
+            self.assertEqual(game_record.predict_direction, prediction)
+            self.assertFalse(game_record.predict_correct)
+            self.assertIsNotNone(bet_record)
+            self.assertEqual(bet_record.status, "已结算")
+            self.assertEqual(len(mistakes), 1)
+            self.assertEqual(mistakes[0].predict_direction, prediction)
+
+        asyncio.run(_run())
+
 
 if __name__ == "__main__":
     unittest.main()
