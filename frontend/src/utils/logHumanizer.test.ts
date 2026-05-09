@@ -133,4 +133,24 @@ describe('logHumanizer', () => {
     const h = humanizeLog(log);
     expect(h.fieldsCn.some((field) => field.label === '处理编号' && field.value === 'task-123')).toBe(true);
   });
+
+  it('describes LOG-ERR-001 as an AI review alert instead of a settlement failure', () => {
+    const log: LogEntry = {
+      id: 10,
+      log_time: '2026-05-09T09:53:29Z',
+      game_number: 8,
+      event_code: 'LOG-ERR-001',
+      event_type: '记入复盘记录',
+      event_result: '-',
+      description: '第8局预测失准，已将现场盘面与证据链记入复盘记录。连续失准: 3次。',
+      category: 'AI事件',
+      priority: 'P2',
+      task_id: null,
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.title).toContain('AI连续失准');
+    expect(h.impact).not.toContain('余额/下注记录不一致');
+    expect(toHumanCopyText(log)).not.toContain('系统异常：结算过程出现问题');
+  });
 });

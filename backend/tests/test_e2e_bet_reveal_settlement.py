@@ -188,7 +188,47 @@ class BetRevealSettlementE2ETest(unittest.TestCase):
         self.assertEqual(status, "余额不足")
         self.assertTrue(no_bet)
 
+    def test_review_log_stays_p2_after_second_consecutive_miss(self):
+        async def _run():
+            from sqlalchemy import select
+            from app.core.database import init_db, async_session
+            from app.models.schemas import SystemLog
+            from app.services.game.reveal import reveal_game
+            from app.services.game.session import get_session
+
+            await init_db()
+            boot = self._new_boot_number()
+            await self._prepare_state(boot, balance=1000, status="等待开奖", next_game_number=8)
+
+            sess = get_session()
+            sess.predict_direction = "庄"
+            sess.prediction_mode = "single_ai"
+            sess.consecutive_errors = 1
+
+            async with async_session() as s:
+                res = await reveal_game(s, game_number=8, result="闲")
+                await s.commit()
+
+                log = (
+                    await s.execute(
+                        select(SystemLog)
+                        .where(
+                            SystemLog.boot_number == boot,
+                            SystemLog.game_number == 8,
+                            SystemLog.event_code == "LOG-ERR-001",
+                        )
+                        .order_by(SystemLog.id.desc())
+                    )
+                ).scalars().first()
+
+                return res, log.priority if log else None, log.description if log else None, sess.consecutive_errors
+
+        res, priority, description, consecutive_errors = asyncio.run(_run())
+        self.assertTrue(res["success"])
+        self.assertEqual(consecutive_errors, 2)
+        self.assertEqual(priority, "P2")
+        self.assertIn("连续失准: 2次", description or "")
+
 
 if __name__ == "__main__":
     unittest.main()
-

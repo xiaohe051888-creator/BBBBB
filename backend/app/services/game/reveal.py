@@ -327,7 +327,7 @@ async def _settle_bet(
                     event_result="-",
                     description=f"第{game_number}局预测失准，已将现场盘面与证据链记入复盘记录。连续失准: {sess.consecutive_errors}次。",
                     category="AI事件",
-                    priority="P1" if sess.consecutive_errors >= 2 else "P2"
+                    priority="P2"
                 )
 
     return settlement_info

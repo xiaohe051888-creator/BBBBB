@@ -70,6 +70,53 @@ class AdminMaintenanceApiTest(unittest.TestCase):
         self.assertEqual(r2.status_code, 200)
         self.assertIn("count", r2.json())
 
+    def test_alerts_exclude_ai_review_miss_logs_from_severe_bar(self):
+        async def _seed():
+            from datetime import datetime
+
+            from app.core.database import init_db, async_session
+            from app.models.schemas import SystemLog
+
+            await init_db()
+            async with async_session() as s:
+                await s.execute(SystemLog.__table__.delete().where(SystemLog.event_code.in_(["LOG-ERR-001", "UT-P1-ALERT"])))
+                s.add(SystemLog(
+                    log_time=datetime.now(),
+                    boot_number=1,
+                    game_number=8,
+                    event_code="LOG-ERR-001",
+                    event_type="记入复盘记录",
+                    event_result="-",
+                    description="第8局预测失准，已将现场盘面与证据链记入复盘记录。连续失准: 3次。",
+                    category="AI事件",
+                    priority="P1",
+                ))
+                s.add(SystemLog(
+                    log_time=datetime.now(),
+                    boot_number=1,
+                    game_number=9,
+                    event_code="UT-P1-ALERT",
+                    event_type="测试严重事件",
+                    event_result="Exception",
+                    description="真正的严重告警",
+                    category="系统异常",
+                    priority="P1",
+                ))
+                await s.commit()
+
+        asyncio.run(_seed())
+
+        self._ensure_admin_password("8888")
+        client = TestClient(app)
+        token = client.post("/api/admin/login", json={"password": "8888"}).json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        r = client.get("/api/admin/maintenance/alerts", headers=headers)
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual(body["count"], 1)
+        self.assertEqual(body["data"][0]["event_code"], "UT-P1-ALERT")
+
     def test_retention_run_returns_summary(self):
         self._ensure_admin_password("8888")
         client = TestClient(app)

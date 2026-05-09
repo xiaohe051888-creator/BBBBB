@@ -207,10 +207,10 @@ const rule: Record<string, Rule> = {
     suggestion: '无需操作。',
   }),
   'LOG-ERR-001': (log) => ({
-    title: '系统异常：结算过程出现问题',
-    whatHappened: s(log.description) || '结算异常。',
-    impact: '可能导致余额/下注记录不一致。',
-    suggestion: '建议点击“一键修复/刷新页面”，如仍异常请截图反馈。',
+    title: 'AI连续失准：已自动记入复盘',
+    whatHappened: s(log.description) || '系统检测到本局预测连续失准，已自动写入复盘记录。',
+    impact: '这表示近期预测表现需要重点复盘，不代表结算系统本身发生故障。',
+    suggestion: '建议先查看复盘记录和当时盘面，再决定是否调整策略、切换模式或继续观察。',
   }),
   'LOG-ERR-009': (log) => ({
     title: '系统异常：优化或处理执行出错',

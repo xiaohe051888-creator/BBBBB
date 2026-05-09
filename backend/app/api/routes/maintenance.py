@@ -103,6 +103,7 @@ async def maintenance_alerts(
             select(SystemLog)
             .where(
                 SystemLog.priority == "P1",
+                SystemLog.event_code != "LOG-ERR-001",
                 SystemLog.log_time >= cutoff,
                 or_(SystemLog.event_code.is_(None), SystemLog.event_code.notlike("TEST-%")),
                 or_(SystemLog.category.is_(None), SystemLog.category != "测试"),
