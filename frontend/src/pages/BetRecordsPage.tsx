@@ -330,7 +330,7 @@ const BetRecordsPage: React.FC = () => {
 
       {/* 盈亏进度条 */}
       {summary && (
-        <Card size="small" style={{ marginBottom: 16 }}>
+        <Card size="small" className="mobile-status-card" style={{ marginBottom: 16 }}>
           <div className="mobile-section-stack" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12, color: '#8b949e' }}>盈亏分布</span>
             <div style={{ flex: '1 1 200px', minWidth: 150 }}>
@@ -356,7 +356,7 @@ const BetRecordsPage: React.FC = () => {
       )}
 
       {/* 筛选栏 */}
-      <Card size="small" style={{ marginBottom: 16 }}>
+      <Card size="small" className="mobile-status-card" style={{ marginBottom: 16 }}>
         <Space size="middle" wrap style={{ width: '100%' }} className="mobile-action-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#8b949e' }}>
             <Icons.Filter /> <strong>筛选：</strong>

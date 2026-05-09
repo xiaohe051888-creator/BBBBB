@@ -341,7 +341,7 @@ const MistakeBookPage: React.FC = () => {
       )}
 
       {/* 筛选栏 */}
-      <Card size="small" style={{ marginBottom: 16 }}>
+      <Card size="small" className="mobile-status-card" style={{ marginBottom: 16 }}>
         <Space size="middle" wrap style={{ width: '100%' }} className="mobile-action-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#8b949e' }}>
             <Icons.Filter /> <strong>筛选：</strong>

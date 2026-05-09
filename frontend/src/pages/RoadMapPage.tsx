@@ -351,6 +351,7 @@ const RoadMapPage: React.FC = () => {
           {/* 路势分析 */}
           <div className="roadmap-analysis-col" style={{ flex: '1 1 400px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
             <Card
+              className="mobile-status-card"
               title={<span><Icons.Info /> 路势分析</span>}
               style={{ height: '100%' }}
             >
@@ -371,7 +372,7 @@ const RoadMapPage: React.FC = () => {
 
           {/* 统计面板 */}
           <div className="roadmap-analysis-col" style={{ flex: '1 1 400px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
-            <Card title={<span><Icons.Trend /> 数据统计</span>} style={{ marginBottom: 16 }}>
+            <Card className="mobile-status-card" title={<span><Icons.Trend /> 数据统计</span>} style={{ marginBottom: 16 }}>
               <div className="stats-grid">
                 <Statistic title="总局数" value={stats.totalGames} suffix="局" styles={{ content: { color: '#58a6ff' } }} />
                 <Statistic title="庄出现" value={stats.bankerCount} suffix={`(${(stats.bankerCount / Math.max(stats.totalGames - stats.tieCount, 1) * 100).toFixed(1)}%)`} styles={{ content: { color: '#ff4d4f' } }} />
@@ -382,7 +383,7 @@ const RoadMapPage: React.FC = () => {
               </div>
             </Card>
 
-            <Card title={<span><Icons.Ruler /> 走势图规则速查</span>}>
+            <Card className="mobile-status-card" title={<span><Icons.Ruler /> 走势图规则速查</span>}>
               <div style={{ fontSize: 13, lineHeight: 2, color: '#8b949e' }}>
                 <p><strong style={{ color: '#ff4d4f' }}>大路规则：</strong></p>
                 <ul style={{ paddingLeft: 20, marginTop: 4 }}>

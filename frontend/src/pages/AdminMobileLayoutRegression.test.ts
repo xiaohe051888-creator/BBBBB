@@ -150,6 +150,10 @@ describe('admin mobile layout regressions', () => {
     const upload = readFileSync(resolve(__dirname, './UploadDataPage.tsx'), 'utf8');
     const modeSelect = readFileSync(resolve(__dirname, './ModeSelectPage.tsx'), 'utf8');
     const login = readFileSync(resolve(__dirname, './LoginPage.tsx'), 'utf8');
+    const betRecords = readFileSync(resolve(__dirname, './BetRecordsPage.tsx'), 'utf8');
+    const mistakes = readFileSync(resolve(__dirname, './MistakeBookPage.tsx'), 'utf8');
+    const logs = readFileSync(resolve(__dirname, './LogsPage.tsx'), 'utf8');
+    const roadmap = readFileSync(resolve(__dirname, './RoadMapPage.tsx'), 'utf8');
     const beadGrid = readFileSync(resolve(__dirname, '../components/upload/BeadGridInput.tsx'), 'utf8');
     const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
 
@@ -159,6 +163,10 @@ describe('admin mobile layout regressions', () => {
     expect(upload).toContain('className="mobile-status-card"');
     expect(modeSelect).toContain('className="mode-select-card mobile-status-card"');
     expect(login).toContain('className="page-auth-card mobile-status-card"');
+    expect(betRecords).toContain('className="mobile-status-card"');
+    expect(mistakes).toContain('className="mobile-status-card"');
+    expect(logs).toContain('className="mobile-status-card"');
+    expect(roadmap).toContain('className="mobile-status-card"');
     expect(beadGrid).toContain('className="bead-grid-shell"');
     expect(css).toContain('.workflow-status-shell,');
     expect(css).toContain('.system-status-card,');

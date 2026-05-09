@@ -85,7 +85,7 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
   ];
 
   return (
-    <Card size="small" style={{ marginBottom: 12 }}>
+    <Card size="small" className="mobile-status-card" style={{ marginBottom: 12 }}>
       <Space wrap className="mobile-action-row" style={{ width: '100%' }}>
         <Select
           value={filterCategory}
@@ -277,7 +277,7 @@ const LogTimeline: React.FC<LogTimelineProps> = ({ logs }) => {
   const items = useMemo(() => logs.slice(0, 20), [logs]);
 
   return (
-    <Card size="small" title="最新动态" style={{ marginBottom: 12 }}>
+    <Card size="small" className="mobile-status-card" title="最新动态" style={{ marginBottom: 12 }}>
       {items.length === 0 ? (
         <Typography.Text type="secondary">暂无数据</Typography.Text>
       ) : (
@@ -318,7 +318,7 @@ const CategoryStats: React.FC<CategoryStatsProps> = ({ stats }) => {
   }, [stats]);
 
   return (
-    <Card size="small" title="类别分布">
+    <Card size="small" className="mobile-status-card" title="类别分布">
       {items.length === 0 ? (
         <Typography.Text type="secondary">暂无数据</Typography.Text>
       ) : (
