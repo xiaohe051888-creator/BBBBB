@@ -287,7 +287,9 @@ async def _settle_bet(
             sess.consecutive_errors = 0
         else:
             sess.consecutive_errors += 1
-            if sess.consecutive_errors >= 1 and sess.prediction_mode in ("ai", "single_ai"):
+            # 规则参考模式同样会在总览展示失误统计，因此这里也要写入复盘记录，
+            # 保证总览、复盘页和路图错误标记三处数据一致。
+            if sess.consecutive_errors >= 1 and sess.prediction_mode in ("ai", "single_ai", "rule"):
                 mistake = MistakeBook(
                     boot_number=sess.boot_number,
                     game_number=game_number,
