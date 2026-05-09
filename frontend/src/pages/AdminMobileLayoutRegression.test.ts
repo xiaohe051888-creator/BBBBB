@@ -17,4 +17,14 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.mobile-card-table .ant-table-placeholder');
     expect(css).toContain('.mobile-card-table .ant-table-placeholder > td');
   });
+
+  it('makes mobile action rows stretch inner antd controls to full width', () => {
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(css).toContain('.mobile-action-row > .ant-space-item');
+    expect(css).toContain('.mobile-action-row > .ant-space-item > .ant-btn');
+    expect(css).toContain('.mobile-action-row > .ant-space-item > .ant-input');
+    expect(css).toContain('.mobile-action-row > .ant-space-item > .ant-input-affix-wrapper');
+    expect(css).toContain('.mobile-action-row > .ant-space-item > .ant-select');
+  });
 });

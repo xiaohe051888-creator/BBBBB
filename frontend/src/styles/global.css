@@ -1910,6 +1910,16 @@ body {
   .mobile-action-row > * {
     flex: 1 1 100%;
   }
+  .mobile-action-row > .ant-space-item {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .mobile-action-row > .ant-space-item > .ant-btn,
+  .mobile-action-row > .ant-space-item > .ant-input,
+  .mobile-action-row > .ant-space-item > .ant-input-affix-wrapper,
+  .mobile-action-row > .ant-space-item > .ant-select {
+    width: 100% !important;
+  }
   .mobile-pills-grid {
     gap: 8px;
   }
