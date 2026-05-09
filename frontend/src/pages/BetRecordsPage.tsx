@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Statistic,
   Select, Input, Modal, Empty,
-  Progress, Badge, Descriptions, Grid,
+  Progress, Badge, Grid,
 } from 'antd';
 import type { ColumnType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -342,27 +342,50 @@ const BetRecordsPage: React.FC = () => {
 
       {/* 盈亏进度条 */}
       {summary && (
-        <Card size="small" className="mobile-status-card" style={{ marginBottom: 16 }}>
-          <div className="mobile-section-stack" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12, color: '#8b949e' }}>盈亏分布</span>
-            <div style={{ flex: '1 1 200px', minWidth: 150 }}>
-              <Progress
-                percent={
-                  summary.winCount + summary.lossCount > 0
-                    ? (summary.winCount / (summary.winCount + summary.lossCount)) * 100
-                    : 0
-                }
-                success={{ percent: 0 }}
-                strokeColor="#ff4d4f"
-                railColor="#52c41a"
-                format={() => `${summary.winCount}胜 / ${summary.lossCount}负`}
-              />
+        <Card size="small" className="mobile-status-card bet-summary-card" style={{ marginBottom: 16 }}>
+          <div className="bet-summary-card-head">
+            <span className="bet-summary-title">盈亏分布</span>
+            <span className="bet-summary-meta">
+              已结算 {summary.winCount + summary.lossCount} 笔
+            </span>
+          </div>
+          <div className="bet-summary-pill-row">
+            <span className="bet-summary-pill is-win">胜 {summary.winCount}</span>
+            <span className="bet-summary-pill is-loss">负 {summary.lossCount}</span>
+            <span className="bet-summary-pill is-pending">待 {summary.pendingCount}</span>
+          </div>
+          <div className="bet-summary-progress-shell">
+            <Progress
+              percent={
+                summary.winCount + summary.lossCount > 0
+                  ? (summary.winCount / (summary.winCount + summary.lossCount)) * 100
+                  : 0
+              }
+              success={{ percent: 0 }}
+              strokeColor="#ff7875"
+              railColor="rgba(82, 196, 26, 0.28)"
+              strokeWidth={isMobile ? 10 : 8}
+              format={() => `${summary.winRate.toFixed(1)}%`}
+            />
+          </div>
+          <div className="bet-summary-stat-row">
+            <div className="bet-summary-stat">
+              <span>总盈亏</span>
+              <strong style={{ color: summary.totalPnL >= 0 ? '#ff7875' : '#73d13d' }}>
+                {formatSignedMoney(summary.totalPnL)}
+              </strong>
             </div>
-            <Space size={4} wrap>
-              <Tag color="#ff4d4f" style={{ fontSize: 11 }}>胜 {summary.winCount}</Tag>
-              <Tag color="#52c41a" style={{ fontSize: 11 }}>负 {summary.lossCount}</Tag>
-              <Tag color="#faad14" style={{ fontSize: 11 }}>待 {summary.pendingCount}</Tag>
-            </Space>
+            <div className="bet-summary-stat">
+              <span>胜率</span>
+              <strong>{summary.winRate.toFixed(1)}%</strong>
+            </div>
+            <div className="bet-summary-stat">
+              <span>连胜/连败</span>
+              <strong>
+                {Math.abs(summary.currentStreak)}
+                {summary.currentStreak > 0 ? '胜' : summary.currentStreak < 0 ? '败' : '-'}
+              </strong>
+            </div>
           </div>
         </Card>
       )}
@@ -493,48 +516,74 @@ const BetRecordsPage: React.FC = () => {
         style={{ maxWidth: 'calc(100vw - 20px)' }}
       >
         {selectedBet && (
-          <Descriptions bordered column={1} size="small" labelStyle={{ width: isMobile ? 88 : 100, background: '#161b22' }}>
-            <Descriptions.Item label="局号">{selectedBet.game_number}</Descriptions.Item>
-            <Descriptions.Item label="下注时间">
-              {selectedBet.bet_time ? dayjs(selectedBet.bet_time).format('YYYY-MM-DD HH:mm:ss') : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="下注方向">
-              <Tag color={selectedBet.bet_direction === '庄' ? '#ff4d4f' : '#1890ff'}>
-                {selectedBet.bet_direction}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="下注金额">¥{formatMoney(selectedBet.bet_amount)}</Descriptions.Item>
-            <Descriptions.Item label="下注档位">
-              <Tag color={selectedBet.bet_tier === '保守' ? 'orange' : selectedBet.bet_tier === '进取' ? 'red' : 'blue'}>
-                {selectedBet.bet_tier}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="状态">
-              <Tag color={BET_STATUS_COLORS[selectedBet.status]}>{selectedBet.status}</Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="开奖结果">
-              {selectedBet.game_result
-                ? <Tag color={selectedBet.game_result === '庄' ? '#ff4d4f' : '#1890ff'}>{selectedBet.game_result}</Tag>
-                : '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="盈亏">
-              <span style={{
-                color: selectedBet.profit_loss && selectedBet.profit_loss > 0 ? '#ff4d4f'
-                  : selectedBet.profit_loss && selectedBet.profit_loss < 0 ? '#52c41a'
-                  : undefined,
-                fontWeight: 700,
-                fontSize: 14,
-              }}>
-                {selectedBet.profit_loss !== null
-                  ? formatSignedMoney(selectedBet.profit_loss)
-                  : '-'}
-              </span>
-            </Descriptions.Item>
-            <Descriptions.Item label="余额变化">
-              ¥{formatMoney(selectedBet.balance_before)} → ¥{formatMoney(selectedBet.balance_after)}
-            </Descriptions.Item>
-            <Descriptions.Item label="自适应说明">{selectedBet.adapt_summary || '-'}</Descriptions.Item>
-          </Descriptions>
+          <div className="bet-detail-sheet">
+            <div className="bet-detail-primary-grid">
+              <div className="bet-detail-kpi">
+                <span>局号</span>
+                <strong>{selectedBet.game_number}</strong>
+              </div>
+              <div className="bet-detail-kpi">
+                <span>下注方向</span>
+                <strong>
+                  <Tag color={selectedBet.bet_direction === '庄' ? '#ff4d4f' : '#1890ff'}>
+                    {selectedBet.bet_direction}
+                  </Tag>
+                </strong>
+              </div>
+              <div className="bet-detail-kpi">
+                <span>状态</span>
+                <strong>
+                  <Tag color={BET_STATUS_COLORS[selectedBet.status]}>{selectedBet.status}</Tag>
+                </strong>
+              </div>
+              <div className="bet-detail-kpi">
+                <span>盈亏</span>
+                <strong style={{
+                  color: selectedBet.profit_loss && selectedBet.profit_loss > 0 ? '#ff7875'
+                    : selectedBet.profit_loss && selectedBet.profit_loss < 0 ? '#73d13d'
+                    : undefined,
+                }}>
+                  {selectedBet.profit_loss !== null
+                    ? formatSignedMoney(selectedBet.profit_loss)
+                    : '-'}
+                </strong>
+              </div>
+            </div>
+            <div className="bet-detail-list">
+              <div className="bet-detail-row">
+                <span>下注时间</span>
+                <strong>{selectedBet.bet_time ? dayjs(selectedBet.bet_time).format('YYYY-MM-DD HH:mm:ss') : '-'}</strong>
+              </div>
+              <div className="bet-detail-row">
+                <span>下注金额</span>
+                <strong>¥{formatMoney(selectedBet.bet_amount)}</strong>
+              </div>
+              <div className="bet-detail-row">
+                <span>下注档位</span>
+                <strong>{selectedBet.bet_tier}</strong>
+              </div>
+              <div className="bet-detail-row">
+                <span>开奖结果</span>
+                <strong>
+                  {selectedBet.game_result
+                    ? (
+                      <Tag color={selectedBet.game_result === '庄' ? '#ff4d4f' : '#1890ff'}>
+                        {selectedBet.game_result}
+                      </Tag>
+                    )
+                    : '-'}
+                </strong>
+              </div>
+              <div className="bet-detail-row is-block">
+                <span>余额变化</span>
+                <strong>¥{formatMoney(selectedBet.balance_before)} → ¥{formatMoney(selectedBet.balance_after)}</strong>
+              </div>
+              <div className="bet-detail-row is-block">
+                <span>自适应说明</span>
+                <strong>{selectedBet.adapt_summary || '-'}</strong>
+              </div>
+            </div>
+          </div>
         )}
       </Modal>
     </div>

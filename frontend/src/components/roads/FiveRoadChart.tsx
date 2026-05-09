@@ -162,11 +162,6 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
     return PADDING * 2 + 6 * (BASE_CELL_SIZE + CELL_GAP);
   }, []);
 
-  // 使用内置配置计算珠盘路的精确尺寸（包含12列）
-  const beadRoadWidth = useMemo(() => {
-    return PADDING * 2 + 12 * (BASE_CELL_SIZE + CELL_GAP);
-  }, []);
-
   return (
       <div className="five-road-chart" style={{
         width: '100%',
@@ -224,10 +219,10 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
           gap: '8px',
           width: '100%',
         }}>
-          {/* 珠盘路 - 精确控制宽度 */}
-          <div className="roadmap-board-card" style={{
-            flex: 'none', // 不允许伸缩，严格按照内部计算宽度
-            width: `${beadRoadWidth}px`,
+          {/* 珠盘路 - 跟随容器宽度自适应 */}
+          <div className="roadmap-board-card bead-road-responsive-card" style={{
+            flex: '1 1 auto',
+            minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
             background: '#161b22',
@@ -247,14 +242,14 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
             }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>珠盘路</span>
             </div>
-            <div style={{
+            <div className="bead-road-responsive-shell" style={{
               overflow: 'hidden',
               height: `${roadHeight}px`,
-              width: `${beadRoadWidth}px`,
+              width: '100%',
             }}>
-              <div style={{ height: `${roadHeight}px`, width: `${beadRoadWidth}px` }}>
+              <div style={{ height: `${roadHeight}px`, width: '100%' }}>
                 {hasData.bead ? (
-                  <BeadRoadCanvas data={roads.bead} config={baseConfig} />
+                  <BeadRoadCanvas data={roads.bead} config={baseConfig} className="bead-road-responsive-canvas" />
                 ) : (
                   <EmptyState height={roadHeight} />
                 )}

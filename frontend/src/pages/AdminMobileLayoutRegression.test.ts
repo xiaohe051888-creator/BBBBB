@@ -154,6 +154,20 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('white-space: nowrap !important;');
   });
 
+  it('uses a compact profit summary card and simplified bet detail sheet for mobile ux', () => {
+    const betRecords = readFileSync(resolve(__dirname, './BetRecordsPage.tsx'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(betRecords).toContain('className="mobile-status-card bet-summary-card"');
+    expect(betRecords).toContain('className="bet-summary-pill-row"');
+    expect(betRecords).toContain('className="bet-summary-stat-row"');
+    expect(betRecords).toContain('className="bet-detail-sheet"');
+    expect(betRecords).toContain('className="bet-detail-primary-grid"');
+    expect(betRecords).toContain('className="bet-detail-list"');
+    expect(css).toContain('.bet-summary-card {');
+    expect(css).toContain('.bet-detail-sheet {');
+  });
+
   it('stacks bead road and big eye road into separate rows on mobile', () => {
     const fiveRoadChart = readFileSync(resolve(__dirname, '../components/roads/FiveRoadChart.tsx'), 'utf8');
     const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
@@ -161,6 +175,19 @@ describe('admin mobile layout regressions', () => {
     expect(fiveRoadChart).toContain('className="five-road-chart-secondary-row"');
     expect(css).toContain('.five-road-chart-secondary-row {');
     expect(css).toContain('flex-direction: column !important;');
+  });
+
+  it('uses responsive bead road sizing instead of a fixed pixel width shell', () => {
+    const fiveRoadChart = readFileSync(resolve(__dirname, '../components/roads/FiveRoadChart.tsx'), 'utf8');
+    const beadRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/BeadRoadCanvas.tsx'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(fiveRoadChart).toContain('className="roadmap-board-card bead-road-responsive-card"');
+    expect(fiveRoadChart).toContain('className="bead-road-responsive-shell"');
+    expect(beadRoadCanvas).toContain('const [containerWidth, setContainerWidth] = useState(0);');
+    expect(beadRoadCanvas).toContain('ResizeObserver');
+    expect(css).toContain('.bead-road-responsive-card {');
+    expect(css).toContain('.bead-road-responsive-shell {');
   });
 
   it('keeps user-facing status and form pages on shared mobile shell classes', () => {

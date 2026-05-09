@@ -170,26 +170,31 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
       width={720}
     >
       {log && human ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Space wrap>
+        <div className="log-detail-sheet" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="log-detail-hero">
             <Tag color={PRIORITY_COLORS[log.priority]}>{priorityLabel(log.priority)}</Tag>
-          </Space>
-          <Divider style={{ margin: '8px 0' }} />
-          <Typography.Title level={5} style={{ margin: 0 }}>
-            {human.title}
-          </Typography.Title>
-          <Typography.Text type="secondary">{formatDetailLabel('whatHappened')}</Typography.Text>
-          <Typography.Paragraph style={{ marginBottom: 0 }}>
-            {human.whatHappened || '-'}
-          </Typography.Paragraph>
-          <Typography.Text type="secondary">{formatDetailLabel('impact')}</Typography.Text>
-          <Typography.Paragraph style={{ marginBottom: 0 }}>
-            {human.impact || '-'}
-          </Typography.Paragraph>
-          <Typography.Text type="secondary">{formatDetailLabel('suggestion')}</Typography.Text>
-          <Typography.Paragraph style={{ marginBottom: 0 }}>
-            {human.suggestion || '-'}
-          </Typography.Paragraph>
+            <Typography.Title level={5} style={{ margin: 0 }}>
+              {human.title}
+            </Typography.Title>
+          </div>
+          <div className="log-detail-block is-neutral">
+            <Typography.Text className="log-detail-label">{formatDetailLabel('whatHappened')}</Typography.Text>
+            <Typography.Paragraph style={{ marginBottom: 0 }}>
+              {human.whatHappened || '-'}
+            </Typography.Paragraph>
+          </div>
+          <div className="log-detail-block is-warning">
+            <Typography.Text className="log-detail-label">{formatDetailLabel('impact')}</Typography.Text>
+            <Typography.Paragraph style={{ marginBottom: 0 }}>
+              {human.impact || '-'}
+            </Typography.Paragraph>
+          </div>
+          <div className="log-detail-block is-action">
+            <Typography.Text className="log-detail-label">{formatDetailLabel('suggestion')}</Typography.Text>
+            <Typography.Paragraph style={{ marginBottom: 0 }}>
+              {human.suggestion || '-'}
+            </Typography.Paragraph>
+          </div>
           <Divider style={{ margin: '8px 0' }} />
           <Collapse
             size="small"

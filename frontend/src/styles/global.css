@@ -1311,6 +1311,227 @@ body {
 .log-critical-row { background-color: rgba(255, 77, 79, 0.08) !important; border-left: 3px solid #ff4d4f !important; }
 .log-error-row { background-color: rgba(255, 173, 0, 0.05) !important; border-left: 3px solid #faad14 !important; }
 
+.bet-summary-card {
+  background: linear-gradient(180deg, rgba(17, 24, 38, 0.92), rgba(11, 17, 28, 0.96)) !important;
+  border: 1px solid rgba(88, 166, 255, 0.12) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+}
+
+.bet-summary-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.bet-summary-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.bet-summary-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.bet-summary-pill-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bet-summary-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bet-summary-pill.is-win {
+  background: rgba(255, 120, 117, 0.12);
+  color: #ff7875;
+}
+
+.bet-summary-pill.is-loss {
+  background: rgba(149, 222, 100, 0.12);
+  color: #95de64;
+}
+
+.bet-summary-pill.is-pending {
+  background: rgba(250, 173, 20, 0.12);
+  color: #ffd666;
+}
+
+.bet-summary-progress-shell {
+  margin-bottom: 10px;
+}
+
+.bet-summary-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bet-summary-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bet-summary-stat > span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.bet-summary-stat > strong {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.bet-detail-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bet-detail-primary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bet-detail-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(18, 25, 40, 0.95), rgba(11, 16, 26, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.bet-detail-kpi > span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.bet-detail-kpi > strong {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.bet-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bet-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bet-detail-row > span {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.bet-detail-row > strong {
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.bet-detail-row.is-block {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.bet-detail-row.is-block > strong {
+  width: 100%;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.log-detail-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.log-detail-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(19, 28, 45, 0.96), rgba(12, 18, 30, 0.96));
+  border: 1px solid rgba(88, 166, 255, 0.12);
+}
+
+.log-detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.log-detail-block.is-neutral {
+  background: rgba(88, 166, 255, 0.06);
+  border-color: rgba(88, 166, 255, 0.12);
+}
+
+.log-detail-block.is-warning {
+  background: rgba(250, 173, 20, 0.08);
+  border-color: rgba(250, 173, 20, 0.14);
+}
+
+.log-detail-block.is-action {
+  background: rgba(82, 196, 26, 0.08);
+  border-color: rgba(82, 196, 26, 0.14);
+}
+
+.log-detail-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.62) !important;
+}
+
+.bead-road-responsive-card {
+  width: 100%;
+  min-width: 0;
+}
+
+.bead-road-responsive-shell {
+  width: 100%;
+}
+
+.bead-road-responsive-canvas {
+  max-width: 100%;
+}
+
 /* ====== 空状态覆盖 ====== */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -2382,6 +2603,22 @@ body {
 
   .smart-alerts-stack {
     width: 100%;
+  }
+
+  .bet-summary-pill-row,
+  .bet-summary-stat-row,
+  .bet-detail-primary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bet-detail-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .bet-detail-row > strong {
+    width: 100%;
+    text-align: left;
   }
 
   .admin-users-toolbar {

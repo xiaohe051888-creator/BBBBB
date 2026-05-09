@@ -200,13 +200,19 @@ describe('LogsPage', () => {
     const modalContent = document.querySelector('.ant-modal');
     expect(modalContent).toBeTruthy();
     const modalText = modalContent?.textContent || '';
+    const modalHtml = modalContent?.innerHTML || '';
     expect(modalText).toContain('记录详情');
     expect(modalText).toContain('复制通俗说明');
+    expect(modalText).toContain('发生了什么');
+    expect(modalText).toContain('对当前使用有什么影响');
+    expect(modalText).toContain('建议你接下来怎么做');
     expect(modalText).not.toContain('一键复制下面这段通俗说明');
     expect(modalText).not.toContain('全选');
     expect(modalText).not.toContain('你可能会关心的信息');
     expect(modalText).not.toContain('事件编码');
     expect(modalText).not.toContain('处理编号');
+    expect(modalHtml).toContain('log-detail-hero');
+    expect(modalHtml).toContain('log-detail-block');
 
     await act(async () => {
       root.unmount();

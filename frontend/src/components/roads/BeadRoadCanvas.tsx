@@ -10,7 +10,7 @@
  * - 从左到右、从上到下依次填入
  * - 庄=红, 闲=蓝
  */
-import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import type { RoadData, RoadCanvasConfig } from '../../types/road';
 import { BEAD_ROAD_CONFIG, ROAD_COLORS, calculateBeadRoadSize } from '../../types/road';
 import {
@@ -32,10 +32,49 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
   style,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const mergedConfig = useMemo(() => ({ ...BEAD_ROAD_CONFIG, ...customConfig }), [customConfig]);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+
+    updateWidth();
+
+    const resizeObserver = new ResizeObserver(updateWidth);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    window.addEventListener('resize', updateWidth);
+
+    return () => {
+      window.removeEventListener('resize', updateWidth);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  const responsiveConfig = useMemo(() => {
+    const width = containerWidth || calculateBeadRoadSize(mergedConfig).width;
+    const availableWidth = Math.max(width - mergedConfig.padding * 2, 144);
+    const nextCellSize = Math.max(
+      14,
+      Math.min(24, Math.floor((availableWidth - 11 * mergedConfig.cellGap) / 12))
+    );
+
+    return {
+      ...mergedConfig,
+      cellSize: nextCellSize,
+      fontSize: Math.max(8, Math.floor(nextCellSize * 0.38)),
+    };
+  }, [containerWidth, mergedConfig]);
 
   // 固定尺寸
-  const fixedSize = useMemo(() => calculateBeadRoadSize(mergedConfig), [mergedConfig]);
+  const fixedSize = useMemo(() => calculateBeadRoadSize(responsiveConfig), [responsiveConfig]);
 
   // Canvas像素尺寸
   const canvasPixelSize = useMemo(() => {
@@ -69,9 +108,9 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     ctx.fillStyle = ROAD_COLORS.background;
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
-    const cellSize = mergedConfig.cellSize;
-    const cellGap = mergedConfig.cellGap;
-    const padding = mergedConfig.padding;
+    const cellSize = responsiveConfig.cellSize;
+    const cellGap = responsiveConfig.cellGap;
+    const padding = responsiveConfig.padding;
     const fixedCols = 12; // 珠盘路永远显示完整的 6x12
     const fixedRows = 6;
 
@@ -82,8 +121,8 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
     const offsetCol = Math.max(0, maxCol - 11);
 
     // 始终绘制完整网格
-    if (mergedConfig.showGrid) {
-      drawGrid(ctx, mergedConfig, fixedCols, fixedRows);
+    if (responsiveConfig.showGrid) {
+      drawGrid(ctx, responsiveConfig, fixedCols, fixedRows);
     }
 
     // 无数据时直接返回（不显示文字，由父组件处理空状态）
@@ -111,7 +150,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
       
       // 绘制文字
       ctx.fillStyle = '#ffffff';
-      ctx.font = `bold ${Math.max(8, cellSize * 0.35)}px -apple-system, "PingFang SC", sans-serif`;
+      ctx.font = `bold ${Math.max(8, responsiveConfig.fontSize)}px -apple-system, "PingFang SC", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
@@ -136,7 +175,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
         ctx.fill();
       }
     }
-  }, [data, mergedConfig, canvasPixelSize]);
+  }, [data, responsiveConfig, canvasPixelSize]);
 
   useEffect(() => {
     draw();
@@ -149,18 +188,21 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
   }, [draw]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={className}
-      width={canvasPixelSize.width}
-      height={canvasPixelSize.height}
-      style={{
-        display: 'block',
-        width: canvasPixelSize.styleWidth,
-        height: canvasPixelSize.styleHeight,
-        ...style,
-      }}
-    />
+    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
+      <canvas
+        ref={canvasRef}
+        className={className}
+        width={canvasPixelSize.width}
+        height={canvasPixelSize.height}
+        style={{
+          display: 'block',
+          width: canvasPixelSize.styleWidth,
+          height: canvasPixelSize.styleHeight,
+          maxWidth: '100%',
+          ...style,
+        }}
+      />
+    </div>
   );
 };
 
