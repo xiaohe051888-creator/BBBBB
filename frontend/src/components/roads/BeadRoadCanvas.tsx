@@ -77,7 +77,7 @@ const BeadRoadCanvas: React.FC<BeadRoadCanvasProps> = ({
       cols: visibleCols,
       cellSize: mergedConfig.cellSize,
       minGap: mergedConfig.cellGap,
-      maxGap: Math.max(mergedConfig.cellGap, 40),
+      maxGap: Math.max(mergedConfig.cellGap, 24),
       padding: mergedConfig.padding,
     });
   }, [containerWidth, mergedConfig, visibleCols]);

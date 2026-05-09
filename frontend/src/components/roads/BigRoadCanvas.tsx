@@ -80,7 +80,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
   }, []);
   
   const totalCols = useMemo(() => {
-    return Math.max(data?.max_columns || 0, 8);
+    return Math.max(data?.max_columns || 0, 6);
   }, [data]);
 
   const responsiveColumnGap = useMemo(() => {
@@ -89,7 +89,7 @@ const BigRoadCanvas: React.FC<BigRoadCanvasProps> = ({
       cols: totalCols,
       cellSize: mergedConfig.cellSize,
       minGap: mergedConfig.cellGap,
-      maxGap: Math.max(mergedConfig.cellGap, 16),
+      maxGap: Math.max(mergedConfig.cellGap, 10),
       padding: mergedConfig.padding,
     });
   }, [containerWidth, totalCols, mergedConfig]);

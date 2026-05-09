@@ -158,6 +158,12 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
     animateNewPoint: true,
   }), []);
 
+  const beadConfig: RoadCanvasConfig = useMemo(() => ({
+    ...baseConfig,
+    cellSize: 26,
+    fontSize: 11,
+  }), [baseConfig]);
+
   // 计算各路高度（6格）- 使用minHeight确保不被压缩
   const roadHeight = useMemo(() => {
     return calculateRoadHeight(baseConfig);
@@ -250,7 +256,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
             }}>
               <div style={{ height: `${roadHeight}px`, width: '100%' }}>
                 {hasData.bead ? (
-                  <BeadRoadCanvas data={roads.bead} config={baseConfig} className="bead-road-responsive-canvas" />
+                  <BeadRoadCanvas data={roads.bead} config={beadConfig} className="bead-road-responsive-canvas" />
                 ) : (
                   <EmptyState height={roadHeight} />
                 )}

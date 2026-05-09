@@ -71,7 +71,7 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
   }, []);
   
   const totalCols = useMemo(() => {
-    return Math.max(data?.max_columns || 0, 8);
+    return Math.max(data?.max_columns || 0, 4);
   }, [data]);
 
   const responsiveColumnGap = useMemo(() => {
@@ -80,7 +80,7 @@ const DerivedRoadCanvas: React.FC<DerivedRoadCanvasProps> = ({
       cols: totalCols,
       cellSize: mergedConfig.cellSize,
       minGap: mergedConfig.cellGap,
-      maxGap: Math.max(mergedConfig.cellGap, 16),
+      maxGap: Math.max(mergedConfig.cellGap, 10),
       padding: mergedConfig.padding,
     });
   }, [containerWidth, totalCols, mergedConfig]);

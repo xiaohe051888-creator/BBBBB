@@ -198,6 +198,22 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.bead-road-responsive-shell {');
   });
 
+  it('uses larger bead road circles and tighter derived road spacing on mobile', () => {
+    const fiveRoadChart = readFileSync(resolve(__dirname, '../components/roads/FiveRoadChart.tsx'), 'utf8');
+    const beadRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/BeadRoadCanvas.tsx'), 'utf8');
+    const bigRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/BigRoadCanvas.tsx'), 'utf8');
+    const derivedRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/DerivedRoadCanvas.tsx'), 'utf8');
+
+    expect(fiveRoadChart).toContain('const beadConfig: RoadCanvasConfig = useMemo(() => ({');
+    expect(fiveRoadChart).toContain('cellSize: 26');
+    expect(fiveRoadChart).toContain('fontSize: 11');
+    expect(fiveRoadChart).toContain('<BeadRoadCanvas data={roads.bead} config={beadConfig} className="bead-road-responsive-canvas" />');
+    expect(beadRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 24)');
+    expect(bigRoadCanvas).toContain('return Math.max(data?.max_columns || 0, 6);');
+    expect(derivedRoadCanvas).toContain('return Math.max(data?.max_columns || 0, 4);');
+    expect(derivedRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 10)');
+  });
+
   it('keeps user-facing status and form pages on shared mobile shell classes', () => {
     const workflow = readFileSync(resolve(__dirname, '../components/dashboard/WorkflowStatusBar.tsx'), 'utf8');
     const systemStatus = readFileSync(resolve(__dirname, '../components/ui/SystemStatusPanel.tsx'), 'utf8');
