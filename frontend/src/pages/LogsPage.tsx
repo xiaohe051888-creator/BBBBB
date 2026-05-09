@@ -140,7 +140,6 @@ type LogDetailModalProps = {
 
 const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) => {
   const { message } = App.useApp();
-  const humanTextRef = useRef<HTMLTextAreaElement | null>(null);
 
   const copy = async (text: string) => {
     const ok = await copyText(text);
@@ -155,22 +154,12 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
   const humanText = useMemo(() => (log ? toHumanCopyText(log) : ''), [log]);
   const rawText = useMemo(() => (log ? JSON.stringify(log, null, 2) : ''), [log]);
 
-  const selectHumanText = useCallback(() => {
-    const el = humanTextRef.current;
-    if (!el) return;
-    el.focus();
-    el.select();
-  }, []);
-
   return (
     <Modal
       title={formatLogsLabel('detailTitle')}
       open={open}
       onCancel={onClose}
       footer={[
-        <Button key="select" disabled={!log} onClick={selectHumanText}>
-          全选
-        </Button>,
         <Button key="copy" disabled={!log} onClick={() => copy(humanText)}>
           {formatDetailLabel('copySummary')}
         </Button>,
@@ -192,26 +181,6 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
           <Typography.Title level={5} style={{ margin: 0 }}>
             {human.title}
           </Typography.Title>
-          <Typography.Text type="secondary">{formatDetailLabel('copyHint')}</Typography.Text>
-          <textarea
-            ref={humanTextRef}
-            value={humanText}
-            readOnly
-            onFocus={selectHumanText}
-            style={{
-              width: '100%',
-              minHeight: 120,
-              resize: 'vertical',
-              background: 'rgba(0,0,0,0.25)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 10,
-              padding: 10,
-              color: 'rgba(255,255,255,0.85)',
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-              fontSize: 12,
-              lineHeight: 1.5,
-            }}
-          />
           <Typography.Text type="secondary">{formatDetailLabel('whatHappened')}</Typography.Text>
           <Typography.Paragraph style={{ marginBottom: 0 }}>
             {human.whatHappened || '-'}

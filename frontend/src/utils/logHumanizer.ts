@@ -283,14 +283,14 @@ export const toHumanCopyText = (log: LogEntry): string => {
   const h = humanizeLog(log);
   const lines: string[] = [];
   lines.push(`【${h.title}】`);
-  lines.push('');
-  lines.push(`发生了什么：${h.whatHappened}`);
-  lines.push(`有什么影响：${h.impact}`);
-  lines.push(`建议怎么做：${h.suggestion}`);
-  lines.push('');
-  lines.push('关键信息：');
-  for (const f of h.fieldsCn) {
-    lines.push(`- ${f.label}：${f.value}`);
-  }
+  lines.push(`发生：${h.whatHappened}`);
+  lines.push(`影响：${h.impact}`);
+  lines.push(`建议：${h.suggestion}`);
+  const time = h.fieldsCn.find((f) => f.label === '时间')?.value || '-';
+  const game = h.fieldsCn.find((f) => f.label === '靴内局号')?.value || '-';
+  const code = h.fieldsCn.find((f) => f.label === '事件编码')?.value || '-';
+  lines.push(`时间：${time}`);
+  lines.push(`局号：${game}`);
+  lines.push(`编码：${code}`);
   return lines.join('\n');
 };

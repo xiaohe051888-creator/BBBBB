@@ -21,7 +21,7 @@ describe('logHumanizer', () => {
     const h = humanizeLog(log);
     expect(h.title).toContain('结算');
     expect(h.whatHappened).toContain('第2局');
-    expect(toHumanCopyText(log)).toContain('发生了什么');
+    expect(toHumanCopyText(log)).toContain('发生：');
   });
 
   it('falls back to generic for unknown event_code', () => {
@@ -223,5 +223,32 @@ describe('logHumanizer', () => {
     expect(copy).not.toContain('一键修复');
     expect(copy).not.toContain('系统修复');
     expect(copy).toContain('刷新页面');
+  });
+
+  it('formats copied human text as a concise summary instead of verbose repeated sections', () => {
+    const log: LogEntry = {
+      id: 15,
+      log_time: '2026-05-09T09:21:47Z',
+      game_number: 7,
+      event_code: 'LOG-ERR-001',
+      event_type: '记入复盘记录',
+      event_result: '-',
+      description: '第7局预测失准，已将现场盘面与证据链记入复盘记录。连续失准: 2次。',
+      category: 'AI事件',
+      priority: 'P2',
+      task_id: null,
+      is_pinned: false,
+    };
+
+    const copy = toHumanCopyText(log);
+    expect(copy).toContain('发生：');
+    expect(copy).toContain('影响：');
+    expect(copy).toContain('建议：');
+    expect(copy).toContain('时间：');
+    expect(copy).toContain('编码：LOG-ERR-001');
+    expect(copy).not.toContain('发生了什么：');
+    expect(copy).not.toContain('有什么影响：');
+    expect(copy).not.toContain('建议怎么做：');
+    expect(copy).not.toContain('关键信息：');
   });
 });
