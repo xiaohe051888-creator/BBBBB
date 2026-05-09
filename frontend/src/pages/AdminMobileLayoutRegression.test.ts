@@ -16,6 +16,7 @@ describe('admin mobile layout regressions', () => {
 
     expect(css).toContain('.mobile-card-table .ant-table-placeholder');
     expect(css).toContain('.mobile-card-table .ant-table-placeholder > td');
+    expect(css).toMatch(/\.mobile-card-table \.ant-table-tbody > \.ant-table-placeholder \{[\s\S]*background: transparent !important;[\s\S]*border: none !important;/);
   });
 
   it('makes mobile action rows stretch inner antd controls to full width', () => {
@@ -32,6 +33,7 @@ describe('admin mobile layout regressions', () => {
     const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
 
     expect(css).toContain('.mobile-card-table .ant-table-summary');
+    expect(css).toMatch(/\.mobile-card-table \.ant-table-tbody > tr > td \{[\s\S]*display: flex !important;[\s\S]*background: transparent !important;/);
   });
 
   it('keeps mode select cards and upload layout on shared mobile layout classes', () => {
