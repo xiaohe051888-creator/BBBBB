@@ -347,7 +347,7 @@ const RoadMapPage: React.FC = () => {
       )}
 
       {activeTab === 'analysis' && (
-        <div className="mobile-section-stack" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', minHeight: 'calc(100vh - 160px)' }}>
+        <div className="mobile-section-stack roadmap-analysis-shell" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', minHeight: 'calc(100vh - 160px)' }}>
           {/* 路势分析 */}
           <div className="roadmap-analysis-col" style={{ flex: '1 1 400px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
             <Card

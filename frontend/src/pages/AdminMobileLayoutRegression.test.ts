@@ -55,4 +55,28 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.upload-sequence-panel');
     expect(css).toContain('.roadmap-chart-shell');
   });
+
+  it('keeps dashboard, upload, and roadmap high-risk sections on shared layout classes', () => {
+    const dashboard = readFileSync(resolve(__dirname, './DashboardPage.tsx'), 'utf8');
+    const upload = readFileSync(resolve(__dirname, './UploadDataPage.tsx'), 'utf8');
+    const roadmap = readFileSync(resolve(__dirname, './RoadMapPage.tsx'), 'utf8');
+
+    expect(dashboard).toContain('dashboard-version-row');
+    expect(dashboard).toContain('dashboard-version-badge');
+    expect(upload).toContain('upload-header');
+    expect(upload).toContain('upload-status-bar');
+    expect(upload).toContain('upload-summary-badge');
+    expect(roadmap).toContain('roadmap-analysis-shell');
+  });
+
+  it('defines shared mobile overrides for dashboard version row, upload status bar, and roadmap analysis shell', () => {
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(css).toContain('.dashboard-version-row');
+    expect(css).toContain('.dashboard-version-badge');
+    expect(css).toContain('.upload-header');
+    expect(css).toContain('.upload-status-bar');
+    expect(css).toContain('.upload-summary-badge');
+    expect(css).toContain('.roadmap-analysis-shell');
+  });
 });

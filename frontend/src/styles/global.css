@@ -942,6 +942,16 @@ body {
   padding: 24px 24px 48px;
 }
 
+.upload-header,
+.upload-status-bar,
+.upload-status-pills,
+.upload-summary-badge,
+.dashboard-version-row,
+.dashboard-version-badge,
+.roadmap-analysis-shell {
+  max-width: 100%;
+}
+
 .upload-workspace,
 .upload-sequence-panel,
 .roadmap-chart-shell {
@@ -1462,6 +1472,14 @@ body {
   font-size: 11px;
   color: rgba(255,255,255,0.4);
   white-space: nowrap;
+}
+
+.dashboard-version-row {
+  width: 100%;
+}
+
+.dashboard-version-badge {
+  min-width: 0;
 }
 
 .status-indicator-dot {
@@ -2125,6 +2143,29 @@ body {
     min-width: 0 !important;
   }
 
+  .upload-header,
+  .upload-status-bar {
+    width: 100%;
+  }
+
+  .upload-header > .ant-space-item,
+  .upload-status-bar > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .upload-status-pills {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .upload-summary-badge {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .admin-page .ant-card-extra {
     width: 100%;
     margin-inline-start: 0 !important;
@@ -2291,6 +2332,23 @@ body {
     word-break: break-word;
   }
 
+  .dashboard-version-row {
+    align-items: stretch !important;
+  }
+
+  .dashboard-version-row > * {
+    width: 100%;
+  }
+
+  .dashboard-version-badge {
+    align-items: flex-start !important;
+    text-align: left;
+  }
+
+  .dashboard-version-badge > * {
+    text-align: left !important;
+  }
+
   .admin-change-password-modal .ant-input-affix-wrapper {
     width: 100% !important;
   }
@@ -2307,6 +2365,10 @@ body {
 
   .roadmap-chart-shell,
   .roadmap-raw-shell {
+    min-height: auto !important;
+  }
+
+  .roadmap-analysis-shell {
     min-height: auto !important;
   }
 }
