@@ -71,6 +71,32 @@ _task_semaphores: dict[str, asyncio.Semaphore] = {
 }
 
 
+class _SemaphoreWrappedAwaitable:
+    def __init__(self, sem: asyncio.Semaphore, awaitable):
+        self._sem = sem
+        self._awaitable = awaitable
+        self._closed = False
+
+    def close(self):
+        self._closed = True
+        if hasattr(self._awaitable, "close"):
+            self._awaitable.close()
+
+    async def _run(self):
+        if self._closed:
+            return None
+        await self._sem.acquire()
+        try:
+            if self._closed:
+                return None
+            return await self._awaitable
+        finally:
+            self._sem.release()
+
+    def __await__(self):
+        return self._run().__await__()
+
+
 def add_background_task(task):
     """保存后台任务的强引用"""
     _background_tasks.add(task)
@@ -92,16 +118,7 @@ def start_background_task(
 
     sem = _task_semaphores.get(task_type) or _task_semaphores["default"]
     if sem:
-        orig = coro
-
-        async def _wrapped():
-            await sem.acquire()
-            try:
-                return await orig
-            finally:
-                sem.release()
-
-        coro = _wrapped()
+        coro = _SemaphoreWrappedAwaitable(sem, coro)
 
     meta = registry.create(
         task_type=task_type,
