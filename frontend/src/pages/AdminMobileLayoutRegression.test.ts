@@ -27,4 +27,10 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.mobile-action-row > .ant-space-item > .ant-input-affix-wrapper');
     expect(css).toContain('.mobile-action-row > .ant-space-item > .ant-select');
   });
+
+  it('prevents mobile card tables from rendering summary rows as broken cards', () => {
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(css).toContain('.mobile-card-table .ant-table-summary');
+  });
 });

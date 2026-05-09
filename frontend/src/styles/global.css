@@ -2210,6 +2210,10 @@ body {
     padding: 0 0 10px !important;
   }
 
+  .mobile-card-table .ant-table-summary {
+    display: none !important;
+  }
+
   .mobile-card-table .ant-table-cell {
     gap: 12px;
   }
