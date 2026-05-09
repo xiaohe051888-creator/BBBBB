@@ -164,6 +164,11 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
     fontSize: 12,
   }), [baseConfig]);
 
+  const derivedFlex = useMemo(() => ({
+    small: Math.max(roads.small?.max_columns || 0, 3),
+    cockroach: Math.max(roads.cockroach?.max_columns || 0, 2),
+  }), [roads.cockroach?.max_columns, roads.small?.max_columns]);
+
   // 计算各路高度（6格）- 使用minHeight确保不被压缩
   const roadHeight = useMemo(() => {
     return calculateRoadHeight(baseConfig);
@@ -315,7 +320,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
           width: '100%',
         }}>
           <div className="roadmap-board-card" style={{
-            flex: '1 1 0',
+            flex: `${derivedFlex.small} 1 0`,
             minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
@@ -355,7 +360,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
           </div>
 
           <div className="roadmap-board-card" style={{
-            flex: '1 1 0',
+            flex: `${derivedFlex.cockroach} 1 0`,
             minWidth: 0,
             display: 'flex',
             flexDirection: 'column',

@@ -211,6 +211,9 @@ describe('admin mobile layout regressions', () => {
     expect(fiveRoadChart).toContain('fontSize: 12');
     expect(fiveRoadChart).toContain('<BeadRoadCanvas data={roads.bead} config={beadConfig} className="bead-road-responsive-canvas" />');
     expect(fiveRoadChart).toContain('className="five-road-chart-derived-row"');
+    expect(fiveRoadChart).toContain('const derivedFlex = useMemo(() => ({');
+    expect(fiveRoadChart).toContain('small: Math.max(roads.small?.max_columns || 0, 3),');
+    expect(fiveRoadChart).toContain('cockroach: Math.max(roads.cockroach?.max_columns || 0, 2),');
     expect(beadRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 24)');
     expect(bigRoadCanvas).toContain('return Math.max(data?.max_columns || 0, 6);');
     expect(bigRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 6)');
