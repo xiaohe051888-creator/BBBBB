@@ -68,7 +68,7 @@ const ModeSelectPage: React.FC = () => {
   const isCurrentMode = (mode: Mode) => currentMode === mode;
 
   return (
-    <div className="page-wrapper mode-select-page" style={{ padding: 'clamp(16px, 3vw, 28px)', maxWidth: 980, margin: '0 auto' }}>
+    <div className="page-wrapper mode-select-page">
       {showExpiredNotice && (
         <Alert
           type="warning"

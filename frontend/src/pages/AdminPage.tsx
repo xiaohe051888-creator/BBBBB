@@ -712,10 +712,10 @@ const AdminPage: React.FC = () => {
   };
 
   return (
-    <div className="page-wrapper admin-page" style={{ padding: '16px' }}>
+    <div className="page-wrapper admin-page">
       {/* 顶部 */}
-      <div className="page-nav-bar admin-page-nav" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div className="page-nav-left admin-page-nav-main" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="page-nav-bar admin-page-nav">
+        <div className="page-nav-left admin-page-nav-main">
           <Button
             icon={<Icons.Back />}
             onClick={() => {

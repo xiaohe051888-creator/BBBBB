@@ -64,7 +64,7 @@ const UploadDataPage: React.FC = () => {
   };
 
   return (
-    <div className="page-wrapper upload-page" style={{ padding: isMobile ? '16px 12px 36px' : '24px 24px 48px' }}>
+    <div className="page-wrapper upload-page">
       <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }} wrap>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>上传数据</div>

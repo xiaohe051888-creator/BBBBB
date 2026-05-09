@@ -89,6 +89,8 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--bg-primary);
+  width: 100%;
+  max-width: 100%;
   padding: 16px;
   animation: pageFadeIn 0.3s ease-out;
   overflow-x: clip;
@@ -924,6 +926,16 @@ body {
 
 .admin-tab-panel {
   width: 100%;
+}
+
+.mode-select-page {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: clamp(16px, 3vw, 28px);
+}
+
+.upload-page {
+  padding: 24px 24px 48px;
 }
 
 .admin-template-meta,
@@ -2201,6 +2213,10 @@ body {
   .roadmap-page .mobile-scroll-x,
   .dashboard-container .five-road-scroll-container {
     margin-inline: -2px;
+  }
+
+  .upload-page {
+    padding: 16px 12px 36px;
   }
 }
 

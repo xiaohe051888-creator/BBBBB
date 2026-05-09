@@ -86,11 +86,12 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
 
   return (
     <Card size="small" style={{ marginBottom: 12 }}>
-      <Space wrap>
+      <Space wrap className="mobile-action-row" style={{ width: '100%' }}>
         <Select
           value={filterCategory}
           onChange={setFilterCategory}
           options={categoryOptions}
+          className="mobile-fill-control"
           style={{ minWidth: 160 }}
           size="small"
         />
@@ -98,6 +99,7 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
           value={filterPriority}
           onChange={setFilterPriority}
           options={priorityOptions}
+          className="mobile-fill-control"
           style={{ minWidth: 140 }}
           size="small"
         />
@@ -107,9 +109,10 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
           placeholder={formatLogsLabel('taskFilter')}
           allowClear
           size="small"
+          className="mobile-fill-control"
           style={{ width: 220 }}
         />
-        <Button size="small" disabled={!filterTaskId} onClick={onCopyTaskId}>
+        <Button size="small" className="mobile-fill-control" disabled={!filterTaskId} onClick={onCopyTaskId}>
           {formatLogsLabel('copyTaskId')}
         </Button>
         <Input
@@ -118,9 +121,10 @@ const LogFilterBar: React.FC<LogFilterBarProps> = ({
           placeholder="搜索：说明/事件/局号"
           allowClear
           size="small"
+          className="mobile-fill-control"
           style={{ width: 220 }}
         />
-        <Button size="small" onClick={onReset}>
+        <Button size="small" className="mobile-fill-control" onClick={onReset}>
           重置筛选
         </Button>
       </Space>

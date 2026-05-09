@@ -253,10 +253,10 @@ const MistakeBookPage: React.FC = () => {
   ];
 
   return (
-    <div className="page-wrapper mistakes-page" style={{ padding: '16px', maxWidth: '100%' }}>
+    <div className="page-wrapper mistakes-page">
       {/* 顶部导航 */}
-      <div className="page-nav-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div className="page-nav-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="page-nav-bar">
+        <div className="page-nav-left">
           <Button icon={<Icons.Back />} onClick={() => navigate("/dashboard")} size="small">
             返回
           </Button>
