@@ -134,7 +134,7 @@ describe('admin mobile layout regressions', () => {
     expect(analysisPanel).toContain('className="analysis-card dashboard-section-card dashboard-analysis-card"');
     expect(learningPanel).toContain('className="learning-status-card"');
     expect(fiveRoadChart).toContain('className="five-road-chart"');
-    expect(fiveRoadChart).toContain('className="roadmap-board-card"');
+    expect(fiveRoadChart).toContain('const renderRoadCard = (');
     expect(css).toContain('.dashboard-section-card {');
     expect(css).toContain('.dashboard-road-card {');
     expect(css).toContain('.dashboard-progress-card {');
@@ -168,13 +168,16 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.bet-detail-sheet {');
   });
 
-  it('stacks bead road and big eye road into separate rows on mobile', () => {
+  it('renders each road as its own full-width row on mobile', () => {
     const fiveRoadChart = readFileSync(resolve(__dirname, '../components/roads/FiveRoadChart.tsx'), 'utf8');
     const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
 
-    expect(fiveRoadChart).toContain('className="five-road-chart-secondary-row"');
-    expect(css).toContain('.five-road-chart-secondary-row {');
-    expect(css).toContain('flex-direction: column !important;');
+    expect(fiveRoadChart).not.toContain('className="five-road-chart-secondary-row"');
+    expect(fiveRoadChart).not.toContain('className="five-road-chart-derived-row"');
+    expect(fiveRoadChart).toContain('const renderRoadCard = (');
+    expect(fiveRoadChart).not.toContain('const derivedFlex = useMemo(() => ({');
+    expect(css).not.toContain('.five-road-chart-secondary-row {');
+    expect(css).not.toContain('.five-road-chart-derived-row {');
   });
 
   it('uses responsive bead road sizing instead of a fixed pixel width shell', () => {
@@ -185,7 +188,7 @@ describe('admin mobile layout regressions', () => {
     const roadTypes = readFileSync(resolve(__dirname, '../types/road.ts'), 'utf8');
     const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
 
-    expect(fiveRoadChart).toContain('className="roadmap-board-card bead-road-responsive-card"');
+    expect(fiveRoadChart).toContain("'bead-road-responsive-card'");
     expect(fiveRoadChart).toContain('className="bead-road-responsive-shell"');
     expect(beadRoadCanvas).toContain('const [containerWidth, setContainerWidth] = useState(0);');
     expect(beadRoadCanvas).toContain('ResizeObserver');
@@ -198,28 +201,22 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.bead-road-responsive-shell {');
   });
 
-  it('uses larger bead road circles and tighter derived road spacing on mobile', () => {
+  it('uses larger bead road circles and keeps every road on an independent row', () => {
     const fiveRoadChart = readFileSync(resolve(__dirname, '../components/roads/FiveRoadChart.tsx'), 'utf8');
     const beadRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/BeadRoadCanvas.tsx'), 'utf8');
     const bigRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/BigRoadCanvas.tsx'), 'utf8');
     const derivedRoadCanvas = readFileSync(resolve(__dirname, '../components/roads/DerivedRoadCanvas.tsx'), 'utf8');
-    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
 
     expect(fiveRoadChart).toContain('const beadConfig: RoadCanvasConfig = useMemo(() => ({');
     expect(fiveRoadChart).toContain('const CELL_GAP = 1;');
     expect(fiveRoadChart).toContain('cellSize: 28');
     expect(fiveRoadChart).toContain('fontSize: 12');
     expect(fiveRoadChart).toContain('<BeadRoadCanvas data={roads.bead} config={beadConfig} className="bead-road-responsive-canvas" />');
-    expect(fiveRoadChart).toContain('className="five-road-chart-derived-row"');
-    expect(fiveRoadChart).toContain('const derivedFlex = useMemo(() => ({');
-    expect(fiveRoadChart).toContain('small: Math.max(roads.small?.max_columns || 0, 3),');
-    expect(fiveRoadChart).toContain('cockroach: Math.max(roads.cockroach?.max_columns || 0, 2),');
     expect(beadRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 24)');
     expect(bigRoadCanvas).toContain('return Math.max(data?.max_columns || 0, 6);');
     expect(bigRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 6)');
     expect(derivedRoadCanvas).toContain('return Math.max(data?.max_columns || 0, 3);');
     expect(derivedRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 6)');
-    expect(css).toContain('.five-road-chart-derived-row {');
   });
 
   it('keeps user-facing status and form pages on shared mobile shell classes', () => {

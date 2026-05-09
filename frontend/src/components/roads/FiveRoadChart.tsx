@@ -57,14 +57,12 @@ const EmptyState = ({ height }: { height: number }) => (
 );
 
 /**
- * 五路走势图组件 - 流式布局版
- * 
- * 核心原则：
- * - 所有路牌容器占满可用宽度
- * - 大路、大眼仔路、小路、螳螂路都是100%宽度
- * - 珠盘路固定比例，大眼仔路自适应剩余空间
- * - 小路和螳螂路各占50%
- * - 所有路都精确显示6格高度
+ * 五路走势图组件
+ *
+ * 当前移动端规则：
+ * - 五条路全部独立成行
+ * - 每条路卡片占满整行宽度
+ * - 通过画布尺寸和 gap 收紧密度，而不是并排拼卡
  */
 export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data }) => {
   // 标题栏高度
@@ -95,6 +93,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
 
   // 滚动容器 refs
   const bigRoadScrollRef = useRef<HTMLDivElement>(null);
+  const beadRoadScrollRef = useRef<HTMLDivElement>(null);
   const bigEyeScrollRef = useRef<HTMLDivElement>(null);
   const smallScrollRef = useRef<HTMLDivElement>(null);
   const cockroachScrollRef = useRef<HTMLDivElement>(null);
@@ -102,6 +101,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
   // 数据长度 refs（用于检测新数据）
   const prevLengths = useRef({
     big: 0,
+    bead: 0,
     bigEye: 0,
     small: 0,
     cockroach: 0,
@@ -131,6 +131,9 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
 
     scrollToLatest(bigRoadScrollRef, roads.big?.points.length || 0, prevLengths.current.big);
     prevLengths.current.big = roads.big?.points.length || 0;
+
+    scrollToLatest(beadRoadScrollRef, roads.bead?.points.length || 0, prevLengths.current.bead);
+    prevLengths.current.bead = roads.bead?.points.length || 0;
 
     scrollToLatest(bigEyeScrollRef, roads.bigEye?.points.length || 0, prevLengths.current.bigEye);
     prevLengths.current.bigEye = roads.bigEye?.points.length || 0;
@@ -164,15 +167,50 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
     fontSize: 12,
   }), [baseConfig]);
 
-  const derivedFlex = useMemo(() => ({
-    small: Math.max(roads.small?.max_columns || 0, 3),
-    cockroach: Math.max(roads.cockroach?.max_columns || 0, 2),
-  }), [roads.cockroach?.max_columns, roads.small?.max_columns]);
-
   // 计算各路高度（6格）- 使用minHeight确保不被压缩
   const roadHeight = useMemo(() => {
     return calculateRoadHeight(baseConfig);
   }, [baseConfig]);
+
+  const renderRoadCard = (
+    title: string,
+    scrollRef: React.RefObject<HTMLDivElement | null>,
+    content: React.ReactNode,
+    cardClassName?: string,
+  ) => (
+    <div className={cardClassName ? `roadmap-board-card ${cardClassName}` : 'roadmap-board-card'} style={{
+      display: 'flex',
+      flexDirection: 'column',
+      background: '#161b22',
+      borderRadius: '8px',
+      border: '1px solid #30363d',
+      overflow: 'hidden',
+      width: '100%',
+    }}>
+      <div style={{
+        padding: '6px 12px',
+        background: '#21262d',
+        borderBottom: '1px solid #30363d',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        height: `${HEADER_HEIGHT}px`,
+        flexShrink: 0,
+      }}>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>{title}</span>
+      </div>
+      <div
+        ref={scrollRef as React.RefObject<HTMLDivElement>}
+        style={{
+          width: '100%',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+        }}
+      >
+        {content}
+      </div>
+    </div>
+  );
 
   return (
       <div className="five-road-chart" style={{
@@ -183,222 +221,72 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
         padding: '8px',
         background: '#0d1117',
       }}>
-        {/* 第1排：大路（单独一行） */}
-        <div className="roadmap-board-card" style={{
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#161b22',
-          borderRadius: '8px',
-          border: '1px solid #30363d',
-          overflow: 'hidden',
-          width: '100%',
-        }}>
-          <div style={{
-            padding: '6px 12px',
-            background: '#21262d',
-            borderBottom: '1px solid #30363d',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            height: `${HEADER_HEIGHT}px`,
-            flexShrink: 0,
+        {renderRoadCard(
+          '大路',
+          bigRoadScrollRef,
+          <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
+            {hasData.big ? (
+              <BigRoadCanvas data={roads.big} config={baseConfig} />
+            ) : (
+              <EmptyState height={roadHeight} />
+            )}
+          </div>,
+        )}
+
+        {renderRoadCard(
+          '珠盘路',
+          beadRoadScrollRef,
+          <div className="bead-road-responsive-shell" style={{
+            overflow: 'hidden',
+            height: `${roadHeight}px`,
+            width: '100%',
           }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#e6edf3' }}>大路</span>
-          </div>
-          <div
-              ref={bigRoadScrollRef}
-              style={{
-                width: '100%',
-                overflowX: 'auto',
-                overflowY: 'hidden',
-              }}
-            >
-              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
-              {hasData.big ? (
-                <BigRoadCanvas data={roads.big} config={baseConfig} />
+            <div style={{ height: `${roadHeight}px`, width: '100%' }}>
+              {hasData.bead ? (
+                <BeadRoadCanvas data={roads.bead} config={beadConfig} className="bead-road-responsive-canvas" />
               ) : (
                 <EmptyState height={roadHeight} />
               )}
             </div>
-          </div>
-        </div>
+          </div>,
+          'bead-road-responsive-card',
+        )}
 
-        {/* 第2排：珠盘路 + 大眼仔路 */}
-        <div className="five-road-chart-secondary-row" style={{
-          display: 'flex',
-          flexDirection: 'row',
-          flexWrap: 'nowrap',
-          gap: '8px',
-          width: '100%',
-        }}>
-          {/* 珠盘路 - 跟随容器宽度自适应 */}
-          <div className="roadmap-board-card bead-road-responsive-card" style={{
-            flex: '1 1 auto',
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            background: '#161b22',
-            borderRadius: '8px',
-            border: '1px solid #30363d',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '6px 12px',
-              background: '#21262d',
-              borderBottom: '1px solid #30363d',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              height: `${HEADER_HEIGHT}px`,
-              flexShrink: 0,
-            }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>珠盘路</span>
-            </div>
-            <div className="bead-road-responsive-shell" style={{
-              overflow: 'hidden',
-              height: `${roadHeight}px`,
-              width: '100%',
-            }}>
-              <div style={{ height: `${roadHeight}px`, width: '100%' }}>
-                {hasData.bead ? (
-                  <BeadRoadCanvas data={roads.bead} config={beadConfig} className="bead-road-responsive-canvas" />
-                ) : (
-                  <EmptyState height={roadHeight} />
-                )}
-              </div>
-            </div>
-          </div>
+        {renderRoadCard(
+          '大眼仔路',
+          bigEyeScrollRef,
+          <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
+            {hasData.bigEye ? (
+              <DerivedRoadCanvas data={roads.bigEye} config={baseConfig} />
+            ) : (
+              <EmptyState height={roadHeight} />
+            )}
+          </div>,
+        )}
 
-          {/* 大眼仔路 - 占据剩余宽度 */}
-          <div className="roadmap-board-card" style={{
-            flex: '1 1 auto',
-            minWidth: 0,
-            maxWidth: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            background: '#161b22',
-            borderRadius: '8px',
-            border: '1px solid #30363d',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '6px 12px',
-              background: '#21262d',
-              borderBottom: '1px solid #30363d',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              height: `${HEADER_HEIGHT}px`,
-              flexShrink: 0,
-            }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>大眼仔路</span>
-            </div>
-            <div
-              ref={bigEyeScrollRef}
-              style={{
-                width: '100%',
-                overflowX: 'auto',
-                overflowY: 'hidden',
-              }}
-            >
-              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
-                {hasData.bigEye ? (
-                  <DerivedRoadCanvas data={roads.bigEye} config={baseConfig} />
-                ) : (
-                  <EmptyState height={roadHeight} />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        {renderRoadCard(
+          '小路',
+          smallScrollRef,
+          <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
+            {hasData.small ? (
+              <DerivedRoadCanvas data={roads.small} config={baseConfig} />
+            ) : (
+              <EmptyState height={roadHeight} />
+            )}
+          </div>,
+        )}
 
-        {/* 第3排：小路 + 螳螂路，避免数据少时单独整行显得右侧发空 */}
-        <div className="five-road-chart-derived-row" style={{
-          display: 'flex',
-          flexDirection: 'row',
-          gap: '8px',
-          width: '100%',
-        }}>
-          <div className="roadmap-board-card" style={{
-            flex: `${derivedFlex.small} 1 0`,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            background: '#161b22',
-            borderRadius: '8px',
-            border: '1px solid #30363d',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '6px 12px',
-              background: '#21262d',
-              borderBottom: '1px solid #30363d',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              height: `${HEADER_HEIGHT}px`,
-              flexShrink: 0,
-            }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>小路</span>
-            </div>
-            <div
-              ref={smallScrollRef}
-              style={{
-                width: '100%',
-                overflowX: 'auto',
-                overflowY: 'hidden',
-              }}
-            >
-              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
-                {hasData.small ? (
-                  <DerivedRoadCanvas data={roads.small} config={baseConfig} />
-                ) : (
-                  <EmptyState height={roadHeight} />
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="roadmap-board-card" style={{
-            flex: `${derivedFlex.cockroach} 1 0`,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            background: '#161b22',
-            borderRadius: '8px',
-            border: '1px solid #30363d',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '6px 12px',
-              background: '#21262d',
-              borderBottom: '1px solid #30363d',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              height: `${HEADER_HEIGHT}px`,
-              flexShrink: 0,
-            }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#e6edf3' }}>螳螂路</span>
-            </div>
-            <div
-              ref={cockroachScrollRef}
-              style={{
-                width: '100%',
-                overflowX: 'auto',
-                overflowY: 'hidden',
-              }}
-            >
-              <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
-                {hasData.cockroach ? (
-                  <DerivedRoadCanvas data={roads.cockroach} config={baseConfig} />
-                ) : (
-                  <EmptyState height={roadHeight} />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        {renderRoadCard(
+          '螳螂路',
+          cockroachScrollRef,
+          <div style={{ height: `${roadHeight}px`, minWidth: 'max-content', paddingBottom: '8px' }}>
+            {hasData.cockroach ? (
+              <DerivedRoadCanvas data={roads.cockroach} config={baseConfig} />
+            ) : (
+              <EmptyState height={roadHeight} />
+            )}
+          </div>,
+        )}
       </div>
     );
 });
