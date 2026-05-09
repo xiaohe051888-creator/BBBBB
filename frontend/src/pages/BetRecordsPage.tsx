@@ -11,7 +11,7 @@ import {
   Select, Input, Modal, Empty,
   Progress, Badge, Descriptions, Grid,
 } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useBetsQuery, type BetRecord } from '../hooks';
 import { BET_STATUS_COLORS } from '../utils/constants';
@@ -70,6 +70,10 @@ interface BetSummary {
   maxLoss: number;
   currentStreak: number;
 }
+
+type BetColumn = ColumnType<BetRecord> & {
+  mobileLabel?: string;
+};
 
 const BetRecordsPage: React.FC = () => {
   
@@ -165,9 +169,10 @@ const BetRecordsPage: React.FC = () => {
   }, [bets, filterDirection, filterStatus, filterTier, searchGameNumber]);
 
   // 表格列定义 - 自适应宽度
-  const columns: ColumnsType<BetRecord> = [
+  const columns: BetColumn[] = [
     {
       title: '局号',
+      mobileLabel: '局号',
       dataIndex: 'game_number',
       width: '10%',
       align: 'center',
@@ -175,6 +180,7 @@ const BetRecordsPage: React.FC = () => {
     },
     {
       title: '下注方向',
+      mobileLabel: '方向',
       dataIndex: 'bet_direction',
       width: '15%',
       align: 'center',
@@ -186,6 +192,7 @@ const BetRecordsPage: React.FC = () => {
     },
     {
       title: '金额',
+      mobileLabel: '金额',
       dataIndex: 'bet_amount',
       width: '12%',
       align: 'center',
@@ -194,6 +201,7 @@ const BetRecordsPage: React.FC = () => {
     },
     {
       title: '档位',
+      mobileLabel: '档位',
       dataIndex: 'bet_tier',
       width: '12%',
       align: 'center',
@@ -205,6 +213,7 @@ const BetRecordsPage: React.FC = () => {
     },
     {
       title: '状态',
+      mobileLabel: '状态',
       dataIndex: 'status',
       width: '12%',
       align: 'center',
@@ -214,6 +223,7 @@ const BetRecordsPage: React.FC = () => {
     },
     {
       title: '开奖结果',
+      mobileLabel: '开奖',
       dataIndex: 'game_result',
       width: '12%',
       align: 'center',
@@ -223,6 +233,7 @@ const BetRecordsPage: React.FC = () => {
     },
     {
       title: '盈亏',
+      mobileLabel: '盈亏',
       dataIndex: 'profit_loss',
       width: '14%',
       align: 'center',
@@ -240,6 +251,7 @@ const BetRecordsPage: React.FC = () => {
     },
     {
       title: '操作',
+      mobileLabel: '操作',
       width: '13%',
       align: 'center',
       render: (_: unknown, r: BetRecord) => (
@@ -441,7 +453,7 @@ const BetRecordsPage: React.FC = () => {
           columns={columns.map(col => ({
             ...col,
             onCell: () => ({
-              'data-label': typeof col.title === 'string' ? col.title : ''
+               'data-label': col.mobileLabel || (typeof col.title === 'string' ? col.title : '')
             } as React.HTMLAttributes<HTMLElement>)
           }))}
           rowKey={(r) => String(r.id)}

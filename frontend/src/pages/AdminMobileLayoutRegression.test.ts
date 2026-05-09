@@ -122,25 +122,36 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.mobile-card-table.user-data-table .ant-table-container');
   });
 
-  it('flattens dashboard data shells on mobile and leaves only inner content cards', () => {
+  it('keeps dashboard roadmap, progress, and analysis sections on dedicated mobile card classes', () => {
     const dashboard = readFileSync(resolve(__dirname, './DashboardPage.tsx'), 'utf8');
     const analysisPanel = readFileSync(resolve(__dirname, '../components/dashboard/AnalysisPanel.tsx'), 'utf8');
     const learningPanel = readFileSync(resolve(__dirname, '../components/LearningStatusPanel.tsx'), 'utf8');
     const fiveRoadChart = readFileSync(resolve(__dirname, '../components/roads/FiveRoadChart.tsx'), 'utf8');
     const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
 
-    expect(dashboard).toContain('className="road-card"');
-    expect(dashboard).toContain('className="progress-card"');
-    expect(analysisPanel).toContain('className="analysis-card"');
+    expect(dashboard).toContain('className="road-card dashboard-section-card dashboard-road-card"');
+    expect(dashboard).toContain('className="progress-card dashboard-section-card dashboard-progress-card"');
+    expect(analysisPanel).toContain('className="analysis-card dashboard-section-card dashboard-analysis-card"');
     expect(learningPanel).toContain('className="learning-status-card"');
     expect(fiveRoadChart).toContain('className="five-road-chart"');
     expect(fiveRoadChart).toContain('className="roadmap-board-card"');
-    expect(css).toContain('.road-card,');
-    expect(css).toContain('.progress-card,');
-    expect(css).toContain('.analysis-card,');
+    expect(css).toContain('.dashboard-section-card {');
+    expect(css).toContain('.dashboard-road-card {');
+    expect(css).toContain('.dashboard-progress-card {');
+    expect(css).toContain('.dashboard-analysis-card {');
     expect(css).toContain('.learning-status-card,');
     expect(css).toContain('.five-road-chart {');
     expect(css).toContain('.five-road-chart .roadmap-board-card {');
+  });
+
+  it('uses compact one-line mobile labels for bet record cards instead of long wrapped labels', () => {
+    const betRecords = readFileSync(resolve(__dirname, './BetRecordsPage.tsx'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(betRecords).toContain("mobileLabel: '方向'");
+    expect(betRecords).toContain("mobileLabel: '开奖'");
+    expect(css).toContain('.bet-records-page .mobile-card-table .ant-table-tbody > tr > td::before');
+    expect(css).toContain('white-space: nowrap !important;');
   });
 
   it('stacks bead road and big eye road into separate rows on mobile', () => {

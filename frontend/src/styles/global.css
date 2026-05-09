@@ -2288,9 +2288,6 @@ body {
     background: transparent !important;
   }
 
-  .road-card,
-  .progress-card,
-  .analysis-card,
   .learning-status-card,
   .workflow-status-shell,
   .system-status-card,
@@ -2308,13 +2305,34 @@ body {
     display: none !important;
   }
 
-  .road-card,
-  .progress-card,
-  .analysis-card,
   .workflow-status-shell,
   .system-status-card {
     padding-left: 0 !important;
     padding-right: 0 !important;
+  }
+
+  .dashboard-section-card {
+    background: linear-gradient(145deg, rgba(22, 29, 42, 0.96), rgba(13, 18, 30, 0.96)) !important;
+    border: 1px solid rgba(88, 166, 255, 0.14) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+
+  .dashboard-road-card {
+    border-color: rgba(88, 166, 255, 0.18) !important;
+  }
+
+  .dashboard-progress-card {
+    border-color: rgba(255, 215, 0, 0.16) !important;
+  }
+
+  .dashboard-analysis-card {
+    border-color: rgba(250, 173, 20, 0.18) !important;
+  }
+
+  .dashboard-section-card + .dashboard-section-card {
+    margin-top: 14px !important;
   }
 
   .learning-status-card .ant-card-head,
@@ -2972,6 +2990,15 @@ body {
     color: rgba(255, 255, 255, 0.45);
     font-size: 13px;
     font-weight: 500;
+  }
+
+  .bet-records-page .mobile-card-table .ant-table-tbody > tr > td::before {
+    flex: 0 0 68px;
+    white-space: nowrap !important;
+  }
+
+  .bet-records-page .mobile-card-table .ant-table-tbody > tr > td > * {
+    white-space: nowrap !important;
   }
 
   .mobile-card-table .ant-table-cell {

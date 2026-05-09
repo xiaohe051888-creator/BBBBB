@@ -86,7 +86,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   // 分析中状态 - 三模型进度指示器
   if (aiAnalyzing) {
     return (
-      <div className="analysis-card" style={{ minHeight: 'auto' }}>
+      <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={{ minHeight: 'auto' }}>
         <div className="section-header">
           <span style={{ color: '#fadb14' }}><BulbOutlined /></span>
           <span className="section-title">智能分析</span>
@@ -191,7 +191,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   // 等待开奖结果状态
   if (!hasGameData) {
     return (
-      <div className="analysis-card empty" style={{ background: '#1a1d24', borderRadius: 12, padding: 24, textAlign: 'center', minHeight: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="analysis-card dashboard-section-card dashboard-analysis-card empty" style={{ background: '#1a1d24', borderRadius: 12, padding: 24, textAlign: 'center', minHeight: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{
           width: 64, height: 64, borderRadius: '50%', background: 'rgba(24,144,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16
         }}>
@@ -210,7 +210,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   // 有数据但没有分析结果 - 准备分析
   if (!analysis) {
     return (
-      <div className="analysis-card" style={{ minHeight: 'auto' }}>
+      <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={{ minHeight: 'auto' }}>
         <div className="section-header">
           <span style={{ color: '#fadb14' }}><BulbOutlined /></span>
           <span className="section-title">智能分析</span>
@@ -261,7 +261,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   };
 
   return (
-    <div className="analysis-card" style={{ minHeight: 'auto' }}>
+    <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={{ minHeight: 'auto' }}>
       <div className="section-header">
         <span style={{ color: '#fadb14' }}><BulbOutlined /></span>
         <span className="section-title">智能分析</span>

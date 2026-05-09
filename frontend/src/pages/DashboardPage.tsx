@@ -356,7 +356,7 @@ const DashboardPage: React.FC = () => {
       <div className="dashboard-main-grid" style={{ padding: isMobile ? 12 : 16, display: 'flex', gap: isMobile ? 12 : 16, flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
         {/* 左侧：五路走势图 */}
         <div className="left-panel" style={{ flex: '1 1 500px', minWidth: 'min(300px, 100%)', maxWidth: '100%', boxSizing: 'border-box' }}>
-          <div className="road-card" style={{ background: '#1a1d24', borderRadius: 12, padding: isMobile ? 12 : 16, marginBottom: isMobile ? 12 : 16, overflow: 'hidden', minHeight: isMobile ? 0 : 400 }}>
+          <div className="road-card dashboard-section-card dashboard-road-card" style={{ background: '#1a1d24', borderRadius: 12, padding: isMobile ? 12 : 16, marginBottom: isMobile ? 12 : 16, overflow: 'hidden', minHeight: isMobile ? 0 : 400 }}>
             <div className="section-header dashboard-road-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
               <div className="dashboard-road-header-title">
                 <span style={{ color: '#58a6ff', display: 'inline-flex', alignItems: 'center' }}>
@@ -383,7 +383,7 @@ const DashboardPage: React.FC = () => {
           </div>
 
           {/* 本靴进度 */}
-          <div className="progress-card" style={{ background: '#1a1d24', borderRadius: 12, padding: isMobile ? 12 : 16, marginBottom: isMobile ? 12 : 16 }}>
+          <div className="progress-card dashboard-section-card dashboard-progress-card" style={{ background: '#1a1d24', borderRadius: 12, padding: isMobile ? 12 : 16, marginBottom: isMobile ? 12 : 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>本靴进度</span>
               <span style={{ fontSize: 12, color: '#ffd700' }}>{validGamesLength} / {MAX_GAMES_PER_BOOT} 局</span>
