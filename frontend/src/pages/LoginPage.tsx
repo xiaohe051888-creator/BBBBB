@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert, App, Button, Card, Input, Space } from 'antd';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '../services/api';
+import { formatApiErrorMessage } from '../utils/errorMessage';
 
 const LoginPage: React.FC = () => {
   const { message } = App.useApp();
@@ -33,7 +34,7 @@ const LoginPage: React.FC = () => {
       navigate(fromPath, { replace: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      message.error(err.response?.data?.detail || err.message || '登录失败');
+      message.error(formatApiErrorMessage(err, '登录失败'));
     } finally {
       setLoading(false);
     }

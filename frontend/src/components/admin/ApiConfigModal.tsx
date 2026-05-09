@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Form, Input, Select, Button, App, Alert, Grid } from 'antd';
 import type { ApiConfigPayload, ThreeModelStatus } from '../../services/api';
 import * as apiService from '../../services/api';
+import { formatApiErrorMessage } from '../../utils/errorMessage';
 import { toCnApiTestError } from '../../utils/i18nErrors';
 import { formatAiRoleLabel, formatApiConfigLabel } from '../../utils/beginnerCopy';
 
@@ -127,7 +128,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       message.success('当前设置测试通过');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      const raw = err.response?.data?.detail || err.message || '连接失败';
+      const raw = formatApiErrorMessage(err, '连接失败');
       const errorMsg = toCnApiTestError(String(raw));
       setTestResult({ success: false, message: `测试失败：${errorMsg}` });
     } finally {
@@ -152,7 +153,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       await Promise.resolve(onSuccess());
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      const raw = err.response?.data?.detail || err.message || '保存失败';
+      const raw = formatApiErrorMessage(err, '保存失败');
       message.error(`保存失败：${toCnApiTestError(String(raw))}`);
     } finally {
       setSaving(false);

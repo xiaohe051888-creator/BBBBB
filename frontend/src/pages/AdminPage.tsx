@@ -25,6 +25,7 @@ import {
 } from '../utils/beginnerCopy';
 import { formatMoney } from '../utils/money';
 import { toCnModelLabel, toCnProviderLabel } from '../utils/i18nErrors';
+import { formatApiErrorMessage } from '../utils/errorMessage';
 import { formatModelVersionCellLabel, formatModelVersionTagLabel } from '../utils/modelVersionDisplay';
 import { isModeSelected, markModeSelected } from '../utils/modeSelection';
 import { useSystemDiagnostics } from '../hooks/useSystemDiagnostics';
@@ -399,7 +400,7 @@ const AdminPage: React.FC = () => {
       setUsersPage(1);
       loadUsers();
     } catch (err: any) {
-      message.error(err.response?.data?.detail || err.message || '创建用户失败');
+      message.error(formatApiErrorMessage(err, '创建用户失败'));
     } finally {
       setUsersLoading(false);
     }
@@ -412,7 +413,7 @@ const AdminPage: React.FC = () => {
       message.success(u.is_active ? '已禁用用户' : '已启用用户');
       loadUsers();
     } catch (err: any) {
-      message.error(err.response?.data?.detail || err.message || '更新用户失败');
+      message.error(formatApiErrorMessage(err, '更新用户失败'));
     } finally {
       setUsersLoading(false);
     }
@@ -439,7 +440,7 @@ const AdminPage: React.FC = () => {
       setResetPwdValue('');
       loadUsers();
     } catch (err: any) {
-      message.error(err.response?.data?.detail || err.message || '重置密码失败');
+      message.error(formatApiErrorMessage(err, '重置密码失败'));
     } finally {
       setUsersLoading(false);
     }
@@ -572,8 +573,7 @@ const AdminPage: React.FC = () => {
       loadMaintenanceStats();
       navigate('/dashboard');
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || err.message || '清空失败';
-      message.error(errorMessage);
+      message.error(formatApiErrorMessage(err, '清空失败'));
     } finally {
       setResetConfirmSubmitting(false);
     }
