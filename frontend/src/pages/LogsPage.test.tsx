@@ -197,10 +197,16 @@ describe('LogsPage', () => {
       detailButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(document.body.textContent).toContain('记录详情');
-    expect(document.body.textContent).toContain('复制通俗说明');
-    expect(document.body.textContent).not.toContain('一键复制下面这段通俗说明');
-    expect(document.body.textContent).not.toContain('全选');
+    const modalContent = document.querySelector('.ant-modal');
+    expect(modalContent).toBeTruthy();
+    const modalText = modalContent?.textContent || '';
+    expect(modalText).toContain('记录详情');
+    expect(modalText).toContain('复制通俗说明');
+    expect(modalText).not.toContain('一键复制下面这段通俗说明');
+    expect(modalText).not.toContain('全选');
+    expect(modalText).not.toContain('你可能会关心的信息');
+    expect(modalText).not.toContain('事件编码');
+    expect(modalText).not.toContain('处理编号');
 
     await act(async () => {
       root.unmount();

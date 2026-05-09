@@ -173,9 +173,6 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Space wrap>
             <Tag color={PRIORITY_COLORS[log.priority]}>{priorityLabel(log.priority)}</Tag>
-            {log.category ? <Tag>{log.category}</Tag> : null}
-            {log.event_result ? <Tag>{log.event_result}</Tag> : null}
-            {log.is_pinned ? <Tag color="red">置顶</Tag> : null}
           </Space>
           <Divider style={{ margin: '8px 0' }} />
           <Typography.Title level={5} style={{ margin: 0 }}>
@@ -194,21 +191,6 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
             {human.suggestion || '-'}
           </Typography.Paragraph>
           <Divider style={{ margin: '8px 0' }} />
-          <Typography.Text type="secondary">{formatDetailLabel('keyInfo')}</Typography.Text>
-          <div style={simpleListStyle}>
-            {human.fieldsCn.map((item, index) => (
-              <div
-                key={`${item.label}-${index}`}
-                style={{ padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-              >
-                <Space size={6} style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <span style={{ opacity: 0.75 }}>{item.label}</span>
-                  <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{item.value}</span>
-                </Space>
-              </div>
-            ))}
-          </div>
-          <Divider style={{ margin: '8px 0' }} />
           <Collapse
             size="small"
             items={[
@@ -217,6 +199,19 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
                 label: formatDetailLabel('rawData'),
                 children: (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={simpleListStyle}>
+                      {human.fieldsCn.map((item, index) => (
+                        <div
+                          key={`${item.label}-${index}`}
+                          style={{ padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                        >
+                          <Space size={6} style={{ width: '100%', justifyContent: 'space-between' }}>
+                            <span style={{ opacity: 0.75 }}>{item.label}</span>
+                            <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{item.value}</span>
+                          </Space>
+                        </div>
+                      ))}
+                    </div>
                     <Space wrap>
                       <Button size="small" onClick={() => copy(rawText)} disabled={!log}>
                         复制原始记录
