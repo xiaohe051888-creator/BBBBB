@@ -425,8 +425,18 @@ export const getStatistics = async () => {
 
 // ====== 管理员 ======
 
+const shouldRetryGatewayError = (error: unknown): boolean => {
+  const status = (error as { response?: { status?: number } })?.response?.status;
+  return status === 502 || status === 503 || status === 504;
+};
+
 export const adminLogin = async (password: string, username?: string) => {
-  return api.post('/admin/login', { password, username });
+  try {
+    return await api.post('/admin/login', { password, username });
+  } catch (error) {
+    if (!shouldRetryGatewayError(error)) throw error;
+    return api.post('/admin/login', { password, username });
+  }
 };
 
 export const userLogin = async (username: string, password: string) => {
