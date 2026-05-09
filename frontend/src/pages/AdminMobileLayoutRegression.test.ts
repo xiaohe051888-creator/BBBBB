@@ -85,6 +85,7 @@ describe('admin mobile layout regressions', () => {
     const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
 
     expect(adminPage).toContain('className="admin-table-card"');
+    expect(css).toContain('.admin-table-card,');
     expect(css).toContain('.admin-table-card .ant-card-body');
     expect(css).toContain('.admin-table-card .mobile-card-table .ant-table-container');
     expect(css).toContain('.admin-table-card .mobile-card-table .ant-table-placeholder .ant-empty');
@@ -112,6 +113,7 @@ describe('admin mobile layout regressions', () => {
     expect(logs).toContain('className="mobile-data-card"');
     expect(logs).toContain('className="mobile-card-table user-data-table"');
     expect(logs).toContain("'data-label'");
+    expect(css).toContain('.mobile-data-card {');
     expect(css).toContain('.mobile-data-card .ant-card-body');
     expect(css).toContain('.mobile-data-card .user-data-table .ant-table-container');
     expect(css).toContain('.mobile-data-card .user-data-table .ant-table-placeholder .ant-empty');

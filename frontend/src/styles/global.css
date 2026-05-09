@@ -2176,8 +2176,29 @@ body {
     justify-content: flex-start;
   }
 
+  .admin-table-card,
+  .mobile-data-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .admin-table-card .ant-card-head,
+  .mobile-data-card .ant-card-head {
+    padding: 0 !important;
+    min-height: auto !important;
+    background: transparent !important;
+    border-bottom: none !important;
+  }
+
+  .admin-table-card .ant-card-head-title,
+  .mobile-data-card .ant-card-head-title {
+    padding: 0 0 10px !important;
+  }
+
   .admin-table-card .ant-card-body {
-    padding: 10px 12px !important;
+    padding: 10px 0 0 !important;
   }
 
   .admin-table-card .mobile-card-table,
@@ -2205,6 +2226,13 @@ body {
     padding-top: 4px !important;
   }
 
+  .admin-table-card .mobile-card-table .ant-table-tbody > .ant-table-placeholder {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
   .admin-table-card .mobile-card-table .ant-table-placeholder .ant-empty {
     padding: 18px 8px !important;
     border: none !important;
@@ -2212,7 +2240,7 @@ body {
   }
 
   .mobile-data-card .ant-card-body {
-    padding: 10px 12px !important;
+    padding: 10px 0 0 !important;
   }
 
   .mobile-data-card .user-data-table,
@@ -2245,6 +2273,13 @@ body {
 
   .mobile-data-card .user-data-table .ant-table-placeholder > td {
     padding-top: 4px !important;
+  }
+
+  .mobile-data-card .user-data-table .ant-table-tbody > .ant-table-placeholder {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
   }
 
   .mobile-data-card .user-data-table .ant-table-placeholder .ant-empty {
