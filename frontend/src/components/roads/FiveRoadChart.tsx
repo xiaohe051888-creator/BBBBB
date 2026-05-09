@@ -168,7 +168,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
   }, []);
 
   return (
-      <div style={{
+      <div className="five-road-chart" style={{
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -177,7 +177,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
         background: '#0d1117',
       }}>
         {/* 第1排：大路（单独一行） */}
-        <div style={{
+        <div className="roadmap-board-card" style={{
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',
@@ -225,7 +225,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
           width: '100%',
         }}>
           {/* 珠盘路 - 精确控制宽度 */}
-          <div style={{
+          <div className="roadmap-board-card" style={{
             flex: 'none', // 不允许伸缩，严格按照内部计算宽度
             width: `${beadRoadWidth}px`,
             display: 'flex',
@@ -263,7 +263,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
           </div>
 
           {/* 大眼仔路 - 占据剩余宽度 */}
-          <div style={{
+          <div className="roadmap-board-card" style={{
             flex: '1 1 auto',
             minWidth: 0,
             maxWidth: '100%',
@@ -306,7 +306,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
         </div>
 
         {/* 第3排：小路（单独一行） */}
-        <div style={{
+        <div className="roadmap-board-card" style={{
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',
@@ -346,7 +346,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
         </div>
 
         {/* 第4排：螳螂路 / 曱甴路（单独一行） */}
-        <div style={{
+        <div className="roadmap-board-card" style={{
           display: 'flex',
           flexDirection: 'column',
           background: '#161b22',

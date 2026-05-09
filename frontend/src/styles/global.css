@@ -2288,6 +2288,50 @@ body {
     background: transparent !important;
   }
 
+  .road-card,
+  .progress-card,
+  .analysis-card,
+  .learning-status-card,
+  .roadmap-chart-shell,
+  .roadmap-analysis-shell {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .analysis-card::before {
+    display: none !important;
+  }
+
+  .road-card,
+  .progress-card,
+  .analysis-card {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .learning-status-card .ant-card-head,
+  .learning-status-card .ant-card-body {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .learning-status-card .ant-card-head {
+    background: transparent !important;
+    border-bottom: none !important;
+  }
+
+  .five-road-chart {
+    padding: 0 !important;
+    background: transparent !important;
+    gap: 10px !important;
+  }
+
+  .five-road-chart .roadmap-board-card {
+    box-shadow: none !important;
+  }
+
   .admin-users-toolbar {
     display: grid !important;
     grid-template-columns: 1fr;

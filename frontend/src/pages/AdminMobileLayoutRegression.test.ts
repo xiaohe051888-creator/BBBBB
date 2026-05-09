@@ -121,4 +121,25 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.mobile-data-card .user-data-table .ant-table-placeholder .ant-empty');
     expect(css).toContain('.mobile-card-table.user-data-table .ant-table-container');
   });
+
+  it('flattens dashboard data shells on mobile and leaves only inner content cards', () => {
+    const dashboard = readFileSync(resolve(__dirname, './DashboardPage.tsx'), 'utf8');
+    const analysisPanel = readFileSync(resolve(__dirname, '../components/dashboard/AnalysisPanel.tsx'), 'utf8');
+    const learningPanel = readFileSync(resolve(__dirname, '../components/LearningStatusPanel.tsx'), 'utf8');
+    const fiveRoadChart = readFileSync(resolve(__dirname, '../components/roads/FiveRoadChart.tsx'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(dashboard).toContain('className="road-card"');
+    expect(dashboard).toContain('className="progress-card"');
+    expect(analysisPanel).toContain('className="analysis-card"');
+    expect(learningPanel).toContain('className="learning-status-card"');
+    expect(fiveRoadChart).toContain('className="five-road-chart"');
+    expect(fiveRoadChart).toContain('className="roadmap-board-card"');
+    expect(css).toContain('.road-card,');
+    expect(css).toContain('.progress-card,');
+    expect(css).toContain('.analysis-card,');
+    expect(css).toContain('.learning-status-card,');
+    expect(css).toContain('.five-road-chart {');
+    expect(css).toContain('.five-road-chart .roadmap-board-card {');
+  });
 });

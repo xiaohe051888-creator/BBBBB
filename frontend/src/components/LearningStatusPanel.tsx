@@ -71,6 +71,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
       {/* 深度学习状态 */}
       {isDeepLearning && deepLearning && (
         <Card
+          className="learning-status-card"
           size="small"
           title={
             <Space>
@@ -120,6 +121,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
       {/* 微学习状态 */}
       {microLearning && microLearning.status === '进行中' && (
         <Card
+          className="learning-status-card"
           size="small"
           title={
             <Space>
@@ -143,6 +145,7 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
       {/* 微学习完成提示 */}
       {microLearning && microLearning.status === '完成' && (
         <Card
+          className="learning-status-card"
           size="small"
           style={{ borderLeft: '4px solid #52c41a', background: 'rgba(82,196,26,0.1)' }}
         >
