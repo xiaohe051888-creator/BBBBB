@@ -153,4 +153,75 @@ describe('logHumanizer', () => {
     expect(h.impact).not.toContain('余额/下注记录不一致');
     expect(toHumanCopyText(log)).not.toContain('系统异常：结算过程出现问题');
   });
+
+  it('does not suggest a nonexistent one-click repair action in known repair-related logs', () => {
+    const cases: LogEntry[] = [
+      {
+        id: 11,
+        log_time: '2026-05-09T10:00:00Z',
+        game_number: null,
+        event_code: 'LOG-SYS-ERR',
+        event_type: '系统异常',
+        event_result: '失败',
+        description: '自动流程发生异常。',
+        category: '系统事件',
+        priority: 'P1',
+        task_id: null,
+        is_pinned: false,
+      },
+      {
+        id: 12,
+        log_time: '2026-05-09T10:00:00Z',
+        game_number: null,
+        event_code: 'LOG-RECOVER-002',
+        event_type: '系统恢复',
+        event_result: '成功',
+        description: '系统将状态回落到可继续操作的状态。',
+        category: '系统事件',
+        priority: 'P2',
+        task_id: null,
+        is_pinned: false,
+      },
+      {
+        id: 13,
+        log_time: '2026-05-09T10:00:00Z',
+        game_number: null,
+        event_code: 'LOG-WDG-003',
+        event_type: '系统守护',
+        event_result: '告警',
+        description: '最近一段时间出现较多高优先级事件。',
+        category: '系统事件',
+        priority: 'P2',
+        task_id: null,
+        is_pinned: false,
+      },
+    ];
+
+    for (const log of cases) {
+      const copy = toHumanCopyText(log);
+      expect(copy).not.toContain('一键修复');
+      expect(copy).not.toContain('系统修复');
+    }
+  });
+
+  it('does not mention a missing repair button in generic LOG-ERR suggestions', () => {
+    const log: LogEntry = {
+      id: 14,
+      log_time: '2026-05-09T10:00:00Z',
+      game_number: null,
+      event_code: 'LOG-ERR-999',
+      event_type: '未知异常',
+      event_result: '失败',
+      description: '任务执行失败。',
+      category: '系统事件',
+      priority: 'P1',
+      task_id: null,
+      is_pinned: false,
+    };
+
+    const copy = toHumanCopyText(log);
+    expect(copy).not.toContain('一键修复');
+    expect(copy).not.toContain('系统修复');
+    expect(copy).toContain('刷新页面');
+  });
 });

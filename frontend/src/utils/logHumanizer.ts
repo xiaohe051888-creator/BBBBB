@@ -54,7 +54,7 @@ const rule: Record<string, Rule> = {
     title: '系统异常：自动分析失败',
     whatHappened: s(log.description) || '自动流程发生异常。',
     impact: '可能导致状态停留在“分析中/错误”，影响后续下注或开奖。',
-    suggestion: '建议回到首页查看系统状态，必要时点击“一键修复/刷新页面”后重试。',
+    suggestion: '建议回到首页查看系统状态，必要时刷新页面后重试。',
   }),
   'LOG-STL-001': (log) => ({
     title: `结算：第${log.game_number ?? '-'}局已结算`,
@@ -72,7 +72,7 @@ const rule: Record<string, Rule> = {
     title: '系统恢复：已把状态回落到安全状态',
     whatHappened: s(log.description) || '系统将状态回落到可继续操作的状态。',
     impact: '避免状态卡在“分析中/系统学习优化中”。',
-    suggestion: '一般无需处理；如仍无法继续操作，点击“刷新”或“一键修复”。',
+    suggestion: '一般无需处理；如仍无法继续操作，可先刷新页面，或回到首页确认系统状态。',
   }),
   'LOG-RECOVER-003': (log) => ({
     title: '系统修复：已从卡住状态恢复',
@@ -96,7 +96,7 @@ const rule: Record<string, Rule> = {
     title: '系统守护：最近错误次数偏多',
     whatHappened: s(log.description) || '最近一段时间出现较多高优先级事件。',
     impact: '提示系统近期不稳定或操作频繁。',
-    suggestion: '可先观察；若影响使用，建议点击“系统修复/刷新页面”。',
+    suggestion: '可先观察；若影响使用，建议先刷新页面，再回到首页查看系统状态。',
   }),
   'LOG-WDG-RET': (log) => ({
     title: '系统维护：清理任务失败',
@@ -253,7 +253,7 @@ const inferGeneric = (log: LogEntry): Omit<HumanLog, 'fieldsCn'> => {
     if (p === 'LOG-RECOVER') return { impact: '系统在做自动修复/恢复。', suggestion: '一般无需处理。' };
     if (p === 'LOG-WDG') return { impact: '系统守护进程的监控/告警。', suggestion: '一般无需处理；如频繁出现可反馈排查。' };
     if (p === 'LOG-VAL') return { impact: '输入参数不符合要求，本次操作不会生效。', suggestion: '按提示修正输入后重试。' };
-    if (p === 'LOG-ERR') return { impact: '系统异常，可能影响流程。', suggestion: '建议刷新页面或点击系统修复；如持续出现请截图反馈。' };
+    if (p === 'LOG-ERR') return { impact: '系统异常，可能影响流程。', suggestion: '建议先刷新页面；如持续出现请截图反馈。' };
     if (p === 'LOG-SYS') return { impact: '系统状态/配置发生变化。', suggestion: '如非你主动操作，建议检查管理员操作记录。' };
     return null;
   };
