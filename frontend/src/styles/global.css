@@ -2349,6 +2349,10 @@ body {
     gap: 10px !important;
   }
 
+  .five-road-chart-secondary-row {
+    width: 100%;
+  }
+
   .five-road-chart .roadmap-board-card {
     box-shadow: none !important;
   }
@@ -2374,6 +2378,11 @@ body {
   .admin-users-toolbar .ant-btn {
     width: 100% !important;
   }
+
+  .five-road-chart-secondary-row {
+    flex-direction: column !important;
+  }
+
 
   .admin-summary-inline,
   .admin-mode-option,

@@ -217,7 +217,7 @@ export const FiveRoadChart: React.FC<FiveRoadChartProps> = React.memo(({ data })
         </div>
 
         {/* 第2排：珠盘路 + 大眼仔路 */}
-        <div style={{
+        <div className="five-road-chart-secondary-row" style={{
           display: 'flex',
           flexDirection: 'row',
           flexWrap: 'nowrap',

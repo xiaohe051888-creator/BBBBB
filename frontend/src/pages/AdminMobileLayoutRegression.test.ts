@@ -143,6 +143,15 @@ describe('admin mobile layout regressions', () => {
     expect(css).toContain('.five-road-chart .roadmap-board-card {');
   });
 
+  it('stacks bead road and big eye road into separate rows on mobile', () => {
+    const fiveRoadChart = readFileSync(resolve(__dirname, '../components/roads/FiveRoadChart.tsx'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(fiveRoadChart).toContain('className="five-road-chart-secondary-row"');
+    expect(css).toContain('.five-road-chart-secondary-row {');
+    expect(css).toContain('flex-direction: column !important;');
+  });
+
   it('keeps user-facing status and form pages on shared mobile shell classes', () => {
     const workflow = readFileSync(resolve(__dirname, '../components/dashboard/WorkflowStatusBar.tsx'), 'utf8');
     const systemStatus = readFileSync(resolve(__dirname, '../components/ui/SystemStatusPanel.tsx'), 'utf8');
