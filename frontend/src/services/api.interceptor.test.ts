@@ -34,7 +34,7 @@ describe('api interceptor handleApiError', () => {
     }
 
     expect(getToken()).toBe(null);
-    expect(assign).toHaveBeenCalledWith('/mode?session_expired=true');
+    expect(assign).toHaveBeenCalledWith('/login?session_expired=true');
   });
 
   it('does not redirect when there is no token', async () => {

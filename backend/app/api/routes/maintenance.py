@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import func, select, or_
 from sqlalchemy.engine.url import make_url
 
-from app.api.routes.utils import get_current_user
+from app.api.routes.utils import get_current_admin
 from app.core.config import settings
 from app.core.database import async_session
 from app.models.schemas import (
@@ -52,7 +52,7 @@ def _sqlite_db_size_bytes() -> int | None:
 
 
 @router.get("/stats")
-async def maintenance_stats(_: dict = Depends(get_current_user)):
+async def maintenance_stats(_: dict = Depends(get_current_admin)):
     async with async_session() as session:
         log_total = (await session.execute(select(func.count()).select_from(SystemLog))).scalar() or 0
         log_pinned = (await session.execute(select(func.count()).select_from(SystemLog).where(SystemLog.is_pinned == True))).scalar() or 0
@@ -93,7 +93,7 @@ async def maintenance_stats(_: dict = Depends(get_current_user)):
 async def maintenance_alerts(
     hours: int = Query(24, ge=1, le=168),
     limit: int = Query(20, ge=1, le=100),
-    _: dict = Depends(get_current_user),
+    _: dict = Depends(get_current_admin),
 ):
     cutoff = datetime.now() - timedelta(hours=int(hours))
     async with async_session() as session:
@@ -132,7 +132,7 @@ async def maintenance_alerts(
 
 
 @router.post("/retention/run")
-async def maintenance_retention_run(_: dict = Depends(get_current_user)):
+async def maintenance_retention_run(_: dict = Depends(get_current_admin)):
     started = time.perf_counter()
     async with async_session() as session:
         now = datetime.now()
@@ -169,7 +169,7 @@ async def maintenance_retention_run(_: dict = Depends(get_current_user)):
 
 
 @router.post("/reset-all")
-async def maintenance_reset_all(_: dict = Depends(get_current_user)):
+async def maintenance_reset_all(_: dict = Depends(get_current_admin)):
     if settings.ENVIRONMENT.lower() == "production":
         raise HTTPException(status_code=403, detail="生产环境禁止执行清空数据操作")
 

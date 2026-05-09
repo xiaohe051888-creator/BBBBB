@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import delete
 
-from app.api.routes.utils import get_current_user
+from app.api.routes.utils import get_current_admin
 from app.core.database import async_session
 from app.models.schemas import BackgroundTask, BetRecord, GameRecord, MistakeBook, SystemLog
 from app.services.game.state import get_or_create_state
@@ -68,7 +68,7 @@ class SeedMistakesReq(BaseModel):
 
 
 @router.post("/reset", dependencies=[Depends(require_e2e_enabled)])
-async def e2e_reset(req: ResetReq, _: dict = Depends(get_current_user)):
+async def e2e_reset(req: ResetReq, _: dict = Depends(get_current_admin)):
     async with async_session() as db:
         if req.scope in ("all", "games"):
             await db.execute(delete(GameRecord))
@@ -93,7 +93,7 @@ async def e2e_reset(req: ResetReq, _: dict = Depends(get_current_user)):
 
 
 @router.post("/seed/games", dependencies=[Depends(require_e2e_enabled)])
-async def e2e_seed_games(req: SeedGamesReq, _: dict = Depends(get_current_user)):
+async def e2e_seed_games(req: SeedGamesReq, _: dict = Depends(get_current_admin)):
     results = []
     for i in range(req.count):
         n = i + 1
@@ -124,7 +124,7 @@ async def e2e_seed_games(req: SeedGamesReq, _: dict = Depends(get_current_user))
 
 
 @router.post("/seed/bets", dependencies=[Depends(require_e2e_enabled)])
-async def e2e_seed_bets(req: SeedBetsReq, _: dict = Depends(get_current_user)):
+async def e2e_seed_bets(req: SeedBetsReq, _: dict = Depends(get_current_admin)):
     async with async_session() as db:
         state = await get_or_create_state(db)
         balance = Decimal(str(state.balance))
@@ -154,7 +154,7 @@ async def e2e_seed_bets(req: SeedBetsReq, _: dict = Depends(get_current_user)):
 
 
 @router.post("/seed/logs", dependencies=[Depends(require_e2e_enabled)])
-async def e2e_seed_logs(req: SeedLogsReq, _: dict = Depends(get_current_user)):
+async def e2e_seed_logs(req: SeedLogsReq, _: dict = Depends(get_current_admin)):
     async with async_session() as db:
         now = datetime.now()
         for i in range(req.count):
@@ -176,7 +176,7 @@ async def e2e_seed_logs(req: SeedLogsReq, _: dict = Depends(get_current_user)):
 
 
 @router.post("/seed/mistakes", dependencies=[Depends(require_e2e_enabled)])
-async def e2e_seed_mistakes(req: SeedMistakesReq, _: dict = Depends(get_current_user)):
+async def e2e_seed_mistakes(req: SeedMistakesReq, _: dict = Depends(get_current_admin)):
     async with async_session() as db:
         await db.execute(delete(MistakeBook).where(MistakeBook.boot_number == req.boot_number))
         for i in range(req.count):

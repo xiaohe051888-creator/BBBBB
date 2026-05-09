@@ -165,6 +165,9 @@ class SystemLog(Base):
     source_module = Column(String(50), nullable=True, comment="来源模块")
     event_key = Column(String(200), nullable=True, comment="事件唯一键")
     task_id = Column(String(36), nullable=True, comment="关联后台任务编号")
+    actor_role = Column(String(20), nullable=True, comment="操作者角色：admin/user")
+    actor_uid = Column(Integer, nullable=True, comment="操作者ID")
+    actor_username = Column(String(64), nullable=True, comment="操作者用户名")
     is_pinned = Column(Boolean, default=False, comment="是否置顶")
     retention_tier = Column(String(10), default="hot7", comment="保留层级：hot7/warm30/cold_perm")
     created_at = Column(DateTime, server_default=func.now())
@@ -325,6 +328,25 @@ class AIMemory(Base):
     memory_weight = Column(Float, default=1.0, comment="记忆权重(0-1)")
     access_count = Column(Integer, default=0, comment="被引用次数")
     last_accessed = Column(DateTime, nullable=True, comment="最后引用时间")
+
+
+# ============ 普通用户表 ============
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(64), unique=True, nullable=False)
+    password_hash = Column(String(200), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    must_change_password = Column(Boolean, default=False, nullable=False)
+    login_attempts = Column(Integer, default=0, comment="连续登录失败次数")
+    locked_until = Column(DateTime, nullable=True, comment="锁定截止时间")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("idx_users_username", "username", unique=True),
+    )
 
 
 # ============ 管理员表 ============

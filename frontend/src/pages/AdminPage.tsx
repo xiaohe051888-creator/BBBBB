@@ -12,7 +12,6 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 import * as api from '../services/api';
-import { clearToken } from '../services/api';
 import { copyText } from '../utils/clipboard';
 import {
   formatAdminPageLabel,
@@ -213,7 +212,7 @@ const AdminPage: React.FC = () => {
   const queryClient = useQueryClient();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const token = (location.state as any)?.token || api.getToken();
+  const token = (location.state as any)?.token || api.getAdminToken();
   
   // 系统诊断（AdminPage使用默认桌号）
   const { addIssue } = useSystemDiagnostics({});
@@ -232,6 +231,19 @@ const AdminPage: React.FC = () => {
   const [dbTotal, setDbTotal] = useState(0);
   const [dbTable, setDbTable] = useState('game_records');
   const [dbPage, setDbPage] = useState(1);
+  const [users, setUsers] = useState<api.AdminUserItem[]>([]);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersQuery, setUsersQuery] = useState('');
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [createUserVisible, setCreateUserVisible] = useState(false);
+  const [createUsername, setCreateUsername] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createUserActive, setCreateUserActive] = useState(true);
+  const [createUserMustChange, setCreateUserMustChange] = useState(true);
+  const [resetPwdVisible, setResetPwdVisible] = useState(false);
+  const [resetPwdUser, setResetPwdUser] = useState<api.AdminUserItem | null>(null);
+  const [resetPwdValue, setResetPwdValue] = useState('');
   const [maintenanceStats, setMaintenanceStats] = useState<api.AdminMaintenanceStatsResponse | null>(null);
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
   const [aiLearningStatus, setAiLearningStatus] = useState<any>(null);
@@ -348,6 +360,86 @@ const AdminPage: React.FC = () => {
       // 加载失败，静默处理
     }
   };
+
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const q = usersQuery.trim();
+      const res = await api.adminListUsers({ page: usersPage, page_size: 50, q: q ? q : undefined });
+      setUsers(res.data.data || []);
+      setUsersTotal(res.data.total || 0);
+    } catch (err: any) {
+      message.error(err instanceof Error ? err.message : '加载用户列表失败');
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [message, usersPage, usersQuery]);
+
+  const handleCreateUser = useCallback(async () => {
+    if (!createUsername.trim() || !createPassword) {
+      message.warning('请输入用户名和初始密码');
+      return;
+    }
+    setUsersLoading(true);
+    try {
+      await api.adminCreateUser({
+        username: createUsername.trim(),
+        password: createPassword,
+        is_active: createUserActive,
+        must_change_password: createUserMustChange,
+      });
+      message.success('用户已创建');
+      setCreateUserVisible(false);
+      setCreateUsername('');
+      setCreatePassword('');
+      setUsersPage(1);
+      loadUsers();
+    } catch (err: any) {
+      message.error(err.response?.data?.detail || err.message || '创建用户失败');
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [createPassword, createUserActive, createUserMustChange, createUsername, loadUsers, message]);
+
+  const toggleUserActive = useCallback(async (u: api.AdminUserItem) => {
+    setUsersLoading(true);
+    try {
+      await api.adminUpdateUser(u.id, { is_active: !u.is_active });
+      message.success(u.is_active ? '已禁用用户' : '已启用用户');
+      loadUsers();
+    } catch (err: any) {
+      message.error(err.response?.data?.detail || err.message || '更新用户失败');
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [loadUsers, message]);
+
+  const openResetPassword = useCallback((u: api.AdminUserItem) => {
+    setResetPwdUser(u);
+    setResetPwdValue('');
+    setResetPwdVisible(true);
+  }, []);
+
+  const handleResetPassword = useCallback(async () => {
+    if (!resetPwdUser) return;
+    if (!resetPwdValue) {
+      message.warning('请输入新密码');
+      return;
+    }
+    setUsersLoading(true);
+    try {
+      await api.adminUpdateUser(resetPwdUser.id, { password: resetPwdValue });
+      message.success('密码已重置');
+      setResetPwdVisible(false);
+      setResetPwdUser(null);
+      setResetPwdValue('');
+      loadUsers();
+    } catch (err: any) {
+      message.error(err.response?.data?.detail || err.message || '重置密码失败');
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [loadUsers, message, resetPwdUser, resetPwdValue]);
 
   const loadAiLearningStatus = async () => {
     try {
@@ -548,12 +640,15 @@ const AdminPage: React.FC = () => {
       loadThreeModelStatus();
       loadSingleAiPromptTemplates();
     }
+    if (activeTab === 'users') {
+      loadUsers();
+    }
     if (activeTab === 'db') {
       loadDbRecords();
       loadMaintenanceStats();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, dbTable, dbPage]);
+  }, [activeTab, dbTable, dbPage, loadUsers, usersPage, usersQuery]);
 
   useEffect(() => {
     if (activeTab !== 'tasks') return;
@@ -613,7 +708,7 @@ const AdminPage: React.FC = () => {
         </div>
         <div className="page-nav-right mobile-action-row admin-page-top-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Button icon={<Icons.Key />} onClick={() => setChangePwdVisible(true)} size="small">修改密码</Button>
-          <Button danger icon={<Icons.Logout />} onClick={() => { clearToken(); navigate('/dashboard'); }} size="small">退出登录</Button>
+          <Button danger icon={<Icons.Logout />} onClick={() => { api.clearAdminToken(); navigate('/dashboard'); }} size="small">退出登录</Button>
         </div>
       </div>
 
@@ -1117,6 +1212,119 @@ const AdminPage: React.FC = () => {
                     },
                   ])}
                 />
+              </Card>
+            ),
+          },
+          {
+            key: 'users',
+            label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Key /> 用户管理</span>,
+            children: (
+              <Card
+                title="用户管理"
+                size="small"
+                extra={(
+                  <Space size={8} wrap className="mobile-action-row">
+                    <Input
+                      placeholder="搜索用户名"
+                      value={usersQuery}
+                      onChange={(e) => {
+                        setUsersQuery(e.target.value);
+                        setUsersPage(1);
+                      }}
+                      allowClear
+                      style={{ width: 180, maxWidth: '100%' }}
+                    />
+                    <Button size="small" onClick={loadUsers} loading={usersLoading}>刷新</Button>
+                    <Button size="small" type="primary" onClick={() => setCreateUserVisible(true)}>新增用户</Button>
+                  </Space>
+                )}
+              >
+                <Table
+                  className="mobile-card-table admin-users-table"
+                  dataSource={users}
+                  loading={usersLoading}
+                  rowKey="id"
+                  size="small"
+                  scroll={{ x: 'max-content' }}
+                  pagination={{ current: usersPage, pageSize: 50, onChange: setUsersPage, total: usersTotal }}
+                  locale={{ emptyText: <Empty description="暂无用户" /> }}
+                  columns={withMobileTableLabels([
+                    { title: 'ID', dataIndex: 'id', width: 80, align: 'center' as const },
+                    { title: '用户名', dataIndex: 'username', width: 160 },
+                    { title: '启用', dataIndex: 'is_active', width: 90, align: 'center' as const, render: (v: boolean) => v ? <Tag color="success">启用</Tag> : <Tag color="default">禁用</Tag> },
+                    { title: '需改密', dataIndex: 'must_change_password', width: 110, align: 'center' as const, render: (v: boolean) => v ? <Tag color="gold">是</Tag> : <Tag>否</Tag> },
+                    { title: '创建时间', dataIndex: 'created_at', width: 170, render: (v: string) => v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-' },
+                    {
+                      title: '操作',
+                      width: 220,
+                      align: 'center' as const,
+                      render: (_: any, record: api.AdminUserItem) => (
+                        <Space size={8} wrap>
+                          <Button size="small" onClick={() => openResetPassword(record)}>重置密码</Button>
+                          <Button size="small" danger={record.is_active} onClick={() => toggleUserActive(record)}>
+                            {record.is_active ? '禁用' : '启用'}
+                          </Button>
+                        </Space>
+                      ),
+                    },
+                  ])}
+                />
+
+                <Modal
+                  title="新增用户"
+                  open={createUserVisible}
+                  onCancel={() => setCreateUserVisible(false)}
+                  onOk={handleCreateUser}
+                  okText="创建"
+                  cancelText="取消"
+                  confirmLoading={usersLoading}
+                  width={isMobile ? 360 : 520}
+                  style={{ maxWidth: 'calc(100vw - 20px)' }}
+                >
+                  <Space orientation="vertical" style={{ width: '100%' }}>
+                    <Input placeholder="用户名" value={createUsername} onChange={(e) => setCreateUsername(e.target.value)} />
+                    <Input.Password placeholder="初始密码" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} />
+                    <Select
+                      value={createUserActive ? 'active' : 'disabled'}
+                      onChange={(v) => setCreateUserActive(v === 'active')}
+                      options={[
+                        { label: '启用', value: 'active' },
+                        { label: '禁用', value: 'disabled' },
+                      ]}
+                    />
+                    <Select
+                      value={createUserMustChange ? 'yes' : 'no'}
+                      onChange={(v) => setCreateUserMustChange(v === 'yes')}
+                      options={[
+                        { label: '首次登录必须改密', value: 'yes' },
+                        { label: '不强制改密', value: 'no' },
+                      ]}
+                    />
+                  </Space>
+                </Modal>
+
+                <Modal
+                  title={`重置密码：${resetPwdUser?.username || ''}`}
+                  open={resetPwdVisible}
+                  onCancel={() => {
+                    setResetPwdVisible(false);
+                    setResetPwdUser(null);
+                    setResetPwdValue('');
+                  }}
+                  onOk={handleResetPassword}
+                  okText="保存"
+                  cancelText="取消"
+                  confirmLoading={usersLoading}
+                  width={isMobile ? 360 : 520}
+                  style={{ maxWidth: 'calc(100vw - 20px)' }}
+                >
+                  <Space orientation="vertical" style={{ width: '100%' }}>
+                    <Input.Password placeholder="新密码" value={resetPwdValue} onChange={(e) => setResetPwdValue(e.target.value)} />
+                    <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
+                      保存后将强制该用户下次登录修改密码。
+                    </div>
+                  </Space>
+                </Modal>
               </Card>
             ),
           },

@@ -21,7 +21,7 @@ from app.api.routes.schemas import (
     SingleAiPromptTemplatesResponse,
     SingleAiPromptTemplatesUpdateRequest,
 )
-from app.api.routes.utils import get_current_user
+from app.api.routes.utils import get_current_admin
 from app.api.routes.api_key_resolution import resolve_api_key_for_role
 from app.services.ai_config_store import (
     apply_ai_role_runtime_config,
@@ -42,8 +42,9 @@ async def admin_login(req: LoginRequest):
     """管理员登录"""
     import bcrypt as _bcrypt
 
+    username = (req.username or "admin").strip()
     async with async_session() as session:
-        stmt = select(AdminUser).where(AdminUser.username == "admin")
+        stmt = select(AdminUser).where(AdminUser.username == username)
         result = await session.execute(stmt)
         admin = result.scalar_one_or_none()
 
@@ -76,7 +77,13 @@ async def admin_login(req: LoginRequest):
         await session.commit()
         
         token = jwt.encode(
-            {"sub": admin.username, "exp": datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.JWT_EXPIRE_HOURS)},
+            {
+                "sub": admin.username,
+                "role": "admin",
+                "uid": admin.id,
+                "exp": datetime.now(UTC).replace(tzinfo=None)
+                + timedelta(hours=settings.JWT_EXPIRE_HOURS),
+            },
             settings.JWT_SECRET_KEY,
             algorithm=settings.JWT_ALGORITHM,
         )
@@ -89,12 +96,13 @@ async def admin_login(req: LoginRequest):
 
 
 @router.post("/change-password")
-async def change_password(req: ChangePasswordRequest, _: dict = Depends(get_current_user)):
+async def change_password(req: ChangePasswordRequest, actor: dict = Depends(get_current_admin)):
     """修改密码（需认证）"""
     import bcrypt as _bcrypt
 
+    username = (actor.get("username") or "admin").strip()
     async with async_session() as session:
-        stmt = select(AdminUser).where(AdminUser.username == "admin")
+        stmt = select(AdminUser).where(AdminUser.username == username)
         result = await session.execute(stmt)
         admin = result.scalar_one_or_none()
         
@@ -116,7 +124,7 @@ async def change_password(req: ChangePasswordRequest, _: dict = Depends(get_curr
 
 
 @router.get("/model-versions")
-async def get_model_versions(_: dict = Depends(get_current_user)):
+async def get_model_versions(_: dict = Depends(get_current_admin)):
     """获取模型版本列表（需认证）"""
     async with async_session() as session:
         stmt = select(ModelVersion).order_by(desc(ModelVersion.created_at))
@@ -144,7 +152,7 @@ async def get_model_versions(_: dict = Depends(get_current_user)):
 
 
 @router.get("/prompt-templates/single-ai")
-async def get_single_ai_prompt_templates(_: dict = Depends(get_current_user)):
+async def get_single_ai_prompt_templates(_: dict = Depends(get_current_admin)):
     async with async_session() as session:
         stmt = select(ModelVersion).where(
             ModelVersion.is_eliminated == False,
@@ -188,7 +196,7 @@ async def get_single_ai_prompt_templates(_: dict = Depends(get_current_user)):
 @router.post("/prompt-templates/single-ai")
 async def update_single_ai_prompt_templates(
     req: SingleAiPromptTemplatesUpdateRequest,
-    _: dict = Depends(get_current_user),
+    _: dict = Depends(get_current_admin),
 ):
     from app.core.env_migration import get_env_paths
 
@@ -280,7 +288,7 @@ async def update_single_ai_prompt_templates(
 
 
 @router.get("/three-model-status")
-async def get_three_model_status(_: dict = Depends(get_current_user)):
+async def get_three_model_status(_: dict = Depends(get_current_admin)):
     """获取三模型配置和状态（需认证）"""
     role_map = {
         "banker": ("OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_API_BASE"),
@@ -363,7 +371,7 @@ async def get_three_model_status(_: dict = Depends(get_current_user)):
 @router.post("/api-config")
 async def update_api_config(
     req: ApiConfigPayload,
-    _: dict = Depends(get_current_user),
+    _: dict = Depends(get_current_admin),
 ):
     from app.core.env_migration import get_env_paths
 
@@ -446,7 +454,7 @@ async def update_api_config(
 @router.post("/api-config/test")
 async def test_api_config(
     req: ApiConfigPayload,
-    _: dict = Depends(get_current_user),
+    _: dict = Depends(get_current_admin),
 ):
     test_ok = False
     message = ""

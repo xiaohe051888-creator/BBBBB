@@ -7,6 +7,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.schemas import SystemLog
+from app.core.request_context import get_current_actor
 from .session import broadcast_event
 from .task_context import current_task_id
 
@@ -46,6 +47,11 @@ async def write_game_log(
         task_id=current_task_id.get(),
         retention_tier=tier,
     )
+    actor = get_current_actor()
+    if actor:
+        log.actor_role = actor.get("role")
+        log.actor_uid = actor.get("uid")
+        log.actor_username = actor.get("username")
     session.add(log)
     
     # 立即刷新以获取ID

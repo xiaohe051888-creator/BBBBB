@@ -11,8 +11,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { ConfigProvider, theme, App as AntApp, Spin } from 'antd';
 import { QueryClientProvider } from '@tanstack/react-query';
 import zhCN from 'antd/locale/zh_CN';
-import { getToken } from './services/api';
-import { isModeSelected } from './utils/modeSelection';
+import { getAdminToken, getToken } from './services/api';
 import { formatNavigationLabel } from './utils/beginnerCopy';
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const RoadMapPage = React.lazy(() => import('./pages/RoadMapPage'));
@@ -20,8 +19,10 @@ const BetRecordsPage = React.lazy(() => import('./pages/BetRecordsPage'));
 const LogsPage = React.lazy(() => import('./pages/LogsPage'));
 const MistakeBookPage = React.lazy(() => import('./pages/MistakeBookPage'));
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
+const AdminEntryPage = React.lazy(() => import('./pages/AdminEntryPage'));
 const UploadDataPage = React.lazy(() => import('./pages/UploadDataPage'));
 const ModeSelectPage = React.lazy(() => import('./pages/ModeSelectPage'));
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 import { queryClient } from './lib/queryClient';
 import { PageErrorBoundary } from './components/error';
 
@@ -80,7 +81,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, []);
 
   // 启动页和管理员登录页不显示侧边栏
-  if (location.pathname === '/' || location.pathname === '/admin' || location.pathname === '/mode') {
+  if (location.pathname === '/' || location.pathname === '/login' || location.pathname === '/admin' || location.pathname === '/mode') {
     return <>{children}</>;
   }
 
@@ -219,20 +220,18 @@ const RouteFallback: React.FC = () => (
   </div>
 );
 
-const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const RequireUserAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   if (!getToken()) {
-    return <Navigate to="/dashboard" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
   return <>{children}</>;
 };
 
-const RequireModeSelected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const RequireAdminAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const token = getToken();
-  const selected = isModeSelected();
-  if (token && !selected && location.pathname.startsWith('/dashboard')) {
-    return <Navigate to="/mode" replace />;
+  if (!getAdminToken()) {
+    return <Navigate to="/admin" replace state={{ from: location.pathname }} />;
   }
   return <>{children}</>;
 };
@@ -303,16 +302,17 @@ const App: React.FC = () => {
               <AppLayout>
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
-                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                      <Route path="/mode" element={<RequireAuth><ModeSelectPage /></RequireAuth>} />
-                      <Route path="/dashboard" element={<RequireModeSelected><DashboardPage /></RequireModeSelected>} />
-                      <Route path="/dashboard/roadmap" element={<RequireModeSelected><RoadMapPage /></RequireModeSelected>} />
-                      <Route path="/dashboard/bets" element={<RequireModeSelected><BetRecordsPage /></RequireModeSelected>} />
-                      <Route path="/dashboard/logs" element={<RequireModeSelected><LogsPage /></RequireModeSelected>} />
-                      <Route path="/dashboard/mistakes" element={<RequireModeSelected><MistakeBookPage /></RequireModeSelected>} />
-                      <Route path="/upload" element={<RequireAuth><UploadDataPage /></RequireAuth>} />
-                      <Route path="/admin" element={<RequireAuth><AdminPage /></RequireAuth>} />
-                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                      <Route path="/" element={<Navigate to={getToken() ? "/dashboard" : "/login"} replace />} />
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/mode" element={<RequireAdminAuth><ModeSelectPage /></RequireAdminAuth>} />
+                      <Route path="/dashboard" element={<RequireUserAuth><DashboardPage /></RequireUserAuth>} />
+                      <Route path="/dashboard/roadmap" element={<RequireUserAuth><RoadMapPage /></RequireUserAuth>} />
+                      <Route path="/dashboard/bets" element={<RequireUserAuth><BetRecordsPage /></RequireUserAuth>} />
+                      <Route path="/dashboard/logs" element={<RequireUserAuth><LogsPage /></RequireUserAuth>} />
+                      <Route path="/dashboard/mistakes" element={<RequireUserAuth><MistakeBookPage /></RequireUserAuth>} />
+                      <Route path="/upload" element={<RequireUserAuth><UploadDataPage /></RequireUserAuth>} />
+                      <Route path="/admin" element={<AdminEntryPage />} />
+                      <Route path="*" element={<Navigate to={getToken() ? "/dashboard" : "/login"} replace />} />
                     </Routes>
                 </Suspense>
               </AppLayout>

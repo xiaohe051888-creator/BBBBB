@@ -260,6 +260,12 @@ app.include_router(maintenance.router)
 from app.api.routes.auth import router as auth_router
 app.include_router(auth_router)
 
+from app.api.routes.user_auth import router as user_auth_router
+app.include_router(user_auth_router)
+
+from app.api.routes.admin_users import router as admin_users_router
+app.include_router(admin_users_router)
+
 if settings.E2E_TESTING and settings.ENVIRONMENT != "production":
     from app.api.routes.e2e_testing import router as e2e_testing_router
     app.include_router(e2e_testing_router)
@@ -267,7 +273,7 @@ if settings.E2E_TESTING and settings.ENVIRONMENT != "production":
 
 # --- 管理员：查看数据库记录 ---
 from fastapi import Depends
-from app.api.routes.utils import get_current_user
+from app.api.routes.utils import get_current_admin
 from app.models.schemas import GameRecord
 
 @app.get("/api/admin/database-records")
@@ -278,7 +284,7 @@ async def get_database_records(
     error_type: str | None = Query(None),
     predict_direction: str | None = Query(None),
     game_number: str | None = Query(None),
-    _: dict = Depends(get_current_user),
+    _: dict = Depends(get_current_admin),
 ):
     """查看数据库记录（需认证）"""
     table_map = {
