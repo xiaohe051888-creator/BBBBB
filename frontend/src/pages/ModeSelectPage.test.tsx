@@ -9,9 +9,23 @@ import { MemoryRouter } from 'react-router-dom';
 import ModeSelectPage from './ModeSelectPage';
 import * as api from '../services/api';
 
+const { navigateMock } = vi.hoisted(() => ({
+  navigateMock: vi.fn(),
+}));
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+  };
+});
+
 describe('ModeSelectPage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    navigateMock.mockReset();
+    localStorage.clear();
     document.body.innerHTML = '';
   });
 
@@ -94,6 +108,58 @@ describe('ModeSelectPage', () => {
     expect(html).not.toContain('启用 单 AI 模式');
     expect(html).toContain('启用 三模型协作模式');
     expect(html).toContain('启用 规则参考模式');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('allows returning to dashboard when backend already has a current mode', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    vi.spyOn(api, 'getThreeModelStatus').mockResolvedValue({
+      data: {
+        ai_ready_for_enable: false,
+        single_ai_ready_for_enable: false,
+        models: {},
+      },
+    } as Awaited<ReturnType<typeof api.getThreeModelStatus>>);
+    vi.spyOn(api, 'getSystemStatePublic').mockResolvedValue({
+      data: {
+        prediction_mode: 'rule',
+      },
+    } as Awaited<ReturnType<typeof api.getSystemStatePublic>>);
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <App>
+          <MemoryRouter initialEntries={['/mode']}>
+            <ModeSelectPage />
+          </MemoryRouter>
+        </App>
+      );
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const backButton = Array.from(container.querySelectorAll('button')).find(
+      button => button.textContent?.includes('返回总览')
+    );
+
+    expect(backButton).toBeTruthy();
+
+    await act(async () => {
+      backButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(localStorage.getItem('mode_selected')).toBe('1');
+    expect(navigateMock).toHaveBeenCalledWith('/dashboard');
 
     await act(async () => {
       root.unmount();

@@ -28,8 +28,12 @@ const ModeSelectPage: React.FC = () => {
         api.getThreeModelStatus(),
         api.getSystemStatePublic(),
       ]);
+      const reportedMode = stateRes.data?.prediction_mode as Mode | undefined;
       setThreeModelStatus(statusRes.data);
-      setCurrentMode((stateRes.data?.prediction_mode as Mode) || 'rule');
+      setCurrentMode(reportedMode || 'rule');
+      if (reportedMode) {
+        markModeSelected();
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '加载模型状态失败';
       message.error(msg);
