@@ -132,7 +132,7 @@ describe('AdminAlertsBar acknowledge', () => {
       );
     });
 
-    expect(container.innerHTML).toContain('严重告警');
+    expect(container.innerHTML).toContain('系统告警');
 
     const normalize = (text?: string | null) => text?.replace(/\s+/g, '') || '';
     const confirmButton = Array.from(document.querySelectorAll('button')).find((button) =>
@@ -144,7 +144,7 @@ describe('AdminAlertsBar acknowledge', () => {
       confirmButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(container.innerHTML).not.toContain('严重告警');
+    expect(container.innerHTML).not.toContain('系统告警');
 
     await act(async () => {
       root.unmount();
@@ -159,7 +159,7 @@ describe('AdminAlertsBar acknowledge', () => {
       );
     });
 
-    expect(container.innerHTML).toContain('严重告警');
+    expect(container.innerHTML).toContain('系统告警');
 
     await act(async () => {
       root2.unmount();

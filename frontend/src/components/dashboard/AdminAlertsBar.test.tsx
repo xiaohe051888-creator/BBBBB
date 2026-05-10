@@ -77,6 +77,7 @@ describe('AdminAlertsBar', () => {
     expect(html).toContain('近24小时 1 条高优先级');
     expect(html).toContain('展开');
     expect(html).toContain('确认');
+    expect(html).not.toContain('刷新');
     expect(html).not.toContain('查看全部');
     expect(html).not.toContain('最近24小时内检测到 1 条高优先级');
     expect(html).not.toContain('智能分析：系统已自动改用备用判断');
@@ -94,7 +95,7 @@ describe('AdminAlertsBar', () => {
 
     const expandedHtml = container.innerHTML;
     expect(expandedHtml).toContain('查看全部');
-    expect(html).toContain('智能分析：系统已自动改用备用判断');
+    expect(expandedHtml).toContain('智能分析：系统已自动改用备用判断');
     expect(expandedHtml).toContain('智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。');
     expect(expandedHtml).not.toContain('P1 1');
     expect(expandedHtml).not.toContain('P1 事件');

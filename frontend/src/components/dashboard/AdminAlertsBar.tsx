@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Grid, Space, Tag } from 'antd';
+import { Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../../services/api';
 import { formatBeijing } from '../../utils/datetime';
@@ -8,8 +8,6 @@ import { humanizeLog } from '../../utils/logHumanizer';
 
 export const AdminAlertsBar: React.FC = () => {
   const navigate = useNavigate();
-  const screens = Grid.useBreakpoint();
-  const isMobile = !screens.md;
   const isLoggedIn = !!api.getAdminToken();
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -42,6 +40,7 @@ export const AdminAlertsBar: React.FC = () => {
     typeof data?.unacknowledged_count === 'number' ? data.unacknowledged_count : count;
   const shouldShow = isLoggedIn && unacknowledgedCount > 0;
   const severityLabel = formatLogPriorityLabel('P1');
+  const summaryText = `近24小时 ${count} 条${severityLabel}`;
   const logsUrl = useCallback((q?: string) => {
     const base = '/dashboard/logs?priority=P1';
     if (!q) return base;
@@ -62,28 +61,63 @@ export const AdminAlertsBar: React.FC = () => {
   if (!shouldShow) return null;
 
   return (
-    <div className="admin-alerts-bar" style={{
-      margin: '12px 16px 0 16px',
-      border: '1px solid rgba(255,77,79,0.45)',
-      background: 'rgba(255,77,79,0.10)',
-      borderRadius: 12,
-      padding: 12,
-    }}>
-      <div className="admin-alerts-bar-head" style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div className="admin-alerts-bar-summary" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap', flex: '1 1 260px' }}>
-          <span className="admin-alerts-bar-dot" style={{ width: 8, height: 8, borderRadius: 999, background: '#ff4d4f', flexShrink: 0 }} />
-          <span className="admin-alerts-bar-title" style={{ color: '#ffccc7', fontWeight: 700 }}>严重告警</span>
-          <Tag color="error" className="admin-alerts-bar-tag" style={{ margin: 0 }}>{severityLabel} {count}</Tag>
-          <span className="admin-alerts-bar-desc" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, lineHeight: 1.5, minWidth: 0 }}>
-            最近24小时内检测到 {count} 条{severityLabel}
+    <div
+      className="admin-alerts-bar"
+      style={{
+        margin: '12px 16px 0 16px',
+        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.03)',
+        borderRadius: 12,
+        padding: '10px 12px',
+      }}
+    >
+      <div
+        className="admin-alerts-bar-head"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          minWidth: 0,
+        }}
+      >
+        <div
+          className="admin-alerts-bar-summary"
+          style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto' }}
+        >
+          <span
+            className="admin-alerts-bar-dot"
+            style={{ width: 8, height: 8, borderRadius: 999, background: '#ff7875', flexShrink: 0 }}
+          />
+          <span className="admin-alerts-bar-title" style={{ color: 'rgba(255,255,255,0.92)', fontWeight: 600 }}>
+            系统告警
+          </span>
+          <span
+            className="admin-alerts-bar-desc"
+            style={{
+              color: 'rgba(255,255,255,0.65)',
+              fontSize: 12,
+              lineHeight: 1.5,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {summaryText}
           </span>
         </div>
-        <Space size={8} wrap className={`admin-alerts-bar-actions ${isMobile ? 'mobile-action-row' : ''}`} style={isMobile ? { width: '100%' } : undefined}>
-          <Button size="small" loading={loading} onClick={fetchAlerts}>刷新</Button>
-          <Button size="small" type="primary" onClick={handleAcknowledge} disabled={!latestAlertLogId || loading}>确认</Button>
-          <Button size="small" onClick={() => setExpanded(v => !v)}>{expanded ? '收起' : '展开'}</Button>
-          <Button size="small" type="primary" danger onClick={() => navigate(logsUrl())}>查看全部</Button>
-        </Space>
+        <div
+          className="admin-alerts-bar-actions"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
+        >
+          <Button size="small" type="primary" onClick={handleAcknowledge} disabled={!latestAlertLogId || loading} loading={loading}>
+            确认
+          </Button>
+          <Button size="small" type="text" onClick={() => setExpanded(v => !v)}>
+            {expanded ? '收起' : '展开'}
+          </Button>
+        </div>
       </div>
 
       {expanded && (
@@ -124,6 +158,11 @@ export const AdminAlertsBar: React.FC = () => {
               </div>
             );
           })}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button size="small" type="link" danger onClick={() => navigate(logsUrl())}>
+              查看全部
+            </Button>
+          </div>
         </div>
       )}
     </div>
