@@ -23,10 +23,10 @@ export const formatAnalysisLoadingText = (mode: 'ai' | 'single_ai' | 'rule') => 
 export const formatAnalysisOutcomeLabel = (
   key: 'decision' | 'method' | 'confidence' | 'detailAction',
 ) => {
-  if (key === 'decision') return '系统判断';
-  if (key === 'method') return '判断方式';
-  if (key === 'confidence') return '把握程度';
-  return '查看这次怎么判断的';
+  if (key === 'decision') return '本局决断';
+  if (key === 'method') return '决策机制';
+  if (key === 'confidence') return '决断强度';
+  return '展开决断详情';
 };
 
 export const formatAnalysisSourceLabel = (
@@ -36,7 +36,7 @@ export const formatAnalysisSourceLabel = (
   return '智能判断';
 };
 
-export const formatConfidenceLabel = () => '把握程度';
+export const formatConfidenceLabel = () => '决断强度';
 
 export const formatUploadActionLabel = (action: 'reset_current_boot' | 'new_boot') => {
   if (action === 'reset_current_boot') return '重做当前这靴数据';

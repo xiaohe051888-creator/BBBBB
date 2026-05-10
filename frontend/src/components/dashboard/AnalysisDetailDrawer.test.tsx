@@ -54,22 +54,22 @@ const SAMPLE_OUTCOME: AnalysisOutcome = {
 
 const REQUIRED_NEW_COPY = [
   '智能分析详情',
-  '这次判断来自哪里',
-  '判断方式',
-  '把握程度',
+  '决断来源',
+  '决策机制',
+  '决断强度',
   '备用判断',
   '补充说明',
-  '收起详情',
-  '看完了，回到主面板',
+  '收起',
 ] as const;
 
 const REJECTED_LEGACY_COPY = [
   '规则兜底',
   '判断来源',
-  '把握度',
+  '把握程度',
   '技术说明',
   '推理详情',
-  '我知道了，收起详情',
+  '看完了，回到主面板',
+  '如果这一页已经看完了，可以直接从这里收起详情，回到主面板继续看本局状态。',
 ] as const;
 
 const installComputedStyleFallback = () => {
@@ -136,7 +136,7 @@ describe('AnalysisDetailDrawer', () => {
     });
 
     expect(html).toContain('72%');
-    expect(html).toContain('本局建议：庄');
+    expect(html).toContain('本局决断：庄');
     expect(html).toContain('大路');
 
     await cleanup();
@@ -146,11 +146,12 @@ describe('AnalysisDetailDrawer', () => {
     const handleClose = vi.fn();
     const { cleanup } = await renderDrawer(handleClose);
 
+    const normalize = (text?: string | null) => text?.replace(/\s+/g, '') || '';
     const collapseButton = Array.from(document.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('收起详情'),
+      normalize(button.textContent).includes('收起'),
     );
     const primaryButton = Array.from(document.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('看完了，回到主面板'),
+      normalize(button.textContent).includes('返回'),
     );
     expect(collapseButton).toBeTruthy();
     expect(primaryButton).toBeTruthy();

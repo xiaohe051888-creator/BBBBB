@@ -65,7 +65,7 @@ describe('AnalysisPanel', () => {
     const html = container.innerHTML;
 
     expect(html).toContain(formatAnalysisOutcomeLabel('decision'));
-    expect(html).toContain('本局建议');
+    expect(html).toContain('本局决断');
     expect(html).toContain(formatAnalysisOutcomeLabel('method'));
     expect(html).toContain(formatAnalysisSourceLabel('single_ai'));
     expect(html).toContain(formatAnalysisOutcomeLabel('confidence'));
@@ -126,8 +126,9 @@ describe('AnalysisPanel', () => {
     const html = container.innerHTML;
 
     expect(html).toContain('系统已完成判断，本局继续跟庄。');
-    expect(html).toContain('本局建议');
+    expect(html).toContain('本局决断');
     expect(html).toContain('76%');
+    expect(html).toContain('已完成研判');
     expect(html).toContain(formatAnalysisOutcomeLabel('detailAction'));
     expect(html).not.toContain('系统正在分析下一局，请稍候...');
 

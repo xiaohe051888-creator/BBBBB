@@ -336,10 +336,10 @@ export const toHumanExportPayload = (log: LogEntry) => {
     时间: log.log_time ? formatBeijing(String(log.log_time), 'YYYY-MM-DD HH:mm:ss') : '-',
     靴内局号: log.game_number === null ? '-' : String(log.game_number),
     标题: h.title,
-    这次发生了什么: h.whatHappened,
-    对当前使用有什么影响: h.impact,
-    建议你接下来怎么做: h.suggestion,
-    更多信息: h.fieldsCn.map((item) => ({
+    变动: h.whatHappened,
+    影响: h.impact,
+    状态: h.suggestion,
+    系统记录: h.fieldsCn.map((item) => ({
       名称: item.label,
       内容: item.value,
     })),

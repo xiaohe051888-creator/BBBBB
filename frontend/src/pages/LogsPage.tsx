@@ -43,6 +43,13 @@ const simpleListStyle: React.CSSProperties = {
   gap: 8,
 };
 
+const detailSectionStyle: React.CSSProperties = {
+  borderRadius: 18,
+  padding: '16px 18px',
+  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'linear-gradient(180deg, rgba(12,20,43,0.9), rgba(8,14,31,0.88))',
+};
+
 
 type LogFilterBarProps = {
   categories: string[];
@@ -163,34 +170,34 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
           {formatDetailLabel('copySummary')}
         </Button>,
         <Button key="close" type="primary" onClick={onClose}>
-          关闭
+          返回
         </Button>,
       ]}
       width={720}
     >
       {log && human ? (
-        <div className="log-detail-sheet" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="log-detail-sheet" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="log-detail-hero">
             <Tag color={PRIORITY_COLORS[log.priority]}>{priorityLabel(log.priority)}</Tag>
             <Typography.Title level={5} style={{ margin: 0 }}>
               {human.title}
             </Typography.Title>
           </div>
-          <div className="log-detail-block is-neutral">
+          <div className="log-detail-block is-neutral" style={detailSectionStyle}>
             <Typography.Text className="log-detail-label">{formatDetailLabel('whatHappened')}</Typography.Text>
-            <Typography.Paragraph style={{ marginBottom: 0 }}>
+            <Typography.Paragraph style={{ margin: '10px 0 0' }}>
               {human.whatHappened || '-'}
             </Typography.Paragraph>
           </div>
-          <div className="log-detail-block is-warning">
+          <div className="log-detail-block is-warning" style={detailSectionStyle}>
             <Typography.Text className="log-detail-label">{formatDetailLabel('impact')}</Typography.Text>
-            <Typography.Paragraph style={{ marginBottom: 0 }}>
+            <Typography.Paragraph style={{ margin: '10px 0 0' }}>
               {human.impact || '-'}
             </Typography.Paragraph>
           </div>
-          <div className="log-detail-block is-action">
+          <div className="log-detail-block is-action" style={detailSectionStyle}>
             <Typography.Text className="log-detail-label">{formatDetailLabel('suggestion')}</Typography.Text>
-            <Typography.Paragraph style={{ marginBottom: 0 }}>
+            <Typography.Paragraph style={{ margin: '10px 0 0' }}>
               {human.suggestion || '-'}
             </Typography.Paragraph>
           </div>

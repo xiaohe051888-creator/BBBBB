@@ -140,7 +140,7 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
       destroyOnClose
       extra={
         <Button type="text" onClick={handleClose} style={{ fontWeight: 700, color: '#7dd3fc' }}>
-          收起详情
+          收起
         </Button>
       }
       styles={{
@@ -163,10 +163,10 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
     >
       <div style={shellStyle}>
         <section style={sectionCardStyle}>
-          <h3 style={sectionHeadingStyle}>本局结论</h3>
+          <h3 style={sectionHeadingStyle}>本局决断</h3>
           <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-              <span style={metaLabelStyle}>判断方式</span>
+              <span style={metaLabelStyle}>决策机制</span>
               <Tag variant="filled" style={metaTagStyle}>
                 {sourceLabel}
               </Tag>
@@ -174,7 +174,7 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
               <span style={metaLabelStyle}>{confidenceTitle}</span>
               <Tag variant="filled" style={{ ...metaTagStyle, background: 'rgba(30, 64, 175, 0.22)', color: '#bfdbfe' }}>
-                {outcome.confidence_label}把握
+                {outcome.confidence_label}信号
               </Tag>
               <Tag variant="filled" style={{ ...metaTagStyle, background: 'rgba(15, 23, 42, 0.88)' }}>
                 {Math.round(outcome.confidence * 100)}%
@@ -194,7 +194,7 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
                   : '0 0 24px rgba(96, 165, 250, 0.38)',
             }}
           >
-            本局建议：{outcome.direction}
+            本局决断：{outcome.direction}
           </p>
           <p
             style={{
@@ -210,7 +210,7 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
         </section>
 
         <section style={sectionCardStyle}>
-          <h3 style={sectionHeadingStyle}>最终为什么押这个方向</h3>
+          <h3 style={sectionHeadingStyle}>最终决断依据</h3>
           <p style={{ ...bodyTextStyle, marginTop: 12 }}>{outcome.final_reason}</p>
         </section>
 
@@ -259,7 +259,7 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
         </section>
 
         <section style={sectionCardStyle}>
-          <h3 style={sectionHeadingStyle}>这次判断来自哪里</h3>
+          <h3 style={sectionHeadingStyle}>决断来源</h3>
           <p style={{ ...bodyTextStyle, marginTop: 12, color: 'rgba(191, 219, 254, 0.88)' }}>
             {sourceExplanation}
           </p>
@@ -305,10 +305,7 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
             boxShadow: '0 -16px 30px rgba(2, 6, 23, 0.42)',
           }}
         >
-          <div style={{ display: 'grid', gap: 10 }}>
-            <p style={{ ...bodyTextStyle, color: 'rgba(191, 219, 254, 0.82)' }}>
-              如果这一页已经看完了，可以直接从这里收起详情，回到主面板继续看本局状态。
-            </p>
+          <div style={{ display: 'grid' }}>
             <Button
               type="primary"
               size="large"
@@ -322,7 +319,7 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
                 fontWeight: 800,
               }}
             >
-              看完了，回到主面板
+              返回
             </Button>
           </div>
         </section>

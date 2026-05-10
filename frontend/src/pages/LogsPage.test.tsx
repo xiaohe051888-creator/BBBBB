@@ -203,11 +203,11 @@ describe('LogsPage', () => {
     const modalText = modalContent?.textContent || '';
     const modalHtml = modalContent?.innerHTML || '';
     expect(modalText).toContain('记录详情');
-    expect(modalText).toContain('复制通俗说明');
-    expect(modalText).toContain('系统原始记录（高级信息）');
-    expect(modalText).toContain('这次发生了什么');
-    expect(modalText).toContain('对当前使用有什么影响');
-    expect(modalText).toContain('建议你接下来怎么做');
+    expect(modalText).toContain('复制摘要');
+    expect(modalText).toContain('系统记录');
+    expect(modalText).toContain('变动');
+    expect(modalText).toContain('影响');
+    expect(modalText).toContain('状态');
     expect(modalText).not.toContain('analysis timeout after 45.00s');
     expect(modalText).not.toContain('LOG-MDL-003');
     expect(modalText).not.toContain('单AI');
@@ -218,6 +218,11 @@ describe('LogsPage', () => {
     expect(modalText).not.toContain('你可能会关心的信息');
     expect(modalText).not.toContain('事件编码');
     expect(modalText).not.toContain('处理编号');
+    expect(modalText).not.toContain('复制通俗说明');
+    expect(modalText).not.toContain('系统原始记录（高级信息）');
+    expect(modalText).not.toContain('这次发生了什么');
+    expect(modalText).not.toContain('对当前使用有什么影响');
+    expect(modalText).not.toContain('建议你接下来怎么做');
     expect(modalHtml).toContain('log-detail-hero');
     expect(modalHtml).toContain('log-detail-block');
     expect(modalHtml).not.toContain('<pre');
@@ -362,11 +367,17 @@ describe('LogsPage', () => {
     expect(exportedBlob).toBeTruthy();
     const text = (await exportedBlob!.text()).replace(/^\uFEFF/, '');
     expect(text).toContain('标题');
-    expect(text).toContain('这次发生了什么');
+    expect(text).toContain('变动');
+    expect(text).toContain('影响');
+    expect(text).toContain('状态');
+    expect(text).toContain('系统记录');
     expect(text).toContain('智能分析：系统已自动改用备用判断');
     expect(text).not.toContain('LOG-MDL-003');
     expect(text).not.toContain('analysis timeout after 45.00s');
     expect(text).not.toContain('rule_fallback');
+    expect(text).not.toContain('这次发生了什么');
+    expect(text).not.toContain('对当前使用有什么影响');
+    expect(text).not.toContain('建议你接下来怎么做');
 
     await act(async () => {
       root.unmount();

@@ -249,12 +249,12 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     direction === '庄' ? 'rgba(255,120,117,0.35)' : direction === '闲' ? 'rgba(105,177,255,0.35)' : 'rgba(250,219,20,0.35)';
   const engineLabel =
     outcome?.source === 'rule_fallback'
-      ? '本局已先给出可继续跟进的判断，后续可直接结合结果继续看走势。'
-      : '本局判断已整理完成，可直接结合本局走势继续跟进。';
+      ? '本局决断已切换至备用判断，当前流程继续推进。'
+      : '本局研判已完成，可继续跟进本局后续状态。';
   const stageHint =
     workflowStage.type === 'waiting_reveal'
-      ? '录入本局结果后，会自动衔接下一轮判断'
-      : '如需查看更多依据，可展开详情继续看';
+      ? '录入本局结果后，将自动衔接下一轮研判'
+      : '如需查看更多依据，可展开决断详情';
 
   return (
     <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={panelShellStyle}>
@@ -273,7 +273,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             }}
           >
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 10px rgba(34,197,94,0.7)' }} />
-            已完成判断
+            已完成研判
           </span>
         </div>
       </div>
@@ -290,7 +290,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <div style={{ fontSize: 12, fontWeight: 700, color: '#93c5fd', letterSpacing: 0.6 }}>{decisionTitle}</div>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginTop: 10 }}>
             <div>
-              <div style={{ fontSize: 13, color: 'rgba(191,219,254,0.74)' }}>本局建议</div>
+              <div style={{ fontSize: 13, color: 'rgba(191,219,254,0.74)' }}>{decisionTitle}</div>
               <div
                 style={{
                   marginTop: 6,

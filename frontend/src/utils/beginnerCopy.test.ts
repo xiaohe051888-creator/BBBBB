@@ -45,8 +45,8 @@ describe('beginnerCopy', () => {
     expect(formatAnalysisLoadingText('rule')).toBe('系统正在按内置规则计算，请稍候...');
   });
 
-  it('uses a beginner-friendly confidence label', () => {
-    expect(formatConfidenceLabel()).toBe('把握程度');
+  it('uses the decision-hub confidence label', () => {
+    expect(formatConfidenceLabel()).toBe('决断强度');
   });
 
   it('formats upload action labels in plain language', () => {

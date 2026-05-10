@@ -192,7 +192,10 @@ describe('logHumanizer', () => {
 
     const payload = toHumanExportPayload(log);
     expect(payload['标题']).toBe('智能分析：系统已自动改用备用判断');
-    expect(payload['这次发生了什么']).toBe('智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。');
+    expect(payload['变动']).toBe('智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。');
+    expect(payload['影响']).toBe('这次不会中断本局流程，系统已经继续给出最终下注决定。');
+    expect(payload['状态']).toBe('无需操作，等待本局开奖结果即可。');
+    expect(Array.isArray(payload['系统记录'])).toBe(true);
     expect(JSON.stringify(payload)).not.toContain('LOG-MDL-003');
     expect(JSON.stringify(payload)).not.toContain('analysis timeout after 45.00s');
     expect(JSON.stringify(payload)).not.toContain('rule_fallback');
@@ -326,7 +329,7 @@ describe('logHumanizer', () => {
     expect(copy).toContain('刷新页面');
   });
 
-  it('formats copied human text as a concise summary instead of verbose repeated sections', () => {
+  it('formats copied human text as a concise decision-hub summary', () => {
     const log: LogEntry = {
       id: 15,
       log_time: '2026-05-09T09:21:47Z',
@@ -342,14 +345,13 @@ describe('logHumanizer', () => {
     };
 
     const copy = toHumanCopyText(log);
-    expect(copy).toContain('发生：');
+    expect(copy).toContain('标题：');
+    expect(copy).toContain('变动：');
     expect(copy).toContain('影响：');
-    expect(copy).toContain('建议：');
-    expect(copy).toContain('时间：');
-    expect(copy).toContain('编码：系统内部识别码');
-    expect(copy).not.toContain('发生了什么：');
-    expect(copy).not.toContain('有什么影响：');
-    expect(copy).not.toContain('建议怎么做：');
-    expect(copy).not.toContain('关键信息：');
+    expect(copy).toContain('状态：');
+    expect(copy).not.toContain('发生：');
+    expect(copy).not.toContain('建议：');
+    expect(copy).not.toContain('时间：');
+    expect(copy).not.toContain('编码：系统内部识别码');
   });
 });
