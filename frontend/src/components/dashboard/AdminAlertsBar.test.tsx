@@ -21,7 +21,7 @@ describe('AdminAlertsBar', () => {
     document.body.innerHTML = '';
   });
 
-  it('renders severe alerts in chinese without raw codes or english diagnostics', async () => {
+  it('renders alerts as a compact collapsed summary before showing details', async () => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -72,6 +72,16 @@ describe('AdminAlertsBar', () => {
       );
     });
 
+    const html = container.innerHTML;
+    expect(html).toContain('系统告警');
+    expect(html).toContain('近24小时 1 条高优先级');
+    expect(html).toContain('展开');
+    expect(html).toContain('确认');
+    expect(html).not.toContain('查看全部');
+    expect(html).not.toContain('最近24小时内检测到 1 条高优先级');
+    expect(html).not.toContain('智能分析：系统已自动改用备用判断');
+    expect(html).not.toContain('智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。');
+
     const normalize = (text?: string | null) => text?.replace(/\s+/g, '') || '';
     const expandButton = Array.from(document.querySelectorAll('button')).find((button) =>
       normalize(button.textContent).includes('展开'),
@@ -82,17 +92,15 @@ describe('AdminAlertsBar', () => {
       expandButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    const html = container.innerHTML;
-    expect(html).toContain('严重告警');
-    expect(html).toContain('高优先级 1');
-    expect(html).toContain('最近24小时内检测到 1 条高优先级');
+    const expandedHtml = container.innerHTML;
+    expect(expandedHtml).toContain('查看全部');
     expect(html).toContain('智能分析：系统已自动改用备用判断');
-    expect(html).toContain('智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。');
-    expect(html).not.toContain('P1 1');
-    expect(html).not.toContain('P1 事件');
-    expect(html).not.toContain('LOG-MDL-003');
-    expect(html).not.toContain('analysis returned no result');
-    expect(html).not.toContain('(reveal)');
+    expect(expandedHtml).toContain('智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。');
+    expect(expandedHtml).not.toContain('P1 1');
+    expect(expandedHtml).not.toContain('P1 事件');
+    expect(expandedHtml).not.toContain('LOG-MDL-003');
+    expect(expandedHtml).not.toContain('analysis returned no result');
+    expect(expandedHtml).not.toContain('(reveal)');
 
     await act(async () => {
       root.unmount();
