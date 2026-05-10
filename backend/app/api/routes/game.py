@@ -40,12 +40,7 @@ def _clear_runtime_prediction_snapshot(sess, state) -> None:
 
 def _followup_analysis_timeout_seconds(prediction_mode: str | None = None) -> float:
     if prediction_mode == "single_ai":
-        configured = float(getattr(settings, "SINGLE_AI_TOTAL_TIMEOUT_SECONDS", 0) or 0)
-        if configured > 0:
-            return configured
-        request_budget = float(getattr(settings, "SINGLE_AI_REQUEST_TIMEOUT_SECONDS", 75) or 75)
-        retries = int(getattr(settings, "SINGLE_AI_MAX_RETRIES", 2) or 2)
-        return float(request_budget + max(retries - 1, 0) * 10 + 10)
+        return 120.0
     configured = float(getattr(settings, "ANALYSIS_TASK_TIMEOUT_SECONDS", 0) or 0)
     if configured > 0:
         return configured
@@ -98,7 +93,11 @@ def _build_single_ai_analysis_cycle(attempt: int, timeout_seconds: float) -> dic
     }
 
 
-def _classify_single_ai_failure(reason: str) -> tuple[str, str]:
+def _single_ai_timeout_user_message(timeout_seconds: float) -> str:
+    return "本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。"
+
+
+def _classify_single_ai_failure(reason: str, timeout_seconds: float) -> tuple[str, str]:
     message = (reason or "").strip()
     lower = message.lower()
     if "缺少必须字段" in message or "不完整" in message:
@@ -114,7 +113,7 @@ def _classify_single_ai_failure(reason: str) -> tuple[str, str]:
     if "timeout" in lower or "超时" in message:
         return (
             "timeout",
-            "本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。",
+            _single_ai_timeout_user_message(timeout_seconds),
         )
     if any(token in lower for token in ("connection", "connect", "503", "502", "429", "service unavailable")):
         return (
@@ -301,7 +300,11 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
         from app.services.game.state import get_or_create_state
 
         timeout_seconds = _followup_analysis_timeout_seconds(prediction_mode)
-        attempt = int((sess.analysis_cycle or {}).get("attempt") or 0) + 1
+        previous_cycle = dict(sess.analysis_cycle or {})
+        if previous_cycle.get("status") == "failed" and previous_cycle.get("retryable"):
+            attempt = int(previous_cycle.get("attempt") or 0) + 1
+        else:
+            attempt = 1
         cycle = _build_single_ai_analysis_cycle(attempt, timeout_seconds)
         async with async_session() as cycle_session:
             state = await get_or_create_state(cycle_session)
@@ -372,7 +375,7 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
                 failure_description=failure_description,
                 diagnostic_message=diagnostic_message,
                 failure_code="timeout",
-                user_message="本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。",
+                user_message=_single_ai_timeout_user_message(timeout_seconds),
             )
             return
         from app.services.game.logging import write_game_log
@@ -414,7 +417,8 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
         logging.getLogger("uvicorn.error").error("%s: %s", failure_description, e, exc_info=True)
         diagnostic_message = f"{failure_description}: {str(e)}"
         if prediction_mode == "single_ai":
-            failure_code, user_message = _classify_single_ai_failure(str(e))
+            timeout_seconds = _followup_analysis_timeout_seconds(prediction_mode)
+            failure_code, user_message = _classify_single_ai_failure(str(e), timeout_seconds)
             await _mark_single_ai_cycle_failed(
                 boot_number=boot_number,
                 failure_description=failure_description,
@@ -485,9 +489,10 @@ async def retry_single_ai_analysis(
     if current_cycle.get("status") != "failed" or not current_cycle.get("retryable"):
         raise HTTPException(409, "当前这局还不能重新分析")
 
+    timeout_seconds = _followup_analysis_timeout_seconds("single_ai")
     retry_cycle = _build_single_ai_analysis_cycle(
         attempt=int(current_cycle.get("attempt") or 0) + 1,
-        timeout_seconds=_followup_analysis_timeout_seconds("single_ai"),
+        timeout_seconds=timeout_seconds,
     )
     async with async_session() as session:
         state = await get_or_create_state(session)
