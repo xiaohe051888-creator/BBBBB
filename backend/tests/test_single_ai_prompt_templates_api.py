@@ -93,6 +93,27 @@ class SingleAiPromptTemplatesApiTest(unittest.TestCase):
         self.assertLessEqual(len(version), 30)
         self.assertTrue(version.startswith("single_ai_manual_"))
 
+    def test_generated_single_ai_learning_template_keeps_prediction_contract(self):
+        from app.services.ai_learning_service import AILearningService
+
+        service = AILearningService.__new__(AILearningService)
+        template = service._generate_optimized_prompt_template(
+            ai_analysis={
+                "pattern_summary": "大路偏顺，下三路收敛",
+                "error_patterns": "列尾误判偏多",
+                "confidence_threshold_recommendation": "弱信号降置信度",
+                "key_insight": "冲突盘面仍要完成选边",
+            },
+            key_changes="强化下一局选边约束",
+            prediction_mode="single_ai",
+        )
+
+        self.assertIn("预测下一局", template)
+        self.assertIn("只能在庄和闲中二选一", template)
+        self.assertIn("即使信号冲突，也必须选庄或闲", template)
+        self.assertIn('"final_prediction":"庄或闲"', template)
+        self.assertIn('"reasoning_detail"', template)
+
 
 if __name__ == "__main__":
     unittest.main()

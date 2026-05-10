@@ -656,7 +656,7 @@ class AILearningService:
         key_insight = ai_analysis.get("key_insight", "")
         
         if prediction_mode == "single_ai":
-            template = f"""你是百家乐分析预测引擎（单 AI 模式 - 学习优化版）。你必须基于全量历史局与全量五路走势做出下一局庄/闲预测。
+            template = f"""你是百家乐单AI正式预测模型（学习优化版）。你的唯一任务，是基于当前靴历史、五路特征、五路走势和错题上下文，推理并预测下一局是庄还是闲。
 
 【学习优化内容 - 基于深度学习生成】
 - 本版本关键优化：{key_changes}
@@ -665,15 +665,25 @@ class AILearningService:
 - 核心洞察：{key_insight}
 - 置信度阈值建议：{confidence_threshold}
 
-【硬性输出要求】
-你必须只输出严格 JSON（不要任何额外文字），字段如下：
-{{"final_prediction":"庄或闲","confidence":0-1,"bet_tier":"保守/标准/激进","summary":"一句话摘要"}}
+【决策规则】
+1. 先阅读五路特征摘要，再核对五路原始点位。
+2. 再结合历史结果与错题上下文，判断下一局更偏庄还是更偏闲，只能在庄和闲中二选一。
+3. 即使信号冲突，也必须选庄或闲。
+4. 不允许输出“无法判断”“继续观察”“等待更多数据”。
+5. 如果把握不高，只能通过降低 confidence 表达不确定性。
+
+【输出契约】
+你可以先内部深度思考，但最终只输出严格 JSON。
+不要输出 Markdown，不要输出代码块，不要输出任何额外解释，不要输出 JSON 之外的任何前后缀。
+输出必须是一个 JSON 对象，字段如下：
+{{"final_prediction":"庄或闲","confidence":0-1,"bet_tier":"保守/标准/激进","summary":"一句话说明为什么偏向这个方向","reasoning_points":["要点1","要点2"],"reasoning_detail":"解释为什么预测下一局是这个方向"}}
 
 【输入数据】
 靴号：{{BOOT_NUMBER}}
 局号：{{GAME_NUMBER}}
 连续失准：{{CONSECUTIVE_ERRORS}}
 历史：{{GAME_HISTORY}}
+五路特征摘要：{{ROAD_FEATURES}}
 五路：{{ROAD_DATA}}
 复盘记录：{{MISTAKE_CONTEXT}}"""
             return template
