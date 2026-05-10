@@ -14,7 +14,7 @@ import {
 vi.mock('../../hooks/useQueries', () => ({
   useSystemStateQuery: () => ({
     data: {
-      prediction_mode: 'ai',
+      prediction_mode: 'single_ai',
     },
   }),
 }));
@@ -273,6 +273,124 @@ describe('AnalysisPanel', () => {
     expect(html).toContain('系统正在综合比对走势');
     expect(html).toContain('请稍候，判断结果马上出来');
     expect(html).not.toContain('系统正在分析下一局，请稍候...');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('shows visible single-ai cycle stages while full analysis is running', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <AnalysisPanel
+          hasGameData
+          hasPendingBet={false}
+          aiAnalyzing={false}
+          workflowStage={{
+            type: 'analyzing',
+            showAnalysisLoading: false,
+            showCompletedAnalysis: false,
+          }}
+          analysis={{
+            prediction: null,
+            confidence: 0,
+            combined_summary: '',
+            prediction_mode: 'single_ai',
+            analysis_cycle: {
+              status: 'running',
+              stage: '满血研判',
+              attempt: 2,
+              started_at: '2026-05-10T10:00:00+08:00',
+              deadline_at: '2026-05-10T10:02:00+08:00',
+              retryable: false,
+              failure_reason: null,
+            },
+            analysis_outcome: null,
+          }}
+        />
+      );
+    });
+
+    const html = container.innerHTML;
+
+    expect(html).toContain('数据归集');
+    expect(html).toContain('满血研判');
+    expect(html).toContain('结果校验');
+    expect(html).toContain('结论整理');
+    expect(html).toContain('第 2 轮');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('renders failed single-ai analysis with chinese reason and retry action', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const onRetrySingleAiAnalysis = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <AnalysisPanel
+          hasGameData
+          hasPendingBet={false}
+          aiAnalyzing={false}
+          workflowStage={{
+            type: 'analyzed_pending_bet',
+            showAnalysisLoading: false,
+            showCompletedAnalysis: false,
+          }}
+          analysis={{
+            prediction: null,
+            confidence: 0,
+            combined_summary: '',
+            prediction_mode: 'single_ai',
+            analysis_cycle: {
+              status: 'failed',
+              stage: '结果校验',
+              attempt: 1,
+              started_at: '2026-05-10T10:00:00+08:00',
+              deadline_at: '2026-05-10T10:02:00+08:00',
+              retryable: true,
+              failure_reason: {
+                code: 'response_incomplete',
+                message: '这次分析已经返回内容，但结果不完整，系统无法把它当成有效预测结果。',
+              },
+            },
+            analysis_outcome: null,
+          }}
+          onRetrySingleAiAnalysis={onRetrySingleAiAnalysis}
+          retryingSingleAiAnalysis={false}
+        />
+      );
+    });
+
+    const html = container.innerHTML;
+
+    expect(html).toContain('本轮分析未完成');
+    expect(html).toContain('这次分析已经返回内容，但结果不完整，系统无法把它当成有效预测结果。');
+    expect(html).toContain('重新分析');
+    expect(html).not.toContain('已完成研判');
+    expect(html).not.toContain('本局决断');
+
+    const retryButton = Array.from(document.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('重新分析'),
+    );
+    expect(retryButton).toBeTruthy();
+
+    retryButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onRetrySingleAiAnalysis).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       root.unmount();

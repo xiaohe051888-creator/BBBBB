@@ -234,6 +234,7 @@ export const useAnalysisQuery = (options: UseAnalysisQueryOptions) => {
           reasoning_points: res.data.combined_model?.reasoning_points || [],
           reasoning_detail: res.data.combined_model?.reasoning_detail || null,
           analysis_outcome: res.data.analysis_outcome || null,
+          analysis_cycle: res.data.analysis_cycle || null,
         };
       }
       return null;
@@ -292,6 +293,21 @@ export const useRevealResultMutation = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
       // 补齐对复盘记录和 AI 记忆的刷新，防止因缓存导致复盘数据不更新
       queryClient.invalidateQueries({ queryKey: ['mistakes'] });
+    },
+  });
+};
+
+export const useRetrySingleAiAnalysisMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { boot_number: number; game_number: number }) => {
+      return api.retrySingleAiAnalysis(payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.systemState() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis() });
+      queryClient.invalidateQueries({ queryKey: ['logs'] });
     },
   });
 };

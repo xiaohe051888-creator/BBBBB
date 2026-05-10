@@ -3,7 +3,7 @@
  * 含 JWT 认证拦截器 + WebSocket 认证
  */
 import axios from 'axios';
-import type { AnalysisOutcome } from '../types/models';
+import type { AnalysisCycle, AnalysisOutcome } from '../types/models';
 import { normalizeBackendDetail } from '../utils/errorMessage';
 
 const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
@@ -658,11 +658,16 @@ export interface LatestAnalysis {
   player_model: { summary: string | null; time: string | null };
   combined_model: { summary: string | null; confidence: number | null; bet_tier: string | null; prediction: string | null; reasoning_points?: string[]; reasoning_detail?: string | null; time: string | null };
   analysis_outcome?: AnalysisOutcome | null;
+  analysis_cycle?: AnalysisCycle | null;
   has_data: boolean;
 }
 
 export const getLatestAnalysis = async () => {
   return api.get<LatestAnalysis>('/analysis/latest', { params: { } });
+};
+
+export const retrySingleAiAnalysis = async (payload: { boot_number: number; game_number: number }) => {
+  return api.post('/games/analysis/retry', payload);
 };
 
 // ====== 复盘记录 ======

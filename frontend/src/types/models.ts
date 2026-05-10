@@ -19,6 +19,7 @@ export interface SystemState {
   } | null;
   next_game_number: number;
   prediction_mode?: 'ai' | 'single_ai' | 'rule';
+  analysis_cycle?: AnalysisCycle | null;
 }
 
 export interface GameRecord {
@@ -95,6 +96,21 @@ export interface AnalysisOutcome {
   } | null;
 }
 
+export interface AnalysisFailureReason {
+  code: 'timeout' | 'response_incomplete' | 'invalid_direction' | 'service_unavailable' | 'unknown' | string;
+  message: string | null;
+}
+
+export interface AnalysisCycle {
+  status: 'idle' | 'running' | 'failed' | 'succeeded' | string;
+  stage: '数据归集' | '满血研判' | '结果校验' | '结论整理' | null | string;
+  attempt: number;
+  started_at: string | null;
+  deadline_at: string | null;
+  retryable: boolean;
+  failure_reason: AnalysisFailureReason | null;
+}
+
 export interface AnalysisData {
   banker_summary: string;
   player_summary: string;
@@ -108,4 +124,5 @@ export interface AnalysisData {
   reasoning_points?: string[];
   reasoning_detail?: string | null;
   analysis_outcome?: AnalysisOutcome | null;
+  analysis_cycle?: AnalysisCycle | null;
 }

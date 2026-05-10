@@ -25,7 +25,11 @@ interface AnalysisPanelProps {
   hasPendingBet: boolean;
   aiAnalyzing: boolean;
   workflowStage: DashboardWorkflowStage;
+  onRetrySingleAiAnalysis?: () => void;
+  retryingSingleAiAnalysis?: boolean;
 }
+
+const ANALYSIS_CYCLE_STAGES = ['数据归集', '满血研判', '结果校验', '结论整理'] as const;
 
 const getConfidenceLabel = (confidence: number) => {
   if (confidence >= 0.7) return '高';
@@ -81,10 +85,13 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   hasPendingBet,
   aiAnalyzing,
   workflowStage,
+  onRetrySingleAiAnalysis,
+  retryingSingleAiAnalysis = false,
 }) => {
   const { data: systemState } = useSystemStateQuery({});
   const [detailOpen, setDetailOpen] = useState(false);
   const mode = resolvePredictionMode(systemState?.prediction_mode, analysis?.prediction_mode);
+  const analysisCycle = analysis?.analysis_cycle ?? systemState?.analysis_cycle ?? null;
   const modeCapsuleLabel = getModeCapsuleLabel(mode);
   const panelShellStyle: React.CSSProperties = {
     minHeight: 'auto',
@@ -102,6 +109,124 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     letterSpacing: 0.2,
     border: 'none',
   };
+
+  if (hasGameData && mode === 'single_ai' && analysisCycle?.status === 'running') {
+    const currentStageIndex = Math.max(
+      ANALYSIS_CYCLE_STAGES.findIndex((item) => item === analysisCycle.stage),
+      0,
+    );
+    return (
+      <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={panelShellStyle}>
+        <div className="section-header">
+          <span style={{ color: '#7dd3fc' }}><BulbOutlined /></span>
+          <span className="section-title" style={{ color: '#e0f2fe' }}>智能分析</span>
+          <div style={{ marginLeft: 'auto' }}>
+            <Tag
+              variant="filled"
+              style={{
+                ...capsuleStyle,
+                background: 'rgba(59,130,246,0.18)',
+                color: '#bfdbfe',
+              }}
+            >
+              第 {analysisCycle.attempt || 1} 轮
+            </Tag>
+          </div>
+        </div>
+        <div style={{ padding: '22px 18px 24px', display: 'grid', gap: 16 }}>
+          <div style={{ color: '#e0f2fe', fontSize: 18, fontWeight: 700 }}>系统正在推进满血分析</div>
+          <div style={{ color: 'rgba(191,219,254,0.78)', fontSize: 13 }}>
+            当前阶段：{analysisCycle.stage || '数据归集'}
+          </div>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {ANALYSIS_CYCLE_STAGES.map((stage, index) => {
+              const isActive = index === currentStageIndex;
+              const isDone = index < currentStageIndex;
+              return (
+                <div
+                  key={stage}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 12px',
+                    borderRadius: 14,
+                    border: '1px solid rgba(96,165,250,0.18)',
+                    background: isActive
+                      ? 'rgba(37,99,235,0.22)'
+                      : isDone
+                        ? 'rgba(14,116,144,0.18)'
+                        : 'rgba(15,23,42,0.54)',
+                    color: isActive ? '#e0f2fe' : isDone ? '#a5f3fc' : 'rgba(191,219,254,0.72)',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: isActive ? '#38bdf8' : isDone ? '#22c55e' : 'rgba(148,163,184,0.7)',
+                      boxShadow: isActive ? '0 0 12px rgba(56,189,248,0.8)' : 'none',
+                    }}
+                  />
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{stage}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasGameData && mode === 'single_ai' && analysisCycle?.status === 'failed') {
+    const failureReason = analysisCycle.failure_reason?.message?.trim() || '当前还没有形成有效预测结果。';
+    return (
+      <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={panelShellStyle}>
+        <div className="section-header">
+          <span style={{ color: '#7dd3fc' }}><BulbOutlined /></span>
+          <span className="section-title" style={{ color: '#e0f2fe' }}>智能分析</span>
+        </div>
+        <div style={{ padding: '22px 18px 24px', display: 'grid', gap: 14 }}>
+          <div style={{ color: '#f8fafc', fontSize: 18, fontWeight: 700 }}>本轮分析未完成</div>
+          <div
+            style={{
+              padding: '14px 16px',
+              borderRadius: 16,
+              background: 'rgba(69, 10, 10, 0.42)',
+              border: '1px solid rgba(248,113,113,0.24)',
+              color: '#fee2e2',
+              fontSize: 14,
+              lineHeight: 1.75,
+            }}
+          >
+            {failureReason}
+          </div>
+          <div style={{ color: 'rgba(191,219,254,0.74)', fontSize: 13 }}>
+            当前还没有形成有效预测结果。
+          </div>
+          <div>
+            <Button
+              type="primary"
+              onClick={onRetrySingleAiAnalysis}
+              loading={retryingSingleAiAnalysis}
+              disabled={!analysisCycle.retryable}
+              style={{
+                borderRadius: 999,
+                height: 42,
+                paddingInline: 20,
+                border: '1px solid rgba(125,211,252,0.28)',
+                background: 'linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%)',
+                boxShadow: '0 12px 28px rgba(37,99,235,0.28)',
+              }}
+            >
+              重新分析
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // 分析中状态 - 三模型进度指示器
   if (workflowStage.showAnalysisLoading || (aiAnalyzing && !hasPendingBet)) {

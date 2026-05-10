@@ -23,6 +23,7 @@ export {
   useAnalysisQuery,
   usePlaceBetMutation,
   useRevealResultMutation,
+  useRetrySingleAiAnalysisMutation,
   useAddLogOptimistically,
   useAddLogsOptimistically,
   useAddBetOptimistically,

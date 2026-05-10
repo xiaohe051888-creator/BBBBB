@@ -49,6 +49,12 @@ class RevealRequest(BaseModel):
         return v
 
 
+class RetrySingleAiAnalysisRequest(BaseModel):
+    """单AI失败后手动重新分析请求"""
+    boot_number: int = Field(..., ge=1)
+    game_number: int = Field(..., ge=1, le=72)
+
+
 class LoginRequest(BaseModel):
     """管理员登录请求"""
     username: str | None = Field(None, min_length=1, max_length=64)

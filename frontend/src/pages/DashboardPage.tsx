@@ -34,6 +34,7 @@ import {
   useRoadsQuery,
   useAnalysisQuery,
   useRevealResultMutation,
+  useRetrySingleAiAnalysisMutation,
   useAddLogOptimistically,
   useAddBetOptimistically,
   useAddGameOptimistically,
@@ -130,6 +131,7 @@ const DashboardPage: React.FC = () => {
 
   // Mutations
   const revealResultMutation = useRevealResultMutation();
+  const retrySingleAiAnalysisMutation = useRetrySingleAiAnalysisMutation();
 
   // 乐观更新函数
   const addLogOptimistically = useAddLogOptimistically();
@@ -503,6 +505,14 @@ const DashboardPage: React.FC = () => {
             hasPendingBet={hasPendingBet}
             aiAnalyzing={aiAnalyzing}
             workflowStage={workflowStage}
+            onRetrySingleAiAnalysis={() => {
+              if (!systemState?.boot_number || !systemState?.next_game_number) return;
+              retrySingleAiAnalysisMutation.mutate({
+                boot_number: systemState.boot_number,
+                game_number: systemState.next_game_number,
+              });
+            }}
+            retryingSingleAiAnalysis={retrySingleAiAnalysisMutation.isPending}
           />
 
           {/* 智能提示 */}

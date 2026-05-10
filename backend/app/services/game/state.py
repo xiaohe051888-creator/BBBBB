@@ -66,6 +66,7 @@ async def get_current_state() -> Dict[str, Any]:
                 "engine": sess.analysis_engine,
                 "time": sess.analysis_time.isoformat() if sess.analysis_time else None,
             } if sess.combined_summary else None,
+            "analysis_cycle": sess.analysis_cycle,
         }
 
 

@@ -3,6 +3,7 @@
 """
 import asyncio
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Query, HTTPException, Depends
 
@@ -11,7 +12,7 @@ from app.core.database import async_session
 from app.models.schemas import GameRecord
 from sqlalchemy import select, func
 
-from app.api.routes.schemas import UploadRequest, RevealRequest
+from app.api.routes.schemas import UploadRequest, RevealRequest, RetrySingleAiAnalysisRequest
 from app.api.routes.utils import get_current_user
 
 router = APIRouter(prefix="/api/games", tags=["游戏"])
@@ -50,7 +51,129 @@ def _followup_analysis_timeout_seconds(prediction_mode: str | None = None) -> fl
         return configured
     return float(max(settings.MODEL_TIMEOUT + 15, 45))
 
+
+def _sync_analysis_cycle(sess, state, cycle: dict | None) -> None:
+    sess.analysis_cycle = cycle
+    if cycle is None:
+        state.analysis_cycle_status = None
+        state.analysis_cycle_stage = None
+        state.analysis_cycle_attempt = None
+        state.analysis_cycle_started_at = None
+        state.analysis_cycle_deadline_at = None
+        state.analysis_failure_code = None
+        state.analysis_failure_message = None
+        state.analysis_retryable = False
+        return
+
+    state.analysis_cycle_status = cycle.get("status")
+    state.analysis_cycle_stage = cycle.get("stage")
+    state.analysis_cycle_attempt = cycle.get("attempt")
+    started_at = cycle.get("started_at")
+    deadline_at = cycle.get("deadline_at")
+    state.analysis_cycle_started_at = datetime.fromisoformat(started_at) if started_at else None
+    state.analysis_cycle_deadline_at = datetime.fromisoformat(deadline_at) if deadline_at else None
+    state.analysis_failure_code = cycle.get("failure_code")
+    state.analysis_failure_message = cycle.get("failure_message")
+    state.analysis_retryable = bool(cycle.get("retryable"))
+
+
+def _build_single_ai_analysis_cycle(attempt: int, timeout_seconds: float) -> dict:
+    started_at = datetime.now(UTC)
+    deadline_at = started_at + timedelta(seconds=timeout_seconds)
+    return {
+        "status": "running",
+        "stage": "数据归集",
+        "attempt": attempt,
+        "started_at": started_at.isoformat(),
+        "deadline_at": deadline_at.isoformat(),
+        "retryable": False,
+        "failure_code": None,
+        "failure_message": None,
+    }
+
+
+def _classify_single_ai_failure(reason: str) -> tuple[str, str]:
+    message = (reason or "").strip()
+    lower = message.lower()
+    if "缺少必须字段" in message or "不完整" in message:
+        return (
+            "response_incomplete",
+            "这次分析已经返回内容，但结果不完整，系统无法把它当成有效预测结果。",
+        )
+    if "预测方向无效" in message or "方向无法识别" in message:
+        return (
+            "invalid_direction",
+            "这次分析返回了内容，但没有形成可识别的庄闲方向，因此当前无法生成有效预测结果。",
+        )
+    if "timeout" in lower or "超时" in message:
+        return (
+            "timeout",
+            "本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。",
+        )
+    if any(token in lower for token in ("connection", "connect", "503", "502", "429", "service unavailable")):
+        return (
+            "service_unavailable",
+            "这次满血分析在请求过程中遇到服务波动，因此当前还没有拿到稳定结果。",
+        )
+    return ("unknown", "这次满血分析暂时没有拿到稳定结果，因此当前还没有形成有效预测结果。")
+
+
+async def _mark_single_ai_cycle_failed(
+    *,
+    boot_number: int,
+    failure_description: str,
+    diagnostic_message: str,
+    failure_code: str,
+    user_message: str,
+) -> None:
+    from app.services.game.logging import write_game_log
+    from app.services.game.session import get_session, broadcast_event
+    from app.services.game.state import get_or_create_state
+
+    sess = get_session()
+    async with async_session() as log_session:
+        state = await get_or_create_state(log_session)
+        _clear_runtime_prediction_snapshot(sess, state)
+        sess.status = "等待开奖"
+        state.status = "等待开奖"
+        cycle = dict(sess.analysis_cycle or {})
+        cycle.update(
+            {
+                "status": "failed",
+                "stage": "结果校验",
+                "retryable": True,
+                "failure_code": failure_code,
+                "failure_message": user_message,
+            }
+        )
+        _sync_analysis_cycle(sess, state, cycle)
+        await write_game_log(
+            log_session,
+            boot_number,
+            sess.next_game_number if not failure_description.startswith("上传") else 0,
+            "LOG-SYS-ERR" if failure_description.startswith("上传") else "LOG-MDL-004",
+            "AI分析报错" if failure_description.startswith("上传") else "单AI满血分析未完成",
+            "失败",
+            user_message[:500] if not failure_description.startswith("上传") else diagnostic_message[:500],
+            category="系统异常" if not failure_description.startswith("上传") else "工作流事件",
+            priority="P1",
+        )
+        await log_session.commit()
+
+    await broadcast_event(
+        "state_update",
+        {
+            "status": "等待开奖",
+            "predict_direction": None,
+            "predict_confidence": None,
+            "current_bet_tier": "标准",
+            "pending_bet": None,
+            "analysis_cycle": cycle,
+        },
+    )
+
 def _upload_error_to_http_exception(upload_result: dict) -> HTTPException:
+    from app.utils.errors import error_message
     from app.utils.errors import error_message
     if upload_result.get("error") == "illegal_state":
         return HTTPException(409, upload_result.get("message") or "当前状态不允许该操作")
@@ -166,17 +289,35 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
     from app.services.game import run_ai_analysis
     from app.services.game.session import get_session
 
-    prediction_mode = get_session().prediction_mode
+    sess = get_session()
+    prediction_mode = sess.prediction_mode
+    if prediction_mode == "single_ai":
+        from app.services.game.state import get_or_create_state
+
+        timeout_seconds = _followup_analysis_timeout_seconds(prediction_mode)
+        attempt = int((sess.analysis_cycle or {}).get("attempt") or 0) + 1
+        cycle = _build_single_ai_analysis_cycle(attempt, timeout_seconds)
+        async with async_session() as cycle_session:
+            state = await get_or_create_state(cycle_session)
+            _sync_analysis_cycle(sess, state, cycle)
+            await cycle_session.commit()
 
     try:
         async def _run_cycle() -> None:
             async with async_session() as session:
+                if prediction_mode == "single_ai":
+                    from app.services.game.state import get_or_create_state
+
+                    state = await get_or_create_state(session)
+                    running_cycle = dict(sess.analysis_cycle or {})
+                    running_cycle["stage"] = "满血研判"
+                    _sync_analysis_cycle(sess, state, running_cycle)
                 res = await run_ai_analysis(
                     db=session,
                     boot_number=boot_number,
                 )
                 if not res or not res.get("success"):
-                    raise RuntimeError((res or {}).get("error") or "analysis returned no result")
+                    raise RuntimeError((res or {}).get("reason") or (res or {}).get("error") or "analysis returned no result")
 
                 prediction = res.get("prediction")
                 if prediction not in ("庄", "闲"):
@@ -193,31 +334,43 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
                     direction=prediction,
                     amount=res.get("bet_amount", 100),
                 )
+                if prediction_mode == "single_ai":
+                    from app.services.game.state import get_or_create_state
+
+                    state = await get_or_create_state(session)
+                    succeeded_cycle = dict(sess.analysis_cycle or {})
+                    succeeded_cycle.update(
+                        {
+                            "status": "succeeded",
+                            "stage": "结论整理",
+                            "retryable": False,
+                            "failure_code": None,
+                            "failure_message": None,
+                        }
+                    )
+                    _sync_analysis_cycle(sess, state, succeeded_cycle)
                 await session.commit()
 
         await asyncio.wait_for(_run_cycle(), timeout=_followup_analysis_timeout_seconds(prediction_mode))
     except asyncio.TimeoutError:
-        from app.services.game.logging import write_game_log
-        from app.services.game.session import get_session, broadcast_event
-
         timeout_seconds = _followup_analysis_timeout_seconds(prediction_mode)
         logging.getLogger("uvicorn.error").error(
             "%s: analysis timed out after %.2fs",
             failure_description,
             timeout_seconds,
         )
-        sess = get_session()
         diagnostic_message = f"{failure_description}: analysis timeout after {timeout_seconds:.2f}s"
-        try:
-            fallback_used = await _run_single_ai_rule_fallback(
+        if prediction_mode == "single_ai":
+            await _mark_single_ai_cycle_failed(
                 boot_number=boot_number,
+                failure_description=failure_description,
                 diagnostic_message=diagnostic_message,
+                failure_code="timeout",
+                user_message="本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。",
             )
-        except Exception:
-            logger.exception("单AI超时后规则兜底失败")
-            fallback_used = False
-        if fallback_used:
             return
+        from app.services.game.logging import write_game_log
+        from app.services.game.session import get_session, broadcast_event
         fallback_status = "错误" if failure_description.startswith("上传") else "空闲"
         try:
             async with async_session() as log_session:
@@ -252,22 +405,20 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
         except Exception:
             logger.exception("写入 AI 分析超时日志/广播失败")
     except Exception as e:
+        logging.getLogger("uvicorn.error").error("%s: %s", failure_description, e, exc_info=True)
+        diagnostic_message = f"{failure_description}: {str(e)}"
+        if prediction_mode == "single_ai":
+            failure_code, user_message = _classify_single_ai_failure(str(e))
+            await _mark_single_ai_cycle_failed(
+                boot_number=boot_number,
+                failure_description=failure_description,
+                diagnostic_message=diagnostic_message,
+                failure_code=failure_code,
+                user_message=user_message,
+            )
+            return
         from app.services.game.logging import write_game_log
         from app.services.game.session import get_session, broadcast_event
-
-        logging.getLogger("uvicorn.error").error("%s: %s", failure_description, e, exc_info=True)
-        sess = get_session()
-        diagnostic_message = f"{failure_description}: {str(e)}"
-        try:
-            fallback_used = await _run_single_ai_rule_fallback(
-                boot_number=boot_number,
-                diagnostic_message=diagnostic_message,
-            )
-        except Exception:
-            logger.exception("单AI异常后规则兜底失败")
-            fallback_used = False
-        if fallback_used:
-            return
         fallback_status = "错误" if failure_description.startswith("上传") else "空闲"
         try:
             async with async_session() as log_session:
@@ -303,6 +454,67 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
             logger.exception("写入 AI 分析异常日志/广播失败")
     finally:
         await _finalize_analysis_cycle("等待开奖")
+
+
+@router.post("/analysis/retry")
+async def retry_single_ai_analysis(
+    req: RetrySingleAiAnalysisRequest,
+    _: dict = Depends(get_current_user),
+):
+    from app.services.game.session import get_session, start_background_task
+    from app.services.game.state import get_or_create_state
+    from app.services.game.logging import write_game_log
+
+    sess = get_session()
+    if sess.prediction_mode != "single_ai":
+        raise HTTPException(409, "当前不是单AI模式，不能重新分析")
+    if sess.boot_number != req.boot_number:
+        raise HTTPException(409, "当前靴号已变化，请刷新后重试")
+    if sess.next_game_number != req.game_number:
+        raise HTTPException(409, "当前局号已变化，请刷新后重试")
+
+    current_cycle = dict(sess.analysis_cycle or {})
+    if current_cycle.get("status") == "running":
+        raise HTTPException(409, "当前已经有一轮满血分析正在进行中")
+    if current_cycle.get("status") != "failed" or not current_cycle.get("retryable"):
+        raise HTTPException(409, "当前这局还不能重新分析")
+
+    retry_cycle = _build_single_ai_analysis_cycle(
+        attempt=int(current_cycle.get("attempt") or 0) + 1,
+        timeout_seconds=_followup_analysis_timeout_seconds("single_ai"),
+    )
+    async with async_session() as session:
+        state = await get_or_create_state(session)
+        _sync_analysis_cycle(sess, state, retry_cycle)
+        await write_game_log(
+            session,
+            req.boot_number,
+            req.game_number,
+            "LOG-MDL-005",
+            "用户手动重新发起单AI分析",
+            "开始",
+            "用户点击“重新分析”后，系统已开始新一轮 120 秒满血分析。",
+            category="工作流事件",
+            priority="P2",
+        )
+        await session.commit()
+
+    async def _trigger_retry_analysis():
+        await _run_followup_analysis(
+            req.boot_number,
+            "用户手动重新发起单AI分析",
+        )
+
+    start_background_task(
+        "analysis",
+        _trigger_retry_analysis(),
+        boot_number=req.boot_number,
+        dedupe_key=f"analysis:{req.boot_number}:retry:{req.game_number}",
+    )
+    return {
+        "success": True,
+        "message": "已开始新一轮满血分析",
+    }
 
 
 @router.post("/upload")

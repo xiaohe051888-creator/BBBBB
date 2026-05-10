@@ -158,6 +158,48 @@ describe('logHumanizer', () => {
     expect(h.whatHappened).not.toContain('下一局AI分析失败');
   });
 
+  it('humanizes LOG-MDL-004 as a failed full-analysis cycle', () => {
+    const log: LogEntry = {
+      id: 24,
+      log_time: '2026-05-10T05:20:00Z',
+      game_number: 24,
+      event_code: 'LOG-MDL-004',
+      event_type: '单AI满血分析未完成',
+      event_result: '失败',
+      description: 'timeout',
+      category: '工作流事件',
+      priority: 'P1',
+      task_id: 'task-27',
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.title).toBe('智能分析：本轮满血分析未完成');
+    expect(h.whatHappened).toBe('本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。');
+    expect(h.impact).toBe('当前不会生成伪造决断，也不会自动继续下注。');
+    expect(h.suggestion).toBe('可在首页点击“重新分析”，手动开启新一轮 120 秒满血分析。');
+  });
+
+  it('humanizes LOG-MDL-005 as a manual retry event', () => {
+    const log: LogEntry = {
+      id: 25,
+      log_time: '2026-05-10T05:22:00Z',
+      game_number: 24,
+      event_code: 'LOG-MDL-005',
+      event_type: '用户手动重新发起单AI分析',
+      event_result: '开始',
+      description: '用户点击“重新分析”后，系统已开始新一轮 120 秒满血分析。',
+      category: '工作流事件',
+      priority: 'P2',
+      task_id: 'task-28',
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.title).toBe('智能分析：已重新发起满血分析');
+    expect(h.whatHappened).toBe('用户已经手动开启新一轮满血分析，系统正在重新研判当前这一局。');
+    expect(h.impact).toBe('本轮会重新争取形成有效预测结果，在完成前不会继续沿用旧失败结果。');
+    expect(h.suggestion).toBe('等待本轮分析完成即可，无需重复点击。');
+  });
+
   it('rewrites LOG-MDL-001 into a Chinese judgement summary', () => {
     const log: LogEntry = {
       id: 21,

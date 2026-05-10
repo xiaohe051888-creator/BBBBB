@@ -41,6 +41,7 @@ class ManualSession:
     combined_reasoning_points: Optional[list[str]] = None
     combined_reasoning_detail: Optional[str] = None
     analysis_outcome: Optional[Dict] = None
+    analysis_cycle: Optional[Dict] = None
     analysis_engine: Optional[Dict] = None
     analysis_time: Optional[datetime] = None
     

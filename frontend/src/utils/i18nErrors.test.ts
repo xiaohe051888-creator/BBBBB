@@ -63,6 +63,18 @@ describe('中文显示映射', () => {
       '这次智能判断返回了无法识别的方向内容，系统没有采用该结果。',
     );
   });
+
+  it('translates full-analysis failure codes into clear Chinese explanations', () => {
+    expect(toCnAnalysisDiagnostic('timeout')).toBe(
+      '本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。',
+    );
+    expect(toCnAnalysisDiagnostic('response_incomplete')).toBe(
+      '这次分析已经返回内容，但结果不完整，系统无法把它当成有效预测结果。',
+    );
+    expect(toCnAnalysisDiagnostic('service_unavailable')).toBe(
+      '这次满血分析在请求过程中遇到服务波动，因此当前还没有拿到稳定结果。',
+    );
+  });
 });
 
 describe('toCnLogDetailText', () => {

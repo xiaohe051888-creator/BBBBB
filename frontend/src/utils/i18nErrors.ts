@@ -78,6 +78,22 @@ export const toCnLogDetailText = (raw?: string | null): string => {
     return '智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。';
   }
 
+  if (lower === 'timeout') {
+    return '本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。';
+  }
+
+  if (lower === 'response_incomplete') {
+    return '这次分析已经返回内容，但结果不完整，系统无法把它当成有效预测结果。';
+  }
+
+  if (lower === 'invalid_direction') {
+    return '这次分析返回了内容，但没有形成可识别的庄闲方向，因此当前无法生成有效预测结果。';
+  }
+
+  if (lower === 'service_unavailable') {
+    return '这次满血分析在请求过程中遇到服务波动，因此当前还没有拿到稳定结果。';
+  }
+
   if (lower.includes('analysis timeout after') || lower === 'timeout') {
     return '智能判断等待时间过长。';
   }
@@ -104,6 +120,22 @@ export const toCnAnalysisDiagnostic = (raw?: string | null): string => {
   const s = String(raw || '').trim();
   const lower = s.toLowerCase();
   const translated = toCnLogDetailText(s);
+
+  if (lower === 'timeout') {
+    return '本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。';
+  }
+
+  if (lower === 'response_incomplete') {
+    return '这次分析已经返回内容，但结果不完整，系统无法把它当成有效预测结果。';
+  }
+
+  if (lower === 'invalid_direction') {
+    return '这次分析返回了内容，但没有形成可识别的庄闲方向，因此当前无法生成有效预测结果。';
+  }
+
+  if (lower === 'service_unavailable') {
+    return '这次满血分析在请求过程中遇到服务波动，因此当前还没有拿到稳定结果。';
+  }
 
   if (!translated) {
     return '';

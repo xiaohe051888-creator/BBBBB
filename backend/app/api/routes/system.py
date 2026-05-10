@@ -59,6 +59,51 @@ def _missing_role_issue(v: str) -> str:
     return f"{_role_label(v)}接口未配置"
 
 
+def _serialize_analysis_cycle(mem_cycle: dict | None, state: SystemState | None) -> dict | None:
+    if not mem_cycle and state is None:
+        return None
+
+    status = mem_cycle.get("status") if mem_cycle else None
+    stage = mem_cycle.get("stage") if mem_cycle else None
+    attempt = mem_cycle.get("attempt") if mem_cycle else None
+    started_at = mem_cycle.get("started_at") if mem_cycle else None
+    deadline_at = mem_cycle.get("deadline_at") if mem_cycle else None
+    retryable = mem_cycle.get("retryable") if mem_cycle else None
+    failure_code = mem_cycle.get("failure_code") if mem_cycle else None
+    failure_message = mem_cycle.get("failure_message") if mem_cycle else None
+
+    if state is not None:
+        status = status or getattr(state, "analysis_cycle_status", None)
+        stage = stage or getattr(state, "analysis_cycle_stage", None)
+        attempt = attempt or getattr(state, "analysis_cycle_attempt", None)
+        started_at = started_at or (
+            state.analysis_cycle_started_at.isoformat() if getattr(state, "analysis_cycle_started_at", None) else None
+        )
+        deadline_at = deadline_at or (
+            state.analysis_cycle_deadline_at.isoformat() if getattr(state, "analysis_cycle_deadline_at", None) else None
+        )
+        if retryable is None:
+            retryable = bool(getattr(state, "analysis_retryable", False))
+        failure_code = failure_code or getattr(state, "analysis_failure_code", None)
+        failure_message = failure_message or getattr(state, "analysis_failure_message", None)
+
+    if not any([status, stage, attempt, started_at, deadline_at, retryable, failure_code, failure_message]):
+        return None
+
+    return {
+        "status": status,
+        "stage": stage,
+        "attempt": attempt or 0,
+        "started_at": started_at,
+        "deadline_at": deadline_at,
+        "retryable": bool(retryable),
+        "failure_reason": {
+            "code": failure_code,
+            "message": failure_message,
+        } if (failure_code or failure_message) else None,
+    }
+
+
 def _clear_runtime_prediction_snapshot(sess, *, keep_pending_bet: bool = True) -> None:
     sess.predict_direction = None
     sess.predict_confidence = None
@@ -110,6 +155,7 @@ async def get_system_state(_: dict = Depends(get_current_user)):
                 "health_score": 100.0,
                 "pending_bet": mem_state["pending_bet"],
                 "next_game_number": mem_state["next_game_number"],
+                "analysis_cycle": _serialize_analysis_cycle(mem_state.get("analysis_cycle"), None),
             }
 
         return {
@@ -127,6 +173,7 @@ async def get_system_state(_: dict = Depends(get_current_user)):
             "health_score": state.health_score,
             "pending_bet": mem_state["pending_bet"],
             "next_game_number": mem_state["next_game_number"],
+            "analysis_cycle": _serialize_analysis_cycle(mem_state.get("analysis_cycle"), state),
         }
 
 @router.get("/state-public")
@@ -147,6 +194,7 @@ async def get_system_state_public():
         "health_score": None,
         "pending_bet": None,
         "next_game_number": mem_state.get("next_game_number"),
+        "analysis_cycle": _serialize_analysis_cycle(mem_state.get("analysis_cycle"), None),
     }
 
 

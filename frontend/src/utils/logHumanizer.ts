@@ -1,6 +1,6 @@
 import type { LogEntry } from '../types/models';
 import { formatBeijing } from './datetime';
-import { toCnLogDetailText } from './i18nErrors';
+import { toCnAnalysisDiagnostic, toCnLogDetailText } from './i18nErrors';
 
 export type HumanLogField = { label: string; value: string };
 
@@ -218,6 +218,20 @@ const rule: Record<string, Rule> = {
     whatHappened: '智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。',
     impact: '这次不会中断本局流程，系统已经继续给出最终下注决定。',
     suggestion: '无需操作，等待本局开奖结果即可。',
+  }),
+  'LOG-MDL-004': (log) => ({
+    title: '智能分析：本轮满血分析未完成',
+    whatHappened:
+      toCnAnalysisDiagnostic(s(log.description)) ||
+      '本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。',
+    impact: '当前不会生成伪造决断，也不会自动继续下注。',
+    suggestion: '可在首页点击“重新分析”，手动开启新一轮 120 秒满血分析。',
+  }),
+  'LOG-MDL-005': () => ({
+    title: '智能分析：已重新发起满血分析',
+    whatHappened: '用户已经手动开启新一轮满血分析，系统正在重新研判当前这一局。',
+    impact: '本轮会重新争取形成有效预测结果，在完成前不会继续沿用旧失败结果。',
+    suggestion: '等待本轮分析完成即可，无需重复点击。',
   }),
   'LOG-BET-001': (log) => ({
     title: `下注：第${log.game_number ?? '-'}局已完成`,

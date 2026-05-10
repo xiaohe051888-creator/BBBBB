@@ -8,6 +8,7 @@ from sqlalchemy import select
 from app.core.database import async_session
 from app.models.schemas import SystemLog, SystemState
 from app.api.routes.utils import get_current_user
+from app.api.routes.system import _serialize_analysis_cycle
 
 router = APIRouter(prefix="/api", tags=["AI分析"])
 
@@ -42,6 +43,7 @@ async def get_latest_analysis(_: dict = Depends(get_current_user)):
                 "time": analysis.get("time"),
             },
             "analysis_outcome": analysis.get("analysis_outcome"),
+            "analysis_cycle": _serialize_analysis_cycle(mem.get("analysis_cycle"), None),
             "has_data": True,
         }
     
@@ -87,6 +89,7 @@ async def get_latest_analysis(_: dict = Depends(get_current_user)):
                 "time": combined_log.log_time.isoformat() if combined_log else None,
             },
             "analysis_outcome": None,
+            "analysis_cycle": _serialize_analysis_cycle(None, state),
             "has_data": bool(combined_log),
         }
 
