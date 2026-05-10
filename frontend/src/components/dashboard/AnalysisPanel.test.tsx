@@ -31,6 +31,7 @@ describe('AnalysisPanel', () => {
       root.render(
         <AnalysisPanel
           hasGameData
+          hasPendingBet={false}
           aiAnalyzing={false}
           analysis={{
             prediction: '庄',
@@ -55,6 +56,41 @@ describe('AnalysisPanel', () => {
     expect(html).not.toContain('闲模型');
     expect(html).not.toContain('综合模型');
     expect(html).not.toContain('模型接口');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('keeps the completed analysis visible after auto bet is placed', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <AnalysisPanel
+          hasGameData
+          hasPendingBet
+          aiAnalyzing
+          analysis={{
+            prediction: '庄',
+            confidence: 0.76,
+            combined_summary: '综合建议本局继续跟庄',
+            prediction_mode: 'single_ai',
+          }}
+        />
+      );
+    });
+
+    const html = container.innerHTML;
+
+    expect(html).toContain('综合建议本局继续跟庄');
+    expect(html).toContain('76%');
+    expect(html).not.toContain('系统正在分析下一局，请稍候...');
 
     await act(async () => {
       root.unmount();

@@ -32,12 +32,14 @@ interface Analysis {
 interface AnalysisPanelProps {
   analysis: Analysis | null;
   hasGameData: boolean;
+  hasPendingBet: boolean;
   aiAnalyzing: boolean;
 }
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   analysis,
   hasGameData,
+  hasPendingBet,
   aiAnalyzing,
 }) => {
   const { data: systemState } = useSystemStateQuery({});
@@ -84,7 +86,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   );
 
   // 分析中状态 - 三模型进度指示器
-  if (aiAnalyzing) {
+  if (aiAnalyzing && !hasPendingBet) {
     return (
       <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={{ minHeight: 'auto' }}>
         <div className="section-header">

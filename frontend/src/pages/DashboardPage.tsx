@@ -70,17 +70,20 @@ const DashboardPage: React.FC = () => {
 
   // AI分析状态
   const hasGameData = games.length > 0;
+  const hasPendingBet = !!systemState?.pending_bet;
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
 
   useEffect(() => {
-    if (hasGameData && analysisFetching) {
+    if (hasGameData && analysisFetching && !hasPendingBet) {
       setAiAnalyzing(true);
     } else if (!hasGameData) {
+      setAiAnalyzing(false);
+    } else if (hasPendingBet) {
       setAiAnalyzing(false);
     } else if (analysis) {
       setAiAnalyzing(false);
     }
-  }, [hasGameData, analysisFetching, analysis]);
+  }, [hasGameData, analysisFetching, analysis, hasPendingBet]);
 
   // 余额低位预警 (只在 <= 2000 且 > 0 时提醒一次)
   const [lowBalanceWarned, setLowBalanceWarned] = useState(false);
@@ -253,7 +256,6 @@ const DashboardPage: React.FC = () => {
   const validGamesLength = bankerCount + playerCount + tieCount;
 
   // 等待开奖计时器
-  const hasPendingBet = !!systemState?.pending_bet;
   // pendingGameNumber暂未使用
   void systemState?.pending_bet?.game_number;
 
@@ -431,6 +433,7 @@ const DashboardPage: React.FC = () => {
           <AnalysisPanel
             analysis={analysis ?? null}
             hasGameData={hasGameData}
+            hasPendingBet={hasPendingBet}
             aiAnalyzing={aiAnalyzing}
             
           />
