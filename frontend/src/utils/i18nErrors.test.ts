@@ -54,6 +54,15 @@ describe('中文显示映射', () => {
     expect(toCnAnalysisDiagnostic('  custom diagnostic  ')).toBe('custom diagnostic');
     expect(toCnAnalysisDiagnostic('')).toBe('');
   });
+
+  it('translates strict parse failure diagnostics into beginner-friendly Chinese', () => {
+    expect(toCnAnalysisDiagnostic('解析失败：缺少必须字段 summary')).toBe(
+      '这次智能判断返回的内容不完整，系统没有把它当成有效结果，随后会自动改用备用判断。',
+    );
+    expect(toCnAnalysisDiagnostic('解析失败：预测方向无效')).toBe(
+      '这次智能判断返回了无法识别的方向内容，系统没有采用该结果。',
+    );
+  });
 });
 
 describe('toCnLogDetailText', () => {

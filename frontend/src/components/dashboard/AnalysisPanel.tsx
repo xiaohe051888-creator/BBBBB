@@ -65,6 +65,15 @@ const buildLegacyOutcome = (analysis: AnalysisPanelData): AnalysisOutcome | null
   };
 };
 
+const isValidOutcome = (outcome: AnalysisOutcome | null | undefined): outcome is AnalysisOutcome => {
+  if (!outcome) return false;
+  if (!(outcome.direction === '庄' || outcome.direction === '闲')) return false;
+  if (typeof outcome.confidence !== 'number' || Number.isNaN(outcome.confidence)) return false;
+  if (!outcome.short_reason?.trim()) return false;
+  if (!outcome.final_reason?.trim()) return false;
+  return true;
+};
+
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   analysis,
   hasGameData,
@@ -198,7 +207,30 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     );
   }
 
-  const outcome = analysis?.analysis_outcome || (analysis ? buildLegacyOutcome(analysis) : null);
+  const explicitOutcome = analysis?.analysis_outcome ?? null;
+  const legacyOutcome = explicitOutcome ? null : (analysis ? buildLegacyOutcome(analysis) : null);
+  const outcome = isValidOutcome(explicitOutcome) ? explicitOutcome : isValidOutcome(legacyOutcome) ? legacyOutcome : null;
+
+  if (!outcome) {
+    return (
+      <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={panelShellStyle}>
+        <div className="section-header">
+          <span style={{ color: '#7dd3fc' }}><BulbOutlined /></span>
+          <span className="section-title" style={{ color: '#e0f2fe' }}>智能分析</span>
+        </div>
+        <div style={{ textAlign: 'center', padding: '28px 18px 30px', color: 'rgba(255,255,255,0.4)' }}>
+          <div style={{ fontSize: 32, marginBottom: 12, color: '#7dd3fc', textShadow: '0 0 18px rgba(125,211,252,0.42)' }}>
+            <RobotOutlined style={{ fontSize: 32 }} />
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: '#e2e8f0' }}>系统正在整理本局数据</div>
+          <div style={{ fontSize: 12, color: 'rgba(191,219,254,0.68)' }}>
+            准备开始本局判断
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const direction = outcome?.direction || analysis?.prediction || '--';
   const confidenceValue = outcome?.confidence ?? analysis?.confidence ?? 0;
   const confidenceLabel = outcome?.confidence_label || getConfidenceLabel(confidenceValue);

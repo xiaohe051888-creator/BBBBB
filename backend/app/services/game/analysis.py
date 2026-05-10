@@ -255,27 +255,7 @@ async def run_ai_analysis(
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"单AI分析发生致命异常: {e}", exc_info=True)
-            analysis_result = {
-                "combined_model": {
-                    "final_prediction": "庄",
-                    "confidence": 0.0,
-                    "bet_tier": "保守",
-                    "summary": f"系统异常，单AI回退安全输出: {str(e)}",
-                    "reasoning_points": ["系统异常触发回退输出"],
-                    "reasoning_detail": f"单AI分析发生异常，无法完成推理，已输出安全结果。错误摘要：{str(e)[:200]}",
-                },
-                "banker_model": {"summary": "分析失败"},
-                "player_model": {"summary": "分析失败"},
-                "bet_amount": 0,
-                "analysis_outcome": _build_minimal_outcome(
-                    prediction="庄",
-                    confidence=0.0,
-                    source="single_ai",
-                    short_reason="单AI分析出现异常，本次只能给出安全默认结果。",
-                    final_reason=f"单AI分析发生异常，无法完成完整推理。错误摘要：{str(e)[:200]}",
-                    technical_message=str(e)[:200],
-                ),
-            }
+            return {"success": False, "reason": str(e), "analysis_outcome": None, "prediction": None, "confidence": None}
     else:
         # 调用AI三模型服务
         try:

@@ -120,3 +120,45 @@ def test_run_ai_analysis_single_ai_returns_unified_analysis_outcome():
     assert result["analysis_outcome"]["direction"] == "闲"
     assert result["analysis_outcome"]["source"] == "single_ai"
     assert result["analysis_outcome"]["short_reason"]
+
+
+def test_run_ai_analysis_single_ai_invalid_result_returns_failure():
+    async def _run():
+        from app.core import config as config_module
+        from app.core.database import async_session, init_db
+        from app.models.schemas import GameRecord
+        from app.services.game.analysis import run_ai_analysis
+        from app.services.game.session import get_session, get_session_lock
+
+        await init_db()
+
+        boot = int(uuid4().int % 1_000_000_000) + 4000
+        async with async_session() as s:
+            for i in range(1, 6):
+                s.add(GameRecord(boot_number=boot, game_number=i, result="闲"))
+            await s.commit()
+
+        lock = get_session_lock()
+        async with lock:
+            sess = get_session()
+            sess.boot_number = boot
+            sess.next_game_number = 6
+            sess.prediction_mode = "single_ai"
+
+        config_module.settings.SINGLE_AI_API_KEY = "x" * 20
+
+        with patch(
+            "app.services.single_model_service.SingleModelService._call_model",
+            new=AsyncMock(return_value='{"final_prediction":"庄"}'),
+        ):
+            async with async_session() as s:
+                res = await run_ai_analysis(s, boot_number=boot)
+                await s.commit()
+                return res
+
+    result = asyncio.run(_run())
+
+    assert result["success"] is False
+    assert result["prediction"] is None
+    assert result["analysis_outcome"] is None
+    assert "解析失败" in result["reason"]

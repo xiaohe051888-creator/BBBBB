@@ -16,6 +16,95 @@ from app.core.database import async_session
 from app.core.config import settings
 import copy
 
+
+async def _run_pending_upload_analysis(next_boot: int) -> None:
+    from app.core.database import async_session as _async_session
+    from app.services.game import run_ai_analysis
+    from app.services.game.betting import place_bet
+    from app.services.game.session import get_session
+    from app.services.game.session import broadcast_event as _broadcast_event
+
+    try:
+        async with _async_session() as session2:
+            res2 = await run_ai_analysis(db=session2, boot_number=next_boot)
+            if not res2 or not res2.get("success"):
+                raise RuntimeError(
+                    (res2 or {}).get("reason")
+                    or (res2 or {}).get("error")
+                    or "analysis returned no result"
+                )
+
+            prediction = res2.get("prediction")
+            if prediction not in ("庄", "闲"):
+                prediction = "庄"
+
+            bet_result = await place_bet(
+                db=session2,
+                game_number=res2["game_number"],
+                direction=prediction,
+                amount=res2.get("bet_amount", 100),
+            )
+            if not bet_result.get("success"):
+                raise RuntimeError(
+                    bet_result.get("message")
+                    or bet_result.get("error")
+                    or "pending upload bet failed"
+                )
+            await session2.commit()
+    except Exception as e2:
+        import logging
+        from app.api.routes.game import (
+            _clear_runtime_prediction_snapshot,
+            _run_single_ai_rule_fallback,
+        )
+
+        diagnostic_message = f"下一靴AI分析失败(auto-upload): {e2}"
+        logging.getLogger("uvicorn.error").error(diagnostic_message, exc_info=True)
+
+        try:
+            fallback_used = await _run_single_ai_rule_fallback(
+                boot_number=next_boot,
+                diagnostic_message=diagnostic_message,
+            )
+        except Exception:
+            logging.getLogger(__name__).exception("下一靴自动上传分析失败后规则兜底失败")
+            fallback_used = False
+
+        if fallback_used:
+            return
+
+        sess = get_session()
+        try:
+            async with _async_session() as recovery_session:
+                state = await get_or_create_state(recovery_session)
+                _clear_runtime_prediction_snapshot(sess, state)
+                sess.status = "错误"
+                state.status = "错误"
+                await write_game_log(
+                    recovery_session,
+                    next_boot,
+                    sess.next_game_number or 0,
+                    "LOG-MDL-002",
+                    "AI分析异常",
+                    "失败",
+                    diagnostic_message,
+                    category="工作流事件",
+                    priority="P1",
+                )
+                await recovery_session.commit()
+            await _broadcast_event(
+                "state_update",
+                {
+                    "status": "错误",
+                    "predict_direction": None,
+                    "predict_confidence": None,
+                    "current_bet_tier": "标准",
+                    "pending_bet": None,
+                },
+            )
+        except Exception:
+            logging.getLogger(__name__).exception("下一靴自动上传分析失败后的状态恢复失败")
+
 async def end_boot(
     db: AsyncSession,
 ) -> Dict[str, Any]:
@@ -317,37 +406,8 @@ async def run_deep_learning(
                     "uploaded": uploaded,
                 })
 
-                from app.services.game.session import add_background_task
-                from app.core.database import async_session as _async_session
-                from app.services.game import run_ai_analysis
-                from app.services.game.session import broadcast_event as _broadcast_event
-
-                async def _trigger_next_boot_analysis():
-                    try:
-                        async with _async_session() as session2:
-                            res2 = await run_ai_analysis(db=session2, boot_number=next_boot)
-                            if res2 and res2.get("success"):
-                                prediction = res2.get("prediction")
-                                if prediction not in ("庄", "闲"):
-                                    prediction = "庄"
-                                from app.services.game.betting import place_bet
-                                await place_bet(
-                                    db=session2,
-                                    game_number=res2["game_number"],
-                                    direction=prediction,
-                                    amount=res2.get("bet_amount", 100),
-                                )
-                                await session2.commit()
-                    except Exception as e2:
-                        import logging
-                        logging.getLogger("uvicorn.error").error(f"下一靴AI分析失败(auto-upload): {e2}", exc_info=True)
-                        try:
-                            await _broadcast_event("state_update", {"status": "错误"})
-                        except Exception:
-                            pass
-
                 from app.services.game.session import start_background_task
-                start_background_task("analysis", _trigger_next_boot_analysis())
+                start_background_task("analysis", _run_pending_upload_analysis(next_boot))
     except asyncio.CancelledError:
         async def _cleanup_on_cancel() -> None:
             async with lock:

@@ -123,5 +123,13 @@ export const toCnAnalysisDiagnostic = (raw?: string | null): string => {
     return '智能判断这次没有及时给出稳定结果，系统先用备用判断继续完成这次判断。';
   }
 
+  if (s.includes('解析失败：缺少必须字段')) {
+    return '这次智能判断返回的内容不完整，系统没有把它当成有效结果，随后会自动改用备用判断。';
+  }
+
+  if (s.includes('解析失败：预测方向无效')) {
+    return '这次智能判断返回了无法识别的方向内容，系统没有采用该结果。';
+  }
+
   return translated;
 };

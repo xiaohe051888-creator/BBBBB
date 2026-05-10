@@ -124,6 +124,52 @@ class SingleAIAnalysisTest(unittest.TestCase):
         self.assertIn("不要输出 Markdown", prompt)
         self.assertIn("final_prediction", prompt)
 
+    def test_single_ai_invalid_text_does_not_become_fake_success(self):
+        async def _run():
+            from app.core.database import init_db, async_session
+            from app.models.schemas import GameRecord
+            from app.services.game.session import get_session, get_session_lock
+            from app.services.game.analysis import run_ai_analysis
+            from app.core import config as config_module
+
+            await init_db()
+
+            boot = int(uuid4().int % 1_000_000_000) + 3000
+            async with async_session() as s:
+                for i in range(1, 6):
+                    s.add(GameRecord(boot_number=boot, game_number=i, result="庄"))
+                await s.commit()
+
+            lock = get_session_lock()
+            async with lock:
+                sess = get_session()
+                sess.boot_number = boot
+                sess.next_game_number = 6
+                sess.prediction_mode = "single_ai"
+
+            config_module.settings.SINGLE_AI_API_KEY = "x" * 20
+
+            with patch(
+                "app.services.single_model_service.SingleModelService._call_model",
+                new=AsyncMock(return_value="我觉得这局更偏向庄，但我先解释一下原因"),
+            ):
+                async with async_session() as s:
+                    res = await run_ai_analysis(s, boot_number=boot)
+                    await s.commit()
+                    return res
+
+        res = asyncio.run(_run())
+        self.assertFalse(res["success"])
+        self.assertIsNone(res["prediction"])
+        self.assertIsNone(res["analysis_outcome"])
+        self.assertIn("解析失败", res["reason"])
+
+    def test_single_ai_missing_required_fields_is_invalid(self):
+        from app.services.single_model_service import SingleAIParseError, parse_single_ai_response
+
+        with self.assertRaisesRegex(SingleAIParseError, "缺少必须字段"):
+            parse_single_ai_response('{"final_prediction":"庄","confidence":0.5}')
+
 
 if __name__ == "__main__":
     unittest.main()

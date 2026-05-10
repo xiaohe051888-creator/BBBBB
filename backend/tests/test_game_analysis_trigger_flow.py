@@ -217,6 +217,128 @@ class GameAnalysisTriggerFlowTest(unittest.TestCase):
         self.assertGreaterEqual(timeout, 95)
         self.assertGreater(timeout, 45)
 
+    def test_followup_analysis_parse_failure_uses_rule_fallback_not_fake_success(self):
+        async def _run():
+            from app.core.database import init_db, async_session
+            from app.models.schemas import BetRecord
+            from app.services.game.session import get_session
+            from app.services.game.state import get_or_create_state
+            from app.api.routes.game import _run_followup_analysis
+
+            await init_db()
+            boot = self._new_boot_number()
+            await self._seed_one_game(boot)
+
+            sess = get_session()
+            sess.status = "分析中"
+
+            async with async_session() as session:
+                state = await get_or_create_state(session)
+                state.status = "分析中"
+                await session.commit()
+
+            async def _invalid(*args, **kwargs):
+                return {
+                    "success": False,
+                    "prediction": None,
+                    "confidence": None,
+                    "reason": "解析失败：缺少必须字段 summary",
+                    "analysis_outcome": None,
+                    "error_type": "single_ai_parse_failure",
+                }
+
+            with patch("app.services.game.run_ai_analysis", new=_invalid):
+                await _run_followup_analysis(boot, "单AI正式分析失败")
+
+            async with async_session() as session:
+                state = await get_or_create_state(session)
+                bet = (
+                    await session.execute(
+                        BetRecord.__table__.select()
+                        .where(BetRecord.boot_number == boot)
+                        .order_by(BetRecord.bet_seq.desc())
+                        .limit(1)
+                    )
+                ).mappings().first()
+                return {
+                    "mem_status": sess.status,
+                    "mem_predict_direction": sess.predict_direction,
+                    "db_status": state.status,
+                    "db_predict_direction": state.predict_direction,
+                    "analysis_source": (sess.analysis_outcome or {}).get("source") if sess.analysis_outcome else None,
+                    "bet_direction": bet["bet_direction"] if bet else None,
+                }
+
+        result = asyncio.run(_run())
+        self.assertEqual(result["mem_status"], "等待开奖")
+        self.assertEqual(result["db_status"], "等待开奖")
+        self.assertEqual(result["analysis_source"], "rule_fallback")
+        self.assertIn(result["mem_predict_direction"], ("庄", "闲"))
+        self.assertIn(result["db_predict_direction"], ("庄", "闲"))
+        self.assertIn(result["bet_direction"], ("庄", "闲"))
+
+    def test_pending_upload_analysis_parse_failure_uses_rule_fallback(self):
+        async def _run():
+            from app.core.database import init_db, async_session
+            from app.models.schemas import BetRecord
+            from app.services.game.session import get_session
+            from app.services.game.state import get_or_create_state
+            from app.services.game.boot import _run_pending_upload_analysis
+
+            await init_db()
+            boot = self._new_boot_number()
+            await self._seed_one_game(boot)
+
+            sess = get_session()
+            sess.status = "分析中"
+
+            async with async_session() as session:
+                state = await get_or_create_state(session)
+                state.status = "分析中"
+                await session.commit()
+
+            async def _invalid(*args, **kwargs):
+                return {
+                    "success": False,
+                    "prediction": None,
+                    "confidence": None,
+                    "reason": "解析失败：缺少必须字段 summary",
+                    "analysis_outcome": None,
+                    "error_type": "single_ai_parse_failure",
+                }
+
+            with patch("app.services.game.run_ai_analysis", new=_invalid):
+                await _run_pending_upload_analysis(boot)
+
+            async with async_session() as session:
+                state = await get_or_create_state(session)
+                bet = (
+                    await session.execute(
+                        BetRecord.__table__.select()
+                        .where(BetRecord.boot_number == boot)
+                        .order_by(BetRecord.bet_seq.desc())
+                        .limit(1)
+                    )
+                ).mappings().first()
+                return {
+                    "mem_status": sess.status,
+                    "mem_predict_direction": sess.predict_direction,
+                    "db_status": state.status,
+                    "db_predict_direction": state.predict_direction,
+                    "analysis_source": (sess.analysis_outcome or {}).get("source") if sess.analysis_outcome else None,
+                    "bet_direction": bet["bet_direction"] if bet else None,
+                    "bet_status": bet["status"] if bet else None,
+                }
+
+        result = asyncio.run(_run())
+        self.assertEqual(result["mem_status"], "等待开奖")
+        self.assertEqual(result["db_status"], "等待开奖")
+        self.assertEqual(result["analysis_source"], "rule_fallback")
+        self.assertIn(result["mem_predict_direction"], ("庄", "闲"))
+        self.assertIn(result["db_predict_direction"], ("庄", "闲"))
+        self.assertIn(result["bet_direction"], ("庄", "闲"))
+        self.assertEqual(result["bet_status"], "待开奖")
+
 
 if __name__ == "__main__":
     unittest.main()

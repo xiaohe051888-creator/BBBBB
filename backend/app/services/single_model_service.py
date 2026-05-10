@@ -8,6 +8,67 @@ from fastapi.encoders import jsonable_encoder
 from app.services.single_ai_runtime import build_single_ai_runtime_config
 
 
+class SingleAIParseError(Exception):
+    pass
+
+
+def parse_single_ai_response(text: str) -> Dict[str, Any]:
+    raw = (text or "").strip()
+    if not raw:
+        raise SingleAIParseError("解析失败：模型没有返回内容")
+
+    data = None
+    try:
+        data = json.loads(raw)
+    except Exception:
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                data = json.loads(raw[start : end + 1])
+            except Exception:
+                data = None
+
+    if not isinstance(data, dict):
+        raise SingleAIParseError("解析失败：返回内容不是有效 JSON")
+
+    normalized = dict(data)
+
+    aliases = {
+        "final_prediction": ("final_prediction", "prediction", "最终预测", "预测结果", "预测方向"),
+        "confidence": ("confidence", "置信度"),
+        "summary": ("summary", "reason", "摘要", "分析摘要", "理由", "结论摘要"),
+        "reasoning_detail": ("reasoning_detail", "推理详情", "详细推理", "分析详情", "reason", "summary", "摘要"),
+    }
+    for canonical, keys in aliases.items():
+        for key in keys:
+            value = data.get(key)
+            if value not in (None, ""):
+                normalized[canonical] = value
+                break
+
+    required_fields = ("final_prediction", "confidence", "summary", "reasoning_detail")
+    missing = [field for field in required_fields if normalized.get(field) in (None, "")]
+    if missing:
+        raise SingleAIParseError(f"解析失败：缺少必须字段 {', '.join(missing)}")
+
+    direction = str(normalized.get("final_prediction", "")).strip()
+    if direction not in ("庄", "闲"):
+        raise SingleAIParseError("解析失败：预测方向无效")
+
+    try:
+        confidence = float(normalized.get("confidence"))
+    except Exception as exc:
+        raise SingleAIParseError("解析失败：把握程度无效") from exc
+
+    if confidence < 0 or confidence > 1:
+        raise SingleAIParseError("解析失败：把握程度超出范围")
+
+    normalized["confidence"] = confidence
+    normalized["final_prediction"] = direction
+    return normalized
+
+
 class SingleModelService:
     @staticmethod
     def _pick_value(data: Dict[str, Any], *keys: str, default: Any = None) -> Any:
@@ -223,15 +284,13 @@ class SingleModelService:
         text = await self._call_model(prompt)
         parsed = self._parse_model_json(text)
 
-        fp = self._pick_value(parsed, "final_prediction", "prediction", "最终预测", "预测结果", "预测方向", default="庄")
-        if fp not in ("庄", "闲"):
-            fp = "庄"
+        fp = self._pick_value(parsed, "final_prediction", "prediction", "最终预测", "预测结果", "预测方向")
 
         combined_model = {
             "final_prediction": fp,
-            "confidence": float(self._pick_value(parsed, "confidence", "置信度", default=0.0) or 0.0),
+            "confidence": float(self._pick_value(parsed, "confidence", "置信度")),
             "bet_tier": self._pick_value(parsed, "bet_tier", "bet_level", "下注档位", "下注级别", "档位", default="标准"),
-            "summary": self._pick_value(parsed, "summary", "reason", "摘要", "分析摘要", "理由", "结论摘要", default=""),
+            "summary": self._pick_value(parsed, "summary", "reason", "摘要", "分析摘要", "理由", "结论摘要"),
             "reasoning_points": self._pick_list(parsed, "reasoning_points", "signals", "推理要点", "关键信号"),
             "reasoning_detail": self._pick_value(
                 parsed,
@@ -242,7 +301,6 @@ class SingleModelService:
                 "分析详情",
                 "summary",
                 "摘要",
-                default="",
             ),
         }
         analysis_outcome = self._build_analysis_outcome(parsed, combined_model, road_data)
@@ -451,14 +509,4 @@ class SingleModelService:
         return f"未能成功提取实时策略：{str(last_error)[:200]}"
 
     def _parse_model_json(self, text: str) -> Dict[str, Any]:
-        try:
-            return json.loads(text)
-        except Exception:
-            start = text.find("{")
-            end = text.rfind("}")
-            if start >= 0 and end > start:
-                try:
-                    return json.loads(text[start : end + 1])
-                except Exception:
-                    pass
-        return {"final_prediction": "庄", "confidence": 0.0, "bet_tier": "保守", "summary": "解析失败"}
+        return parse_single_ai_response(text)

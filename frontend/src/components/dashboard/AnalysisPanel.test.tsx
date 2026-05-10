@@ -298,4 +298,47 @@ describe('AnalysisPanel', () => {
     });
     container.remove();
   });
+
+  it('does not render a completed recommendation card for invalid analysis content', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <AnalysisPanel
+          hasGameData
+          hasPendingBet={false}
+          aiAnalyzing={false}
+          workflowStage={{
+            type: 'analyzed_pending_bet',
+            showAnalysisLoading: false,
+            showCompletedAnalysis: true,
+          }}
+          analysis={{
+            prediction: null,
+            confidence: 0,
+            combined_summary: '解析失败',
+            prediction_mode: 'single_ai',
+            analysis_outcome: null,
+          }}
+        />
+      );
+    });
+
+    const html = container.innerHTML;
+
+    expect(html).not.toContain('已完成判断');
+    expect(html).not.toContain('本局建议');
+    expect(html).not.toContain('解析失败');
+    expect(html).toContain('系统正在整理本局数据');
+    expect(html).toContain('准备开始本局判断');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });
