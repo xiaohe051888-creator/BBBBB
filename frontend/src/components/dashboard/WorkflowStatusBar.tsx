@@ -8,6 +8,7 @@ import { Button } from 'antd';
 
 import { useWaitTimer } from '../../hooks/useWaitTimer';
 import { formatAdminPageLabel, formatLearningLabel } from '../../utils/beginnerCopy';
+import type { DashboardWorkflowStage } from '../../utils/systemFlowConsistency';
 import {
   ClockCircleOutlined as ClockIcon,
   BulbOutlined as BulbIcon,
@@ -32,6 +33,7 @@ interface WorkflowStatusBarProps {
     prediction_mode?: 'ai' | 'single_ai' | 'rule';
   } | null;
   onOpenReveal: () => void;
+  workflowStage: DashboardWorkflowStage;
 }
 
 export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
@@ -40,6 +42,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
   analysis,
   systemState,
   onOpenReveal,
+  workflowStage,
 }) => {
   const { seconds: waitSeconds, formattedTime: waitFormattedTime } = useWaitTimer({ enabled: hasPendingBet });
   const pendingGameNumber = systemState?.pending_bet?.game_number ?? systemState?.next_game_number;
@@ -71,7 +74,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
         borderColor: 'rgba(250,173,20,0.25)',
       };
     }
-    if (analysis?.prediction && !hasPendingBet) {
+    if (workflowStage.type === 'analyzed_pending_bet' && analysis?.prediction && !hasPendingBet) {
       const isWait = analysis.prediction === '观望';
       return {
         icon: <BulbIcon />,
@@ -85,7 +88,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       };
     }
 
-    if (systemState?.status === '分析中' && !hasPendingBet) {
+    if (workflowStage.type === 'analyzing' && !hasPendingBet) {
       const mode = systemState?.prediction_mode;
       return {
         icon: <BulbIcon />,
@@ -111,7 +114,7 @@ export const WorkflowStatusBar: React.FC<WorkflowStatusBarProps> = ({
       };
     }
 
-    if ((systemState?.game_number || 0) >= 72 || (systemState?.next_game_number || 0) > 72) {
+    if (workflowStage.type === 'boot_finished') {
       return {
         icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>,
         iconColor: '#ff4d4f',

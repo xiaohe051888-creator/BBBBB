@@ -60,6 +60,11 @@ describe('DashboardHeader', () => {
             isAdminLoggedIn={false}
             onOpenAdminLogin={() => {}}
             gameCount={28}
+            workflowStage={{
+              type: 'analyzing',
+              showAnalysisLoading: true,
+              showCompletedAnalysis: false,
+            }}
           />
         </MemoryRouter>
       );
@@ -71,6 +76,60 @@ describe('DashboardHeader', () => {
     expect(html).toContain('dashboard-header-mobile-status-row');
     expect(html).toContain('dashboard-action-group');
     expect(html).toContain('dashboard-balance-badge');
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('uses the pending bet game number during waiting reveal stage', () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    vi.spyOn(Grid, 'useBreakpoint').mockReturnValue({ md: false } as ReturnType<typeof Grid.useBreakpoint>);
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <MemoryRouter>
+          <DashboardHeader
+            systemState={{
+              boot_number: 1,
+              game_number: 17,
+              next_game_number: 19,
+              current_game_result: '庄',
+              predict_direction: '庄',
+              balance: 12888,
+              pending_bet: {
+                game_number: 18,
+                direction: '庄',
+                amount: 100,
+              },
+            }}
+            bettingAdvice={{} as never}
+            diagnostics={diagnostics as never}
+            onDismissIssue={() => {}}
+            onRetryConnection={() => {}}
+            isUserLoggedIn={false}
+            isAdminLoggedIn={false}
+            onOpenAdminLogin={() => {}}
+            gameCount={17}
+            workflowStage={{
+              type: 'waiting_reveal',
+              showAnalysisLoading: false,
+              showCompletedAnalysis: true,
+            }}
+          />
+        </MemoryRouter>
+      );
+    });
+
+    const html = container.innerHTML;
+
+    expect(html).toContain('第 18');
+    expect(html).not.toContain('第 19');
 
     act(() => {
       root.unmount();

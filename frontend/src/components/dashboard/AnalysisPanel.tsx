@@ -14,7 +14,7 @@ import {
   formatConfidenceLabel,
 } from '../../utils/beginnerCopy';
 import { toCnModelLabel } from '../../utils/i18nErrors';
-import { resolvePredictionMode } from '../../utils/systemFlowConsistency';
+import { resolvePredictionMode, type DashboardWorkflowStage } from '../../utils/systemFlowConsistency';
 
 interface Analysis {
   prediction?: string | null;
@@ -34,6 +34,7 @@ interface AnalysisPanelProps {
   hasGameData: boolean;
   hasPendingBet: boolean;
   aiAnalyzing: boolean;
+  workflowStage: DashboardWorkflowStage;
 }
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
@@ -41,6 +42,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   hasGameData,
   hasPendingBet,
   aiAnalyzing,
+  workflowStage,
 }) => {
   const { data: systemState } = useSystemStateQuery({});
   const mode = resolvePredictionMode(systemState?.prediction_mode, analysis?.prediction_mode);
@@ -86,7 +88,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   );
 
   // 分析中状态 - 三模型进度指示器
-  if (aiAnalyzing && !hasPendingBet) {
+  if (workflowStage.showAnalysisLoading || (aiAnalyzing && !hasPendingBet)) {
     return (
       <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={{ minHeight: 'auto' }}>
         <div className="section-header">

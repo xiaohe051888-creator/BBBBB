@@ -11,6 +11,7 @@ import { SystemStatusPanel } from '../ui/SystemStatusPanel';
 import type { SystemDiagnostics } from '../../hooks/useSystemDiagnostics';
 import type { BettingAdvice } from '../../hooks/useSmartDetection';
 import { formatMoney } from '../../utils/money';
+import type { DashboardWorkflowStage } from '../../utils/systemFlowConsistency';
 
 interface DashboardHeaderProps {
   systemState: {
@@ -36,6 +37,7 @@ interface DashboardHeaderProps {
   isAdminLoggedIn: boolean;
   onOpenAdminLogin: () => void;
   gameCount: number;
+  workflowStage: DashboardWorkflowStage;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ 
@@ -46,6 +48,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   isUserLoggedIn,
   isAdminLoggedIn,
   onOpenAdminLogin,
+  workflowStage,
 }) => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -111,6 +114,16 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     <SystemStatusPanel diagnostics={diagnostics} onDismissIssue={onDismissIssue} onRetryConnection={onRetryConnection} compact />
   );
 
+  const predictedGameNumber =
+    workflowStage.type === 'waiting_reveal' && systemState?.pending_bet
+      ? systemState.pending_bet.game_number
+      : systemState?.next_game_number || (systemState?.game_number || 0) + 1;
+
+  const predictedDirection =
+    workflowStage.type === 'waiting_reveal' && systemState?.pending_bet
+      ? systemState.pending_bet.direction
+      : systemState?.predict_direction;
+
   const currentPredictPanel = (
     <div className="dashboard-current-predict" style={{
       display: 'flex',
@@ -172,15 +185,15 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           ) : (
             <>
               <span style={{ fontSize: 20, fontWeight: 800, color: '#ffd666', fontVariantNumeric: 'tabular-nums' }}>
-                第 {systemState?.next_game_number || (systemState?.game_number || 0) + 1} <span className="sub-text" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,215,0,0.5)' }}>局</span>
+                第 {predictedGameNumber} <span className="sub-text" style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,215,0,0.5)' }}>局</span>
               </span>
-              {systemState?.predict_direction ? (
+              {predictedDirection ? (
                 <div className="predict-result-blink" style={{
-                  background: systemState.predict_direction === '庄' ? '#ff4d4f' : systemState.predict_direction === '闲' ? '#1890ff' : '#faad14',
+                  background: predictedDirection === '庄' ? '#ff4d4f' : predictedDirection === '闲' ? '#1890ff' : '#faad14',
                   color: '#fff', fontSize: 16, fontWeight: 900, padding: '2px 10px', borderRadius: 6,
-                  boxShadow: `0 0 12px ${systemState.predict_direction === '庄' ? 'rgba(255,77,79,0.6)' : systemState.predict_direction === '闲' ? 'rgba(24,144,255,0.6)' : 'rgba(250,173,20,0.6)'}`
+                  boxShadow: `0 0 12px ${predictedDirection === '庄' ? 'rgba(255,77,79,0.6)' : predictedDirection === '闲' ? 'rgba(24,144,255,0.6)' : 'rgba(250,173,20,0.6)'}`
                 }}>
-                  {systemState.predict_direction}
+                  {predictedDirection}
                 </div>
               ) : (
                 <div style={{ width: 32, height: 24, borderRadius: 6, background: 'rgba(255,215,0,0.05)', border: '1px dashed rgba(255,215,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

@@ -17,7 +17,11 @@ import { LearningStatusPanel } from '../components/learning';
 import { SmartAlerts } from '../components/ui';
 import { AdminAlertsBar } from '../components/dashboard/AdminAlertsBar';
 import { getModelVersionDisplay } from '../utils/modelVersionDisplay';
-import { formatAccuracyPercent } from '../utils/systemFlowConsistency';
+import {
+  applyDashboardRealtimeUpdate,
+  deriveDashboardWorkflowStage,
+  formatAccuracyPercent,
+} from '../utils/systemFlowConsistency';
 import { debounce } from '../utils/debounce';
 import {
   useSmartDetection,
@@ -33,6 +37,7 @@ import {
   useAddLogOptimistically,
   useAddBetOptimistically,
   useAddGameOptimistically,
+  useUpdateAnalysisOptimistically,
   useUpdateStateOptimistically,
   useWebSocket,
 } from '../hooks';
@@ -130,6 +135,7 @@ const DashboardPage: React.FC = () => {
   const addLogOptimistically = useAddLogOptimistically();
   const addBetOptimistically = useAddBetOptimistically();
   const addGameOptimistically = useAddGameOptimistically();
+  const updateAnalysisOptimistically = useUpdateAnalysisOptimistically();
   const updateStateOptimistically = useUpdateStateOptimistically();
 
   // 节流与防抖的缓存失效函数 (避免高频 WebSocket 导致打挂服务器)
@@ -167,6 +173,21 @@ const DashboardPage: React.FC = () => {
 
   // 统一使用强化过的 useWebSocket
   useWebSocket({
+    onAnalysis: (data) => {
+      updateAnalysisOptimistically({
+        banker_summary: data?.banker_summary || '',
+        player_summary: data?.player_summary || '',
+        combined_summary: data?.combined_summary || '',
+        confidence: typeof data?.confidence === 'number' ? data.confidence : 0,
+        bet_tier: data?.bet_tier || '标准',
+        prediction: data?.prediction || null,
+        bet_amount: typeof data?.bet_amount === 'number' ? data.bet_amount : null,
+        prediction_mode: data?.prediction_mode,
+        engine: data?.engine || null,
+        reasoning_points: Array.isArray(data?.reasoning_points) ? data.reasoning_points : [],
+        reasoning_detail: data?.reasoning_detail || null,
+      });
+    },
     onLog: (data) => {
       addLogOptimistically(data);
       debouncedInvalidateLogs();
@@ -191,9 +212,25 @@ const DashboardPage: React.FC = () => {
         adapt_summary: null,
       });
       // 同步乐观更新系统余额，防止闪烁
-      updateStateOptimistically({
-        balance: data.balance_after
-      });
+      updateStateOptimistically((old) =>
+        old
+          ? applyDashboardRealtimeUpdate(
+              {
+                ...old,
+                balance: data.balance_after,
+              },
+              {
+                type: 'bet_placed',
+                payload: {
+                  game_number: data.game_number,
+                  direction: data.direction,
+                  amount: data.amount,
+                  tier: data.tier,
+                },
+              },
+            )
+          : old,
+      );
       debouncedInvalidateBets();
       debouncedInvalidateState();
     },
@@ -212,15 +249,30 @@ const DashboardPage: React.FC = () => {
           balance_after: typeof data?.balance === 'number' ? data.balance : 0,
         });
       }
+      updateStateOptimistically((old) =>
+        old
+          ? applyDashboardRealtimeUpdate(old, {
+              type: 'game_revealed',
+              payload: {
+                game_number: data.game_number,
+                balance: data.balance,
+                result: data.result,
+              },
+            })
+          : old,
+      );
       debouncedInvalidateGames();
       debouncedInvalidateState();
     },
     onStateUpdate: (data) => {
-      updateStateOptimistically({
-        status: data.status,
-        boot_number: data.boot_number,
-        game_number: data.game_number,
-      });
+      updateStateOptimistically((old) =>
+        old
+          ? applyDashboardRealtimeUpdate(old, {
+              type: 'state_update',
+              payload: data,
+            })
+          : old,
+      );
       debouncedInvalidateState();
     },
     onReconnect: () => {
@@ -254,6 +306,18 @@ const DashboardPage: React.FC = () => {
   const tieCount = validGames.filter(g => g.result === '和').length;
   // 严格使用三者之和作为总有效局数，不再相信数据库里可能存在的其他脏记录长度
   const validGamesLength = bankerCount + playerCount + tieCount;
+  const workflowStage = useMemo(
+    () =>
+      deriveDashboardWorkflowStage({
+        hasGameData,
+        hasPendingBet,
+        systemStatus: systemState?.status,
+        nextGameNumber: systemState?.next_game_number,
+        analysis: analysis ?? null,
+        analysisFetching,
+      }),
+    [hasGameData, hasPendingBet, systemState?.status, systemState?.next_game_number, analysis, analysisFetching],
+  );
 
   // 等待开奖计时器
   // pendingGameNumber暂未使用
@@ -341,6 +405,7 @@ const DashboardPage: React.FC = () => {
         isAdminLoggedIn={isAdminLoggedIn}
         onOpenAdminLogin={openAdminLogin}
         gameCount={games.length}
+        workflowStage={workflowStage}
       />
 
       {/* 工作流状态栏 */}
@@ -350,6 +415,7 @@ const DashboardPage: React.FC = () => {
         analysis={analysis ?? null}
         systemState={systemState ?? null}
         onOpenReveal={handleOpenReveal}
+        workflowStage={workflowStage}
       />
 
       <AdminAlertsBar />
@@ -435,7 +501,7 @@ const DashboardPage: React.FC = () => {
             hasGameData={hasGameData}
             hasPendingBet={hasPendingBet}
             aiAnalyzing={aiAnalyzing}
-            
+            workflowStage={workflowStage}
           />
 
           {/* 智能提示 */}

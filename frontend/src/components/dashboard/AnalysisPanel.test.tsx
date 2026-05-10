@@ -33,6 +33,11 @@ describe('AnalysisPanel', () => {
           hasGameData
           hasPendingBet={false}
           aiAnalyzing={false}
+          workflowStage={{
+            type: 'analyzed_pending_bet',
+            showAnalysisLoading: false,
+            showCompletedAnalysis: true,
+          }}
           analysis={{
             prediction: '庄',
             confidence: 0.83,
@@ -76,6 +81,11 @@ describe('AnalysisPanel', () => {
           hasGameData
           hasPendingBet
           aiAnalyzing
+          workflowStage={{
+            type: 'waiting_reveal',
+            showAnalysisLoading: false,
+            showCompletedAnalysis: true,
+          }}
           analysis={{
             prediction: '庄',
             confidence: 0.76,
