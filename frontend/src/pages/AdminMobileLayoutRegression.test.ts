@@ -236,17 +236,24 @@ describe('admin mobile layout regressions', () => {
     expect(mistakes).toContain('className="review-mobile-list"');
     expect(mistakes).toContain('className="review-mobile-card"');
     expect(mistakes).toContain('className="review-mobile-head"');
-    expect(mistakes).toContain('className="review-mobile-kpis"');
+    expect(mistakes).toContain('className="review-mobile-summary"');
+    expect(mistakes).toContain('className="review-mobile-meta"');
     expect(mistakes).toContain('className="review-mobile-outcome"');
     expect(mistakes).toContain('className="review-mobile-analysis"');
     expect(mistakes).toContain('className="review-detail-sheet"');
     expect(mistakes).not.toContain('<Descriptions bordered');
-    expect(mistakes).toContain('className="review-detail-kpi-grid"');
+    expect(mistakes).toContain('className="review-detail-hero"');
+    expect(mistakes).toContain('className="review-detail-meta"');
     expect(mistakes).toContain('className="review-detail-section is-danger"');
     expect(mistakes).toContain('className="review-detail-section is-action"');
+    expect(mistakes).not.toContain('className="review-mobile-kpis"');
+    expect(mistakes).not.toContain('className="review-detail-kpi-grid"');
+    expect(mistakes).not.toContain('className="review-detail-summary-list"');
     expect(css).toContain('.review-mobile-card {');
     expect(css).toContain('.review-detail-sheet {');
-    expect(css).toContain('.review-detail-kpi-grid {');
+    expect(css).toContain('.review-mobile-summary {');
+    expect(css).toContain('.review-detail-hero {');
+    expect(css).not.toContain('.review-detail-kpi-grid {');
   });
 
   it('keeps user-facing status and form pages on shared mobile shell classes', () => {

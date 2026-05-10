@@ -269,6 +269,23 @@ const MistakeBookPage: React.FC = () => {
     </div>
   );
 
+  const formatConfidenceText = (value: number | null) => (
+    value !== null ? `${Math.round(value * 100)}%` : '未记录'
+  );
+
+  const buildModelSummary = (record: MistakeRecord) => {
+    if (record.combined_summary) {
+      return record.combined_summary;
+    }
+
+    const parts = [
+      record.banker_summary ? `${formatDetailLabel('bankerModel')}：${record.banker_summary}` : '',
+      record.player_summary ? `${formatDetailLabel('playerModel')}：${record.player_summary}` : '',
+    ].filter(Boolean);
+
+    return parts.join(' ');
+  };
+
   const renderConfidence = (value: number | null) => (
     value !== null ? (
       <Progress
@@ -444,16 +461,14 @@ const MistakeBookPage: React.FC = () => {
                 </Button>
               </div>
 
-              <div className="review-mobile-kpis">
-                <div className="review-mobile-kpi">
-                  <span>失误类型</span>
+              <div className="review-mobile-summary">
+                <div className="review-mobile-meta">
                   <Tag color={ERROR_TYPE_MAP[record.error_type]?.color}>
                     {ERROR_TYPE_MAP[record.error_type]?.label || record.error_type}
                   </Tag>
-                </div>
-                <div className="review-mobile-kpi">
-                  <span>{formatConfidenceLabel()}</span>
-                  <div className="review-mobile-progress">{renderConfidence(record.confidence)}</div>
+                  <span className="review-mobile-confidence">
+                    {`${formatConfidenceLabel()} ${formatConfidenceText(record.confidence)}`}
+                  </span>
                 </div>
               </div>
 
@@ -523,26 +538,16 @@ const MistakeBookPage: React.FC = () => {
       >
         {selectedMistake && (
           <div className="review-detail-sheet">
-            <div className="review-detail-kpi-grid">
-              <div className="review-detail-kpi">
-                <span>局号</span>
-                <strong>{selectedMistake.game_number}</strong>
+            <div className="review-detail-hero">
+              <div className="review-detail-title-row">
+                <strong>{`第${selectedMistake.game_number}局复盘`}</strong>
+                <Tag color={ERROR_TYPE_MAP[selectedMistake.error_type]?.color}>
+                  {ERROR_TYPE_MAP[selectedMistake.error_type]?.label || selectedMistake.error_type}
+                </Tag>
               </div>
-              <div className="review-detail-kpi">
-                <span>靴号</span>
-                <strong>{`#${selectedMistake.boot_number}`}</strong>
-              </div>
-              <div className="review-detail-kpi">
-                <span>失误类型</span>
-                <strong>
-                  <Tag color={ERROR_TYPE_MAP[selectedMistake.error_type]?.color}>
-                    {ERROR_TYPE_MAP[selectedMistake.error_type]?.label || selectedMistake.error_type}
-                  </Tag>
-                </strong>
-              </div>
-              <div className="review-detail-kpi">
-                <span>{formatConfidenceLabel()}</span>
-                <strong>{renderConfidence(selectedMistake.confidence)}</strong>
+              <div className="review-detail-meta">
+                <span>{`第${selectedMistake.boot_number}靴`}</span>
+                <span>{`${formatConfidenceLabel()} ${formatConfidenceText(selectedMistake.confidence)}`}</span>
               </div>
             </div>
 
@@ -553,29 +558,7 @@ const MistakeBookPage: React.FC = () => {
 
             <div className="review-detail-section">
               <span className="review-detail-label">{formatDetailLabel('modelSummary')}</span>
-              <div className="review-detail-summary-list">
-                {selectedMistake.banker_summary ? (
-                  <div className="review-detail-summary-item">
-                    <strong>{formatDetailLabel('bankerModel')}</strong>
-                    <p>{selectedMistake.banker_summary}</p>
-                  </div>
-                ) : null}
-                {selectedMistake.player_summary ? (
-                  <div className="review-detail-summary-item">
-                    <strong>{formatDetailLabel('playerModel')}</strong>
-                    <p>{selectedMistake.player_summary}</p>
-                  </div>
-                ) : null}
-                {selectedMistake.combined_summary ? (
-                  <div className="review-detail-summary-item">
-                    <strong>{formatDetailLabel('combinedModel')}</strong>
-                    <p>{selectedMistake.combined_summary}</p>
-                  </div>
-                ) : null}
-                {!selectedMistake.banker_summary && !selectedMistake.player_summary && !selectedMistake.combined_summary ? (
-                  <p className="review-detail-empty">暂时没有AI分析摘要</p>
-                ) : null}
-              </div>
+              <p>{buildModelSummary(selectedMistake) || '暂时没有AI分析摘要'}</p>
             </div>
 
             <div className="review-detail-section is-danger">
