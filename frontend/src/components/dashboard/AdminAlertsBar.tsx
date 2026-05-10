@@ -37,6 +37,10 @@ export const AdminAlertsBar: React.FC = () => {
 
   const items = useMemo(() => data?.data || [], [data]);
   const count = data?.count || 0;
+  const latestAlertLogId = data?.latest_alert_log_id ?? null;
+  const unacknowledgedCount =
+    typeof data?.unacknowledged_count === 'number' ? data.unacknowledged_count : count;
+  const shouldShow = isLoggedIn && unacknowledgedCount > 0;
   const severityLabel = formatLogPriorityLabel('P1');
   const logsUrl = useCallback((q?: string) => {
     const base = '/dashboard/logs?priority=P1';
@@ -44,7 +48,18 @@ export const AdminAlertsBar: React.FC = () => {
     return `${base}&q=${encodeURIComponent(q)}`;
   }, []);
 
-  if (!isLoggedIn || count <= 0) return null;
+  const handleAcknowledge = useCallback(async () => {
+    if (!latestAlertLogId) return;
+    setLoading(true);
+    try {
+      await api.adminMaintenanceAcknowledgeAlerts(latestAlertLogId);
+      await fetchAlerts();
+    } catch {
+      setLoading(false);
+    }
+  }, [fetchAlerts, latestAlertLogId]);
+
+  if (!shouldShow) return null;
 
   return (
     <div className="admin-alerts-bar" style={{
@@ -65,6 +80,7 @@ export const AdminAlertsBar: React.FC = () => {
         </div>
         <Space size={8} wrap className={`admin-alerts-bar-actions ${isMobile ? 'mobile-action-row' : ''}`} style={isMobile ? { width: '100%' } : undefined}>
           <Button size="small" loading={loading} onClick={fetchAlerts}>刷新</Button>
+          <Button size="small" type="primary" onClick={handleAcknowledge} disabled={!latestAlertLogId || loading}>确认</Button>
           <Button size="small" onClick={() => setExpanded(v => !v)}>{expanded ? '收起' : '展开'}</Button>
           <Button size="small" type="primary" danger onClick={() => navigate(logsUrl())}>查看全部</Button>
         </Space>
