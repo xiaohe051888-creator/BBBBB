@@ -119,10 +119,15 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       ? systemState.pending_bet.game_number
       : systemState?.next_game_number || (systemState?.game_number || 0) + 1;
 
-  const predictedDirection =
+  const resolvedPredictedDirection =
     workflowStage.type === 'waiting_reveal' && systemState?.pending_bet
       ? systemState.pending_bet.direction
       : systemState?.predict_direction;
+
+  const predictedDirection =
+    workflowStage.type === 'waiting_reveal' || workflowStage.showCompletedAnalysis
+      ? resolvedPredictedDirection
+      : null;
 
   const currentPredictPanel = (
     <div className="dashboard-current-predict" style={{

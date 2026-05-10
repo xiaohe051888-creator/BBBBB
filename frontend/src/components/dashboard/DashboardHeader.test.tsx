@@ -136,4 +136,53 @@ describe('DashboardHeader', () => {
     });
     container.remove();
   });
+
+  it('does not show a stale predicted direction while the workflow is still analyzing', () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    vi.spyOn(Grid, 'useBreakpoint').mockReturnValue({ md: false } as ReturnType<typeof Grid.useBreakpoint>);
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <MemoryRouter>
+          <DashboardHeader
+            systemState={{
+              boot_number: 1,
+              game_number: 18,
+              next_game_number: 19,
+              current_game_result: '庄',
+              predict_direction: '庄',
+              balance: 13076,
+            }}
+            bettingAdvice={{} as never}
+            diagnostics={diagnostics as never}
+            onDismissIssue={() => {}}
+            onRetryConnection={() => {}}
+            isUserLoggedIn={false}
+            isAdminLoggedIn={false}
+            onOpenAdminLogin={() => {}}
+            gameCount={18}
+            workflowStage={{
+              type: 'analyzing',
+              showAnalysisLoading: true,
+              showCompletedAnalysis: false,
+            }}
+          />
+        </MemoryRouter>
+      );
+    });
+
+    const html = container.innerHTML;
+
+    expect(html).toContain('第 19');
+    expect(html).not.toContain('predict-result-blink');
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });
