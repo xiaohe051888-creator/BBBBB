@@ -22,7 +22,7 @@ interface MicroLearningStatus {
 
 interface DeepLearningStatus {
   boot_number?: number;
-  status: '启动中' | '数据准备' | 'AI分析' | '生成版本' | '完成' | '失败';
+  status: '启动中' | '数据准备' | '智能分析' | '生成版本' | '完成' | '失败';
   progress: number;
   message: string;
   start_time?: string;
@@ -48,14 +48,14 @@ export const LearningStatusPanel: React.FC<LearningStatusPanelProps> = ({
   
   void compact;
   // 是否正在深度学习中
-  const isDeepLearning = systemStatus === '深度学习中' || deepLearning?.status === 'AI分析' || deepLearning?.status === '数据准备' || deepLearning?.status === '生成版本';
+  const isDeepLearning = systemStatus === '深度学习中' || deepLearning?.status === '智能分析' || deepLearning?.status === '数据准备' || deepLearning?.status === '生成版本';
 
   // 深度学习状态颜色
   const getDeepLearningColor = (status?: string) => {
     switch (status) {
       case '完成': return 'success';
       case '失败': return 'error';
-      case 'AI分析': return 'processing';
+      case '智能分析': return 'processing';
       case '生成版本': return 'warning';
       default: return 'default';
     }

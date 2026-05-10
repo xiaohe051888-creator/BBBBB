@@ -21,7 +21,7 @@ export const getModelVersionDisplay = (version: string | null | undefined) => {
   if (manualMatch) {
     const formattedTime = formatTimestamp(manualMatch[1]);
     return {
-      title: '单 AI · 手动配置',
+      title: '智能判断 · 手动配置',
       subtitle: `生效于 ${formattedTime}`,
     };
   }

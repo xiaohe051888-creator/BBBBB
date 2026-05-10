@@ -16,7 +16,7 @@ interface ApiConfigModalProps {
 
 const PROVIDERS = [
   { label: '深度求索（默认推荐）', value: 'deepseek' },
-  { label: '开放AI平台', value: 'openai' },
+  { label: '开放智能平台', value: 'openai' },
   { label: '克劳德平台', value: 'anthropic' },
   { label: '阿里云 (通义千问)', value: 'aliyun' },
   { label: '自定义兼容接口', value: 'custom' },

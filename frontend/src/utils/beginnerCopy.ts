@@ -1,7 +1,7 @@
 export const formatAdminModeName = (mode: 'ai' | 'single_ai' | 'rule') => {
-  if (mode === 'ai') return '三模型协作模式';
-  if (mode === 'single_ai') return '单 AI 模式';
-  return '规则参考模式';
+  if (mode === 'ai') return '多路综合判断模式';
+  if (mode === 'single_ai') return '智能判断模式';
+  return '规则辅助模式';
 };
 
 export const formatAiRoleLabel = (
@@ -10,13 +10,13 @@ export const formatAiRoleLabel = (
 ) => {
   if (role === 'banker') return variant === 'config' ? '庄方向' : '庄方向判断';
   if (role === 'player') return variant === 'config' ? '闲方向' : '闲方向判断';
-  if (role === 'combined') return variant === 'config' ? '综合判断' : '综合判断';
-  return '单 AI';
+  if (role === 'combined') return '多路综合判断';
+  return '智能判断';
 };
 
 export const formatAnalysisLoadingText = (mode: 'ai' | 'single_ai' | 'rule') => {
-  if (mode === 'ai') return '系统正在综合分析下一局，请稍候...';
-  if (mode === 'single_ai') return '系统正在分析下一局，请稍候...';
+  if (mode === 'ai') return '系统正在进行多路综合判断，请稍候...';
+  if (mode === 'single_ai') return '系统正在生成本局智能判断，请稍候...';
   return '系统正在按内置规则计算，请稍候...';
 };
 
@@ -183,11 +183,11 @@ export const formatModeSelectLabel = (
     | 'notReady',
 ) => {
   if (key === 'pageHint') {
-    return '先选好使用方式，再进入系统主界面；需要 AI 时，请先完成设置并确认可用。';
+    return '先选好使用方式，再进入系统主界面；需要智能判断时，请先完成设置并确认可用。';
   }
-  if (key === 'aiCardTitle') return '三模型协作模式（3个AI一起判断）';
-  if (key === 'singleCardTitle') return '单 AI 模式（使用你当前设置的单 AI）';
-  if (key === 'ruleCardTitle') return '规则参考模式（无需额外设置）';
+  if (key === 'aiCardTitle') return '多路综合判断模式';
+  if (key === 'singleCardTitle') return '智能判断模式';
+  if (key === 'ruleCardTitle') return '规则辅助模式';
   if (key === 'notConfigured') return '还没完成设置';
   if (key === 'notReady') return '还不能正常使用';
   return '按内置规则直接给参考结果，不需要额外设置，随时可用。';
@@ -246,7 +246,7 @@ export const formatAdminPageLabel = (
   key: 'title' | 'learningNotNeeded' | 'learningStarted' | 'rechargeHint',
 ) => {
   if (key === 'title') return '管理页面';
-  if (key === 'learningNotNeeded') return '规则参考模式下无需系统学习优化';
+  if (key === 'learningNotNeeded') return '规则辅助模式下无需系统学习优化';
   if (key === 'rechargeHint') return '请到管理页面充值';
   return '系统学习优化已开始';
 };
@@ -280,7 +280,7 @@ export const formatDetailLabel = (
   if (key === 'keyInfo') return '你可能会关心的信息';
   if (key === 'rawData') return '系统原始记录（高级信息）';
   if (key === 'errorId') return '记录编号';
-  if (key === 'modelSummary') return 'AI分析摘要';
+  if (key === 'modelSummary') return '智能分析摘要';
   if (key === 'analysis') return '原因分析';
   if (key === 'predicted') return '当时建议';
   if (key === 'actual') return '实际结果';

@@ -51,13 +51,13 @@ export const ERROR_PROMPTS = {
 export const EMPTY_STATES = {
   noData: {
     main: '暂无数据，系统已准备就绪。',
-    guide: '点击"开奖"按钮，录入第一局结果开始AI预测分析。',
+    guide: '点击"开奖"按钮，录入第一局结果开始智能分析。',
     sub: '系统将基于您的录入结果自动计算五路走势图。',
   },
   waitingResult: {
     main: '等待开奖中',
     guide: '当前局尚未结束，请在开奖后输入结果完成结算。',
-    sub: '你可以先查看当前AI分析和五路走势图。',
+    sub: '你可以先查看当前智能分析和五路走势图。',
   },
   networkError: {
     main: '网络波动，正在自动重试。',
@@ -65,7 +65,7 @@ export const EMPTY_STATES = {
     sub: '若持续波动，请检查网络后刷新页面。',
   },
   aiLearning: {
-    main: 'AI学习进行中，部分操作已锁定。',
+    main: '系统学习优化进行中，部分操作已锁定。',
     guide: '学习完成后将自动解锁，并显示学习总结与版本信息。',
     sub: '你可继续查看日志、开奖记录和当前局状态。',
   },
@@ -163,7 +163,7 @@ export const STATUS_TEXTS: Record<string, { color: string; text: string }> = {
   error: { color: '#ff4d4f', text: '异常处理中' },
   stopped: { color: '#d9d9d9', text: '已停止' },
   // 手动模式状态
-  ai_analyzing: { color: '#722ed1', text: 'AI分析中' },
+  ai_analyzing: { color: '#722ed1', text: '智能分析中' },
   pending_bet: { color: '#faad14', text: '分析完成' },
   pending_reveal: { color: '#1890ff', text: '等待开奖' },
   idle: { color: '#8c8c8c', text: '空闲' },
@@ -214,7 +214,7 @@ export const LOG_CATEGORIES = [
   { label: '全部', value: '' },
   { label: '系统状态', value: '系统状态' },
   { label: '操作记录', value: '操作记录' },
-  { label: 'AI分析', value: 'AI分析' },
+  { label: '智能分析', value: 'AI分析' },
   { label: '资金事件', value: '资金事件' },
   { label: '开奖记录', value: '开奖记录' },
 ];

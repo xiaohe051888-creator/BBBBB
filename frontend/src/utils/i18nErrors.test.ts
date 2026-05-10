@@ -11,7 +11,9 @@ import {
 
 describe('toCnApiTestError', () => {
   it('translates openai missing module error', () => {
-    expect(toCnApiTestError("No module named 'openai'")).toContain('服务端缺少依赖 openai');
+    expect(toCnApiTestError("No module named 'openai'")).toBe(
+      '服务端缺少开放智能平台依赖，请更新后端环境并重启服务后重试。',
+    );
   });
 
   it('passes through unknown errors', () => {
@@ -21,14 +23,14 @@ describe('toCnApiTestError', () => {
 
 describe('中文显示映射', () => {
   it('translates provider keys to Chinese labels', () => {
-    expect(toCnProviderLabel('openai')).toBe('开放AI平台');
+    expect(toCnProviderLabel('openai')).toBe('开放智能平台');
     expect(toCnProviderLabel('anthropic')).toBe('克劳德平台');
     expect(toCnProviderLabel(undefined)).toBe('暂未选择服务商');
   });
 
   it('translates common model ids to Chinese labels', () => {
-    expect(toCnModelLabel('deepseek-v4-pro')).toBe('深度求索 V4 专业版');
-    expect(toCnModelLabel('gpt-4o')).toBe('开放AI 旗舰版');
+    expect(toCnModelLabel('deepseek-v4-pro')).toBe('深度求索第四代专业版');
+    expect(toCnModelLabel('gpt-4o')).toBe('开放智能旗舰版');
   });
 
   it('translates road aliases to Chinese labels', () => {

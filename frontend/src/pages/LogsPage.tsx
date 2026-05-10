@@ -17,7 +17,7 @@ import { SystemStatusPanel } from '../components/ui/SystemStatusPanel';
 import { PRIORITY_COLORS } from '../utils/constants';
 import { formatDetailLabel, formatLogsLabel } from '../utils/beginnerCopy';
 import { copyText } from '../utils/clipboard';
-import { humanizeLog, toHumanCopyText } from '../utils/logHumanizer';
+import { humanizeLog, toHumanCopyText, toHumanExportPayload } from '../utils/logHumanizer';
 import { formatBeijing, beijingValueOf } from '../utils/datetime';
 import { useQueryClient } from '@tanstack/react-query';
 import * as api from '../services/api';
@@ -541,7 +541,8 @@ const LogsPage: React.FC = () => {
 
   const exportToJSON = async () => {
     const exportLogs = await fetchExportLogs();
-    const json = JSON.stringify(exportLogs, null, 2);
+    const payload = exportLogs.map((log) => toHumanExportPayload(log));
+    const json = JSON.stringify(payload, null, 2);
     try {
       downloadFile(json, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.json`, 'application/json');
       message.success(`已导出 ${exportLogs.length} 条日志（数据）`);

@@ -45,8 +45,8 @@ const normalizeVisibleText = (value: unknown): string => {
 };
 
 const parseJudgementSide = (text: string): '庄' | '闲' | '' => {
-  if (/预测[【\[]?闲[】\]]?/.test(text) || /建议押闲/.test(text) || /押闲/.test(text)) return '闲';
-  if (/预测[【\[]?庄[】\]]?/.test(text) || /建议押庄/.test(text) || /押庄/.test(text)) return '庄';
+  if (/预测(?:【|\[)?闲(?:】|\])?/.test(text) || /建议押闲/.test(text) || /押闲/.test(text)) return '闲';
+  if (/预测(?:【|\[)?庄(?:】|\])?/.test(text) || /建议押庄/.test(text) || /押庄/.test(text)) return '庄';
   return '';
 };
 
@@ -190,7 +190,7 @@ const rule: Record<string, Rule> = {
     suggestion: '检查局号与结果是否正确后重试。',
   }),
   'LOG-VAL-003': (log) => ({
-    title: 'AI分析失败：缺少历史数据',
+    title: '智能分析失败：缺少历史数据',
     whatHappened: s(log.description) || '当前靴没有历史数据，无法分析。',
     impact: '无法给出预测/下注建议。',
     suggestion: '先上传/录入至少1局开奖记录后再分析。',
@@ -208,12 +208,12 @@ const rule: Record<string, Rule> = {
     suggestion: '无需操作，等待系统继续完成下注即可。',
   }),
   'LOG-MDL-002': (log) => ({
-    title: 'AI分析异常：本次输出已回退为安全结果',
-    whatHappened: s(log.description) || 'AI分析发生异常。',
+    title: '智能分析异常：本次输出已回退为安全结果',
+    whatHappened: s(log.description) || '智能分析发生异常。',
     impact: '可能会使用保守/默认策略继续流程。',
-    suggestion: '如频繁出现，建议检查AI接口配置或切换到规则参考模式。',
+    suggestion: '如频繁出现，建议检查智能接口配置或切换到规则辅助模式。',
   }),
-  'LOG-MDL-003': (log) => ({
+  'LOG-MDL-003': () => ({
     title: '智能分析：系统已自动改用备用判断',
     whatHappened: '智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。',
     impact: '这次不会中断本局流程，系统已经继续给出最终下注决定。',
@@ -233,7 +233,7 @@ const rule: Record<string, Rule> = {
   }),
   'LOG-AI-001': (log) => ({
     title: '系统优化：已记录本次优化过程',
-    whatHappened: s(log.description) || 'AI学习写入了记录。',
+    whatHappened: s(log.description) || '系统学习优化写入了记录。',
     impact: '用于后续策略优化。',
     suggestion: '无需操作。',
   }),
@@ -245,12 +245,12 @@ const rule: Record<string, Rule> = {
   }),
   'LOG-AI-003': (log) => ({
     title: '系统优化：过程记录已保存',
-    whatHappened: s(log.description) || 'AI学习过程已记录。',
+    whatHappened: s(log.description) || '系统学习优化过程已记录。',
     impact: '用于追踪学习效果。',
     suggestion: '无需操作。',
   }),
   'LOG-ERR-001': (log) => ({
-    title: 'AI连续失准：已自动记入复盘',
+    title: '智能判断连续失准：已自动记入复盘',
     whatHappened: s(log.description) || '系统检测到本局预测连续失准，已自动写入复盘记录。',
     impact: '这表示近期预测表现需要重点复盘，不代表结算系统本身发生故障。',
     suggestion: '建议先查看复盘记录和当时盘面，再决定是否调整策略、切换模式或继续观察。',
@@ -290,7 +290,7 @@ const inferGeneric = (log: LogEntry): Omit<HumanLog, 'fieldsCn'> => {
   const fail = result === '失败' || isErrorPriority(s(log.priority));
 
   const byPrefix = (p: string): { impact: string; suggestion: string } | null => {
-    if (p === 'LOG-MDL') return { impact: '与AI分析相关。', suggestion: fail ? '可尝试刷新或切换规则参考模式。' : '无需操作。' };
+    if (p === 'LOG-MDL') return { impact: '与智能分析相关。', suggestion: fail ? '可尝试刷新或切换规则辅助模式。' : '无需操作。' };
     if (p === 'LOG-BET') return { impact: '与下注相关。', suggestion: fail ? '检查余额/网络后重试。' : '等待开奖即可。' };
     if (p === 'LOG-BOOT') return { impact: '与靴/学习流程相关。', suggestion: fail ? '检查学习配置与网络后重试。' : '按提示继续流程。' };
     if (p === 'LOG-RECOVER') return { impact: '系统在做自动修复/恢复。', suggestion: '一般无需处理。' };
@@ -337,4 +337,20 @@ export const toHumanCopyText = (log: LogEntry): string => {
   lines.push(`局号：${game}`);
   lines.push(`编码：${code}`);
   return lines.join('\n');
+};
+
+export const toHumanExportPayload = (log: LogEntry) => {
+  const h = humanizeLog(log);
+  return {
+    时间: log.log_time ? formatBeijing(String(log.log_time), 'YYYY-MM-DD HH:mm:ss') : '-',
+    靴内局号: log.game_number === null ? '-' : String(log.game_number),
+    标题: h.title,
+    这次发生了什么: h.whatHappened,
+    对当前使用有什么影响: h.impact,
+    建议你接下来怎么做: h.suggestion,
+    更多信息: h.fieldsCn.map((item) => ({
+      名称: item.label,
+      内容: item.value,
+    })),
+  };
 };

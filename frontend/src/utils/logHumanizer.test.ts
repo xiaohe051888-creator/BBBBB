@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LogEntry } from '../types/models';
-import { humanizeLog, toHumanCopyText } from './logHumanizer';
+import { humanizeLog, toHumanCopyText, toHumanExportPayload } from './logHumanizer';
 
 describe('logHumanizer', () => {
   it('humanizes known event_code', () => {
@@ -152,6 +152,29 @@ describe('logHumanizer', () => {
     expect(h.whatHappened).toBe('系统已经按当前判断完成下注，第23局押庄 2500 元。');
   });
 
+  it('builds export-friendly chinese log payloads', () => {
+    const log: LogEntry = {
+      id: 30,
+      log_time: '2026-05-10T04:38:55Z',
+      game_number: 23,
+      event_code: 'LOG-MDL-003',
+      event_type: '规则兜底接管',
+      event_result: '成功',
+      description: '单AI失败后已切换规则兜底继续下注：上传触发分析时发生系统错误: analysis timeout after 45.00s',
+      category: '工作流事件',
+      priority: 'P1',
+      task_id: 'task-23',
+      is_pinned: false,
+    };
+
+    const payload = toHumanExportPayload(log);
+    expect(payload['标题']).toBe('智能分析：系统已自动改用备用判断');
+    expect(payload['这次发生了什么']).toBe('智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。');
+    expect(JSON.stringify(payload)).not.toContain('LOG-MDL-003');
+    expect(JSON.stringify(payload)).not.toContain('analysis timeout after 45.00s');
+    expect(JSON.stringify(payload)).not.toContain('rule_fallback');
+  });
+
   it('uses beginner-friendly wording for watchdog-related logs', () => {
     const log: LogEntry = {
       id: 8,
@@ -204,7 +227,7 @@ describe('logHumanizer', () => {
       is_pinned: false,
     };
     const h = humanizeLog(log);
-    expect(h.title).toContain('AI连续失准');
+    expect(h.title).toContain('智能判断连续失准');
     expect(h.impact).not.toContain('余额/下注记录不一致');
     expect(toHumanCopyText(log)).not.toContain('系统异常：结算过程出现问题');
   });

@@ -558,7 +558,7 @@ const MistakeBookPage: React.FC = () => {
 
             <div className="review-detail-section">
               <span className="review-detail-label">{formatDetailLabel('modelSummary')}</span>
-              <p>{buildModelSummary(selectedMistake) || '暂时没有AI分析摘要'}</p>
+              <p>{buildModelSummary(selectedMistake) || '暂时没有智能分析摘要'}</p>
             </div>
 
             <div className="review-detail-section is-danger">

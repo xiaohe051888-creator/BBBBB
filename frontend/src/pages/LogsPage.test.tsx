@@ -10,6 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 import LogsPage from './LogsPage';
 
 const useLogsQueryMock = vi.fn();
+const getLogsMock = vi.fn();
 
 vi.mock('../hooks', () => ({
   useLogsQuery: (...args: unknown[]) => useLogsQueryMock(...args),
@@ -31,7 +32,7 @@ vi.mock('../components/ui/SystemStatusPanel', () => ({
 
 vi.mock('../services/api', () => ({
   getToken: () => 'token',
-  getLogs: vi.fn(),
+  getLogs: (...args: unknown[]) => getLogsMock(...args),
 }));
 
 describe('LogsPage', () => {
@@ -223,6 +224,156 @@ describe('LogsPage', () => {
 
     await act(async () => {
       root.unmount();
+    });
+    queryClient.clear();
+    container.remove();
+  });
+
+  it('exports user-readable chinese json instead of raw technical log fields', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }),
+    });
+    Object.defineProperty(window, 'getComputedStyle', {
+      writable: true,
+      value: () => ({
+        getPropertyValue: () => '',
+      }),
+    });
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+      writable: true,
+      value: class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    });
+    const exportLog = {
+      id: 1,
+      log_time: '2026-05-10T04:38:55Z',
+      game_number: 23,
+      event_code: 'LOG-MDL-003',
+      event_type: '规则兜底接管',
+      event_result: '成功',
+      description: '单AI失败后已切换规则兜底继续下注：上传触发分析时发生系统错误: analysis timeout after 45.00s',
+      category: '工作流事件',
+      priority: 'P1',
+      task_id: 'task-23',
+      is_pinned: false,
+    };
+    useLogsQueryMock.mockReturnValue({
+      data: { logs: [exportLog], total: 1 },
+      refetch: vi.fn(),
+      isFetching: false,
+      error: null,
+    });
+    getLogsMock.mockResolvedValue({
+      data: {
+        data: [exportLog],
+      },
+    });
+
+    const originalBlob = globalThis.Blob;
+    const originalCreateElement = document.createElement.bind(document);
+    class MockBlob {
+      private readonly content: string;
+
+      constructor(parts: Array<string | ArrayBuffer | ArrayBufferView>) {
+        this.content = parts
+          .map((part) => (typeof part === 'string' ? part : String(part)))
+          .join('');
+      }
+
+      async text() {
+        return this.content;
+      }
+    }
+    Object.defineProperty(globalThis, 'Blob', {
+      writable: true,
+      value: MockBlob,
+    });
+
+    vi.spyOn(document, 'createElement').mockImplementation(((tagName: string) => {
+      const element = originalCreateElement(tagName);
+      if (tagName === 'a') {
+        Object.defineProperty(element, 'click', {
+          writable: true,
+          value: vi.fn(),
+        });
+      }
+      return element;
+    }) as typeof document.createElement);
+
+    let exportedBlob: { text: () => Promise<string> } | null = null;
+    Object.defineProperty(URL, 'createObjectURL', {
+      writable: true,
+      value: vi.fn((blob: unknown) => {
+        exportedBlob = blob as { text: () => Promise<string> };
+        return 'blob:mock-export';
+      }),
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      writable: true,
+      value: vi.fn(),
+    });
+
+    const queryClient = new QueryClient();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <App>
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={['/dashboard/logs']}>
+              <LogsPage />
+            </MemoryRouter>
+          </QueryClientProvider>
+        </App>,
+      );
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    });
+
+    const exportButton = Array.from(document.querySelectorAll('button')).find(
+      (button) => button.textContent?.includes('导出数据'),
+    );
+    expect(exportButton).toBeTruthy();
+
+    await act(async () => {
+      exportButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(getLogsMock).toHaveBeenCalled();
+    expect(exportedBlob).toBeTruthy();
+    const text = (await exportedBlob!.text()).replace(/^\uFEFF/, '');
+    expect(text).toContain('标题');
+    expect(text).toContain('这次发生了什么');
+    expect(text).toContain('智能分析：系统已自动改用备用判断');
+    expect(text).not.toContain('LOG-MDL-003');
+    expect(text).not.toContain('analysis timeout after 45.00s');
+    expect(text).not.toContain('rule_fallback');
+
+    await act(async () => {
+      root.unmount();
+    });
+    Object.defineProperty(globalThis, 'Blob', {
+      writable: true,
+      value: originalBlob,
     });
     queryClient.clear();
     container.remove();

@@ -25,23 +25,23 @@ import {
 
 describe('beginnerCopy', () => {
   it('formats mode names for beginners', () => {
-    expect(formatAdminModeName('ai')).toBe('三模型协作模式');
-    expect(formatAdminModeName('single_ai')).toBe('单 AI 模式');
-    expect(formatAdminModeName('rule')).toBe('规则参考模式');
+    expect(formatAdminModeName('ai')).toBe('多路综合判断模式');
+    expect(formatAdminModeName('single_ai')).toBe('智能判断模式');
+    expect(formatAdminModeName('rule')).toBe('规则辅助模式');
   });
 
   it('formats ai role names in plain language', () => {
     expect(formatAiRoleLabel('banker')).toBe('庄方向判断');
     expect(formatAiRoleLabel('player')).toBe('闲方向判断');
-    expect(formatAiRoleLabel('combined')).toBe('综合判断');
-    expect(formatAiRoleLabel('single')).toBe('单 AI');
+    expect(formatAiRoleLabel('combined')).toBe('多路综合判断');
+    expect(formatAiRoleLabel('single')).toBe('智能判断');
     expect(formatAiRoleLabel('banker', 'config')).toBe('庄方向');
     expect(formatAiRoleLabel('player', 'config')).toBe('闲方向');
   });
 
   it('formats analysis loading messages in plain language', () => {
-    expect(formatAnalysisLoadingText('ai')).toBe('系统正在综合分析下一局，请稍候...');
-    expect(formatAnalysisLoadingText('single_ai')).toBe('系统正在分析下一局，请稍候...');
+    expect(formatAnalysisLoadingText('ai')).toBe('系统正在进行多路综合判断，请稍候...');
+    expect(formatAnalysisLoadingText('single_ai')).toBe('系统正在生成本局智能判断，请稍候...');
     expect(formatAnalysisLoadingText('rule')).toBe('系统正在按内置规则计算，请稍候...');
   });
 
@@ -131,10 +131,10 @@ describe('beginnerCopy', () => {
   });
 
   it('formats mode-select labels in plain language', () => {
-    expect(formatModeSelectLabel('pageHint')).toBe('先选好使用方式，再进入系统主界面；需要 AI 时，请先完成设置并确认可用。');
-    expect(formatModeSelectLabel('aiCardTitle')).toBe('三模型协作模式（3个AI一起判断）');
-    expect(formatModeSelectLabel('singleCardTitle')).toBe('单 AI 模式（使用你当前设置的单 AI）');
-    expect(formatModeSelectLabel('ruleCardTitle')).toBe('规则参考模式（无需额外设置）');
+    expect(formatModeSelectLabel('pageHint')).toBe('先选好使用方式，再进入系统主界面；需要智能判断时，请先完成设置并确认可用。');
+    expect(formatModeSelectLabel('aiCardTitle')).toBe('多路综合判断模式');
+    expect(formatModeSelectLabel('singleCardTitle')).toBe('智能判断模式');
+    expect(formatModeSelectLabel('ruleCardTitle')).toBe('规则辅助模式');
     expect(formatModeSelectLabel('ruleCardHint')).toBe('按内置规则直接给参考结果，不需要额外设置，随时可用。');
     expect(formatModeSelectLabel('notConfigured')).toBe('还没完成设置');
     expect(formatModeSelectLabel('notReady')).toBe('还不能正常使用');
@@ -158,7 +158,7 @@ describe('beginnerCopy', () => {
 
   it('formats admin page labels in plain language', () => {
     expect(formatAdminPageLabel('title')).toBe('管理页面');
-    expect(formatAdminPageLabel('learningNotNeeded')).toBe('规则参考模式下无需系统学习优化');
+    expect(formatAdminPageLabel('learningNotNeeded')).toBe('规则辅助模式下无需系统学习优化');
     expect(formatAdminPageLabel('learningStarted')).toBe('系统学习优化已开始');
     expect(formatAdminPageLabel('rechargeHint')).toBe('请到管理页面充值');
   });
@@ -189,7 +189,7 @@ describe('beginnerCopy', () => {
     expect(formatDetailLabel('keyInfo')).toBe('你可能会关心的信息');
     expect(formatDetailLabel('rawData')).toBe('系统原始记录（高级信息）');
     expect(formatDetailLabel('errorId')).toBe('记录编号');
-    expect(formatDetailLabel('modelSummary')).toBe('AI分析摘要');
+    expect(formatDetailLabel('modelSummary')).toBe('智能分析摘要');
     expect(formatDetailLabel('analysis')).toBe('原因分析');
     expect(formatDetailLabel('correction')).toBe('改进建议');
     expect(formatDetailLabel('predicted')).toBe('当时建议');
