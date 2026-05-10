@@ -87,6 +87,7 @@ class BaccaratRuleEngine:
         banker_reasons = []
         player_reasons = []
         combined_reasons = []
+        road_explanations: Dict[str, Dict[str, str]] = {}
         
         if is_chaos:
             combined_reasons.append("上一局发生了强规律的随机断裂，系统进入混沌防守状态")
@@ -119,6 +120,18 @@ class BaccaratRuleEngine:
                     else:
                         banker_score += self.weights['chop_oscillation']
                         banker_reasons.append(reason)
+            road_explanations["big_road"] = {
+                "trend_label": f"大路{streak}连{last_result}" if streak >= 2 else "大路震荡",
+                "tendency": last_result if last_result in ("庄", "闲") else "中性",
+                "support_level": self._support_level_from_weight(self.weights["dragon_streak"] if streak >= 3 else self.weights["chop_oscillation"]),
+                "plain_summary": (
+                    f"大路最近已经连续走出{streak}次{last_result}，主走势延续性较明显。"
+                    if streak >= 3 and last_result in ("庄", "闲")
+                    else "大路目前更像震荡或切换阶段，提醒不要只看单一路径。"
+                ),
+            }
+        else:
+            road_explanations["big_road"] = self._neutral_explanation("大路", "当前大路样本还不够，暂时只能作为弱参考。")
 
         # 3. 珠盘路 (Bead Road) 宏观密度与周期性分析
         # 统计最近 12 局（相当于两列）的庄闲密度，寻找宏观失衡点
@@ -138,6 +151,24 @@ class BaccaratRuleEngine:
                 reason = f"珠盘路近12局呈现极度闲强({recent_player}胜)"
                 player_score += 25
                 player_reasons.append(reason)
+            if recent_banker > recent_player:
+                road_explanations["bead_road"] = {
+                    "trend_label": "珠盘路偏庄",
+                    "tendency": "庄",
+                    "support_level": self._support_level_from_margin(recent_banker - recent_player),
+                    "plain_summary": f"珠盘路最近12局里庄更多，整体密度仍偏向庄。"
+                }
+            elif recent_player > recent_banker:
+                road_explanations["bead_road"] = {
+                    "trend_label": "珠盘路偏闲",
+                    "tendency": "闲",
+                    "support_level": self._support_level_from_margin(recent_player - recent_banker),
+                    "plain_summary": f"珠盘路最近12局里闲更多，整体密度仍偏向闲。"
+                }
+            else:
+                road_explanations["bead_road"] = self._neutral_explanation("珠盘路", "珠盘路庄闲分布接近，更多是中性提醒。")
+        else:
+            road_explanations["bead_road"] = self._neutral_explanation("珠盘路", "珠盘路样本不足 12 局，当前只能提供弱参考。")
 
         # 4. 下三路共振分析 (大眼仔、小路、曱甴路)
         # 红色代表规律（顺），蓝色代表无序（反）
@@ -149,10 +180,17 @@ class BaccaratRuleEngine:
         
         def check_road_trend(road, name):
             nonlocal banker_score, player_score
-            if not road: return
+            explanation_key = {
+                "大眼仔路": "big_eye_road",
+                "小路": "small_road",
+                "曱甴路": "cockroach_road",
+            }[name]
+            if not road:
+                road_explanations[explanation_key] = self._neutral_explanation(name, f"{name}当前还没有足够点位，暂时只能作弱参考。")
+                return
             last_color = self._get_value(road[-1])
+            last_big = self._get_value(big_road[-1]) if big_road else None
             if last_color == "红":
-                last_big = self._get_value(big_road[-1]) if big_road else None
                 reason = f"{name}显示红，当前趋势继续顺延"
                 if last_big == "庄":
                     banker_score += 20
@@ -160,8 +198,13 @@ class BaccaratRuleEngine:
                 elif last_big == "闲":
                     player_score += 20
                     player_reasons.append(reason)
+                road_explanations[explanation_key] = {
+                    "trend_label": f"{name}偏顺",
+                    "tendency": last_big if last_big in ("庄", "闲") else "中性",
+                    "support_level": "中",
+                    "plain_summary": f"{name}目前收在红色，说明现有走势仍有延续性。"
+                }
             else:
-                last_big = self._get_value(big_road[-1]) if big_road else None
                 reason = f"{name}显示蓝，当前趋势面临转折"
                 if last_big == "庄":
                     player_score += 15
@@ -169,6 +212,13 @@ class BaccaratRuleEngine:
                 elif last_big == "闲":
                     banker_score += 15
                     banker_reasons.append(reason)
+                tendency = "闲" if last_big == "庄" else "庄" if last_big == "闲" else "中性"
+                road_explanations[explanation_key] = {
+                    "trend_label": f"{name}提示转折",
+                    "tendency": tendency,
+                    "support_level": "弱",
+                    "plain_summary": f"{name}目前收在蓝色，提醒原来的走势可能开始减弱或转向。"
+                }
 
         check_road_trend(big_eye, "大眼仔路")
         check_road_trend(small, "小路")
@@ -195,6 +245,16 @@ class BaccaratRuleEngine:
         
         combined_reason = banker_reasons if prediction == "庄" else player_reasons
         combined_summary = f"因为 {', '.join(combined_reason)}，并且{', '.join(combined_reasons) if combined_reasons else '当前处于规律期'}，所以最终预测为【{prediction}】。" if combined_reason else f"因为当前盘面处于无序状态，缺乏明显规律，所以系统根据经验补偿机制给出了偏向【{prediction}】的预测。"
+        short_reason = (
+            f"当前五路综合下来更偏向{prediction}，本局建议继续跟{prediction}。"
+            if combined_reason
+            else f"当前盘面没有绝对强信号，但综合五路后仍略偏向{prediction}。"
+        )
+        final_reason = (
+            f"五路综合判断里，支持{prediction}的信号更集中，核心依据是：{'; '.join(combined_reason[:3])}。"
+            if combined_reason
+            else f"虽然当前盘面偏无序，但庄闲分数对比为庄{banker_score}、闲{player_score}，因此最终仍偏向{prediction}。"
+        )
 
         reasoning_points = []
         if combined_reasons:
@@ -210,14 +270,50 @@ class BaccaratRuleEngine:
         return {
             "predict": prediction,
             "confidence": round(confidence / 100.0, 2),
+            "confidence_label": self._confidence_label(confidence / 100.0),
             "bet_amount": 100,  # 默认值，可以在外层覆盖
             "tier": tier,
+            "source": "rule_fallback",
+            "short_reason": short_reason,
+            "final_reason": final_reason,
+            "fallback_reason": "本局单AI没有返回稳定结果，系统改用规则判断继续下注。",
+            "road_explanations": road_explanations,
+            "technical_diagnostic": None,
             "banker_summary": banker_summary,
             "player_summary": player_summary,
             "combined_summary": combined_summary,
             "reasoning_points": reasoning_points,
             "reasoning_detail": reasoning_detail,
         }
+
+    def _support_level_from_weight(self, weight: int) -> str:
+        if weight >= 35:
+            return "强"
+        if weight >= 20:
+            return "中"
+        return "弱"
+
+    def _support_level_from_margin(self, margin: int) -> str:
+        if margin >= 6:
+            return "强"
+        if margin >= 3:
+            return "中"
+        return "弱"
+
+    def _neutral_explanation(self, road_name: str, summary: str) -> Dict[str, str]:
+        return {
+            "trend_label": f"{road_name}中性",
+            "tendency": "中性",
+            "support_level": "弱",
+            "plain_summary": summary,
+        }
+
+    def _confidence_label(self, confidence: float) -> str:
+        if confidence >= 0.75:
+            return "高"
+        if confidence >= 0.6:
+            return "中"
+        return "低"
 
     def _extract_points(self, road_obj):
         if hasattr(road_obj, 'points'):

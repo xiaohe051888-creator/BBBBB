@@ -233,6 +233,7 @@ export const useAnalysisQuery = (options: UseAnalysisQueryOptions) => {
           engine: res.data.engine || null,
           reasoning_points: res.data.combined_model?.reasoning_points || [],
           reasoning_detail: res.data.combined_model?.reasoning_detail || null,
+          analysis_outcome: res.data.analysis_outcome || null,
         };
       }
       return null;
@@ -517,8 +518,20 @@ export const useUpdateStateOptimistically = () => {
 export const useUpdateAnalysisOptimistically = () => {
   const queryClient = useQueryClient();
 
-  return (analysisData: AnalysisData) => {
-    queryClient.setQueryData(queryKeys.analysis(), analysisData);
+  return (analysisData: Partial<AnalysisData>) => {
+    queryClient.setQueryData(
+      queryKeys.analysis(),
+      (oldData: AnalysisData | null | undefined) => ({
+        banker_summary: '',
+        player_summary: '',
+        combined_summary: '',
+        confidence: 0,
+        bet_tier: '标准',
+        prediction: null,
+        ...oldData,
+        ...analysisData,
+      }),
+    );
   };
 };
 

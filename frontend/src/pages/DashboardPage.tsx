@@ -186,6 +186,7 @@ const DashboardPage: React.FC = () => {
         engine: data?.engine || null,
         reasoning_points: Array.isArray(data?.reasoning_points) ? data.reasoning_points : [],
         reasoning_detail: data?.reasoning_detail || null,
+        analysis_outcome: data?.analysis_outcome || null,
       });
     },
     onLog: (data) => {

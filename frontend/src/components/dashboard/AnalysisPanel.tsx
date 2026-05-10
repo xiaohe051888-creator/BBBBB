@@ -1,41 +1,64 @@
 /**
  * AnalysisPanel - 智能分析板块组件
  *
- * 包含: AI三模型分析展示、分析状态
+ * 包含: 分析状态、极简结果卡
  */
-import React, { useMemo, useState } from 'react';
-import { Tag, Progress, Button, Drawer, Space } from 'antd';
+import React, { useState } from 'react';
+import { Button, Tag } from 'antd';
 import { RobotOutlined, BulbOutlined, AimOutlined } from '@ant-design/icons';
 import { useSystemStateQuery } from '../../hooks/useQueries';
-import {
-  formatAdminModeName,
-  formatAiRoleLabel,
-  formatAnalysisLoadingText,
-  formatConfidenceLabel,
-} from '../../utils/beginnerCopy';
+import { formatAdminModeName, formatAnalysisLoadingText } from '../../utils/beginnerCopy';
 import { toCnModelLabel } from '../../utils/i18nErrors';
 import { resolvePredictionMode, type DashboardWorkflowStage } from '../../utils/systemFlowConsistency';
+import type { AnalysisData, AnalysisOutcome } from '../../types/models';
+import AnalysisDetailDrawer from './AnalysisDetailDrawer';
 
-interface Analysis {
-  prediction?: string | null;
-  confidence?: number;
-  bet_tier?: string;
-  banker_summary?: string;
-  player_summary?: string;
-  combined_summary?: string;
-  prediction_mode?: 'ai' | 'single_ai' | 'rule';
-  engine?: { provider?: string; model?: string; banker?: string | null; player?: string | null; combined?: string | null } | null;
-  reasoning_points?: string[];
-  reasoning_detail?: string | null;
-}
+type AnalysisPanelData = Partial<AnalysisData>;
 
 interface AnalysisPanelProps {
-  analysis: Analysis | null;
+  analysis: AnalysisPanelData | null;
   hasGameData: boolean;
   hasPendingBet: boolean;
   aiAnalyzing: boolean;
   workflowStage: DashboardWorkflowStage;
 }
+
+const getConfidenceLabel = (confidence: number) => {
+  if (confidence >= 0.7) return '高';
+  if (confidence >= 0.55) return '中';
+  return '低';
+};
+
+const getSourceLabel = (source?: AnalysisOutcome['source']) => {
+  return source === 'rule_fallback' ? '规则兜底' : '单AI判断';
+};
+
+const getDirectionColor = (direction?: string | null) => {
+  if (direction === '庄') return '#ff7875';
+  if (direction === '闲') return '#69b1ff';
+  return '#fadb14';
+};
+
+const buildLegacyOutcome = (analysis: AnalysisPanelData): AnalysisOutcome | null => {
+  const direction = analysis.prediction === '闲' ? '闲' : analysis.prediction === '庄' ? '庄' : null;
+  if (!direction) return null;
+
+  const confidence = typeof analysis.confidence === 'number' ? analysis.confidence : 0;
+  return {
+    direction,
+    confidence,
+    confidence_label: getConfidenceLabel(confidence),
+    source: analysis.prediction_mode === 'rule' ? 'rule_fallback' : 'single_ai',
+    short_reason: analysis.combined_summary?.trim() || '系统已完成本局分析。',
+    final_reason: analysis.reasoning_detail?.trim() || analysis.combined_summary?.trim() || '当前没有更多分析说明。',
+    fallback_reason:
+      analysis.prediction_mode === 'rule'
+        ? '当前结果来自规则判断，系统已继续执行自动下注。'
+        : null,
+    road_explanations: {},
+    technical_diagnostic: null,
+  };
+};
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   analysis,
@@ -45,47 +68,14 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   workflowStage,
 }) => {
   const { data: systemState } = useSystemStateQuery({});
-  const mode = resolvePredictionMode(systemState?.prediction_mode, analysis?.prediction_mode);
   const [detailOpen, setDetailOpen] = useState(false);
-  const reasoningPoints = useMemo(() => (analysis?.reasoning_points || []).filter(Boolean).slice(0, 6), [analysis]);
-  const reasoningDetail = analysis?.reasoning_detail || '';
-  const engineLabel = useMemo(() => {
-    if (mode === 'rule') return '规则参考模式';
-    if (mode === 'single_ai') {
-      const m = analysis?.engine?.model || '';
-      return `单 AI 模式（${toCnModelLabel(m)}）`;
-    }
-    return '三模型协作模式（庄 / 闲 / 综合）';
-  }, [mode, analysis?.engine?.model]);
-  const aiRoleCards = useMemo(
-    () => [
-      {
-        name: formatAiRoleLabel('banker'),
-        icon: '庄',
-        color: '#ff4d4f',
-        delay: 0,
-        summary: analysis?.banker_summary || '暂时没有庄方向说明...',
-        source: '独立判断',
-      },
-      {
-        name: formatAiRoleLabel('player'),
-        icon: '闲',
-        color: '#1890ff',
-        delay: 0.5,
-        summary: analysis?.player_summary || '暂时没有闲方向说明...',
-        source: '独立判断',
-      },
-      {
-        name: formatAiRoleLabel('combined'),
-        icon: 'AI',
-        color: '#52c41a',
-        delay: 1,
-        summary: analysis?.combined_summary || '暂时没有综合说明...',
-        source: '汇总判断',
-      },
-    ],
-    [analysis?.banker_summary, analysis?.combined_summary, analysis?.player_summary],
-  );
+  const mode = resolvePredictionMode(systemState?.prediction_mode, analysis?.prediction_mode);
+  const engineLabel =
+    mode === 'rule'
+      ? '规则参考模式'
+      : mode === 'single_ai'
+        ? `单 AI 模式（${toCnModelLabel(analysis?.engine?.model || '')}）`
+        : '三模型协作模式（庄 / 闲 / 综合）';
 
   // 分析中状态 - 三模型进度指示器
   if (workflowStage.showAnalysisLoading || (aiAnalyzing && !hasPendingBet)) {
@@ -107,53 +97,10 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <div style={{ color: '#1890ff', fontSize: 14, fontWeight: 600 }}>
             {formatAnalysisLoadingText(mode)}
           </div>
-          
           {mode === 'ai' && (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16, marginBottom: 8, flexWrap: 'wrap' }}>
-                {aiRoleCards.map((model) => (
-                  <div
-                    key={model.name}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      background: `rgba(${model.color === '#ff4d4f' ? '255,77,79' : model.color === '#1890ff' ? '24,144,255' : '82,196,26'}, 0.1)`,
-                      border: `1px solid rgba(${model.color === '#ff4d4f' ? '255,77,79' : model.color === '#1890ff' ? '24,144,255' : '82,196,26'}, 0.2)`,
-                      animation: `fadeInUp 0.3s ease ${model.delay}s both`,
-                    }}
-                  >
-                    <span style={{ fontSize: 14, fontWeight: 700, color: model.color }}>{model.icon}</span>
-                    <span style={{ fontSize: 10, color: model.color, fontWeight: 600 }}>{model.name}</span>
-                    <div
-                      style={{
-                        width: 40,
-                        height: 3,
-                        borderRadius: 2,
-                        background: 'rgba(255,255,255,0.1)',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          background: model.color,
-                          animation: `shimmer 1.5s ease-in-out ${model.delay}s infinite`,
-                          transformOrigin: 'left',
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 8 }}>
-                正在同时参考三套分析结果
-              </div>
-            </>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 16 }}>
+              正在同时参考三套分析结果
+            </div>
           )}
           {mode === 'single_ai' && (
             <>
@@ -252,151 +199,111 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     );
   }
 
-  // 显示分析结果
-  const modeTag = (
-    <Tag color={mode === 'single_ai' ? 'green' : mode === 'rule' ? 'orange' : 'purple'} style={{ borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
-      {formatAdminModeName(mode)}
-    </Tag>
-  );
-
-  const renderReasoning = (compact: boolean) => {
-    const hasPoints = reasoningPoints.length > 0;
-    const hasDetail = !!reasoningDetail;
-    if (!hasPoints && !hasDetail) return null;
-    return (
-      <div style={{ marginTop: compact ? 10 : 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>推理要点</span>
-          {hasDetail && (
-            <Button size="small" type="link" style={{ padding: 0, height: 'auto' }} onClick={() => setDetailOpen(true)}>
-              查看推理详情
-            </Button>
-          )}
-        </div>
-        {hasPoints && (
-          <ul style={{ margin: 0, paddingLeft: 18, color: 'rgba(255,255,255,0.75)', fontSize: 12, lineHeight: 1.6 }}>
-            {reasoningPoints.map((p, idx) => (
-              <li key={`${idx}-${p}`}>{p}</li>
-            ))}
-          </ul>
-        )}
-      </div>
-    );
-  };
+  const outcome = analysis?.analysis_outcome || (analysis ? buildLegacyOutcome(analysis) : null);
+  const direction = outcome?.direction || analysis?.prediction || '--';
+  const confidenceValue = outcome?.confidence ?? analysis?.confidence ?? 0;
+  const confidenceLabel = outcome?.confidence_label || getConfidenceLabel(confidenceValue);
+  const confidencePercent = Math.round(confidenceValue * 100);
+  const summary = outcome?.short_reason?.trim() || analysis?.combined_summary?.trim() || '系统已完成本局分析。';
+  const fallbackReason =
+    outcome?.source === 'rule_fallback'
+      ? outcome.fallback_reason?.trim() || '本局单AI没有及时给出稳定结果，系统已自动切换为规则兜底继续下注。'
+      : null;
+  const sourceLabel = getSourceLabel(outcome?.source);
 
   return (
     <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={{ minHeight: 'auto' }}>
       <div className="section-header">
         <span style={{ color: '#fadb14' }}><BulbOutlined /></span>
         <span className="section-title">智能分析</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          {modeTag}
-          <Tag color="default" style={{ borderRadius: 12, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            {engineLabel}
-          </Tag>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{formatConfidenceLabel()}</span>
-          <Progress
-            type="circle"
-            percent={(analysis.confidence || 0) * 100}
-            size={34}
-            format={() => `${((analysis.confidence || 0) * 100).toFixed(0)}%`}
-            strokeColor={(analysis.confidence || 0) >= 0.7 ? '#52c41a' : '#faad14'}
-            railColor="rgba(48,54,68,0.3)"
-            strokeWidth={3}
-            style={{ fontSize: 10 }}
-          />
-          <Tag color={analysis.bet_tier === '保守' ? 'orange' : analysis.bet_tier === '进取' ? 'red' : 'blue'}
-            style={{ borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
-            {analysis.bet_tier || '标准'}档
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <Tag color={mode === 'single_ai' ? 'green' : mode === 'rule' ? 'orange' : 'purple'} style={{ borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
+            {formatAdminModeName(mode)}
           </Tag>
         </div>
       </div>
 
-      <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {mode !== 'ai' && (
-          <div className="model-block model-block-combined" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
-              <span className="model-icon-badge" style={{ color: '#52c41a', fontWeight: 700 }}>AI</span>
-              <span style={{ fontWeight: 700, fontSize: 13, color: '#52c41a' }}>{mode === 'rule' ? '规则推演' : '单AI推理'}</span>
-              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(82,196,26,0.5)', background: 'rgba(82,196,26,0.08)', padding: '1px 8px', borderRadius: 8 }}>
-                {engineLabel}
-              </span>
+      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.4 }}>本局建议</div>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 56,
+                lineHeight: 1,
+                fontWeight: 800,
+                color: getDirectionColor(direction),
+              }}
+            >
+              {direction}
             </div>
-            <p className="analysis-text" style={{ fontWeight: 500, fontSize: 14 }}>
-              {analysis.combined_summary || '暂无综合分析...'}
-            </p>
-            {renderReasoning(false)}
           </div>
-        )}
 
-        {/* 庄方向判断 */}
-        {mode === 'ai' && (
-          <div className="model-block model-block-banker">
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
-            <span className="model-icon-badge" style={{ color: '#ff4d4f', fontWeight: 700 }}>庄</span>
-            <span style={{ fontWeight: 700, fontSize: 13, color: '#ff4d4f' }}>{formatAiRoleLabel('banker')}</span>
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,77,79,0.5)', background: 'rgba(255,77,79,0.08)', padding: '1px 8px', borderRadius: 8 }}>
-              独立判断
-            </span>
-          </div>
-          <p className="analysis-text">{aiRoleCards[0].summary}</p>
-          </div>
-        )}
-
-        {/* 闲方向判断 */}
-        {mode === 'ai' && (
-          <div className="model-block model-block-player">
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
-            <span className="model-icon-badge" style={{ color: '#1890ff', fontWeight: 700 }}>闲</span>
-            <span style={{ fontWeight: 700, fontSize: 13, color: '#1890ff' }}>{formatAiRoleLabel('player')}</span>
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(24,144,255,0.5)', background: 'rgba(24,144,255,0.08)', padding: '1px 8px', borderRadius: 8 }}>
-              独立判断
-            </span>
-          </div>
-          <p className="analysis-text">{aiRoleCards[1].summary}</p>
-          </div>
-        )}
-
-        {/* 综合判断 */}
-        {mode === 'ai' && (
-          <div className="model-block model-block-combined" style={{ marginBottom: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5, flexWrap: 'wrap' }}>
-            <span className="model-icon-badge" style={{ color: '#52c41a', fontWeight: 700 }}>AI</span>
-            <span style={{ fontWeight: 700, fontSize: 13, color: '#52c41a' }}>{formatAiRoleLabel('combined')}</span>
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(82,196,26,0.5)', background: 'rgba(82,196,26,0.08)', padding: '1px 8px', borderRadius: 8 }}>
-              汇总判断
-            </span>
-          </div>
-          <p className="analysis-text" style={{ fontWeight: 500, fontSize: 14 }}>
-            {aiRoleCards[2].summary}
-          </p>
-          {renderReasoning(true)}
-          </div>
-        )}
-      </div>
-      <Drawer
-        title={
-          <Space size={8}>
-            <span>推理详情</span>
-            {modeTag}
-            <Tag color="default" style={{ borderRadius: 12, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              {engineLabel}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <Tag color={outcome?.source === 'rule_fallback' ? 'orange' : 'green'} style={{ borderRadius: 999, fontWeight: 600 }}>
+              {sourceLabel}
             </Tag>
-          </Space>
-        }
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        size={520}
-        styles={{
-          body: { background: '#0d1117', color: 'rgba(255,255,255,0.85)' },
-          header: { background: '#0d1117', borderBottom: '1px solid rgba(255,255,255,0.08)' },
-          section: { background: '#0d1117' },
-        }}
-      >
-        <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.75, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
-          {reasoningDetail || '暂无推理详情'}
+            <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600 }}>
+              {confidenceLabel}把握
+            </Tag>
+            <Tag color="default" style={{ borderRadius: 999, fontWeight: 600 }}>
+              {confidencePercent}%
+            </Tag>
+          </div>
         </div>
-      </Drawer>
+
+        <div
+          style={{
+            padding: '12px 14px',
+            borderRadius: 12,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: 'rgba(255,255,255,0.88)',
+            fontSize: 14,
+            lineHeight: 1.7,
+          }}
+        >
+          {summary}
+        </div>
+
+        {fallbackReason ? (
+          <div
+            style={{
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: 'rgba(250,173,20,0.12)',
+              border: '1px solid rgba(250,173,20,0.22)',
+              color: '#ffd666',
+              fontSize: 12,
+              lineHeight: 1.6,
+            }}
+          >
+            {fallbackReason}
+          </div>
+        ) : null}
+
+        {outcome ? (
+          <div>
+            <Button type="link" style={{ paddingInline: 0 }} onClick={() => setDetailOpen(true)}>
+              查看详细原因
+            </Button>
+          </div>
+        ) : null}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+          <span>{engineLabel}</span>
+          <span>{workflowStage.type === 'waiting_reveal' ? '本局已自动下注，等待开奖结果' : '结果卡已按统一 outcome 渲染'}</span>
+        </div>
+      </div>
+
+      {outcome ? (
+        <AnalysisDetailDrawer
+          open={detailOpen}
+          onClose={() => setDetailOpen(false)}
+          outcome={outcome}
+        />
+      ) : null}
     </div>
   );
 };

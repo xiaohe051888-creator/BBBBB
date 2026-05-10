@@ -13,6 +13,54 @@ from .state import get_or_create_state
 from .logging import write_game_log
 
 
+def _confidence_label(confidence: float) -> str:
+    if confidence >= 0.75:
+        return "高"
+    if confidence >= 0.6:
+        return "中"
+    return "低"
+
+
+def _build_rule_outcome(rule_res: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "direction": rule_res["predict"],
+        "confidence": rule_res["confidence"],
+        "confidence_label": rule_res.get("confidence_label") or _confidence_label(rule_res["confidence"]),
+        "source": rule_res.get("source", "rule_fallback"),
+        "short_reason": rule_res.get("short_reason") or rule_res.get("combined_summary") or "",
+        "final_reason": rule_res.get("final_reason") or rule_res.get("reasoning_detail") or rule_res.get("combined_summary") or "",
+        "fallback_reason": rule_res.get("fallback_reason"),
+        "road_explanations": rule_res.get("road_explanations") or {},
+        "technical_diagnostic": rule_res.get("technical_diagnostic"),
+    }
+
+
+def _build_minimal_outcome(
+    prediction: str,
+    confidence: float,
+    source: str,
+    short_reason: str,
+    final_reason: str,
+    fallback_reason: str | None = None,
+    technical_message: str | None = None,
+) -> Dict[str, Any]:
+    return {
+        "direction": prediction if prediction in ("庄", "闲") else "庄",
+        "confidence": confidence,
+        "confidence_label": _confidence_label(confidence),
+        "source": source,
+        "short_reason": short_reason,
+        "final_reason": final_reason or short_reason,
+        "fallback_reason": fallback_reason,
+        "road_explanations": {},
+        "technical_diagnostic": (
+            {"code": None, "message": technical_message}
+            if technical_message
+            else None
+        ),
+    }
+
+
 async def run_ai_analysis(
     db: AsyncSession,
     boot_number: int,
@@ -181,7 +229,8 @@ async def run_ai_analysis(
             },
             "banker_model": {"summary": rule_res["banker_summary"]},
             "player_model": {"summary": rule_res["player_summary"]},
-            "bet_amount": rule_res.get("bet_amount", 100)
+            "bet_amount": rule_res.get("bet_amount", 100),
+            "analysis_outcome": _build_rule_outcome(rule_res),
         }
     elif prediction_mode == "single_ai":
         try:
@@ -217,7 +266,15 @@ async def run_ai_analysis(
                 },
                 "banker_model": {"summary": "分析失败"},
                 "player_model": {"summary": "分析失败"},
-                "bet_amount": 0
+                "bet_amount": 0,
+                "analysis_outcome": _build_minimal_outcome(
+                    prediction="庄",
+                    confidence=0.0,
+                    source="single_ai",
+                    short_reason="单AI分析出现异常，本次只能给出安全默认结果。",
+                    final_reason=f"单AI分析发生异常，无法完成完整推理。错误摘要：{str(e)[:200]}",
+                    technical_message=str(e)[:200],
+                ),
             }
     else:
         # 调用AI三模型服务
@@ -248,7 +305,15 @@ async def run_ai_analysis(
                 },
                 "banker_model": {"summary": "分析失败"},
                 "player_model": {"summary": "分析失败"},
-                "bet_amount": 0
+                "bet_amount": 0,
+                "analysis_outcome": _build_minimal_outcome(
+                    prediction="庄",
+                    confidence=0.0,
+                    source="rule_fallback",
+                    short_reason="三模型分析异常，本次只能给出安全默认结果。",
+                    final_reason=f"三模型协作分析发生异常，无法完成完整推理。错误摘要：{str(e)[:200]}",
+                    technical_message=str(e)[:200],
+                ),
             }
 
     banker_summary_for_format = (analysis_result.get("banker_model") or {}).get("summary") or ""
@@ -263,6 +328,13 @@ async def run_ai_analysis(
     combined_model_for_format["reasoning_points"] = rp2
     combined_model_for_format["reasoning_detail"] = rd2
     analysis_result["combined_model"] = combined_model_for_format
+    analysis_outcome = analysis_result.get("analysis_outcome")
+    if analysis_outcome:
+        if not analysis_outcome.get("short_reason"):
+            analysis_outcome["short_reason"] = combined_model_for_format.get("summary") or ""
+        if not analysis_outcome.get("final_reason"):
+            analysis_outcome["final_reason"] = combined_model_for_format.get("reasoning_detail") or analysis_outcome["short_reason"]
+        analysis_result["analysis_outcome"] = analysis_outcome
 
     # ================== 重新加锁更新状态 ==================
     async with lock:
@@ -292,6 +364,7 @@ async def run_ai_analysis(
             rp = combined_model.get("reasoning_points")
             sess.combined_reasoning_points = rp if isinstance(rp, list) else []
             sess.combined_reasoning_detail = combined_model.get("reasoning_detail") or None
+            sess.analysis_outcome = analysis_result.get("analysis_outcome")
             from app.core.config import settings
             if prediction_mode == "single_ai":
                 sess.analysis_engine = {"provider": "deepseek", "model": settings.SINGLE_AI_MODEL}
@@ -339,6 +412,7 @@ async def run_ai_analysis(
         "confidence": sess.predict_confidence,
         "tier": sess.predict_bet_tier,
         "bet_amount": sess.predict_bet_amount,
+        "analysis_outcome": analysis_result.get("analysis_outcome"),
         "banker_summary": sess.banker_summary,
         "player_summary": sess.player_summary,
         "combined_summary": sess.combined_summary,
@@ -359,4 +433,5 @@ async def run_ai_analysis(
         "confidence": sess.predict_confidence,
         "tier": sess.predict_bet_tier,
         "bet_amount": sess.predict_bet_amount,
+        "analysis_outcome": analysis_result.get("analysis_outcome"),
     }

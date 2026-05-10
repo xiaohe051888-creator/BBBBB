@@ -60,6 +60,7 @@ def _clear_runtime_prediction_snapshot(sess, *, keep_pending_bet: bool = True) -
     sess.combined_summary = None
     sess.combined_reasoning_points = None
     sess.combined_reasoning_detail = None
+    sess.analysis_outcome = None
     sess.analysis_engine = None
     sess.analysis_time = None
     if not keep_pending_bet:

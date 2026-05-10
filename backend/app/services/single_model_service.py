@@ -23,6 +23,169 @@ class SingleModelService:
                 return value
         return []
 
+    @staticmethod
+    def _confidence_label(confidence: float) -> str:
+        if confidence >= 0.75:
+            return "高"
+        if confidence >= 0.6:
+            return "中"
+        return "低"
+
+    @staticmethod
+    def _extract_points(road_obj: Any) -> list[Any]:
+        if hasattr(road_obj, "points"):
+            return road_obj.points
+        if isinstance(road_obj, dict) and "points" in road_obj:
+            return road_obj["points"]
+        if isinstance(road_obj, list):
+            return road_obj
+        return []
+
+    @staticmethod
+    def _get_value(point: Any) -> Any:
+        return point.get("value") if isinstance(point, dict) else getattr(point, "value", None)
+
+    def _default_road_explanations(
+        self,
+        direction: str,
+        road_data: dict[str, Any],
+    ) -> dict[str, dict[str, str]]:
+        big_road = self._extract_points(road_data.get("big_road", []))
+        bead_road = self._extract_points(road_data.get("bead_road", []))
+        big_eye = self._extract_points(road_data.get("big_eye", []))
+        small_road = self._extract_points(road_data.get("small_road", []))
+        cockroach_road = self._extract_points(road_data.get("cockroach_road", []))
+
+        def neutral(name: str, summary: str) -> dict[str, str]:
+            return {
+                "trend_label": f"{name}中性",
+                "tendency": "中性",
+                "support_level": "弱",
+                "plain_summary": summary,
+            }
+
+        def color_explanation(name: str, points: list[Any]) -> dict[str, str]:
+            if not points:
+                return neutral(name, f"{name}当前样本不足，暂时只能提供弱参考。")
+            last_color = self._get_value(points[-1])
+            if last_color == "红":
+                return {
+                    "trend_label": f"{name}偏顺",
+                    "tendency": direction,
+                    "support_level": "中",
+                    "plain_summary": f"{name}目前收在红色，说明当前走势延续性仍在。",
+                }
+            return {
+                "trend_label": f"{name}提示转折",
+                "tendency": "闲" if direction == "庄" else "庄",
+                "support_level": "弱",
+                "plain_summary": f"{name}目前收在蓝色，提醒原走势可能开始减弱或转向。",
+            }
+
+        if big_road:
+            last_value = self._get_value(big_road[-1])
+            streak = 0
+            for point in reversed(big_road):
+                if self._get_value(point) == last_value:
+                    streak += 1
+                else:
+                    break
+            big_road_explanation = {
+                "trend_label": f"大路{streak}连{last_value}" if streak >= 2 else "大路震荡",
+                "tendency": last_value if last_value in ("庄", "闲") else "中性",
+                "support_level": "强" if streak >= 3 else "中" if streak >= 2 else "弱",
+                "plain_summary": (
+                    f"大路最近连续走出{streak}次{last_value}，主走势还在延续。"
+                    if streak >= 2 and last_value in ("庄", "闲")
+                    else "大路当前更像切换阶段，暂时没有绝对单边信号。"
+                ),
+            }
+        else:
+            big_road_explanation = neutral("大路", "当前大路样本还不够，暂时只能作为弱参考。")
+
+        if bead_road:
+            recent = [self._get_value(point) for point in bead_road[-12:]]
+            banker_count = recent.count("庄")
+            player_count = recent.count("闲")
+            if banker_count > player_count:
+                bead_explanation = {
+                    "trend_label": "珠盘路偏庄",
+                    "tendency": "庄",
+                    "support_level": "强" if banker_count - player_count >= 6 else "中",
+                    "plain_summary": "珠盘路最近一段时间庄更多，整体密度仍偏向庄。",
+                }
+            elif player_count > banker_count:
+                bead_explanation = {
+                    "trend_label": "珠盘路偏闲",
+                    "tendency": "闲",
+                    "support_level": "强" if player_count - banker_count >= 6 else "中",
+                    "plain_summary": "珠盘路最近一段时间闲更多，整体密度仍偏向闲。",
+                }
+            else:
+                bead_explanation = neutral("珠盘路", "珠盘路庄闲分布接近，更多是中性提醒。")
+        else:
+            bead_explanation = neutral("珠盘路", "珠盘路当前样本不足，暂时只能作为弱参考。")
+
+        return {
+            "big_road": big_road_explanation,
+            "bead_road": bead_explanation,
+            "big_eye_road": color_explanation("大眼仔路", big_eye),
+            "small_road": color_explanation("小路", small_road),
+            "cockroach_road": color_explanation("螳螂路", cockroach_road),
+        }
+
+    def _build_analysis_outcome(
+        self,
+        parsed: Dict[str, Any],
+        combined_model: Dict[str, Any],
+        road_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        direction = combined_model["final_prediction"]
+        confidence = float(combined_model.get("confidence", 0.0) or 0.0)
+        short_reason = str(
+            self._pick_value(
+                parsed,
+                "short_reason",
+                "summary",
+                "reason",
+                "摘要",
+                "分析摘要",
+                "理由",
+                default=f"当前五路综合下来更偏向{direction}。",
+            )
+        ).strip()
+        final_reason = str(
+            self._pick_value(
+                parsed,
+                "final_reason",
+                "reasoning_detail",
+                "推理详情",
+                "详细推理",
+                "分析详情",
+                "summary",
+                "摘要",
+                default=short_reason,
+            )
+        ).strip()
+        technical_message = self._pick_value(parsed, "technical_message", "diagnostic", "错误摘要")
+        technical_diagnostic = (
+            {"code": None, "message": str(technical_message).strip()}
+            if technical_message not in (None, "")
+            else None
+        )
+
+        return {
+            "direction": direction,
+            "confidence": confidence,
+            "confidence_label": self._confidence_label(confidence),
+            "source": "single_ai",
+            "short_reason": short_reason,
+            "final_reason": final_reason,
+            "fallback_reason": None,
+            "road_explanations": self._default_road_explanations(direction, road_data),
+            "technical_diagnostic": technical_diagnostic,
+        }
+
     async def analyze(
         self,
         game_number: int,
@@ -81,11 +244,13 @@ class SingleModelService:
                 default="",
             ),
         }
+        analysis_outcome = self._build_analysis_outcome(parsed, combined_model, road_data)
 
         return {
             "combined_model": combined_model,
             "banker_model": {"summary": ""},
             "player_model": {"summary": ""},
+            "analysis_outcome": analysis_outcome,
         }
 
     async def realtime_strategy_learning(

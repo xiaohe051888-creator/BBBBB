@@ -55,6 +55,7 @@ async def end_boot(
             sess.combined_summary = None
             sess.combined_reasoning_points = None
             sess.combined_reasoning_detail = None
+            sess.analysis_outcome = None
             sess.analysis_engine = None
             
             # 更新系统状态
@@ -194,6 +195,7 @@ async def run_deep_learning(
                 sess.combined_summary = None
                 sess.combined_reasoning_points = None
                 sess.combined_reasoning_detail = None
+                sess.analysis_outcome = None
                 sess.analysis_engine = None
             
             await broadcast_event("deep_learning_completed", {
@@ -269,6 +271,7 @@ async def run_deep_learning(
                     sess.combined_summary = None
                     sess.combined_reasoning_points = None
                     sess.combined_reasoning_detail = None
+                    sess.analysis_outcome = None
                     sess.analysis_engine = None
 
                 state.status = "分析中"

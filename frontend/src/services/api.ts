@@ -3,6 +3,7 @@
  * 含 JWT 认证拦截器 + WebSocket 认证
  */
 import axios from 'axios';
+import type { AnalysisOutcome } from '../types/models';
 import { normalizeBackendDetail } from '../utils/errorMessage';
 
 const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
@@ -649,6 +650,7 @@ export interface LatestAnalysis {
   banker_model: { summary: string | null; time: string | null };
   player_model: { summary: string | null; time: string | null };
   combined_model: { summary: string | null; confidence: number | null; bet_tier: string | null; prediction: string | null; reasoning_points?: string[]; reasoning_detail?: string | null; time: string | null };
+  analysis_outcome?: AnalysisOutcome | null;
   has_data: boolean;
 }
 

@@ -41,6 +41,7 @@ async def get_latest_analysis(_: dict = Depends(get_current_user)):
                 "reasoning_detail": analysis.get("combined_reasoning_detail"),
                 "time": analysis.get("time"),
             },
+            "analysis_outcome": analysis.get("analysis_outcome"),
             "has_data": True,
         }
     
@@ -85,6 +86,7 @@ async def get_latest_analysis(_: dict = Depends(get_current_user)):
                 "reasoning_detail": None,
                 "time": combined_log.log_time.isoformat() if combined_log else None,
             },
+            "analysis_outcome": None,
             "has_data": bool(combined_log),
         }
 

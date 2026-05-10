@@ -1,6 +1,9 @@
 """
 数据模型定义 - 百家乐分析预测系统
 """
+from typing import Literal
+
+from pydantic import BaseModel
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, JSON, Numeric
 from sqlalchemy.sql import func
 from sqlalchemy import UniqueConstraint, Index
@@ -69,6 +72,25 @@ class ErrorType(str, PyEnum):
     OVERCONFIDENCE = "置信过高"
     INSUFFICIENT_SAMPLE = "样本不足"
     SETTLEMENT_ERROR = "结算映射异常"
+
+
+class RoadExplanation(BaseModel):
+    trend_label: str
+    tendency: Literal["庄", "闲", "中性"]
+    support_level: Literal["强", "中", "弱"]
+    plain_summary: str
+
+
+class AnalysisOutcome(BaseModel):
+    direction: Literal["庄", "闲"]
+    confidence: float
+    confidence_label: Literal["高", "中", "低"]
+    source: Literal["single_ai", "rule_fallback"]
+    short_reason: str
+    final_reason: str
+    fallback_reason: str | None = None
+    road_explanations: dict[str, RoadExplanation]
+    technical_diagnostic: dict[str, str | None] | None = None
 
 
 # ============ 开奖记录表 ============

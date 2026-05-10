@@ -72,14 +72,20 @@ class AdminMaintenanceApiTest(unittest.TestCase):
 
     def test_alerts_exclude_ai_review_miss_logs_from_severe_bar(self):
         async def _seed():
-            from datetime import datetime
+            from datetime import datetime, timedelta
 
             from app.core.database import init_db, async_session
             from app.models.schemas import SystemLog
 
             await init_db()
             async with async_session() as s:
-                await s.execute(SystemLog.__table__.delete().where(SystemLog.event_code.in_(["LOG-ERR-001", "UT-P1-ALERT"])))
+                cutoff = datetime.now() - timedelta(hours=24)
+                await s.execute(
+                    SystemLog.__table__.delete().where(
+                        SystemLog.priority == "P1",
+                        SystemLog.log_time >= cutoff,
+                    )
+                )
                 s.add(SystemLog(
                     log_time=datetime.now(),
                     boot_number=1,

@@ -73,6 +73,28 @@ export interface Stats {
   balance: number;
 }
 
+export interface RoadExplanation {
+  trend_label: string;
+  tendency: '庄' | '闲' | '中性';
+  support_level: '强' | '中' | '弱';
+  plain_summary: string;
+}
+
+export interface AnalysisOutcome {
+  direction: '庄' | '闲';
+  confidence: number;
+  confidence_label: '高' | '中' | '低';
+  source: 'single_ai' | 'rule_fallback';
+  short_reason: string;
+  final_reason: string;
+  fallback_reason?: string | null;
+  road_explanations: Record<string, RoadExplanation>;
+  technical_diagnostic?: {
+    code?: string | null;
+    message?: string | null;
+  } | null;
+}
+
 export interface AnalysisData {
   banker_summary: string;
   player_summary: string;
@@ -85,4 +107,5 @@ export interface AnalysisData {
   engine?: { provider?: string; model?: string; banker?: string | null; player?: string | null; combined?: string | null } | null;
   reasoning_points?: string[];
   reasoning_detail?: string | null;
+  analysis_outcome?: AnalysisOutcome | null;
 }

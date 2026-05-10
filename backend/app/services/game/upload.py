@@ -77,6 +77,7 @@ async def _reset_session_state(keep_balance: bool = True) -> None:
     sess.banker_summary = None
     sess.player_summary = None
     sess.combined_summary = None
+    sess.analysis_outcome = None
     sess.analysis_time = None
     sess.deep_learning_status = None
 

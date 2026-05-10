@@ -28,6 +28,7 @@ def _clear_runtime_prediction_snapshot(sess, state) -> None:
     sess.combined_summary = None
     sess.combined_reasoning_points = None
     sess.combined_reasoning_detail = None
+    sess.analysis_outcome = None
     sess.analysis_engine = None
     sess.analysis_time = None
 
@@ -77,6 +78,83 @@ async def _finalize_analysis_cycle(final_status: str = "等待开奖") -> None:
         logger.exception("同步最终状态/广播失败")
 
 
+async def _run_single_ai_rule_fallback(
+    boot_number: int,
+    diagnostic_message: str,
+) -> bool:
+    from app.services.game.analysis import run_ai_analysis as run_rule_analysis
+    from app.services.game.betting import place_bet
+    from app.services.game.logging import write_game_log
+    from app.services.game.session import get_session
+
+    sess = get_session()
+    if sess.prediction_mode != "single_ai":
+        return False
+
+    original_mode = sess.prediction_mode
+    try:
+        sess.prediction_mode = "rule"
+        async with async_session() as session:
+            res = await run_rule_analysis(
+                db=session,
+                boot_number=boot_number,
+            )
+            if not res or not res.get("success"):
+                raise RuntimeError((res or {}).get("error") or "rule fallback failed")
+
+            prediction = res.get("prediction")
+            if prediction not in ("庄", "闲"):
+                logger.warning(
+                    "规则兜底返回了非法方向 '%s'，系统强制使用默认方向 '庄'",
+                    prediction,
+                )
+                prediction = "庄"
+
+            analysis_outcome = res.get("analysis_outcome") or {}
+            technical_diagnostic = analysis_outcome.get("technical_diagnostic") or {}
+            analysis_outcome["technical_diagnostic"] = {
+                "code": technical_diagnostic.get("code"),
+                "message": diagnostic_message[:200],
+            }
+            analysis_outcome["fallback_reason"] = (
+                analysis_outcome.get("fallback_reason")
+                or "本局单AI没有返回稳定结果，系统改用规则判断继续下注。"
+            )
+            res["analysis_outcome"] = analysis_outcome
+            sess.analysis_outcome = analysis_outcome
+
+            sess.prediction_mode = original_mode
+
+            bet_result = await place_bet(
+                db=session,
+                game_number=res["game_number"],
+                direction=prediction,
+                amount=res.get("bet_amount", 100),
+            )
+            if not bet_result.get("success"):
+                raise RuntimeError(
+                    bet_result.get("message")
+                    or bet_result.get("error")
+                    or "rule fallback bet failed"
+                )
+
+            await write_game_log(
+                session,
+                boot_number,
+                res["game_number"],
+                "LOG-MDL-003",
+                "规则兜底接管",
+                "成功",
+                f"单AI失败后已切换规则兜底继续下注：{diagnostic_message[:200]}",
+                category="工作流事件",
+                priority="P1",
+            )
+            await session.commit()
+            return True
+    finally:
+        sess.prediction_mode = original_mode
+
+
 async def _run_followup_analysis(boot_number: int, failure_description: str) -> None:
     from app.services.game import run_ai_analysis
 
@@ -87,23 +165,25 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
                     db=session,
                     boot_number=boot_number,
                 )
-                if res and res.get("success"):
-                    prediction = res.get("prediction")
-                    if prediction not in ("庄", "闲"):
-                        logging.getLogger(__name__).warning(
-                            "AI 返回了非法的下注方向 '%s'，系统强制接管并兜底下注 '庄'",
-                            prediction,
-                        )
-                        prediction = "庄"
+                if not res or not res.get("success"):
+                    raise RuntimeError((res or {}).get("error") or "analysis returned no result")
 
-                    from app.services.game.betting import place_bet
-                    await place_bet(
-                        db=session,
-                        game_number=res["game_number"],
-                        direction=prediction,
-                        amount=res.get("bet_amount", 100),
+                prediction = res.get("prediction")
+                if prediction not in ("庄", "闲"):
+                    logging.getLogger(__name__).warning(
+                        "AI 返回了非法的下注方向 '%s'，系统强制接管并兜底下注 '庄'",
+                        prediction,
                     )
-                    await session.commit()
+                    prediction = "庄"
+
+                from app.services.game.betting import place_bet
+                await place_bet(
+                    db=session,
+                    game_number=res["game_number"],
+                    direction=prediction,
+                    amount=res.get("bet_amount", 100),
+                )
+                await session.commit()
 
         await asyncio.wait_for(_run_cycle(), timeout=_followup_analysis_timeout_seconds())
     except asyncio.TimeoutError:
@@ -117,6 +197,17 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
             timeout_seconds,
         )
         sess = get_session()
+        diagnostic_message = f"{failure_description}: analysis timeout after {timeout_seconds:.2f}s"
+        try:
+            fallback_used = await _run_single_ai_rule_fallback(
+                boot_number=boot_number,
+                diagnostic_message=diagnostic_message,
+            )
+        except Exception:
+            logger.exception("单AI超时后规则兜底失败")
+            fallback_used = False
+        if fallback_used:
+            return
         fallback_status = "错误" if failure_description.startswith("上传") else "空闲"
         try:
             async with async_session() as log_session:
@@ -133,7 +224,7 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
                     "LOG-SYS-ERR" if failure_description.startswith("上传") else "LOG-MDL-002",
                     "AI分析超时" if not failure_description.startswith("上传") else "AI分析报错",
                     "失败",
-                    f"{failure_description}: analysis timeout after {timeout_seconds:.2f}s",
+                    diagnostic_message,
                     category="系统异常" if not failure_description.startswith("上传") else "工作流事件",
                     priority="P1",
                 )
@@ -156,6 +247,17 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
 
         logging.getLogger("uvicorn.error").error("%s: %s", failure_description, e, exc_info=True)
         sess = get_session()
+        diagnostic_message = f"{failure_description}: {str(e)}"
+        try:
+            fallback_used = await _run_single_ai_rule_fallback(
+                boot_number=boot_number,
+                diagnostic_message=diagnostic_message,
+            )
+        except Exception:
+            logger.exception("单AI异常后规则兜底失败")
+            fallback_used = False
+        if fallback_used:
+            return
         fallback_status = "错误" if failure_description.startswith("上传") else "空闲"
         try:
             async with async_session() as log_session:
@@ -172,7 +274,7 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
                     "LOG-SYS-ERR" if failure_description.startswith("上传") else "LOG-MDL-002",
                     "AI分析报错" if failure_description.startswith("上传") else "AI分析异常",
                     "失败",
-                    f"{failure_description}: {str(e)}",
+                    diagnostic_message,
                     category="系统异常" if not failure_description.startswith("上传") else "工作流事件",
                     priority="P1",
                 )
