@@ -107,4 +107,39 @@ describe('AnalysisPanel', () => {
     });
     container.remove();
   });
+
+  it('shows waiting reveal copy instead of preparing analysis when a bet is already pending', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <AnalysisPanel
+          hasGameData
+          hasPendingBet
+          aiAnalyzing={false}
+          workflowStage={{
+            type: 'waiting_reveal',
+            showAnalysisLoading: false,
+            showCompletedAnalysis: false,
+          }}
+          analysis={null}
+        />
+      );
+    });
+
+    const html = container.innerHTML;
+
+    expect(html).toContain('本局已下注');
+    expect(html).toContain('等待开奖结果');
+    expect(html).not.toContain('正在准备AI分析...');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });

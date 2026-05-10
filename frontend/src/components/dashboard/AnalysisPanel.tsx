@@ -211,6 +211,26 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     );
   }
 
+  if (workflowStage.type === 'waiting_reveal' && !analysis) {
+    return (
+      <div className="analysis-card dashboard-section-card dashboard-analysis-card" style={{ minHeight: 'auto' }}>
+        <div className="section-header">
+          <span style={{ color: '#fadb14' }}><BulbOutlined /></span>
+          <span className="section-title">智能分析</span>
+        </div>
+        <div style={{ textAlign: 'center', padding: 'clamp(24px, 5vw, 40px) 16px', color: 'rgba(255,255,255,0.4)' }}>
+          <div style={{ fontSize: 32, marginBottom: 12, color: '#faad14' }}>
+            <RobotOutlined style={{ fontSize: 32 }} />
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8, color: '#ffd666' }}>本局已下注</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+            等待开奖结果，分析结果同步后会显示在这里
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // 有数据但没有分析结果 - 准备分析
   if (!analysis) {
     return (
