@@ -181,13 +181,13 @@ describe('beginnerCopy', () => {
     expect(formatApiConfigLabel('enterSecretKey')).toBe('请输入访问密钥');
   });
 
-  it('formats detail labels in plain language', () => {
-    expect(formatDetailLabel('copyHint')).toBe('一键复制下面这段通俗说明');
-    expect(formatDetailLabel('whatHappened')).toBe('这次发生了什么');
-    expect(formatDetailLabel('impact')).toBe('对当前使用有什么影响');
-    expect(formatDetailLabel('suggestion')).toBe('建议你接下来怎么做');
-    expect(formatDetailLabel('keyInfo')).toBe('你可能会关心的信息');
-    expect(formatDetailLabel('rawData')).toBe('系统原始记录（高级信息）');
+  it('formats detail labels in decision-hub language', () => {
+    expect(formatDetailLabel('copyHint')).toBe('可复制本条摘要，用于转发或留存');
+    expect(formatDetailLabel('whatHappened')).toBe('变动');
+    expect(formatDetailLabel('impact')).toBe('影响');
+    expect(formatDetailLabel('suggestion')).toBe('状态');
+    expect(formatDetailLabel('keyInfo')).toBe('关键信息');
+    expect(formatDetailLabel('rawData')).toBe('系统记录');
     expect(formatDetailLabel('errorId')).toBe('记录编号');
     expect(formatDetailLabel('modelSummary')).toBe('智能分析摘要');
     expect(formatDetailLabel('analysis')).toBe('原因分析');
@@ -199,6 +199,6 @@ describe('beginnerCopy', () => {
     expect(formatDetailLabel('combinedModel')).toBe('综合判断');
     expect(formatDetailLabel('noAnalysis')).toBe('暂时没有原因分析');
     expect(formatDetailLabel('noCorrection')).toBe('暂时没有改进建议');
-    expect(formatDetailLabel('copySummary')).toBe('复制通俗说明');
+    expect(formatDetailLabel('copySummary')).toBe('复制摘要');
   });
 });

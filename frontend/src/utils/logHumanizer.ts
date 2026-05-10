@@ -325,18 +325,9 @@ export const humanizeLog = (log: LogEntry): HumanLog => {
 
 export const toHumanCopyText = (log: LogEntry): string => {
   const h = humanizeLog(log);
-  const lines: string[] = [];
-  lines.push(`【${h.title}】`);
-  lines.push(`发生：${h.whatHappened}`);
-  lines.push(`影响：${h.impact}`);
-  lines.push(`建议：${h.suggestion}`);
-  const time = h.fieldsCn.find((f) => f.label === '时间')?.value || '-';
-  const game = h.fieldsCn.find((f) => f.label === '靴内局号')?.value || '-';
-  const code = h.fieldsCn.find((f) => f.label === '事件编码')?.value || '-';
-  lines.push(`时间：${time}`);
-  lines.push(`局号：${game}`);
-  lines.push(`编码：${code}`);
-  return lines.join('\n');
+  return [`标题：${h.title}`, `变动：${h.whatHappened}`, `影响：${h.impact}`, `状态：${h.suggestion}`].join(
+    '\n',
+  );
 };
 
 export const toHumanExportPayload = (log: LogEntry) => {

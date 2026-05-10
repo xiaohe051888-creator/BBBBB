@@ -272,13 +272,13 @@ export const formatDetailLabel = (
     | 'noAnalysis'
     | 'noCorrection',
 ) => {
-  if (key === 'copyHint') return '一键复制下面这段通俗说明';
-  if (key === 'copySummary') return '复制通俗说明';
-  if (key === 'whatHappened') return '这次发生了什么';
-  if (key === 'impact') return '对当前使用有什么影响';
-  if (key === 'suggestion') return '建议你接下来怎么做';
-  if (key === 'keyInfo') return '你可能会关心的信息';
-  if (key === 'rawData') return '系统原始记录（高级信息）';
+  if (key === 'copyHint') return '可复制本条摘要，用于转发或留存';
+  if (key === 'copySummary') return '复制摘要';
+  if (key === 'whatHappened') return '变动';
+  if (key === 'impact') return '影响';
+  if (key === 'suggestion') return '状态';
+  if (key === 'keyInfo') return '关键信息';
+  if (key === 'rawData') return '系统记录';
   if (key === 'errorId') return '记录编号';
   if (key === 'modelSummary') return '智能分析摘要';
   if (key === 'analysis') return '原因分析';

@@ -21,7 +21,30 @@ describe('logHumanizer', () => {
     const h = humanizeLog(log);
     expect(h.title).toContain('结算');
     expect(h.whatHappened).toContain('第2局');
-    expect(toHumanCopyText(log)).toContain('发生：');
+    expect(toHumanCopyText(log)).toContain('变动');
+  });
+
+  it('uses decision-hub summary wording in copied text', () => {
+    const log: LogEntry = {
+      id: 10,
+      log_time: '2026-05-02T00:00:00Z',
+      game_number: 25,
+      event_code: 'LOG-BET-001',
+      event_type: '下注',
+      event_result: '成功',
+      description: '第25局下注庄3030元。',
+      category: '资金事件',
+      priority: 'P2',
+      task_id: null,
+      is_pinned: false,
+    };
+
+    const text = toHumanCopyText(log);
+    expect(text).toContain('变动');
+    expect(text).toContain('影响');
+    expect(text).toContain('状态');
+    expect(text).not.toContain('这次发生了什么');
+    expect(text).not.toContain('建议你接下来怎么做');
   });
 
   it('falls back to generic for unknown event_code', () => {
