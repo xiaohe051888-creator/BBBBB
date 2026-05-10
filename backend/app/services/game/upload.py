@@ -45,6 +45,35 @@ async def _reset_table_data(db: AsyncSession, boot_number: Optional[int] = None)
         await db.flush()
 
 
+async def _capture_game_history_snapshot(db: AsyncSession, boot_number: int) -> Dict[int, Dict[str, Any]]:
+    result = await db.execute(
+        select(GameRecord).where(GameRecord.boot_number == boot_number)
+    )
+    records = result.scalars().all()
+    snapshot: Dict[int, Dict[str, Any]] = {}
+    for record in records:
+        snapshot[record.game_number] = {
+            "prediction_mode": record.prediction_mode,
+            "predict_direction": record.predict_direction,
+            "predict_correct": record.predict_correct,
+            "settlement_status": record.settlement_status,
+            "profit_loss": record.profit_loss,
+            "balance_after": record.balance_after,
+        }
+    return snapshot
+
+
+def _restore_game_history_snapshot(record: GameRecord, snapshot: Optional[Dict[str, Any]]) -> None:
+    if not snapshot:
+        return
+    record.prediction_mode = snapshot.get("prediction_mode")
+    record.predict_direction = snapshot.get("predict_direction")
+    record.predict_correct = snapshot.get("predict_correct")
+    record.settlement_status = snapshot.get("settlement_status")
+    record.profit_loss = snapshot.get("profit_loss")
+    record.balance_after = snapshot.get("balance_after")
+
+
 async def _reset_session_state(keep_balance: bool = True) -> None:
     """
     重置会话状态 - 清理内存中的工作流状态，强制清场
@@ -159,8 +188,12 @@ async def upload_games(
             else:
                 # 覆盖当前靴
                 boot_number = existing_boot if existing_boot > 0 else 1
+                history_snapshot = await _capture_game_history_snapshot(db, boot_number)
                 # 清理当前靴数据，以便覆盖
                 await _reset_table_data(db, boot_number=boot_number)
+            
+            if effective_mode == "new_boot":
+                history_snapshot: Dict[int, Dict[str, Any]] = {}
             
             # ========== 强力清场：重置会话状态 ==========
             # 清理内存中的工作流状态，终止所有进行中的操作
@@ -189,6 +222,7 @@ async def upload_games(
                     # 更新结果
                     existing.result = result_val
                     existing.result_time = datetime.now()
+                    _restore_game_history_snapshot(existing, history_snapshot.get(game_number))
                 else:
                     record = GameRecord(
                         boot_number=boot_number,
@@ -196,6 +230,7 @@ async def upload_games(
                         result=result_val,
                         result_time=datetime.now(),
                     )
+                    _restore_game_history_snapshot(record, history_snapshot.get(game_number))
                     db.add(record)
                 uploaded += 1
             

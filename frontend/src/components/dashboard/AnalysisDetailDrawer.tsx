@@ -38,6 +38,37 @@ const getSourceExplanation = (outcome: AnalysisOutcome) => {
   return '本局由单AI直接完成判断，系统按单AI结果下注。';
 };
 
+const shellStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 16,
+  maxWidth: 960,
+  margin: '0 auto',
+};
+
+const sectionCardStyle: React.CSSProperties = {
+  padding: 16,
+  borderRadius: 14,
+  border: '1px solid #d9e2f0',
+  background: '#ffffff',
+  boxShadow: '0 4px 14px rgba(15, 23, 42, 0.06)',
+};
+
+const sectionHeadingStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: 17,
+  lineHeight: 1.35,
+  fontWeight: 700,
+  color: '#111827',
+};
+
+const bodyTextStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: 14,
+  lineHeight: 1.85,
+  color: '#1f2937',
+};
+
 export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open, onClose, outcome }) => {
   return (
     <Drawer
@@ -47,21 +78,32 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
       placement="bottom"
       size="large"
       destroyOnClose
+      styles={{
+        body: {
+          padding: 16,
+          background: '#f5f7fb',
+        },
+      }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <section>
-          <h3 style={{ margin: 0, fontSize: 16 }}>本局结论</h3>
+      <div style={shellStyle}>
+        <section style={sectionCardStyle}>
+          <h3 style={sectionHeadingStyle}>本局结论</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
             <Tag color={outcome.source === 'rule_fallback' ? 'orange' : 'green'}>{getSourceLabel(outcome.source)}</Tag>
             <Tag color="blue">{outcome.confidence_label}把握</Tag>
             <Tag>{Math.round(outcome.confidence * 100)}%</Tag>
           </div>
-          <p style={{ margin: '12px 0 6px', fontWeight: 600 }}>本局建议：{outcome.direction}</p>
-          <p style={{ margin: 0, color: 'rgba(0,0,0,0.72)', lineHeight: 1.7 }}>{outcome.short_reason}</p>
+          <p style={{ margin: '14px 0 8px', fontSize: 24, fontWeight: 800, color: '#111827' }}>本局建议：{outcome.direction}</p>
+          <p style={bodyTextStyle}>{outcome.short_reason}</p>
         </section>
 
-        <section>
-          <h3 style={{ margin: 0, fontSize: 16 }}>五条路怎么看</h3>
+        <section style={sectionCardStyle}>
+          <h3 style={sectionHeadingStyle}>最终为什么押这个方向</h3>
+          <p style={{ ...bodyTextStyle, marginTop: 12 }}>{outcome.final_reason}</p>
+        </section>
+
+        <section style={sectionCardStyle}>
+          <h3 style={sectionHeadingStyle}>五条路怎么看</h3>
           <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
             {ROAD_KEYS.map((key) => {
               const explanation = outcome.road_explanations[key];
@@ -70,25 +112,27 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
                 <article
                   key={key}
                   style={{
-                    padding: 12,
+                    padding: 14,
                     borderRadius: 12,
-                    border: '1px solid rgba(5,5,5,0.06)',
-                    background: '#fafafa',
+                    border: '1px solid #e5e7eb',
+                    background: '#fbfdff',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                    <h4 style={{ margin: 0, fontSize: 15 }}>{ROAD_LABELS[key]}</h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#111827' }}>{ROAD_LABELS[key]}</h4>
                     {explanation ? (
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <Tag>{explanation.tendency}</Tag>
+                        <Tag color={explanation.tendency === '庄' ? 'red' : explanation.tendency === '闲' ? 'blue' : 'default'}>
+                          {explanation.tendency}
+                        </Tag>
                         <Tag color="processing">{explanation.support_level}支持</Tag>
                       </div>
                     ) : null}
                   </div>
-                  <p style={{ margin: '8px 0 4px', fontWeight: 500, color: '#262626' }}>
+                  <p style={{ margin: '10px 0 6px', fontSize: 14, fontWeight: 600, color: '#374151' }}>
                     {explanation?.trend_label || '当前暂无这条路的额外解释。'}
                   </p>
-                  <p style={{ margin: 0, lineHeight: 1.7, color: 'rgba(0,0,0,0.72)' }}>
+                  <p style={bodyTextStyle}>
                     {explanation?.plain_summary || '系统暂时没有拿到这条路的详细说明。'}
                   </p>
                 </article>
@@ -97,14 +141,9 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
           </div>
         </section>
 
-        <section>
-          <h3 style={{ margin: 0, fontSize: 16 }}>最终为什么押这个方向</h3>
-          <p style={{ margin: '12px 0 0', lineHeight: 1.7, color: 'rgba(0,0,0,0.72)' }}>{outcome.final_reason}</p>
-        </section>
-
-        <section>
-          <h3 style={{ margin: 0, fontSize: 16 }}>来源说明</h3>
-          <p style={{ margin: '12px 0 0', lineHeight: 1.7, color: 'rgba(0,0,0,0.72)' }}>
+        <section style={sectionCardStyle}>
+          <h3 style={sectionHeadingStyle}>来源说明</h3>
+          <p style={{ ...bodyTextStyle, marginTop: 12 }}>
             {getSourceExplanation(outcome)}
           </p>
         </section>

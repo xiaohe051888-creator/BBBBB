@@ -89,7 +89,13 @@ describe('AnalysisDetailDrawer', () => {
     expect(html).toContain('五条路怎么看');
     expect(html).toContain('大路');
     expect(html).toContain('最终为什么押这个方向');
+    expect(html.indexOf('本局结论')).toBeGreaterThan(-1);
+    expect(html.indexOf('最终为什么押这个方向')).toBeGreaterThan(html.indexOf('本局结论'));
+    expect(html.indexOf('五条路怎么看')).toBeGreaterThan(html.indexOf('最终为什么押这个方向'));
+    expect(html.indexOf('来源说明')).toBeGreaterThan(html.indexOf('五条路怎么看'));
     expect(html).toContain('规则兜底');
+    expect(html).toContain('72%');
+    expect(html).toContain('本局建议：庄');
     expect(html).toContain('技术说明');
 
     await act(async () => {
