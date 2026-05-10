@@ -203,6 +203,20 @@ class GameAnalysisTriggerFlowTest(unittest.TestCase):
         self.assertIn(result["bet_direction"], ("庄", "闲"))
         self.assertEqual(result["bet_status"], "待开奖")
 
+    def test_single_ai_followup_timeout_budget_is_mode_aware(self):
+        from app.api.routes.game import _followup_analysis_timeout_seconds
+        from app.core.config import settings
+
+        settings.SINGLE_AI_REQUEST_TIMEOUT_SECONDS = 75
+        settings.SINGLE_AI_MAX_RETRIES = 2
+        settings.SINGLE_AI_TOTAL_TIMEOUT_SECONDS = 0
+        settings.ANALYSIS_TASK_TIMEOUT_SECONDS = 45
+
+        timeout = _followup_analysis_timeout_seconds("single_ai")
+
+        self.assertGreaterEqual(timeout, 95)
+        self.assertGreater(timeout, 45)
+
 
 if __name__ == "__main__":
     unittest.main()

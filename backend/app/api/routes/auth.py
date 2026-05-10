@@ -28,6 +28,13 @@ from app.services.ai_config_store import (
     apply_single_ai_runtime_prompt_template,
     encrypt_api_key,
 )
+from app.services.single_ai_runtime import (
+    SINGLE_AI_MODEL,
+    SINGLE_AI_PROVIDER,
+    build_single_ai_runtime_config,
+    build_single_ai_test_payload,
+    normalize_single_ai_base_url,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["认证"])
 
@@ -390,6 +397,11 @@ async def update_api_config(
         
     k_key, m_key, b_key = role_map[req.role]
     
+    if req.role == "single":
+        req.provider = SINGLE_AI_PROVIDER
+        req.model = SINGLE_AI_MODEL
+        req.base_url = normalize_single_ai_base_url(req.base_url or None)
+
     effective_api_key = req.api_key or (getattr(settings, k_key, "") or "")
     effective_model = req.model
     effective_base_url = req.base_url or (getattr(settings, b_key, "") or "")
@@ -498,20 +510,30 @@ async def test_api_config(
                 return "服务端缺少依赖，已切换为直连测试方式仍失败"
             return "接口调用失败，请检查访问密钥/模型名称/接口地址"
 
-        async def _openai_compatible(base_url: str, api_key: str, model: str) -> None:
-            if not base_url:
-                raise Exception("缺少接口地址")
-            url = base_url.rstrip("/")
-            if not url.endswith("/v1") and "/chat/completions" not in url:
-                url = f"{url}/v1"
-            if not url.endswith("/chat/completions"):
-                url = f"{url}/chat/completions"
-            payload = {
-                "model": model,
-                "messages": [{"role": "user", "content": "Hello"}],
-                "max_tokens": 5,
-                "temperature": 0.2,
-            }
+        async def _openai_compatible(base_url: str, api_key: str, model: str, role: str) -> None:
+            if role == "single":
+                runtime_cfg = build_single_ai_runtime_config(
+                    provider=SINGLE_AI_PROVIDER,
+                    model=model,
+                    base_url=base_url,
+                    api_key=api_key,
+                )
+                url = runtime_cfg["chat_completions_url"]
+                payload = build_single_ai_test_payload()
+            else:
+                if not base_url:
+                    raise Exception("缺少接口地址")
+                url = base_url.rstrip("/")
+                if not url.endswith("/v1") and "/chat/completions" not in url:
+                    url = f"{url}/v1"
+                if not url.endswith("/chat/completions"):
+                    url = f"{url}/chat/completions"
+                payload = {
+                    "model": model,
+                    "messages": [{"role": "user", "content": "Hello"}],
+                    "max_tokens": 5,
+                    "temperature": 0.2,
+                }
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(
                     url,
@@ -559,7 +581,7 @@ async def test_api_config(
             raise Exception("自定义兼容接口必须填写接口地址")
 
         if provider in ("openai", "deepseek", "aliyun", "custom"):
-            await _openai_compatible(base_url_for_request, effective_api_key, req.model)
+            await _openai_compatible(base_url_for_request, effective_api_key, req.model, req.role)
             test_ok = True
             message = "接口连接正常"
         elif provider == "anthropic":

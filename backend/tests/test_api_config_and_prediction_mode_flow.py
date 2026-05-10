@@ -54,10 +54,10 @@ class ApiConfigAndPredictionModeFlowTest(unittest.TestCase):
         api_key: str,
         base_url: str = "https://api.deepseek.com",
     ) -> None:
-        cfg_hash = compute_config_hash("deepseek", model, api_key, base_url)
         async with async_session() as session:
             row = await session.get(AiModelConfig, "single")
             self.assertIsNotNone(row)
+            cfg_hash = compute_config_hash(row.provider, row.model, api_key, row.base_url)
             row.last_test_ok = True
             row.last_test_at = datetime.now(UTC)
             row.last_test_error = None
@@ -91,6 +91,11 @@ class ApiConfigAndPredictionModeFlowTest(unittest.TestCase):
         mem.predict_confidence = 0.91
         mem.predict_bet_tier = "激进"
         mem.predict_bet_amount = 300
+        mem.pending_bet_direction = None
+        mem.pending_bet_amount = None
+        mem.pending_bet_tier = None
+        mem.pending_bet_time = None
+        mem.pending_game_number = None
         mem.banker_summary = "旧庄方向摘要"
         mem.player_summary = "旧闲方向摘要"
         mem.combined_summary = "旧综合摘要"
@@ -138,6 +143,35 @@ class ApiConfigAndPredictionModeFlowTest(unittest.TestCase):
             )
             self.assertEqual(mode_res.status_code, 409)
             self.assertIn("请先配置并测试通过", mode_res.json()["detail"])
+
+    def test_saving_single_ai_config_forces_deepseek_v4_pro_and_official_base_url(self):
+        api_key = "sk-force-1234567890"
+        with TestClient(app) as client:
+            headers = self._login_headers(client)
+            res = client.post(
+                "/api/admin/api-config",
+                json={
+                    "role": "single",
+                    "provider": "custom",
+                    "model": "some-other-model",
+                    "api_key": api_key,
+                    "base_url": "",
+                },
+                headers=headers,
+            )
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(res.json()["status"], "success")
+
+            async def _check():
+                async with async_session() as session:
+                    row = await session.get(AiModelConfig, "single")
+                    self.assertIsNotNone(row)
+                    return row.provider, row.model, row.base_url
+
+            provider, model, base_url = self._run_async(_check())
+            self.assertEqual(provider, "deepseek")
+            self.assertEqual(model, "deepseek-v4-pro")
+            self.assertEqual(base_url, "https://api.deepseek.com")
 
     def test_switching_single_ai_mode_updates_db_and_runtime_state(self):
         api_key = "sk-pass-1234567890"

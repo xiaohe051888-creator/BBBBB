@@ -4,7 +4,7 @@
 
 **Goal:** 修复 DeepSeek `V4 Pro + thinking=enabled` 在单AI模式下“测试可用但正式分析预测失败/超时”的问题，并让配置页固定到该运行模型。
 
-**Architecture:** 先用测试锁住测试链路与正式链路不一致、单AI模型可跑偏、超时预算失配这三类问题，再抽出统一的 DeepSeek 地址与请求配置构造逻辑，让测试与正式分析共用；最后收口管理页表单、提示词模板与诊断信息，完成回归验证。
+**Architecture:** 先用测试锁住测试链路与正式链路不一致、单AI模型可跑偏、超时预算失配这三类问题，再抽出统一的 DeepSeek 地址与请求配置构造逻辑，让测试与正式分析共用；最后收口管理页表单，使单AI只保留官方地址固定选项、固定 V4 Pro 和深度思考，并完成回归验证。
 
 **Tech Stack:** Python, FastAPI, aiohttp, httpx, pytest/unittest, React, TypeScript, Ant Design, Vitest
 

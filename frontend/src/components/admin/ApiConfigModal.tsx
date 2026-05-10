@@ -38,6 +38,10 @@ const DEFAULT_BASE_URLS: Record<string, string> = {
   custom: '',
 };
 
+const SINGLE_AI_PROVIDER_OPTIONS = [{ label: '深度求索（官方）', value: 'deepseek' }];
+const SINGLE_AI_MODEL_OPTIONS = [{ label: '深度求索 V4 专业版', value: 'deepseek-v4-pro' }];
+const SINGLE_AI_BASE_URL_OPTIONS = [{ label: '官方接口地址（https://api.deepseek.com）', value: 'https://api.deepseek.com' }];
+
 export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
   visible, onCancel, onSuccess, role, currentStatus
 }) => {
@@ -61,12 +65,13 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
     if (initializedRef.current) return;
     if (currentStatus?.models?.[role]) {
       const modelConfig = currentStatus.models[role];
-      setProvider(modelConfig.provider || 'deepseek');
+      const nextProvider = role === 'single' ? 'deepseek' : (modelConfig.provider || 'deepseek');
+      setProvider(nextProvider);
       form.setFieldsValue({
-        provider: modelConfig.provider || 'deepseek',
-        model: modelConfig.model || (role === 'single' ? 'deepseek-v4-pro' : 'deepseek-reasoner'),
+        provider: nextProvider,
+        model: role === 'single' ? 'deepseek-v4-pro' : (modelConfig.model || 'deepseek-reasoner'),
         api_key: '', // 不回显API Key
-        base_url: modelConfig.base_url || '',
+        base_url: role === 'single' ? 'https://api.deepseek.com' : (modelConfig.base_url || ''),
       });
       setTestResult(null);
       initializedRef.current = true;
@@ -184,13 +189,28 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
         在这里填写当前模型要用的访问信息。如果访问密钥留空，就继续沿用之前已保存的内容。
       </div>
 
+      {role === 'single' ? (
+        <Alert
+          showIcon
+          type="info"
+          title="当前单AI模式固定使用深度求索 V4 专业版"
+          description="接口地址固定为官方地址 https://api.deepseek.com，并固定开启深度思考。"
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
+
       <Form form={form} layout="vertical" requiredMark="optional">
         <Form.Item 
           name="provider" 
           label={formatApiConfigLabel('provider')}
           rules={[{ required: true, message: '请选择服务平台' }]}
         >
-          <Select options={PROVIDERS} onChange={handleProviderChange} popupMatchSelectWidth={!isMobile} />
+          <Select
+            options={role === 'single' ? SINGLE_AI_PROVIDER_OPTIONS : PROVIDERS}
+            onChange={handleProviderChange}
+            popupMatchSelectWidth={!isMobile}
+            disabled={role === 'single'}
+          />
         </Form.Item>
 
         <Form.Item 
@@ -198,7 +218,9 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
           label={formatApiConfigLabel('modelName')}
           rules={[{ required: true, message: '请输入模型名称' }]}
         >
-          {provider === 'custom' ? (
+          {role === 'single' ? (
+            <Select options={SINGLE_AI_MODEL_OPTIONS} popupMatchSelectWidth={!isMobile} disabled />
+          ) : provider === 'custom' ? (
             <Input placeholder="例如：具体模型名称" />
           ) : (
             <Select options={MODEL_OPTIONS[provider] || []} popupMatchSelectWidth={!isMobile} />
@@ -223,10 +245,14 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
         <Form.Item 
           name="base_url" 
           label="接口地址（可选）"
-          tooltip="如果你使用代理地址或自定义兼容接口，请填写完整地址"
+          tooltip={role === 'single' ? '单AI模式默认使用 DeepSeek 官方接口地址' : '如果你使用代理地址或自定义兼容接口，请填写完整地址'}
           hidden={provider !== 'custom' && role !== 'single'}
         >
-          <Input placeholder="例如：接口地址" />
+          {role === 'single' ? (
+            <Select options={SINGLE_AI_BASE_URL_OPTIONS} disabled popupMatchSelectWidth={!isMobile} />
+          ) : (
+            <Input placeholder="例如：接口地址" />
+          )}
         </Form.Item>
       </Form>
 

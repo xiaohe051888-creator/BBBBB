@@ -9,6 +9,23 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 
 class SingleAIAnalysisTest(unittest.TestCase):
+    def test_single_ai_runtime_uses_deepseek_v4_pro_with_thinking_enabled(self):
+        from app.services.single_ai_runtime import build_single_ai_runtime_config, build_single_ai_test_payload
+
+        runtime_cfg = build_single_ai_runtime_config(
+            provider="deepseek",
+            model="deepseek-chat",
+            base_url="https://api.deepseek.com",
+            api_key="x" * 20,
+        )
+        payload = build_single_ai_test_payload()
+
+        self.assertEqual(runtime_cfg["model"], "deepseek-v4-pro")
+        self.assertEqual(runtime_cfg["thinking"], {"type": "enabled"})
+        self.assertEqual(payload["model"], "deepseek-v4-pro")
+        self.assertEqual(payload["thinking"], {"type": "enabled"})
+        self.assertIn("只输出严格 JSON", payload["messages"][0]["content"])
+
     def test_run_ai_analysis_single_ai_path(self):
         async def _run():
             from app.core.database import init_db, async_session
@@ -89,6 +106,23 @@ class SingleAIAnalysisTest(unittest.TestCase):
         self.assertTrue(res["success"])
         self.assertEqual(res["prediction"], "庄")
         self.assertAlmostEqual(res["confidence"], 0.82, places=3)
+
+    def test_single_ai_default_prompt_requires_strict_json_without_markdown(self):
+        from app.services.single_model_service import SingleModelService
+
+        prompt = SingleModelService()._build_prompt(
+            game_number=8,
+            boot_number=1,
+            game_history=[{"game_number": 1, "result": "庄"}],
+            road_data={"big_road": []},
+            mistake_context=[],
+            consecutive_errors=0,
+            road_features={"pattern": "单跳"},
+        )
+
+        self.assertIn("只输出严格 JSON", prompt)
+        self.assertIn("不要输出 Markdown", prompt)
+        self.assertIn("final_prediction", prompt)
 
 
 if __name__ == "__main__":

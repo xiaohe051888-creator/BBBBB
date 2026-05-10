@@ -5,6 +5,7 @@ import asyncio
 
 from app.core.config import settings
 from fastapi.encoders import jsonable_encoder
+from app.services.single_ai_runtime import build_single_ai_runtime_config
 
 
 class SingleModelService:
@@ -294,7 +295,9 @@ class SingleModelService:
         encoded_road_features = jsonable_encoder(road_features) if road_features else None
         encoded_mistakes = jsonable_encoder(mistake_context)
         return (
-            "你是百家乐分析预测引擎。请基于当前靴的全量历史局与全量五路走势图，预测下一局庄/闲。\n"
+            "你是百家乐单AI预测引擎，请基于当前靴的全量历史局与全量五路走势图，预测下一局庄/闲。\n"
+            "你可以先内部深度思考，但最终只输出严格 JSON。\n"
+            "不要输出 Markdown，不要输出代码块，不要输出任何额外解释。\n"
             "你必须逐路核对五条路（大路/珠盘路/大眼仔/小路/螳螂），并先使用五路特征摘要进行投票汇总，再结合全量五路点位解释。\n"
             "输出必须是严格 JSON（不要任何额外文字），字段如下：\n"
             '{"final_prediction":"庄或闲","confidence":0-1,"bet_tier":"保守/标准/激进","summary":"一句话摘要","reasoning_points":["要点1","要点2"],"reasoning_detail":"更详细的解释版推理"}\n'
@@ -347,31 +350,33 @@ class SingleModelService:
                 ensure_ascii=False,
             )
 
-        base_url = settings.SINGLE_AI_API_BASE or "https://api.deepseek.com/v1"
-        url = f"{base_url.rstrip('/')}/chat/completions"
+        runtime_cfg = build_single_ai_runtime_config(
+            provider="deepseek",
+            model=settings.SINGLE_AI_MODEL,
+            base_url=settings.SINGLE_AI_API_BASE,
+            api_key=settings.SINGLE_AI_API_KEY,
+        )
+        url = runtime_cfg["chat_completions_url"]
 
         payload = {
-            "model": settings.SINGLE_AI_MODEL,
+            "model": runtime_cfg["model"],
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": 900,
             "temperature": 0.2,
+            "thinking": runtime_cfg["thinking"],
         }
-        base = base_url.lower()
-        model = (settings.SINGLE_AI_MODEL or "").lower()
-        if "deepseek" in base or model.startswith("deepseek-"):
-            thinking = getattr(settings, "SINGLE_AI_THINKING", "enabled")
-            if thinking in ("enabled", "disabled"):
-                payload["thinking"] = {"type": thinking}
 
-        timeout = aiohttp.ClientTimeout(total=30.0)
+        timeout = aiohttp.ClientTimeout(
+            total=float(getattr(settings, "SINGLE_AI_REQUEST_TIMEOUT_SECONDS", 75) or 75)
+        )
         last_error: Exception | None = None
-        for attempt in range(5):
+        for attempt in range(int(getattr(settings, "SINGLE_AI_MAX_RETRIES", 2) or 2)):
             try:
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     async with session.post(
                         url,
                         headers={
-                            "Authorization": f"Bearer {settings.SINGLE_AI_API_KEY}",
+                            "Authorization": f"Bearer {runtime_cfg['api_key']}",
                             "Content-Type": "application/json",
                         },
                         json=payload,
@@ -402,30 +407,32 @@ class SingleModelService:
         if not settings.SINGLE_AI_API_KEY:
             return "单 AI 模式未配置访问密钥，无法提取实时策略。"
 
-        base_url = settings.SINGLE_AI_API_BASE or "https://api.deepseek.com/v1"
-        url = f"{base_url.rstrip('/')}/chat/completions"
+        runtime_cfg = build_single_ai_runtime_config(
+            provider="deepseek",
+            model=settings.SINGLE_AI_MODEL,
+            base_url=settings.SINGLE_AI_API_BASE,
+            api_key=settings.SINGLE_AI_API_KEY,
+        )
+        url = runtime_cfg["chat_completions_url"]
         payload = {
-            "model": settings.SINGLE_AI_MODEL,
+            "model": runtime_cfg["model"],
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": 700,
             "temperature": 0.2,
+            "thinking": runtime_cfg["thinking"],
         }
-        base = base_url.lower()
-        model = (settings.SINGLE_AI_MODEL or "").lower()
-        if "deepseek" in base or model.startswith("deepseek-"):
-            thinking = getattr(settings, "SINGLE_AI_THINKING", "enabled")
-            if thinking in ("enabled", "disabled"):
-                payload["thinking"] = {"type": thinking}
 
-        timeout = aiohttp.ClientTimeout(total=30.0)
+        timeout = aiohttp.ClientTimeout(
+            total=float(getattr(settings, "SINGLE_AI_REQUEST_TIMEOUT_SECONDS", 75) or 75)
+        )
         last_error: Exception | None = None
-        for attempt in range(5):
+        for attempt in range(int(getattr(settings, "SINGLE_AI_MAX_RETRIES", 2) or 2)):
             try:
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     async with session.post(
                         url,
                         headers={
-                            "Authorization": f"Bearer {settings.SINGLE_AI_API_KEY}",
+                            "Authorization": f"Bearer {runtime_cfg['api_key']}",
                             "Content-Type": "application/json",
                         },
                         json=payload,

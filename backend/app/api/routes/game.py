@@ -37,7 +37,14 @@ def _clear_runtime_prediction_snapshot(sess, state) -> None:
     state.current_bet_tier = "标准"
 
 
-def _followup_analysis_timeout_seconds() -> float:
+def _followup_analysis_timeout_seconds(prediction_mode: str | None = None) -> float:
+    if prediction_mode == "single_ai":
+        configured = float(getattr(settings, "SINGLE_AI_TOTAL_TIMEOUT_SECONDS", 0) or 0)
+        if configured > 0:
+            return configured
+        request_budget = float(getattr(settings, "SINGLE_AI_REQUEST_TIMEOUT_SECONDS", 75) or 75)
+        retries = int(getattr(settings, "SINGLE_AI_MAX_RETRIES", 2) or 2)
+        return float(request_budget + max(retries - 1, 0) * 10 + 10)
     configured = float(getattr(settings, "ANALYSIS_TASK_TIMEOUT_SECONDS", 0) or 0)
     if configured > 0:
         return configured
@@ -157,6 +164,9 @@ async def _run_single_ai_rule_fallback(
 
 async def _run_followup_analysis(boot_number: int, failure_description: str) -> None:
     from app.services.game import run_ai_analysis
+    from app.services.game.session import get_session
+
+    prediction_mode = get_session().prediction_mode
 
     try:
         async def _run_cycle() -> None:
@@ -185,12 +195,12 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
                 )
                 await session.commit()
 
-        await asyncio.wait_for(_run_cycle(), timeout=_followup_analysis_timeout_seconds())
+        await asyncio.wait_for(_run_cycle(), timeout=_followup_analysis_timeout_seconds(prediction_mode))
     except asyncio.TimeoutError:
         from app.services.game.logging import write_game_log
         from app.services.game.session import get_session, broadcast_event
 
-        timeout_seconds = _followup_analysis_timeout_seconds()
+        timeout_seconds = _followup_analysis_timeout_seconds(prediction_mode)
         logging.getLogger("uvicorn.error").error(
             "%s: analysis timed out after %.2fs",
             failure_description,
