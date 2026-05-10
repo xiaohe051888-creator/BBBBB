@@ -189,6 +189,27 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
             />
           </section>
         ) : null}
+
+        <section
+          style={{
+            ...sectionCardStyle,
+            position: 'sticky',
+            bottom: 0,
+            background: 'rgba(255,255,255,0.96)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid #dbe4f0',
+            boxShadow: '0 -6px 18px rgba(15, 23, 42, 0.08)',
+          }}
+        >
+          <div style={{ display: 'grid', gap: 10 }}>
+            <p style={{ ...bodyTextStyle, color: '#475569' }}>
+              如果这一页已经看完了，可以直接从这里收起详情，回到主面板继续看本局状态。
+            </p>
+            <Button type="primary" size="large" block onClick={handleClose}>
+              我知道了，收起详情
+            </Button>
+          </div>
+        </section>
       </div>
     </Drawer>
   );
