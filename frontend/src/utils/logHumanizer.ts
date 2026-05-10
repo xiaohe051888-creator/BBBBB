@@ -209,9 +209,9 @@ const rule: Record<string, Rule> = {
   }),
   'LOG-MDL-002': (log) => ({
     title: '智能分析异常：本次输出已回退为安全结果',
-    whatHappened: s(log.description) || '智能分析发生异常。',
-    impact: '可能会使用保守/默认策略继续流程。',
-    suggestion: '如频繁出现，建议检查智能接口配置或切换到规则辅助模式。',
+    whatHappened: normalizeVisibleText(log.description) || '智能分析发生异常。',
+    impact: '这次没有直接采用原始输出，系统会回落到安全结果或备用判断继续流程。',
+    suggestion: '如频繁出现，建议检查智能接口配置、网络状态，或稍后重试。',
   }),
   'LOG-MDL-003': () => ({
     title: '智能分析：系统已自动改用备用判断',

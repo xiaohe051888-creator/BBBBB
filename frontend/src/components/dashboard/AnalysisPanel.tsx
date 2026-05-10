@@ -12,6 +12,7 @@ import {
   formatAnalysisSourceLabel,
   formatConfidenceLabel,
 } from '../../utils/beginnerCopy';
+import { toCnAnalysisDiagnostic } from '../../utils/i18nErrors';
 import { resolvePredictionMode, type DashboardWorkflowStage } from '../../utils/systemFlowConsistency';
 import type { AnalysisData, AnalysisOutcome } from '../../types/models';
 import AnalysisDetailDrawer from './AnalysisDetailDrawer';
@@ -235,10 +236,13 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   const confidenceValue = outcome?.confidence ?? analysis?.confidence ?? 0;
   const confidenceLabel = outcome?.confidence_label || getConfidenceLabel(confidenceValue);
   const confidencePercent = Math.round(confidenceValue * 100);
-  const summary = outcome?.short_reason?.trim() || analysis?.combined_summary?.trim() || '系统已完成本局分析。';
+  const rawSummary = outcome?.short_reason?.trim() || analysis?.combined_summary?.trim() || '系统已完成本局分析。';
+  const summary = toCnAnalysisDiagnostic(rawSummary) || rawSummary;
   const fallbackReason =
     outcome?.source === 'rule_fallback'
-      ? outcome.fallback_reason?.trim() || '本局暂未形成稳定判断，系统已切换备用判断，当前流程继续进行。'
+      ? toCnAnalysisDiagnostic(outcome.fallback_reason?.trim()) ||
+        outcome.fallback_reason?.trim() ||
+        '本局暂未形成稳定判断，系统已切换备用判断，当前流程继续进行。'
       : null;
   const decisionTitle = formatAnalysisOutcomeLabel('decision');
   const methodTitle = formatAnalysisOutcomeLabel('method');

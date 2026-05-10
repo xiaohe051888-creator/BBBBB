@@ -193,6 +193,58 @@ describe('AnalysisPanel', () => {
     container.remove();
   });
 
+  it('translates raw fallback diagnostics in the summary card instead of showing english fragments', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <AnalysisPanel
+          hasGameData
+          hasPendingBet={false}
+          aiAnalyzing={false}
+          workflowStage={{
+            type: 'analyzed_pending_bet',
+            showAnalysisLoading: false,
+            showCompletedAnalysis: true,
+          }}
+          analysis={{
+            prediction: '庄',
+            confidence: 0.6,
+            combined_summary: '单AI失败后已切换规则兜底继续下注：下一局AI分析失败(reveal): analysis returned no result',
+            prediction_mode: 'single_ai',
+            analysis_outcome: {
+              direction: '庄',
+              confidence: 0.6,
+              confidence_label: '中',
+              source: 'rule_fallback',
+              short_reason: '单AI失败后已切换规则兜底继续下注：下一局AI分析失败(reveal): analysis returned no result',
+              final_reason: '单AI失败后已切换规则兜底继续下注：下一局AI分析失败(reveal): analysis returned no result',
+              fallback_reason: '本局暂未形成稳定判断，系统已切换备用判断，当前流程继续进行。',
+              road_explanations: {},
+            },
+          }}
+        />
+      );
+    });
+
+    const html = container.innerHTML;
+
+    expect(html).toContain('智能判断这次没有及时给出稳定结果');
+    expect(html).toContain('备用判断');
+    expect(html).not.toContain('analysis returned no result');
+    expect(html).not.toContain('(reveal)');
+    expect(html).not.toContain('下一局AI分析失败');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it('shows future-tech loading copy while analysis is running', async () => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

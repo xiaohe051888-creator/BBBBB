@@ -136,6 +136,28 @@ describe('logHumanizer', () => {
     expect(h.whatHappened).not.toContain('规则兜底');
   });
 
+  it('rewrites LOG-MDL-002 into chinese without raw timeout or reveal fragments', () => {
+    const log: LogEntry = {
+      id: 23,
+      log_time: '2026-05-10T02:14:34Z',
+      game_number: 24,
+      event_code: 'LOG-MDL-002',
+      event_type: 'AI分析异常',
+      event_result: '失败',
+      description: '下一局AI分析失败(reveal): analysis timeout after 45.00s',
+      category: '系统异常',
+      priority: 'P1',
+      task_id: 'task-26',
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.title).toBe('智能分析异常：本次输出已回退为安全结果');
+    expect(h.whatHappened).toContain('智能判断');
+    expect(h.whatHappened).not.toContain('analysis timeout after 45.00s');
+    expect(h.whatHappened).not.toContain('(reveal)');
+    expect(h.whatHappened).not.toContain('下一局AI分析失败');
+  });
+
   it('rewrites LOG-MDL-001 into a Chinese judgement summary', () => {
     const log: LogEntry = {
       id: 21,
