@@ -487,6 +487,9 @@ export interface AdminMaintenanceAlertItem {
 export interface AdminMaintenanceAlertsResponse {
   count: number;
   data: AdminMaintenanceAlertItem[];
+  latest_alert_log_id?: number | null;
+  acknowledged_alert_log_id?: number | null;
+  unacknowledged_count?: number;
 }
 
 export interface AdminMaintenanceRetentionRunResponse {
@@ -509,6 +512,10 @@ export const adminMaintenanceStats = async () => {
 
 export const adminMaintenanceAlerts = async (hours: number = 24, limit: number = 20) => {
   return api.get<AdminMaintenanceAlertsResponse>('/admin/maintenance/alerts', { params: { hours, limit } });
+};
+
+export const adminMaintenanceAcknowledgeAlerts = async (latest_alert_log_id: number) => {
+  return api.post<AdminMaintenanceAlertsResponse>('/admin/maintenance/alerts/acknowledge', { latest_alert_log_id });
 };
 
 export const adminMaintenanceRunRetention = async () => {
