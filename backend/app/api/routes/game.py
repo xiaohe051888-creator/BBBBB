@@ -290,7 +290,11 @@ async def _run_single_ai_rule_fallback(
         sess.prediction_mode = original_mode
 
 
-async def _run_followup_analysis(boot_number: int, failure_description: str) -> None:
+async def _run_followup_analysis(
+    boot_number: int,
+    failure_description: str,
+    single_ai_attempt: int | None = None,
+) -> None:
     from app.services.game import run_ai_analysis
     from app.services.game.session import get_session
 
@@ -300,13 +304,16 @@ async def _run_followup_analysis(boot_number: int, failure_description: str) -> 
         from app.services.game.state import get_or_create_state
 
         timeout_seconds = _followup_analysis_timeout_seconds(prediction_mode)
-        previous_cycle = dict(sess.analysis_cycle or {})
-        if previous_cycle.get("status") == "running" and previous_cycle.get("attempt"):
-            attempt = int(previous_cycle.get("attempt") or 0)
-        elif previous_cycle.get("status") == "failed" and previous_cycle.get("retryable"):
-            attempt = int(previous_cycle.get("attempt") or 0) + 1
+        if single_ai_attempt is not None:
+            attempt = single_ai_attempt
         else:
-            attempt = 1
+            previous_cycle = dict(sess.analysis_cycle or {})
+            if previous_cycle.get("status") == "running" and previous_cycle.get("attempt"):
+                attempt = int(previous_cycle.get("attempt") or 0)
+            elif previous_cycle.get("status") == "failed" and previous_cycle.get("retryable"):
+                attempt = int(previous_cycle.get("attempt") or 0) + 1
+            else:
+                attempt = 1
         cycle = _build_single_ai_analysis_cycle(attempt, timeout_seconds)
         async with async_session() as cycle_session:
             state = await get_or_create_state(cycle_session)
@@ -516,6 +523,7 @@ async def retry_single_ai_analysis(
         await _run_followup_analysis(
             req.boot_number,
             "用户手动重新发起单AI分析",
+            single_ai_attempt=int(retry_cycle.get("attempt") or 1),
         )
 
     start_background_task(
