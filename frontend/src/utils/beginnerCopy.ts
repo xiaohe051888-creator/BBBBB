@@ -278,7 +278,7 @@ export const formatDetailLabel = (
   if (key === 'impact') return '对当前使用有什么影响';
   if (key === 'suggestion') return '建议你接下来怎么做';
   if (key === 'keyInfo') return '你可能会关心的信息';
-  if (key === 'rawData') return '原始记录（高级信息）';
+  if (key === 'rawData') return '系统原始记录（高级信息）';
   if (key === 'errorId') return '记录编号';
   if (key === 'modelSummary') return 'AI分析摘要';
   if (key === 'analysis') return '原因分析';

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   toCnAnalysisDiagnostic,
   toCnApiTestError,
+  toCnLogDetailText,
   toCnModelLabel,
   toCnProviderLabel,
   toCnRoadAlias,
@@ -50,5 +51,25 @@ describe('中文显示映射', () => {
   it('passes through unknown diagnostics after trimming', () => {
     expect(toCnAnalysisDiagnostic('  custom diagnostic  ')).toBe('custom diagnostic');
     expect(toCnAnalysisDiagnostic('')).toBe('');
+  });
+});
+
+describe('toCnLogDetailText', () => {
+  it('translates mixed timeout logs into readable Chinese', () => {
+    expect(toCnLogDetailText('上传触发分析时发生系统错误: analysis timeout after 45.00s')).toBe(
+      '上传后开始智能判断时等待时间过长，因此系统自动改用了备用判断。',
+    );
+  });
+
+  it('translates internal terms in log details into Chinese', () => {
+    expect(toCnLogDetailText('single_ai/rule_fallback/fallback/reveal')).toBe(
+      '智能判断/备用判断/备用判断/录入开奖结果',
+    );
+  });
+
+  it('rewrites fallback takeover wording into plain Chinese', () => {
+    expect(toCnLogDetailText('单AI失败后已切换规则兜底继续下注')).toBe(
+      '智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。',
+    );
   });
 });

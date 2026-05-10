@@ -187,7 +187,7 @@ describe('beginnerCopy', () => {
     expect(formatDetailLabel('impact')).toBe('对当前使用有什么影响');
     expect(formatDetailLabel('suggestion')).toBe('建议你接下来怎么做');
     expect(formatDetailLabel('keyInfo')).toBe('你可能会关心的信息');
-    expect(formatDetailLabel('rawData')).toBe('原始记录（高级信息）');
+    expect(formatDetailLabel('rawData')).toBe('系统原始记录（高级信息）');
     expect(formatDetailLabel('errorId')).toBe('记录编号');
     expect(formatDetailLabel('modelSummary')).toBe('AI分析摘要');
     expect(formatDetailLabel('analysis')).toBe('原因分析');

@@ -148,15 +148,15 @@ describe('LogsPage', () => {
         logs: [
           {
             id: 1,
-            log_time: '2026-05-09T09:21:47Z',
-            game_number: 7,
-            event_code: 'LOG-ERR-001',
-            event_type: '记入复盘记录',
-            event_result: '-',
-            description: '第7局预测失准，已将现场盘面与证据链记入复盘记录。连续失准: 2次。',
-            category: 'AI事件',
-            priority: 'P2',
-            task_id: null,
+            log_time: '2026-05-10T04:38:55Z',
+            game_number: 23,
+            event_code: 'LOG-MDL-003',
+            event_type: '规则兜底接管',
+            event_result: '成功',
+            description: '单AI失败后已切换规则兜底继续下注：上传触发分析时发生系统错误: analysis timeout after 45.00s',
+            category: '工作流事件',
+            priority: 'P1',
+            task_id: 'task-23',
             is_pinned: false,
           },
         ],
@@ -203,9 +203,15 @@ describe('LogsPage', () => {
     const modalHtml = modalContent?.innerHTML || '';
     expect(modalText).toContain('记录详情');
     expect(modalText).toContain('复制通俗说明');
-    expect(modalText).toContain('发生了什么');
+    expect(modalText).toContain('系统原始记录（高级信息）');
+    expect(modalText).toContain('这次发生了什么');
     expect(modalText).toContain('对当前使用有什么影响');
     expect(modalText).toContain('建议你接下来怎么做');
+    expect(modalText).not.toContain('analysis timeout after 45.00s');
+    expect(modalText).not.toContain('LOG-MDL-003');
+    expect(modalText).not.toContain('单AI');
+    expect(modalText).not.toContain('规则兜底');
+    expect(modalText).not.toContain('复制原始记录');
     expect(modalText).not.toContain('一键复制下面这段通俗说明');
     expect(modalText).not.toContain('全选');
     expect(modalText).not.toContain('你可能会关心的信息');
@@ -213,6 +219,7 @@ describe('LogsPage', () => {
     expect(modalText).not.toContain('处理编号');
     expect(modalHtml).toContain('log-detail-hero');
     expect(modalHtml).toContain('log-detail-block');
+    expect(modalHtml).not.toContain('<pre');
 
     await act(async () => {
       root.unmount();

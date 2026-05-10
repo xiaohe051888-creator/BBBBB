@@ -1,5 +1,6 @@
 import type { LogEntry } from '../types/models';
 import { formatBeijing } from './datetime';
+import { toCnLogDetailText } from './i18nErrors';
 
 export type HumanLogField = { label: string; value: string };
 
@@ -18,15 +19,57 @@ const priorityCn = (p: string): string =>
 
 const isErrorPriority = (p: string): boolean => p === 'P0' || p === 'P1';
 
-const baseFields = (log: LogEntry): HumanLogField[] => [
+const stripTrailingZeros = (amount: string): string => amount.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+
+const normalizeVisibleText = (value: unknown): string => {
+  const raw = s(value).trim();
+  if (!raw) return '-';
+  if (raw === '规则兜底接管') return '备用判断接手';
+
+  let next = toCnLogDetailText(raw);
+  const replacements: Array<[RegExp, string]> = [
+    [/规则兜底接管/g, '备用判断接手'],
+    [/规则兜底/g, '备用判断'],
+    [/AI分析/g, '智能分析'],
+    [/AI事件/g, '智能判断事件'],
+    [/AI学习/g, '系统优化'],
+    [/AI/g, '智能判断'],
+    [/开牌/g, '录入开奖结果'],
+  ];
+
+  for (const [pattern, replacement] of replacements) {
+    next = next.replace(pattern, replacement);
+  }
+
+  return next || '-';
+};
+
+const parseJudgementSide = (text: string): '庄' | '闲' | '' => {
+  if (/预测[【\[]?闲[】\]]?/.test(text) || /建议押闲/.test(text) || /押闲/.test(text)) return '闲';
+  if (/预测[【\[]?庄[】\]]?/.test(text) || /建议押庄/.test(text) || /押庄/.test(text)) return '庄';
+  return '';
+};
+
+const parseBetInfo = (log: LogEntry): { side: '庄' | '闲' | ''; amount: string } => {
+  const text = `${s(log.description)} ${s(log.event_result)}`;
+  const sideMatch = text.match(/下注([庄闲])/);
+  const amountMatch = text.match(/下注[庄闲]\s*(\d+(?:\.\d+)?)/);
+  return {
+    side: (sideMatch?.[1] as '庄' | '闲' | undefined) || '',
+    amount: amountMatch?.[1] ? stripTrailingZeros(amountMatch[1]) : '-',
+  };
+};
+
+const baseFields = (log: LogEntry, detailText: string): HumanLogField[] => [
   { label: '时间', value: log.log_time ? formatBeijing(String(log.log_time), 'YYYY-MM-DD HH:mm:ss') : '-' },
   { label: '靴内局号', value: log.game_number === null ? '-' : String(log.game_number) },
-  { label: '事件', value: s(log.event_type) || '-' },
-  { label: '结果', value: s(log.event_result) || '-' },
-  { label: '类别', value: s(log.category) || '-' },
+  { label: '事件', value: normalizeVisibleText(log.event_type) },
+  { label: '结果', value: normalizeVisibleText(log.event_result) },
+  { label: '类别', value: normalizeVisibleText(log.category) },
   { label: '严重程度', value: priorityCn(s(log.priority)) },
-  { label: '事件编码', value: s(log.event_code) || '-' },
+  { label: '事件编码', value: '系统内部识别码' },
   { label: '处理编号', value: s(log.task_id) || '-' },
+  { label: '原始说明', value: detailText || '-' },
 ];
 
 type Rule = (log: LogEntry) => Omit<HumanLog, 'fieldsCn'>;
@@ -159,10 +202,10 @@ const rule: Record<string, Rule> = {
     suggestion: '无需操作，等待结算完成即可。',
   }),
   'LOG-MDL-001': (log) => ({
-    title: `AI分析：第${log.game_number ?? '-'}局已完成预测`,
-    whatHappened: s(log.description) || 'AI已完成本局预测。',
-    impact: '会生成下一步下注方向/金额建议。',
-    suggestion: '无需操作，等待系统自动下注或手动确认。',
+    title: `智能分析：第${log.game_number ?? '-'}局判断已完成`,
+    whatHappened: `系统已经完成第${log.game_number ?? '-'}局判断，当前建议押${parseJudgementSide(s(log.description)) || '庄'}。`,
+    impact: '系统会按这次判断继续决定下注方向和金额。',
+    suggestion: '无需操作，等待系统继续完成下注即可。',
   }),
   'LOG-MDL-002': (log) => ({
     title: 'AI分析异常：本次输出已回退为安全结果',
@@ -171,16 +214,16 @@ const rule: Record<string, Rule> = {
     suggestion: '如频繁出现，建议检查AI接口配置或切换到规则参考模式。',
   }),
   'LOG-MDL-003': (log) => ({
-    title: 'AI分析：综合结论已生成',
-    whatHappened: s(log.description) || '综合判断结果已生成。',
-    impact: '用于最终下注决策。',
-    suggestion: '无需操作。',
+    title: '智能分析：系统已自动改用备用判断',
+    whatHappened: '智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。',
+    impact: '这次不会中断本局流程，系统已经继续给出最终下注决定。',
+    suggestion: '无需操作，等待本局开奖结果即可。',
   }),
   'LOG-BET-001': (log) => ({
-    title: `下注：第${log.game_number ?? '-'}局已下注`,
-    whatHappened: s(log.description) || '已执行下注。',
-    impact: '余额已扣除对应下注金额。',
-    suggestion: '等待开奖即可。',
+    title: `下注：第${log.game_number ?? '-'}局已完成`,
+    whatHappened: `系统已经按当前判断完成下注，第${log.game_number ?? '-'}局押${parseBetInfo(log).side || '庄'} ${parseBetInfo(log).amount} 元。`,
+    impact: '余额已经按这次下注同步更新。',
+    suggestion: '等待开奖结果即可。',
   }),
   'LOG-BET-ERR': (log) => ({
     title: `下注失败：${s(log.event_result) || '失败'}`,
@@ -262,7 +305,7 @@ const inferGeneric = (log: LogEntry): Omit<HumanLog, 'fieldsCn'> => {
   const inferred = byPrefix(prefix);
 
   const title = fail ? `${type}：出现异常` : `${type}：${result}`;
-  const what = desc || `系统刚记录了一条 ${type} 记录。`;
+  const what = desc ? normalizeVisibleText(desc) : `系统刚记录了一条 ${normalizeVisibleText(type)} 记录。`;
   const impact = inferred?.impact || (fail ? '可能影响当前流程，请留意系统状态。' : '一般不影响使用。');
   const suggestion = inferred?.suggestion || (fail ? '建议刷新页面后重试；如持续出现请截图反馈。' : '无需处理。');
 
@@ -273,9 +316,10 @@ export const humanizeLog = (log: LogEntry): HumanLog => {
   const code = s(log.event_code);
   const r = rule[code];
   const base = r ? r(log) : inferGeneric(log);
+  const detailText = base.whatHappened || normalizeVisibleText(log.description);
   return {
     ...base,
-    fieldsCn: baseFields(log),
+    fieldsCn: baseFields(log, detailText),
   };
 };
 

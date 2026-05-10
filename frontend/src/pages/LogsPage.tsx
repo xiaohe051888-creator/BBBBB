@@ -152,7 +152,6 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
 
   const human = useMemo(() => (log ? humanizeLog(log) : null), [log]);
   const humanText = useMemo(() => (log ? toHumanCopyText(log) : ''), [log]);
-  const rawText = useMemo(() => (log ? JSON.stringify(log, null, 2) : ''), [log]);
 
   return (
     <Modal
@@ -217,14 +216,6 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ open, log, onClose }) =
                         </div>
                       ))}
                     </div>
-                    <Space wrap>
-                      <Button size="small" onClick={() => copy(rawText)} disabled={!log}>
-                        复制原始记录
-                      </Button>
-                    </Space>
-                    <pre style={{ margin: 0, maxHeight: 260, overflow: 'auto' }}>
-                      {rawText}
-                    </pre>
                   </div>
                 ),
               },
@@ -521,24 +512,24 @@ const LogsPage: React.FC = () => {
   const exportToCSV = async () => {
     const exportLogs = await fetchExportLogs();
     const headers = ['时间', '局号', '优先级', '类别', '事件', '通俗说明', '解读摘要', '原始说明', '事件编码', '处理编号'];
-    const rows = exportLogs.map(l => [
-      l.log_time ? formatBeijing(l.log_time, 'YYYY-MM-DD HH:mm:ss') : '',
-      l.game_number ?? '',
-      l.priority,
-      l.category,
-      l.event_type,
-      (() => {
-        const h = humanizeLog(l);
-        return `"${h.title.replace(/"/g, '""')}"`;
-      })(),
-      (() => {
-        const h = humanizeLog(l);
-        return `"${`${h.whatHappened} | ${h.impact} | ${h.suggestion}`.replace(/"/g, '""')}"`;
-      })(),
-      `"${(l.description || '').replace(/"/g, '""')}"`,
-      l.event_code,
-      l.task_id || '',
-    ]);
+    const rows = exportLogs.map((l) => {
+      const h = humanizeLog(l);
+      const getFieldValue = (label: string, fallback = '-') =>
+        h.fieldsCn.find((field) => field.label === label)?.value || fallback;
+
+      return [
+        l.log_time ? formatBeijing(l.log_time, 'YYYY-MM-DD HH:mm:ss') : '',
+        l.game_number ?? '',
+        getFieldValue('严重程度', l.priority),
+        getFieldValue('类别', l.category || '-'),
+        getFieldValue('事件', l.event_type || '-'),
+        `"${h.title.replace(/"/g, '""')}"`,
+        `"${`${h.whatHappened} | ${h.impact} | ${h.suggestion}`.replace(/"/g, '""')}"`,
+        `"${getFieldValue('原始说明', h.whatHappened).replace(/"/g, '""')}"`,
+        getFieldValue('事件编码', '系统内部识别码'),
+        l.task_id || '',
+      ];
+    });
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     try {
       downloadFile(csv, `日志_${dayjs().format('YYYYMMDD_HHmmss')}.csv`, 'text/csv;charset=utf-8;');

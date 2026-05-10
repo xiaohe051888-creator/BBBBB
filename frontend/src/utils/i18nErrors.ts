@@ -53,11 +53,59 @@ export const toCnRoadAlias = (alias?: string | null): string => {
   return map[key] || '';
 };
 
-export const toCnAnalysisDiagnostic = (raw?: string | null): string => {
-  const s = String(raw || '').trim();
+export const toCnLogDetailText = (raw?: string | null): string => {
+  let s = String(raw || '').trim();
   const lower = s.toLowerCase();
 
   if (!s) {
+    return '';
+  }
+
+  if (
+    lower.includes('上传触发分析时发生系统错误') &&
+    lower.includes('analysis timeout after')
+  ) {
+    return '上传后开始智能判断时等待时间过长，因此系统自动改用了备用判断。';
+  }
+
+  if (
+    s.includes('单AI失败后已切换规则兜底继续下注') ||
+    lower.includes('fallback to rule') ||
+    ((lower.includes('single_ai') || s.includes('单AI')) &&
+      (lower.includes('rule_fallback') || s.includes('规则兜底')) &&
+      (s.includes('继续下注') || lower.includes('bet')))
+  ) {
+    return '智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。';
+  }
+
+  if (lower.includes('analysis timeout after') || lower === 'timeout') {
+    return '智能判断等待时间过长。';
+  }
+
+  const replacements: Array<[RegExp, string]> = [
+    [/\bsingle_ai\b/gi, '智能判断'],
+    [/\bAI\b/g, '智能判断'],
+    [/单AI/g, '智能判断'],
+    [/\brule_fallback\b/gi, '备用判断'],
+    [/规则兜底/g, '备用判断'],
+    [/\bfallback\b/gi, '备用判断'],
+    [/\breveal\b/gi, '录入开奖结果'],
+    [/开牌/g, '录入开奖结果'],
+  ];
+
+  for (const [pattern, replacement] of replacements) {
+    s = s.replace(pattern, replacement);
+  }
+
+  return s;
+};
+
+export const toCnAnalysisDiagnostic = (raw?: string | null): string => {
+  const s = String(raw || '').trim();
+  const lower = s.toLowerCase();
+  const translated = toCnLogDetailText(s);
+
+  if (!translated) {
     return '';
   }
 
@@ -68,12 +116,12 @@ export const toCnAnalysisDiagnostic = (raw?: string | null): string => {
     lower.includes('fallback') ||
     lower.includes('timeout') ||
     lower.includes('single_ai') ||
-    s.includes('规则兜底') ||
-    s.includes('单AI没有及时返回稳定结果');
+    translated.includes('备用判断') ||
+    translated.includes('智能判断这次没有及时给出稳定结果');
 
   if (isFallbackDiagnostic) {
     return '智能判断这次没有及时给出稳定结果，系统先用备用判断继续完成这次判断。';
   }
 
-  return s;
+  return translated;
 };

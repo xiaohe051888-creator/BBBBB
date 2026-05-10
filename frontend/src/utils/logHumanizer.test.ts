@@ -79,22 +79,77 @@ describe('logHumanizer', () => {
     expect(h.whatHappened).toBe('系统学习优化已完成。');
   });
 
-  it('uses beginner-friendly wording for combined analysis logs', () => {
+  it('rewrites LOG-MDL-003 into beginner-friendly Chinese without raw timeout text', () => {
     const log: LogEntry = {
-      id: 7,
-      log_time: '2026-05-02T00:00:00Z',
-      game_number: 12,
+      id: 20,
+      log_time: '2026-05-10T04:38:55Z',
+      game_number: 23,
       event_code: 'LOG-MDL-003',
-      event_type: 'AI分析',
+      event_type: '规则兜底接管',
       event_result: '成功',
-      description: '',
-      category: '系统事件',
-      priority: 'P3',
-      task_id: null,
+      description: '单AI失败后已切换规则兜底继续下注：上传触发分析时发生系统错误: analysis timeout after 45.00s',
+      category: '工作流事件',
+      priority: 'P1',
+      task_id: 'task-23',
       is_pinned: false,
     };
     const h = humanizeLog(log);
-    expect(h.whatHappened).toBe('综合判断结果已生成。');
+    expect(h.title).toBe('智能分析：系统已自动改用备用判断');
+    expect(h.whatHappened).toBe('智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。');
+    expect(h.impact).toBe('这次不会中断本局流程，系统已经继续给出最终下注决定。');
+    expect(h.suggestion).toBe('无需操作，等待本局开奖结果即可。');
+    expect(h.fieldsCn).toEqual(
+      expect.arrayContaining([
+        { label: '事件', value: '备用判断接手' },
+        { label: '事件编码', value: '系统内部识别码' },
+        {
+          label: '原始说明',
+          value: '智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。',
+        },
+      ]),
+    );
+    expect(h.whatHappened).not.toContain('analysis timeout');
+    expect(h.whatHappened).not.toContain('单AI');
+    expect(h.whatHappened).not.toContain('规则兜底');
+  });
+
+  it('rewrites LOG-MDL-001 into a Chinese judgement summary', () => {
+    const log: LogEntry = {
+      id: 21,
+      log_time: '2026-05-10T04:28:06Z',
+      game_number: 23,
+      event_code: 'LOG-MDL-001',
+      event_type: 'AI分析',
+      event_result: '完成',
+      description: '🧠 AI对第23局推理完成：预测【庄】 (置信度: 55%)',
+      category: 'AI事件',
+      priority: 'P2',
+      task_id: 'task-24',
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.title).toBe('智能分析：第23局判断已完成');
+    expect(h.whatHappened).toBe('系统已经完成第23局判断，当前建议押庄。');
+    expect(h.whatHappened).not.toContain('AI对第23局推理完成');
+    expect(h.whatHappened).not.toContain('🧠');
+  });
+
+  it('rewrites LOG-BET-001 into a plain Chinese betting summary', () => {
+    const log: LogEntry = {
+      id: 22,
+      log_time: '2026-05-10T04:38:55Z',
+      game_number: 23,
+      event_code: 'LOG-BET-001',
+      event_type: '下注',
+      event_result: '已下注庄2500.00元',
+      description: '第23局下注庄2500.00元（高档），余额13074.00→10574.00',
+      category: '资金事件',
+      priority: 'P2',
+      task_id: 'task-25',
+      is_pinned: false,
+    };
+    const h = humanizeLog(log);
+    expect(h.whatHappened).toBe('系统已经按当前判断完成下注，第23局押庄 2500 元。');
   });
 
   it('uses beginner-friendly wording for watchdog-related logs', () => {
@@ -245,7 +300,7 @@ describe('logHumanizer', () => {
     expect(copy).toContain('影响：');
     expect(copy).toContain('建议：');
     expect(copy).toContain('时间：');
-    expect(copy).toContain('编码：LOG-ERR-001');
+    expect(copy).toContain('编码：系统内部识别码');
     expect(copy).not.toContain('发生了什么：');
     expect(copy).not.toContain('有什么影响：');
     expect(copy).not.toContain('建议怎么做：');
