@@ -72,6 +72,11 @@ class MaintenanceResetAllRequest(BaseModel):
     confirm_password: str | None = Field(None, min_length=1, max_length=128)
 
 
+class MaintenanceAlertsAcknowledgeRequest(BaseModel):
+    """首页严重告警确认请求"""
+    latest_alert_log_id: int = Field(..., ge=0)
+
+
 class ApiConfigPayload(BaseModel):
     role: str = Field(..., description="banker | player | combined")
     provider: str = Field(..., description="Model provider")

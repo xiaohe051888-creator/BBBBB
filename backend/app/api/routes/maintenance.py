@@ -7,7 +7,7 @@ from sqlalchemy import func, select, or_
 from sqlalchemy.engine.url import make_url
 
 from app.api.routes.utils import get_current_admin
-from app.api.routes.schemas import MaintenanceResetAllRequest
+from app.api.routes.schemas import MaintenanceResetAllRequest, MaintenanceAlertsAcknowledgeRequest
 from app.core.config import settings
 from app.core.database import async_session
 from app.models.schemas import (
@@ -28,6 +28,51 @@ from app.services.game.session import get_session_lock, clear_session, broadcast
 from app.services.game.task_registry import registry
 
 router = APIRouter(prefix="/api/admin/maintenance", tags=["系统维护"])
+
+
+async def _get_admin_user(session, actor: dict) -> AdminUser:
+    admin_username = (actor or {}).get("username") or "admin"
+    admin = (
+        await session.execute(
+            select(AdminUser).where(AdminUser.username == admin_username)
+        )
+    ).scalar_one_or_none()
+    if not admin:
+        raise HTTPException(status_code=401, detail="管理员账号不存在")
+    return admin
+
+
+def _build_alerts_response(logs: list[SystemLog], acknowledged_alert_log_id: int | None) -> dict:
+    latest_alert_log_id = logs[0].id if logs else None
+    acknowledged_value = int(acknowledged_alert_log_id) if acknowledged_alert_log_id is not None else None
+    unacknowledged_count = sum(
+        1
+        for log in logs
+        if acknowledged_value is None or int(log.id) > acknowledged_value
+    )
+    return {
+        "count": len(logs),
+        "latest_alert_log_id": latest_alert_log_id,
+        "acknowledged_alert_log_id": acknowledged_value,
+        "unacknowledged_count": unacknowledged_count,
+        "data": [
+            {
+                "id": log.id,
+                "log_time": log.log_time.isoformat() if log.log_time else None,
+                "boot_number": log.boot_number,
+                "game_number": log.game_number,
+                "event_code": log.event_code,
+                "event_type": log.event_type,
+                "event_result": log.event_result,
+                "description": log.description,
+                "category": log.category,
+                "priority": log.priority,
+                "source_module": log.source_module,
+                "task_id": log.task_id,
+            }
+            for log in logs
+        ],
+    }
 
 
 def _sqlite_db_size_bytes() -> int | None:
@@ -95,10 +140,11 @@ async def maintenance_stats(_: dict = Depends(get_current_admin)):
 async def maintenance_alerts(
     hours: int = Query(24, ge=1, le=168),
     limit: int = Query(20, ge=1, le=100),
-    _: dict = Depends(get_current_admin),
+    actor: dict = Depends(get_current_admin),
 ):
     cutoff = datetime.now() - timedelta(hours=int(hours))
     async with async_session() as session:
+        admin = await _get_admin_user(session, actor)
         q = (
             select(SystemLog)
             .where(
@@ -112,26 +158,38 @@ async def maintenance_alerts(
             .limit(int(limit))
         )
         logs = (await session.execute(q)).scalars().all()
-        return {
-            "count": len(logs),
-            "data": [
-                {
-                    "id": log.id,
-                    "log_time": log.log_time.isoformat() if log.log_time else None,
-                    "boot_number": log.boot_number,
-                    "game_number": log.game_number,
-                    "event_code": log.event_code,
-                    "event_type": log.event_type,
-                    "event_result": log.event_result,
-                    "description": log.description,
-                    "category": log.category,
-                    "priority": log.priority,
-                    "source_module": log.source_module,
-                    "task_id": log.task_id,
-                }
-                for log in logs
-            ],
-        }
+        return _build_alerts_response(logs, admin.acknowledged_alert_log_id)
+
+
+@router.post("/alerts/acknowledge")
+async def acknowledge_maintenance_alerts(
+    req: MaintenanceAlertsAcknowledgeRequest,
+    actor: dict = Depends(get_current_admin),
+):
+    cutoff = datetime.now() - timedelta(hours=24)
+    async with async_session() as session:
+        admin = await _get_admin_user(session, actor)
+        q = (
+            select(SystemLog)
+            .where(
+                SystemLog.priority == "P1",
+                SystemLog.event_code != "LOG-ERR-001",
+                SystemLog.log_time >= cutoff,
+                or_(SystemLog.event_code.is_(None), SystemLog.event_code.notlike("TEST-%")),
+                or_(SystemLog.category.is_(None), SystemLog.category != "测试"),
+            )
+            .order_by(SystemLog.log_time.desc())
+            .limit(20)
+        )
+        logs = (await session.execute(q)).scalars().all()
+        latest_alert_log_id = logs[0].id if logs else None
+        current_ack = int(admin.acknowledged_alert_log_id) if admin.acknowledged_alert_log_id is not None else None
+        requested_ack = int(req.latest_alert_log_id)
+        effective_latest = int(latest_alert_log_id) if latest_alert_log_id is not None else requested_ack
+        next_ack = max(v for v in (current_ack, effective_latest) if v is not None) if (current_ack is not None or latest_alert_log_id is not None) else requested_ack
+        admin.acknowledged_alert_log_id = next_ack
+        await session.commit()
+        return _build_alerts_response(logs, admin.acknowledged_alert_log_id)
 
 
 @router.post("/retention/run")

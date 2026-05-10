@@ -10,6 +10,22 @@ from app.api.main import app
 
 
 class AdminMaintenanceApiTest(unittest.TestCase):
+    def _prepare_database_at_head(self):
+        async def _run():
+            from app.core.database import init_db, async_session
+            from app.core.migrations import get_alembic_heads
+            from sqlalchemy import text
+
+            await init_db()
+            head = get_alembic_heads()[0]
+            async with async_session() as session:
+                await session.execute(text("CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL)"))
+                await session.execute(text("DELETE FROM alembic_version"))
+                await session.execute(text("INSERT INTO alembic_version (version_num) VALUES (:head)"), {"head": head})
+                await session.commit()
+
+        asyncio.run(_run())
+
     def _ensure_admin_password(self, password: str):
         async def _run():
             import bcrypt as _bcrypt
@@ -73,9 +89,10 @@ class AdminMaintenanceApiTest(unittest.TestCase):
     def test_alerts_exclude_ai_review_miss_logs_from_severe_bar(self):
         async def _seed():
             from datetime import datetime, timedelta
+            from sqlalchemy import select
 
             from app.core.database import init_db, async_session
-            from app.models.schemas import SystemLog
+            from app.models.schemas import SystemLog, AdminUser
 
             await init_db()
             async with async_session() as s:
@@ -86,6 +103,9 @@ class AdminMaintenanceApiTest(unittest.TestCase):
                         SystemLog.log_time >= cutoff,
                     )
                 )
+                admin = (await s.execute(select(AdminUser).where(AdminUser.username == "admin"))).scalar_one_or_none()
+                if admin:
+                    admin.acknowledged_alert_log_id = None
                 s.add(SystemLog(
                     log_time=datetime.now(),
                     boot_number=1,
@@ -122,6 +142,168 @@ class AdminMaintenanceApiTest(unittest.TestCase):
         body = r.json()
         self.assertEqual(body["count"], 1)
         self.assertEqual(body["data"][0]["event_code"], "UT-P1-ALERT")
+
+    def test_alerts_include_ack_fields(self):
+        async def _seed():
+            from datetime import datetime, timedelta
+
+            from app.core.database import init_db, async_session
+            from app.models.schemas import SystemLog
+
+            await init_db()
+            async with async_session() as s:
+                cutoff = datetime.now() - timedelta(hours=24)
+                await s.execute(
+                    SystemLog.__table__.delete().where(
+                        SystemLog.priority == "P1",
+                        SystemLog.log_time >= cutoff,
+                    )
+                )
+                s.add(SystemLog(
+                    log_time=datetime.now(),
+                    boot_number=1,
+                    game_number=9,
+                    event_code="UT-P1-ALERT-ACK-1",
+                    event_type="测试严重事件",
+                    event_result="Exception",
+                    description="严重告警1",
+                    category="系统异常",
+                    priority="P1",
+                ))
+                await s.commit()
+
+        asyncio.run(_seed())
+
+        self._ensure_admin_password("8888")
+        client = TestClient(app)
+        token = client.post("/api/admin/login", json={"password": "8888"}).json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        r = client.get("/api/admin/maintenance/alerts", headers=headers)
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertIn("latest_alert_log_id", body)
+        self.assertIn("acknowledged_alert_log_id", body)
+        self.assertIn("unacknowledged_count", body)
+        self.assertEqual(body["count"], 1)
+        self.assertEqual(body["unacknowledged_count"], 1)
+        self.assertIsNone(body["acknowledged_alert_log_id"])
+
+    def test_acknowledge_alerts_hides_unacknowledged_count(self):
+        async def _seed():
+            from datetime import datetime, timedelta
+            from sqlalchemy import select
+
+            from app.core.database import init_db, async_session
+            from app.models.schemas import SystemLog, AdminUser
+
+            await init_db()
+            async with async_session() as s:
+                cutoff = datetime.now() - timedelta(hours=24)
+                await s.execute(
+                    SystemLog.__table__.delete().where(
+                        SystemLog.priority == "P1",
+                        SystemLog.log_time >= cutoff,
+                    )
+                )
+                admin = (await s.execute(select(AdminUser).where(AdminUser.username == "admin"))).scalar_one_or_none()
+                if admin:
+                    admin.acknowledged_alert_log_id = None
+                s.add(SystemLog(
+                    log_time=datetime.now(),
+                    boot_number=1,
+                    game_number=10,
+                    event_code="UT-P1-ALERT-ACK-2",
+                    event_type="测试严重事件",
+                    event_result="Exception",
+                    description="严重告警2",
+                    category="系统异常",
+                    priority="P1",
+                ))
+                await s.commit()
+
+        asyncio.run(_seed())
+
+        self._ensure_admin_password("8888")
+        client = TestClient(app)
+        token = client.post("/api/admin/login", json={"password": "8888"}).json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        before = client.get("/api/admin/maintenance/alerts", headers=headers).json()
+        latest = before.get("latest_alert_log_id")
+        self.assertTrue(latest is not None)
+
+        r = client.post(
+            "/api/admin/maintenance/alerts/acknowledge",
+            headers=headers,
+            json={"latest_alert_log_id": latest},
+        )
+        self.assertEqual(r.status_code, 200)
+
+        after = client.get("/api/admin/maintenance/alerts", headers=headers).json()
+        self.assertEqual(after["unacknowledged_count"], 0)
+        self.assertEqual(after["acknowledged_alert_log_id"], latest)
+
+    def test_acknowledge_is_monotonic(self):
+        async def _seed():
+            from datetime import datetime, timedelta
+            from sqlalchemy import select
+
+            from app.core.database import init_db, async_session
+            from app.models.schemas import SystemLog, AdminUser
+
+            await init_db()
+            async with async_session() as s:
+                cutoff = datetime.now() - timedelta(hours=24)
+                await s.execute(
+                    SystemLog.__table__.delete().where(
+                        SystemLog.priority == "P1",
+                        SystemLog.log_time >= cutoff,
+                    )
+                )
+                admin = (await s.execute(select(AdminUser).where(AdminUser.username == "admin"))).scalar_one_or_none()
+                if admin:
+                    admin.acknowledged_alert_log_id = None
+                s.add(SystemLog(
+                    log_time=datetime.now(),
+                    boot_number=1,
+                    game_number=11,
+                    event_code="UT-P1-ALERT-ACK-3",
+                    event_type="测试严重事件",
+                    event_result="Exception",
+                    description="严重告警3",
+                    category="系统异常",
+                    priority="P1",
+                ))
+                await s.commit()
+
+        asyncio.run(_seed())
+
+        self._ensure_admin_password("8888")
+        client = TestClient(app)
+        token = client.post("/api/admin/login", json={"password": "8888"}).json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        body = client.get("/api/admin/maintenance/alerts", headers=headers).json()
+        latest = body.get("latest_alert_log_id")
+        self.assertTrue(latest is not None)
+
+        r1 = client.post(
+            "/api/admin/maintenance/alerts/acknowledge",
+            headers=headers,
+            json={"latest_alert_log_id": latest},
+        )
+        self.assertEqual(r1.status_code, 200)
+
+        r2 = client.post(
+            "/api/admin/maintenance/alerts/acknowledge",
+            headers=headers,
+            json={"latest_alert_log_id": max(int(latest) - 1, 0)},
+        )
+        self.assertEqual(r2.status_code, 200)
+
+        after = client.get("/api/admin/maintenance/alerts", headers=headers).json()
+        self.assertEqual(after["acknowledged_alert_log_id"], latest)
 
     def test_retention_run_returns_summary(self):
         self._ensure_admin_password("8888")
@@ -179,6 +361,7 @@ class AdminMaintenanceApiTest(unittest.TestCase):
         self.assertEqual(counts.get("system_logs_total"), 0)
 
     def test_reset_all_requires_confirm_password_in_production(self):
+        self._prepare_database_at_head()
         old_env, old_setting = self._set_environment("production")
         try:
             self._ensure_admin_password("8888")
@@ -193,6 +376,7 @@ class AdminMaintenanceApiTest(unittest.TestCase):
             self._restore_environment(old_env, old_setting)
 
     def test_reset_all_rejects_wrong_confirm_password_in_production(self):
+        self._prepare_database_at_head()
         old_env, old_setting = self._set_environment("production")
         try:
             self._ensure_admin_password("8888")
@@ -220,6 +404,7 @@ class AdminMaintenanceApiTest(unittest.TestCase):
                 s.add(GameRecord(boot_number=777777, game_number=1, result="庄"))
                 await s.commit()
 
+        self._prepare_database_at_head()
         old_env, old_setting = self._set_environment("production")
         try:
             asyncio.run(_seed())
