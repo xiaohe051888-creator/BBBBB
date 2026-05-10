@@ -345,6 +345,75 @@ class GameAnalysisTriggerFlowTest(unittest.TestCase):
         self.assertIsNone(result["cycle"]["failure_code"])
         self.assertEqual(result["log_event_code"], "LOG-MDL-005")
 
+    def test_retry_single_ai_analysis_uses_db_cycle_when_runtime_cycle_missing(self):
+        async def _run():
+            from app.core.database import init_db, async_session
+            from app.models.schemas import SystemLog
+            from app.services.game.session import get_session
+            from app.services.game.state import get_or_create_state
+            from app.api.routes.game import retry_single_ai_analysis
+            from app.api.routes.schemas import RetrySingleAiAnalysisRequest
+
+            await init_db()
+            boot = self._new_boot_number()
+            await self._seed_one_game(boot)
+
+            sess = get_session()
+            sess.status = "等待开奖"
+            sess.prediction_mode = "single_ai"
+            sess.analysis_cycle = None
+
+            async with async_session() as session:
+                state = await get_or_create_state(session)
+                state.boot_number = boot
+                state.game_number = 1
+                state.status = "等待开奖"
+                state.prediction_mode = "single_ai"
+                state.analysis_cycle_status = "failed"
+                state.analysis_cycle_stage = "结果校验"
+                state.analysis_cycle_attempt = 1
+                state.analysis_failure_code = "timeout"
+                state.analysis_failure_message = "本轮满血分析在 120 秒内没有完成，因此当前还没有形成有效预测结果。"
+                state.analysis_retryable = True
+                await session.commit()
+
+            started = []
+
+            def _fake_start_background_task(*args, **kwargs):
+                started.append({"args": args, "kwargs": kwargs})
+                coro = args[1] if len(args) > 1 else None
+                if hasattr(coro, "close"):
+                    coro.close()
+                return None
+
+            with patch("app.services.game.session.start_background_task", new=_fake_start_background_task):
+                payload = RetrySingleAiAnalysisRequest(boot_number=boot, game_number=2)
+                result = await retry_single_ai_analysis(payload, {})
+
+            async with async_session() as session:
+                log = (
+                    await session.execute(
+                        SystemLog.__table__.select()
+                        .where(SystemLog.boot_number == boot)
+                        .order_by(SystemLog.id.desc())
+                        .limit(1)
+                    )
+                ).mappings().first()
+
+            return {
+                "result": result,
+                "started": started,
+                "cycle": sess.analysis_cycle,
+                "log_event_code": log["event_code"] if log else None,
+            }
+
+        result = asyncio.run(_run())
+        self.assertTrue(result["result"]["success"])
+        self.assertEqual(len(result["started"]), 1)
+        self.assertEqual(result["cycle"]["status"], "running")
+        self.assertEqual(result["cycle"]["attempt"], 2)
+        self.assertEqual(result["log_event_code"], "LOG-MDL-005")
+
     def test_followup_analysis_parse_failure_marks_failed_cycle_without_rule_fallback(self):
         async def _run():
             from app.core.database import init_db, async_session

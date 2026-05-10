@@ -78,6 +78,23 @@ def _sync_analysis_cycle(sess, state, cycle: dict | None) -> None:
     state.analysis_retryable = bool(cycle.get("retryable"))
 
 
+def _analysis_cycle_from_state(state) -> dict | None:
+    if not getattr(state, "analysis_cycle_status", None):
+        return None
+    started_at = getattr(state, "analysis_cycle_started_at", None)
+    deadline_at = getattr(state, "analysis_cycle_deadline_at", None)
+    return {
+        "status": state.analysis_cycle_status,
+        "stage": state.analysis_cycle_stage,
+        "attempt": state.analysis_cycle_attempt,
+        "started_at": started_at.isoformat() if started_at else None,
+        "deadline_at": deadline_at.isoformat() if deadline_at else None,
+        "retryable": bool(state.analysis_retryable),
+        "failure_code": state.analysis_failure_code,
+        "failure_message": state.analysis_failure_message,
+    }
+
+
 def _build_single_ai_analysis_cycle(attempt: int, timeout_seconds: float) -> dict:
     started_at = datetime.now(UTC).replace(tzinfo=None)
     deadline_at = started_at + timedelta(seconds=timeout_seconds)
@@ -492,19 +509,27 @@ async def retry_single_ai_analysis(
     if sess.next_game_number != req.game_number:
         raise HTTPException(409, "当前局号已变化，请刷新后重试")
 
-    current_cycle = dict(sess.analysis_cycle or {})
-    if current_cycle.get("status") == "running":
-        raise HTTPException(409, "当前已经有一轮满血分析正在进行中")
-    if current_cycle.get("status") != "failed" or not current_cycle.get("retryable"):
-        raise HTTPException(409, "当前这局还不能重新分析")
-
-    timeout_seconds = _followup_analysis_timeout_seconds("single_ai")
-    retry_cycle = _build_single_ai_analysis_cycle(
-        attempt=int(current_cycle.get("attempt") or 0) + 1,
-        timeout_seconds=timeout_seconds,
-    )
     async with async_session() as session:
         state = await get_or_create_state(session)
+        current_cycle = dict(sess.analysis_cycle or {})
+        if current_cycle.get("status") != "running" and (
+            current_cycle.get("status") != "failed" or not current_cycle.get("retryable")
+        ):
+            persisted_cycle = _analysis_cycle_from_state(state)
+            if persisted_cycle:
+                current_cycle = persisted_cycle
+                sess.analysis_cycle = persisted_cycle
+
+        if current_cycle.get("status") == "running":
+            raise HTTPException(409, "当前已经有一轮满血分析正在进行中")
+        if current_cycle.get("status") != "failed" or not current_cycle.get("retryable"):
+            raise HTTPException(409, "当前这局还不能重新分析")
+
+        timeout_seconds = _followup_analysis_timeout_seconds("single_ai")
+        retry_cycle = _build_single_ai_analysis_cycle(
+            attempt=int(current_cycle.get("attempt") or 0) + 1,
+            timeout_seconds=timeout_seconds,
+        )
         _sync_analysis_cycle(sess, state, retry_cycle)
         await write_game_log(
             session,
