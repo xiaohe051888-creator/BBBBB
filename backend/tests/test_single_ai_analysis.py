@@ -124,6 +124,58 @@ class SingleAIAnalysisTest(unittest.TestCase):
         self.assertIn("不要输出 Markdown", prompt)
         self.assertIn("final_prediction", prompt)
 
+    def test_single_ai_default_prompt_centers_on_predicting_next_round_side(self):
+        from app.services.single_model_service import SingleModelService
+
+        prompt = SingleModelService()._build_prompt(
+            game_number=8,
+            boot_number=12,
+            game_history=[{"game_number": 1, "result": "庄"}],
+            road_data={"big_road": []},
+            mistake_context=[],
+            consecutive_errors=1,
+            road_features={"pattern": "单跳"},
+        )
+
+        self.assertIn("预测下一局", prompt)
+        self.assertIn("你只能在 `庄` 和 `闲` 中二选一".replace("`", ""), prompt.replace("`", ""))
+        self.assertIn("你的任务不是讨论是否预测，而是完成预测", prompt)
+
+    def test_single_ai_default_prompt_forbids_no_decision_language(self):
+        from app.services.single_model_service import SingleModelService
+
+        prompt = SingleModelService()._build_prompt(
+            game_number=9,
+            boot_number=12,
+            game_history=[{"game_number": 1, "result": "闲"}],
+            road_data={"big_road": []},
+            mistake_context=[],
+            consecutive_errors=2,
+            road_features={"pattern": "混合"},
+        )
+
+        self.assertIn("即使信号冲突，也必须选庄或闲", prompt)
+        self.assertIn("不允许输出“无法判断”", prompt)
+        self.assertIn("只能通过降低 confidence 表达不确定性", prompt)
+
+    def test_single_ai_default_prompt_requires_contract_fields_for_prediction_reasoning(self):
+        from app.services.single_model_service import SingleModelService
+
+        prompt = SingleModelService()._build_prompt(
+            game_number=10,
+            boot_number=12,
+            game_history=[{"game_number": 1, "result": "庄"}],
+            road_data={"big_road": []},
+            mistake_context=[],
+            consecutive_errors=0,
+            road_features={"pattern": "长龙"},
+        )
+
+        self.assertIn('"final_prediction":"庄或闲"', prompt)
+        self.assertIn('"reasoning_points"', prompt)
+        self.assertIn('"reasoning_detail"', prompt)
+        self.assertIn("最终只输出严格 JSON", prompt)
+
     def test_single_ai_invalid_text_does_not_become_fake_success(self):
         async def _run():
             from app.core.database import init_db, async_session
