@@ -16,6 +16,9 @@ def upgrade() -> None:
     if "system_state" not in tables:
         return
 
+    dialect_name = getattr(getattr(bind, "dialect", None), "name", "")
+    retryable_default = sa.text("false") if dialect_name == "postgresql" else sa.text("0")
+
     cols = {c["name"] for c in inspector.get_columns("system_state")}
     with op.batch_alter_table("system_state") as batch:
         if "analysis_cycle_status" not in cols:
@@ -33,7 +36,7 @@ def upgrade() -> None:
         if "analysis_failure_message" not in cols:
             batch.add_column(sa.Column("analysis_failure_message", sa.Text(), nullable=True))
         if "analysis_retryable" not in cols:
-            batch.add_column(sa.Column("analysis_retryable", sa.Boolean(), nullable=False, server_default=sa.text("0")))
+            batch.add_column(sa.Column("analysis_retryable", sa.Boolean(), nullable=False, server_default=retryable_default))
 
 
 def downgrade() -> None:
