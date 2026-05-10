@@ -170,4 +170,34 @@ describe('AnalysisDetailDrawer', () => {
     const { cleanup } = await renderDrawer();
     await cleanup();
   });
+
+  it('translates fallback diagnostics in visible decision copy instead of showing raw english fragments', async () => {
+    const noisyOutcome: AnalysisOutcome = {
+      ...SAMPLE_OUTCOME,
+      short_reason: '单AI失败后已切换规则兜底继续下注：下一局AI分析失败(reveal): analysis returned no result',
+      final_reason: '单AI失败后已切换规则兜底继续下注：下一局AI分析失败(reveal): analysis returned no result',
+    };
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const restoreComputedStyle = installComputedStyleFallback();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<AnalysisDetailDrawer open onClose={() => {}} outcome={noisyOutcome} />);
+    });
+
+    const html = document.body.innerHTML;
+    expect(html).toContain('智能判断这次没有及时给出稳定结果');
+    expect(html).toContain('备用判断');
+    expect(html).not.toContain('analysis returned no result');
+    expect(html).not.toContain('(reveal)');
+    expect(html).not.toContain('下一局AI分析失败');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+    restoreComputedStyle();
+  });
 });

@@ -128,6 +128,8 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
   const confidenceTitle = formatConfidenceLabel();
   const sourceLabel = getSourceLabel(outcome.source);
   const sourceExplanation = getSourceExplanation(outcome);
+  const shortReason = toCnAnalysisDiagnostic(outcome.short_reason) || outcome.short_reason;
+  const finalReason = toCnAnalysisDiagnostic(outcome.final_reason) || outcome.final_reason;
   const diagnosticMessage = toCnAnalysisDiagnostic(outcome.technical_diagnostic?.message);
 
   return (
@@ -205,13 +207,13 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
               border: '1px solid rgba(125, 211, 252, 0.12)',
             }}
           >
-            {outcome.short_reason}
+            {shortReason}
           </p>
         </section>
 
         <section style={sectionCardStyle}>
           <h3 style={sectionHeadingStyle}>最终决断依据</h3>
-          <p style={{ ...bodyTextStyle, marginTop: 12 }}>{outcome.final_reason}</p>
+          <p style={{ ...bodyTextStyle, marginTop: 12 }}>{finalReason}</p>
         </section>
 
         <section style={sectionCardStyle}>
