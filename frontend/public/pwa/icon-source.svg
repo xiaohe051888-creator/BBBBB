@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06101f" />
+      <stop offset="55%" stop-color="#0c1c38" />
+      <stop offset="100%" stop-color="#132b57" />
+    </linearGradient>
+    <linearGradient id="scan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#66d9ff" />
+      <stop offset="45%" stop-color="#6c7cff" />
+      <stop offset="100%" stop-color="#ad5cff" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd76a" />
+      <stop offset="100%" stop-color="#ff9f67" />
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="124" fill="url(#bg)" />
+  <rect x="28" y="28" width="456" height="456" rx="108" fill="none" stroke="rgba(255,255,255,0.08)" />
+
+  <circle cx="256" cy="256" r="158" fill="none" stroke="url(#scan)" stroke-width="20" opacity="0.88" filter="url(#softGlow)" />
+  <path
+    d="M150 308c32-58 74-92 124-92 29 0 57 8 82 24 18 11 33 24 45 38"
+    fill="none"
+    stroke="url(#scan)"
+    stroke-width="20"
+    stroke-linecap="round"
+    filter="url(#softGlow)"
+  />
+  <path
+    d="M154 332c48 30 94 44 138 44 40 0 79-12 117-36"
+    fill="none"
+    stroke="rgba(102,217,255,0.35)"
+    stroke-width="12"
+    stroke-linecap="round"
+  />
+
+  <g transform="translate(0 4)">
+    <path
+      d="M158 147h72c49 0 81 28 81 69 0 24-12 43-34 54 31 10 50 33 50 66 0 52-41 84-98 84h-71zM207 191v59h24c20 0 33-11 33-30 0-18-13-29-33-29zM207 292v74h26c27 0 45-14 45-37 0-23-17-37-44-37z"
+      fill="#f8fbff"
+    />
+    <path
+      d="M302 147h42c70 0 115 40 115 102 0 67-50 108-131 108h-26zM351 191v122h7c32 0 53-23 53-61 0-39-20-61-55-61z"
+      fill="#f8fbff"
+      opacity="0.94"
+    />
+  </g>
+
+  <g filter="url(#softGlow)">
+    <circle cx="371" cy="197" r="17" fill="url(#gold)" />
+    <path d="M166 391h180" stroke="url(#gold)" stroke-width="18" stroke-linecap="round" />
+    <path d="M366 381l28-28 24 24" fill="none" stroke="url(#gold)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>

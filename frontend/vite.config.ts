@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
+import { pwaOptions } from './src/pwa/config'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), VitePWA(pwaOptions)],
   // 必须使用绝对路径，否则多级前端路由（如 /admin/logs）会导致资源请求变成 /admin/assets/xxx
   base: '/',
   // 开发服务器代理（避免跨域）
