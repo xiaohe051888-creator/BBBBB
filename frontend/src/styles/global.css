@@ -1308,6 +1308,216 @@ body {
 .row-loss { background-color: rgba(255, 77, 79, 0.06) !important; }
 .row-mistake { background-color: rgba(255, 77, 79, 0.04) !important; }
 .row-mistake:hover { background-color: rgba(255, 77, 79, 0.08) !important; }
+
+.review-mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.review-mobile-card {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(8, 20, 46, 0.94), rgba(4, 13, 33, 0.98));
+  padding: 16px 16px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.review-mobile-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.review-mobile-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.review-mobile-title-group strong {
+  color: #f0f6fc;
+  font-size: 18px;
+}
+
+.review-mobile-title-group span {
+  color: #8b949e;
+  font-size: 13px;
+}
+
+.review-mobile-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.review-mobile-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.review-mobile-kpi > span {
+  color: #8b949e;
+  font-size: 12px;
+}
+
+.review-mobile-progress {
+  min-width: 0;
+}
+
+.review-mobile-row,
+.review-mobile-analysis {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.review-mobile-row > span,
+.review-mobile-analysis > span {
+  color: #8b949e;
+  font-size: 12px;
+}
+
+.review-mobile-analysis > strong {
+  color: #dce6f2;
+  font-size: 15px;
+  line-height: 1.7;
+  font-weight: 500;
+}
+
+.review-mobile-outcome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.review-mobile-outcome .ant-tag {
+  margin-inline-end: 0;
+  padding-inline: 10px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.review-mobile-outcome-divider {
+  color: #ff4d4f;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.review-detail-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.review-detail-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.review-detail-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.review-detail-kpi > span {
+  color: #8b949e;
+  font-size: 12px;
+}
+
+.review-detail-kpi > strong {
+  color: #f0f6fc;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.review-detail-kpi .ant-progress {
+  max-width: 100%;
+}
+
+.review-detail-section {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.review-detail-section.is-neutral {
+  background: linear-gradient(180deg, rgba(26, 40, 72, 0.54), rgba(17, 28, 53, 0.54));
+}
+
+.review-detail-section.is-danger {
+  background: linear-gradient(180deg, rgba(74, 16, 25, 0.92), rgba(28, 17, 36, 0.88));
+}
+
+.review-detail-section.is-action {
+  background: linear-gradient(180deg, rgba(13, 74, 33, 0.82), rgba(15, 33, 53, 0.76));
+}
+
+.review-detail-label {
+  display: block;
+  margin-bottom: 10px;
+  color: #f0f6fc;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.review-detail-section p {
+  margin: 0;
+  color: #dce6f2;
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+.review-detail-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.review-detail-summary-item {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.review-detail-summary-item strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #f0f6fc;
+  font-size: 14px;
+}
+
+.review-detail-summary-item p,
+.review-detail-empty {
+  margin: 0;
+  color: #8b949e;
+  line-height: 1.7;
+  font-size: 14px;
+}
 .log-critical-row { background-color: rgba(255, 77, 79, 0.08) !important; border-left: 3px solid #ff4d4f !important; }
 .log-error-row { background-color: rgba(255, 173, 0, 0.05) !important; border-left: 3px solid #faad14 !important; }
 

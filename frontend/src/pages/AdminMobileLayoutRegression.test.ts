@@ -229,6 +229,26 @@ describe('admin mobile layout regressions', () => {
     expect(derivedRoadCanvas).toContain('maxGap: Math.max(mergedConfig.cellGap, 6)');
   });
 
+  it('uses simplified mobile review cards and a non-descriptions review detail sheet', () => {
+    const mistakes = readFileSync(resolve(__dirname, './MistakeBookPage.tsx'), 'utf8');
+    const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+    expect(mistakes).toContain('className="review-mobile-list"');
+    expect(mistakes).toContain('className="review-mobile-card"');
+    expect(mistakes).toContain('className="review-mobile-head"');
+    expect(mistakes).toContain('className="review-mobile-kpis"');
+    expect(mistakes).toContain('className="review-mobile-outcome"');
+    expect(mistakes).toContain('className="review-mobile-analysis"');
+    expect(mistakes).toContain('className="review-detail-sheet"');
+    expect(mistakes).not.toContain('<Descriptions bordered');
+    expect(mistakes).toContain('className="review-detail-kpi-grid"');
+    expect(mistakes).toContain('className="review-detail-section is-danger"');
+    expect(mistakes).toContain('className="review-detail-section is-action"');
+    expect(css).toContain('.review-mobile-card {');
+    expect(css).toContain('.review-detail-sheet {');
+    expect(css).toContain('.review-detail-kpi-grid {');
+  });
+
   it('keeps user-facing status and form pages on shared mobile shell classes', () => {
     const workflow = readFileSync(resolve(__dirname, '../components/dashboard/WorkflowStatusBar.tsx'), 'utf8');
     const systemStatus = readFileSync(resolve(__dirname, '../components/ui/SystemStatusPanel.tsx'), 'utf8');

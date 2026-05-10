@@ -8,7 +8,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button, Card, Table, Tag, Space, Statistic,
-  Select, Input, Modal, Empty, Descriptions, Tooltip,
+  Select, Input, Modal, Empty, Tooltip,
   Alert, Progress, Badge, Grid,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -127,6 +127,11 @@ const MistakeBookPage: React.FC = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedMistake, setSelectedMistake] = useState<MistakeRecord | null>(null);
 
+  const openDetail = (record: MistakeRecord) => {
+    setSelectedMistake(record);
+    setDetailModalOpen(true);
+  };
+
   // 手动刷新
   const handleRefresh = () => {
         queryClient.invalidateQueries({ queryKey: ['mistakes'] });
@@ -243,7 +248,7 @@ const MistakeBookPage: React.FC = () => {
         <Button
           type="link"
           size="small"
-          onClick={() => { setSelectedMistake(record); setDetailModalOpen(true); }}
+          onClick={() => openDetail(record)}
           style={{ fontSize: 12, padding: '0 4px' }}
         >
           详情
@@ -251,6 +256,30 @@ const MistakeBookPage: React.FC = () => {
       ),
     },
   ];
+
+  const renderOutcomeInline = (record: MistakeRecord, showLabel = false) => (
+    <div className="review-mobile-outcome">
+      <Tag color={record.predict_direction === '庄' ? '#ff4d4f' : '#1890ff'}>
+        {showLabel ? `建议:${record.predict_direction}` : record.predict_direction}
+      </Tag>
+      <span className="review-mobile-outcome-divider">×</span>
+      <Tag color={record.actual_result === '庄' ? '#ff4d4f' : '#1890ff'}>
+        {showLabel ? `结果:${record.actual_result}` : record.actual_result}
+      </Tag>
+    </div>
+  );
+
+  const renderConfidence = (value: number | null) => (
+    value !== null ? (
+      <Progress
+        percent={Math.round(value * 100)}
+        size="small"
+        strokeColor={value >= 0.75 ? '#ff4d4f' : value >= 0.5 ? '#faad14' : '#52c41a'}
+        format={(p) => `${p}%`}
+        style={{ margin: 0 }}
+      />
+    ) : <span style={{ color: '#555' }}>-</span>
+  );
 
   return (
     <div className="page-wrapper mistakes-page">
@@ -400,38 +429,88 @@ const MistakeBookPage: React.FC = () => {
         </Space>
       </Card>
 
-      {/* 数据表格 - 自适应布局，无横向滚动 */}
-      <Card size="small" className="mobile-data-card">
-        <Table
-          className="mobile-card-table user-data-table"
-          dataSource={mistakes}
-          columns={columns.map(col => ({
-            ...col,
-            onCell: () => ({
-              'data-label': typeof col.title === 'string' ? col.title : ''
-            } as React.HTMLAttributes<HTMLElement>)
-          }))}
-          rowKey={(r) => `mistake-${r.id}-${r.game_number}`}
-          size="small"
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total,
-            onChange: (p, ps) => { setPage(p); if (ps !== pageSize) setPageSize(ps); },
-            showSizeChanger: true,
-            showTotal: total => `共 ${total} 条`,
-          }}
-          scroll={{ x: 'max-content', y: isMobile ? undefined : 'calc(max(300px, 100vh - 520px))' }}
-          locale={{ emptyText: <Empty description={
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-              <span>{formatReviewLabel('empty')}</span>
-              <span style={{ color: '#8b949e', fontSize: 12 }}>{formatReviewLabel('positiveHint')} ✅</span>
+      {/* 数据区 */}
+      {isMobile ? (
+        <div className="review-mobile-list">
+          {mistakes.length ? mistakes.map((record) => (
+            <div className="review-mobile-card" key={`mistake-mobile-${record.id}-${record.game_number}`}>
+              <div className="review-mobile-head">
+                <div className="review-mobile-title-group">
+                  <strong>{`第${record.game_number}局`}</strong>
+                  <span>{`第${record.boot_number}靴`}</span>
+                </div>
+                <Button type="link" size="small" onClick={() => openDetail(record)}>
+                  详情
+                </Button>
+              </div>
+
+              <div className="review-mobile-kpis">
+                <div className="review-mobile-kpi">
+                  <span>失误类型</span>
+                  <Tag color={ERROR_TYPE_MAP[record.error_type]?.color}>
+                    {ERROR_TYPE_MAP[record.error_type]?.label || record.error_type}
+                  </Tag>
+                </div>
+                <div className="review-mobile-kpi">
+                  <span>{formatConfidenceLabel()}</span>
+                  <div className="review-mobile-progress">{renderConfidence(record.confidence)}</div>
+                </div>
+              </div>
+
+              <div className="review-mobile-row">
+                <span>预测和结果</span>
+                {renderOutcomeInline(record)}
+              </div>
+
+              <div className="review-mobile-analysis">
+                <span>原因分析</span>
+                <strong>{record.analysis || '暂时没有原因分析'}</strong>
+              </div>
             </div>
-          } /> }}
-          rowClassName={() => 'row-mistake'}
-          style={{ width: '100%' }}
-        />
-      </Card>
+          )) : (
+            <Card size="small" className="mobile-status-card">
+              <Empty description={
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                  <span>{formatReviewLabel('empty')}</span>
+                  <span style={{ color: '#8b949e', fontSize: 12 }}>{formatReviewLabel('positiveHint')} ✅</span>
+                </div>
+              } />
+            </Card>
+          )}
+        </div>
+      ) : (
+        <Card size="small" className="mobile-data-card">
+          <Table
+            className="mobile-card-table user-data-table"
+            dataSource={mistakes}
+            columns={columns.map(col => ({
+              ...col,
+              onCell: () => ({
+                'data-label': typeof col.title === 'string' ? col.title : ''
+              } as React.HTMLAttributes<HTMLElement>)
+            }))}
+            rowKey={(r) => `mistake-${r.id}-${r.game_number}`}
+            size="small"
+            pagination={{
+              current: page,
+              pageSize: pageSize,
+              total,
+              onChange: (p, ps) => { setPage(p); if (ps !== pageSize) setPageSize(ps); },
+              showSizeChanger: true,
+              showTotal: total => `共 ${total} 条`,
+            }}
+            scroll={{ x: 'max-content', y: 'calc(max(300px, 100vh - 520px))' }}
+            locale={{ emptyText: <Empty description={
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <span>{formatReviewLabel('empty')}</span>
+                <span style={{ color: '#8b949e', fontSize: 12 }}>{formatReviewLabel('positiveHint')} ✅</span>
+              </div>
+            } /> }}
+            rowClassName={() => 'row-mistake'}
+            style={{ width: '100%' }}
+          />
+        </Card>
+      )}
 
       {/* 详情弹窗 */}
       <Modal
@@ -443,95 +522,72 @@ const MistakeBookPage: React.FC = () => {
         style={{ maxWidth: 'calc(100vw - 20px)' }}
       >
         {selectedMistake && (
-          <>
-            <Descriptions bordered column={isMobile ? 1 : 2} size="small" labelStyle={{ width: isMobile ? 88 : 100, background: '#161b22' }} style={{ marginBottom: 16 }}>
-              
-              <Descriptions.Item label="靴号">#{selectedMistake.boot_number}</Descriptions.Item>
-              <Descriptions.Item label="局号">{selectedMistake.game_number}</Descriptions.Item>
-              <Descriptions.Item label={formatDetailLabel('errorId')}>{selectedMistake.error_id}</Descriptions.Item>
-              <Descriptions.Item label="失误类型">
-                <Tag color={ERROR_TYPE_MAP[selectedMistake.error_type]?.color}>{ERROR_TYPE_MAP[selectedMistake.error_type]?.label || selectedMistake.error_type}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="置信度">
-                {selectedMistake.confidence !== null ? (
-                  <Progress percent={Math.round(selectedMistake.confidence * 100)} size="small"
-                    strokeColor={selectedMistake.confidence >= 0.75 ? '#ff4d4f' : '#faad14'} format={p => `${p}%`} />
-                ) : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label={formatDetailLabel('predicted')} span={2}>
-                <Space>
-                  <Tag color="#ff4d4f">{formatDetailLabel('predicted')}: {selectedMistake.predict_direction}</Tag>
-                  <span style={{ color: '#ff4d4f', fontSize: 16 }}>✗</span>
-                  <Tag color="#1890ff">{formatDetailLabel('actual')}: {selectedMistake.actual_result}</Tag>
-                </Space>
-              </Descriptions.Item>
-            </Descriptions>
-
-            {/* 三模型摘要 */}
-            <Card
-              size="small"
-              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Aim /> {formatDetailLabel('modelSummary')}</span>}
-              style={{ marginBottom: 12 }}
-              styles={{ header: { background: '#161b22', color: '#e6edf3' } }}
-            >
-              {selectedMistake.banker_summary && (
-                <Alert
-                  type="error"
-                  title={formatDetailLabel('bankerModel')}
-                  description={selectedMistake.banker_summary}
-                  style={{ marginBottom: 8 }}
-                />
-              )}
-              {selectedMistake.player_summary && (
-                <Alert
-                  type="warning"
-                  title={formatDetailLabel('playerModel')}
-                  description={selectedMistake.player_summary}
-                  style={{ marginBottom: 8 }}
-                />
-              )}
-              {selectedMistake.combined_summary && (
-                <Alert
-                  type="error"
-                  title={formatDetailLabel('combinedModel')}
-                  description={selectedMistake.combined_summary}
-                />
-              )}
-              {!selectedMistake.banker_summary && !selectedMistake.player_summary && !selectedMistake.combined_summary && (
-                <span style={{ color: '#555' }}>暂时没有AI分析摘要</span>
-              )}
-            </Card>
-
-            {/* 错因分析与修正策略 */}
-            <div className="mobile-section-stack" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-                <Card
-                  size="small"
-                  title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Warning /> {formatDetailLabel('analysis')}</span>}
-                  styles={{ header: { background: '#2d1318', color: '#ff4d4f' } }}
-                >
-                  <p style={{ color: '#c9d1d9', lineHeight: 1.8, margin: 0 }}>
-                    {selectedMistake.analysis || (
-                      <span style={{ color: '#555' }}>{formatDetailLabel('noAnalysis')}</span>
-                    )}
-                  </p>
-                </Card>
+          <div className="review-detail-sheet">
+            <div className="review-detail-kpi-grid">
+              <div className="review-detail-kpi">
+                <span>局号</span>
+                <strong>{selectedMistake.game_number}</strong>
               </div>
-              <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-                <Card
-                  size="small"
-                  title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.Check /> {formatDetailLabel('correction')}</span>}
-                  styles={{ header: { background: '#132d1c', color: '#52c41a' } }}
-                >
-                  <p style={{ color: '#c9d1d9', lineHeight: 1.8, margin: 0 }}>
-                    {selectedMistake.correction || (
-                      <span style={{ color: '#555' }}>{formatDetailLabel('noCorrection')}</span>
-                    )}
-                  </p>
-                </Card>
+              <div className="review-detail-kpi">
+                <span>靴号</span>
+                <strong>{`#${selectedMistake.boot_number}`}</strong>
+              </div>
+              <div className="review-detail-kpi">
+                <span>失误类型</span>
+                <strong>
+                  <Tag color={ERROR_TYPE_MAP[selectedMistake.error_type]?.color}>
+                    {ERROR_TYPE_MAP[selectedMistake.error_type]?.label || selectedMistake.error_type}
+                  </Tag>
+                </strong>
+              </div>
+              <div className="review-detail-kpi">
+                <span>{formatConfidenceLabel()}</span>
+                <strong>{renderConfidence(selectedMistake.confidence)}</strong>
               </div>
             </div>
-          </>
+
+            <div className="review-detail-section is-neutral">
+              <span className="review-detail-label">当时建议 vs 实际结果</span>
+              {renderOutcomeInline(selectedMistake, true)}
+            </div>
+
+            <div className="review-detail-section">
+              <span className="review-detail-label">{formatDetailLabel('modelSummary')}</span>
+              <div className="review-detail-summary-list">
+                {selectedMistake.banker_summary ? (
+                  <div className="review-detail-summary-item">
+                    <strong>{formatDetailLabel('bankerModel')}</strong>
+                    <p>{selectedMistake.banker_summary}</p>
+                  </div>
+                ) : null}
+                {selectedMistake.player_summary ? (
+                  <div className="review-detail-summary-item">
+                    <strong>{formatDetailLabel('playerModel')}</strong>
+                    <p>{selectedMistake.player_summary}</p>
+                  </div>
+                ) : null}
+                {selectedMistake.combined_summary ? (
+                  <div className="review-detail-summary-item">
+                    <strong>{formatDetailLabel('combinedModel')}</strong>
+                    <p>{selectedMistake.combined_summary}</p>
+                  </div>
+                ) : null}
+                {!selectedMistake.banker_summary && !selectedMistake.player_summary && !selectedMistake.combined_summary ? (
+                  <p className="review-detail-empty">暂时没有AI分析摘要</p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="review-detail-section is-danger">
+              <span className="review-detail-label">{formatDetailLabel('analysis')}</span>
+              <p>{selectedMistake.analysis || formatDetailLabel('noAnalysis')}</p>
+            </div>
+
+            <div className="review-detail-section is-action">
+              <span className="review-detail-label">{formatDetailLabel('correction')}</span>
+              <p>{selectedMistake.correction || formatDetailLabel('noCorrection')}</p>
+            </div>
+          </div>
         )}
       </Modal>
     </div>
