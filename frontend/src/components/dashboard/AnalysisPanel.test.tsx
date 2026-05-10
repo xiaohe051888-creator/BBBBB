@@ -5,6 +5,11 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import AnalysisPanel from './AnalysisPanel';
+import {
+  formatAnalysisOutcomeLabel,
+  formatAnalysisSourceLabel,
+  formatConfidenceLabel,
+} from '../../utils/beginnerCopy';
 
 vi.mock('../../hooks/useQueries', () => ({
   useSystemStateQuery: () => ({
@@ -59,13 +64,21 @@ describe('AnalysisPanel', () => {
 
     const html = container.innerHTML;
 
+    expect(html).toContain(formatAnalysisOutcomeLabel('decision'));
     expect(html).toContain('本局建议');
-    expect(html).toContain('单AI判断');
-    expect(html).toContain('高把握');
+    expect(html).toContain(formatAnalysisOutcomeLabel('method'));
+    expect(html).toContain(formatAnalysisSourceLabel('single_ai'));
+    expect(html).toContain(formatAnalysisOutcomeLabel('confidence'));
+    expect(html).toContain(formatConfidenceLabel());
+    expect(html).toContain(formatAnalysisOutcomeLabel('detailAction'));
     expect(html).toContain('当前走势仍偏庄，本局建议继续跟庄。');
-    expect(html).not.toContain('庄方向判断');
-    expect(html).not.toContain('综合判断');
-    expect(html).not.toContain('推理详情');
+    expect(html).not.toContain('单AI判断');
+    expect(html).not.toContain('AI');
+    expect(html).not.toContain('模型');
+    expect(html).not.toContain('规则兜底');
+    expect(html).not.toContain('规则辅助');
+    expect(html).not.toContain('高把握');
+    expect(html).not.toContain('查看详细原因');
 
     await act(async () => {
       root.unmount();
@@ -115,6 +128,7 @@ describe('AnalysisPanel', () => {
     expect(html).toContain('系统已完成判断，本局继续跟庄。');
     expect(html).toContain('本局建议');
     expect(html).toContain('76%');
+    expect(html).toContain(formatAnalysisOutcomeLabel('detailAction'));
     expect(html).not.toContain('系统正在分析下一局，请稍候...');
 
     await act(async () => {
@@ -144,15 +158,16 @@ describe('AnalysisPanel', () => {
           analysis={{
             prediction: '庄',
             confidence: 0.61,
-            combined_summary: '上游接口调用失败，已切换规则兜底。',
+            combined_summary: '当前走势暂不稳定，系统已切换备用判断。',
             prediction_mode: 'single_ai',
             analysis_outcome: {
               direction: '庄',
               confidence: 0.61,
               confidence_label: '中',
               source: 'rule_fallback',
-              short_reason: '本局AI没有及时给出稳定结果，系统已改用规则判断继续下注。',
-              final_reason: '五条路里三条继续支持庄，所以最终偏向庄。',
+              short_reason: '当前走势暂不稳定，系统已改用备用判断继续给出建议。',
+              final_reason: '五条路里三条继续支持庄，所以这次结果仍偏向庄。',
+              fallback_reason: '本局暂未形成稳定判断，系统已切换备用判断，当前流程继续进行。',
               road_explanations: {},
             },
           }}
@@ -162,9 +177,85 @@ describe('AnalysisPanel', () => {
 
     const html = container.innerHTML;
 
-    expect(html).toContain('本局建议');
-    expect(html).toContain('规则兜底');
+    expect(html).toContain(formatAnalysisOutcomeLabel('method'));
+    expect(html).toContain(formatAnalysisSourceLabel('rule_fallback'));
+    expect(html).toContain(formatAnalysisOutcomeLabel('confidence'));
+    expect(html).toContain(formatAnalysisOutcomeLabel('detailAction'));
     expect(html).not.toContain('上游接口调用失败');
+    expect(html).not.toContain('规则兜底');
+    expect(html).not.toContain('AI');
+    expect(html).not.toContain('规则辅助');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('shows future-tech loading copy while analysis is running', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <AnalysisPanel
+          hasGameData
+          hasPendingBet={false}
+          aiAnalyzing
+          workflowStage={{
+            type: 'analyzing',
+            showAnalysisLoading: true,
+            showCompletedAnalysis: false,
+          }}
+          analysis={null}
+        />
+      );
+    });
+
+    const html = container.innerHTML;
+
+    expect(html).toContain('系统正在综合比对走势');
+    expect(html).toContain('请稍候，判断结果马上出来');
+    expect(html).not.toContain('系统正在分析下一局，请稍候...');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('shows future-tech empty copy before the first result is entered', async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <AnalysisPanel
+          hasGameData={false}
+          hasPendingBet={false}
+          aiAnalyzing={false}
+          workflowStage={{
+            type: 'idle',
+            showAnalysisLoading: false,
+            showCompletedAnalysis: false,
+          }}
+          analysis={null}
+        />
+      );
+    });
+
+    const html = container.innerHTML;
+
+    expect(html).toContain('系统已准备好');
+    expect(html).toContain('请先录入本靴结果，系统会自动开始判断');
+    expect(html).not.toContain('系统已就绪');
+    expect(html).not.toContain('请点击【🎯 开奖】按钮录入第一局结果开始AI分析');
 
     await act(async () => {
       root.unmount();
@@ -197,9 +288,10 @@ describe('AnalysisPanel', () => {
 
     const html = container.innerHTML;
 
-    expect(html).toContain('本局已下注');
-    expect(html).toContain('等待开奖结果');
+    expect(html).toContain('本局已完成下注');
+    expect(html).toContain('等待录入开奖结果');
     expect(html).not.toContain('正在准备AI分析...');
+    expect(html).not.toContain('本局已下注');
 
     await act(async () => {
       root.unmount();

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  toCnAnalysisDiagnostic,
   toCnApiTestError,
   toCnModelLabel,
   toCnProviderLabel,
@@ -32,5 +33,22 @@ describe('中文显示映射', () => {
   it('translates road aliases to Chinese labels', () => {
     expect(toCnRoadAlias('Big Road')).toBe('大路');
     expect(toCnRoadAlias('Cockroach')).toBe('螳螂路');
+  });
+
+  it('rewrites fallback diagnostics into beginner-friendly Chinese', () => {
+    expect(toCnAnalysisDiagnostic('single_ai timeout, fallback to rule_fallback')).toBe(
+      '智能判断这次没有及时给出稳定结果，系统先用备用判断继续完成这次判断。',
+    );
+    expect(toCnAnalysisDiagnostic('analysis timeout after 45.00s')).toBe(
+      '智能判断这次没有及时给出稳定结果，系统先用备用判断继续完成这次判断。',
+    );
+    expect(toCnAnalysisDiagnostic('单AI没有及时返回稳定结果，已自动切换规则兜底。')).toBe(
+      '智能判断这次没有及时给出稳定结果，系统先用备用判断继续完成这次判断。',
+    );
+  });
+
+  it('passes through unknown diagnostics after trimming', () => {
+    expect(toCnAnalysisDiagnostic('  custom diagnostic  ')).toBe('custom diagnostic');
+    expect(toCnAnalysisDiagnostic('')).toBe('');
   });
 });

@@ -20,7 +20,23 @@ export const formatAnalysisLoadingText = (mode: 'ai' | 'single_ai' | 'rule') => 
   return '系统正在按内置规则计算，请稍候...';
 };
 
-export const formatConfidenceLabel = () => '把握度';
+export const formatAnalysisOutcomeLabel = (
+  key: 'decision' | 'method' | 'confidence' | 'detailAction',
+) => {
+  if (key === 'decision') return '系统判断';
+  if (key === 'method') return '判断方式';
+  if (key === 'confidence') return '把握程度';
+  return '查看这次怎么判断的';
+};
+
+export const formatAnalysisSourceLabel = (
+  source: 'ai' | 'single_ai' | 'rule' | 'rule_fallback' | 'single',
+) => {
+  if (source === 'rule' || source === 'rule_fallback') return '备用判断';
+  return '智能判断';
+};
+
+export const formatConfidenceLabel = () => '把握程度';
 
 export const formatUploadActionLabel = (action: 'reset_current_boot' | 'new_boot') => {
   if (action === 'reset_current_boot') return '重做当前这靴数据';

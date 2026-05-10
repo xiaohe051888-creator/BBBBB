@@ -46,7 +46,7 @@ describe('beginnerCopy', () => {
   });
 
   it('uses a beginner-friendly confidence label', () => {
-    expect(formatConfidenceLabel()).toBe('把握度');
+    expect(formatConfidenceLabel()).toBe('把握程度');
   });
 
   it('formats upload action labels in plain language', () => {

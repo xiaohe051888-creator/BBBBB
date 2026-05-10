@@ -52,3 +52,28 @@ export const toCnRoadAlias = (alias?: string | null): string => {
   };
   return map[key] || '';
 };
+
+export const toCnAnalysisDiagnostic = (raw?: string | null): string => {
+  const s = String(raw || '').trim();
+  const lower = s.toLowerCase();
+
+  if (!s) {
+    return '';
+  }
+
+  const isFallbackDiagnostic =
+    lower.includes('analysis timeout after 45.00s') ||
+    lower.includes('rule_fallback') ||
+    lower.includes('fallback to rule') ||
+    lower.includes('fallback') ||
+    lower.includes('timeout') ||
+    lower.includes('single_ai') ||
+    s.includes('规则兜底') ||
+    s.includes('单AI没有及时返回稳定结果');
+
+  if (isFallbackDiagnostic) {
+    return '智能判断这次没有及时给出稳定结果，系统先用备用判断继续完成这次判断。';
+  }
+
+  return s;
+};
