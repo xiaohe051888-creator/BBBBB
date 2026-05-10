@@ -70,15 +70,21 @@ def _sync_analysis_cycle(sess, state, cycle: dict | None) -> None:
     state.analysis_cycle_attempt = cycle.get("attempt")
     started_at = cycle.get("started_at")
     deadline_at = cycle.get("deadline_at")
-    state.analysis_cycle_started_at = datetime.fromisoformat(started_at) if started_at else None
-    state.analysis_cycle_deadline_at = datetime.fromisoformat(deadline_at) if deadline_at else None
+    parsed_started = datetime.fromisoformat(started_at) if started_at else None
+    parsed_deadline = datetime.fromisoformat(deadline_at) if deadline_at else None
+    if parsed_started and parsed_started.tzinfo is not None:
+        parsed_started = parsed_started.astimezone(UTC).replace(tzinfo=None)
+    if parsed_deadline and parsed_deadline.tzinfo is not None:
+        parsed_deadline = parsed_deadline.astimezone(UTC).replace(tzinfo=None)
+    state.analysis_cycle_started_at = parsed_started
+    state.analysis_cycle_deadline_at = parsed_deadline
     state.analysis_failure_code = cycle.get("failure_code")
     state.analysis_failure_message = cycle.get("failure_message")
     state.analysis_retryable = bool(cycle.get("retryable"))
 
 
 def _build_single_ai_analysis_cycle(attempt: int, timeout_seconds: float) -> dict:
-    started_at = datetime.now(UTC)
+    started_at = datetime.now(UTC).replace(tzinfo=None)
     deadline_at = started_at + timedelta(seconds=timeout_seconds)
     return {
         "status": "running",
