@@ -73,20 +73,22 @@ describe('AdminAlertsBar', () => {
     });
 
     const html = container.innerHTML;
+    const normalize = (text?: string | null) => text?.replace(/\s+/g, '') || '';
     expect(html).toContain('系统告警');
     expect(html).toContain('近24小时 1 条高优先级');
-    expect(html).toContain('展开');
-    expect(html).toContain('确认');
     expect(html).not.toContain('刷新');
     expect(html).not.toContain('查看全部');
     expect(html).not.toContain('最近24小时内检测到 1 条高优先级');
     expect(html).not.toContain('智能分析：系统已自动改用备用判断');
     expect(html).not.toContain('智能判断这次没有及时给出稳定结果，系统已经自动改用备用判断继续完成下注。');
 
-    const normalize = (text?: string | null) => text?.replace(/\s+/g, '') || '';
+    const confirmButton = Array.from(document.querySelectorAll('button')).find((button) =>
+      normalize(button.textContent).includes('确认'),
+    );
     const expandButton = Array.from(document.querySelectorAll('button')).find((button) =>
       normalize(button.textContent).includes('展开'),
     );
+    expect(confirmButton).toBeTruthy();
     expect(expandButton).toBeTruthy();
 
     await act(async () => {
