@@ -2,7 +2,10 @@
 系统状态路由
 """
 import logging
+from typing import Literal
+
 from fastapi import APIRouter, Query, HTTPException, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy import select, func, desc
 from datetime import datetime, timedelta, UTC
 
@@ -18,6 +21,12 @@ router = APIRouter(
     tags=["系统状态"]
 )
 logger = logging.getLogger(__name__)
+
+
+class BackfillHistoryRequest(BaseModel):
+    boot_number: int | None = Field(default=None, description="要回补的靴号，默认当前靴")
+    limit_games: int | None = Field(default=None, ge=1, description="仅回补最近若干局")
+    dry_run: bool = Field(default=False, description="只预览，不落库")
 
 
 def _mode_label(v: str) -> str:
@@ -545,6 +554,27 @@ async def repair_system(_: dict = Depends(get_current_user)):
         return {"success": True, "repaired": repaired}
 
 
+@router.post("/backfill-history")
+async def backfill_history(
+    req: "BackfillHistoryRequest",
+    _: dict = Depends(get_current_user),
+):
+    from app.services.game.history_backfill import backfill_history_for_boot
+
+    current_state = await get_current_state()
+    effective_boot = int(req.boot_number or current_state.get("boot_number") or 1)
+    async with async_session() as session:
+        summary = await backfill_history_for_boot(
+            session,
+            boot_number=effective_boot,
+            limit_games=req.limit_games,
+            dry_run=req.dry_run,
+        )
+        if not req.dry_run:
+            await session.commit()
+    return {"success": True, **summary}
+
+
 @router.get("/tasks")
 async def list_system_tasks(
     limit: int = Query(50, ge=1, le=200),
@@ -589,9 +619,6 @@ async def cancel_system_task(
         raise HTTPException(400, "任务不存在或已结束")
     return {"success": True}
 
-
-from pydantic import BaseModel, Field
-from typing import Literal
 
 class PredictionModeRequest(BaseModel):
     mode: Literal["ai", "single_ai", "rule"] = Field(..., description="预测模式：ai | single_ai | rule")

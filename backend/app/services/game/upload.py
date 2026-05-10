@@ -187,7 +187,7 @@ async def upload_games(
                 await _reset_table_data(db, boot_number=None)
             else:
                 # 覆盖当前靴
-                boot_number = existing_boot if existing_boot > 0 else 1
+                boot_number = sess.boot_number if (sess.boot_number or 0) > 0 else (existing_boot if existing_boot > 0 else 1)
                 history_snapshot = await _capture_game_history_snapshot(db, boot_number)
                 # 清理当前靴数据，以便覆盖
                 await _reset_table_data(db, boot_number=boot_number)

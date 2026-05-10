@@ -41,9 +41,10 @@ const getSourceExplanation = (outcome: AnalysisOutcome) => {
 const shellStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 16,
-  maxWidth: 960,
+  gap: 18,
+  maxWidth: 860,
   margin: '0 auto',
+  paddingBottom: 24,
 };
 
 const sectionCardStyle: React.CSSProperties = {
@@ -80,21 +81,27 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
       destroyOnClose
       styles={{
         body: {
-          padding: 16,
-          background: '#f5f7fb',
+          padding: 14,
+          background: '#f3f6fb',
         },
       }}
     >
       <div style={shellStyle}>
         <section style={sectionCardStyle}>
           <h3 style={sectionHeadingStyle}>本局结论</h3>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-            <Tag color={outcome.source === 'rule_fallback' ? 'orange' : 'green'}>{getSourceLabel(outcome.source)}</Tag>
-            <Tag color="blue">{outcome.confidence_label}把握</Tag>
-            <Tag>{Math.round(outcome.confidence * 100)}%</Tag>
+          <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>判断来源</span>
+              <Tag color={outcome.source === 'rule_fallback' ? 'orange' : 'green'}>{getSourceLabel(outcome.source)}</Tag>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>把握度</span>
+              <Tag color="blue">{outcome.confidence_label}把握</Tag>
+              <Tag>{Math.round(outcome.confidence * 100)}%</Tag>
+            </div>
           </div>
-          <p style={{ margin: '14px 0 8px', fontSize: 24, fontWeight: 800, color: '#111827' }}>本局建议：{outcome.direction}</p>
-          <p style={bodyTextStyle}>{outcome.short_reason}</p>
+          <p style={{ margin: '14px 0 10px', fontSize: 26, lineHeight: 1.25, fontWeight: 800, color: '#0f172a' }}>本局建议：{outcome.direction}</p>
+          <p style={{ ...bodyTextStyle, padding: '12px 14px', borderRadius: 12, background: '#f8fafc' }}>{outcome.short_reason}</p>
         </section>
 
         <section style={sectionCardStyle}>
@@ -143,25 +150,35 @@ export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open
 
         <section style={sectionCardStyle}>
           <h3 style={sectionHeadingStyle}>来源说明</h3>
-          <p style={{ ...bodyTextStyle, marginTop: 12 }}>
+          <p style={{ ...bodyTextStyle, marginTop: 12, color: '#475569' }}>
             {getSourceExplanation(outcome)}
           </p>
         </section>
 
         {outcome.technical_diagnostic?.message ? (
-          <Collapse
-            items={[
-              {
-                key: 'diagnostic',
-                label: '技术说明',
-                children: (
-                  <p style={{ margin: 0, lineHeight: 1.7 }}>
-                    {outcome.technical_diagnostic.message}
-                  </p>
-                ),
-              },
-            ]}
-          />
+          <section
+            style={{
+              ...sectionCardStyle,
+              background: '#f8fafc',
+              border: '1px solid #e5e7eb',
+              boxShadow: 'none',
+            }}
+          >
+            <Collapse
+              ghost
+              items={[
+                {
+                  key: 'technical-diagnostic',
+                  label: '技术说明',
+                  children: (
+                    <p style={{ ...bodyTextStyle, color: '#475569' }}>
+                      {outcome.technical_diagnostic.message}
+                    </p>
+                  ),
+                },
+              ]}
+            />
+          </section>
         ) : null}
       </div>
     </Drawer>

@@ -96,6 +96,8 @@ describe('AnalysisDetailDrawer', () => {
     expect(html).toContain('规则兜底');
     expect(html).toContain('72%');
     expect(html).toContain('本局建议：庄');
+    expect(html).toContain('把握度');
+    expect(html).toContain('判断来源');
     expect(html).toContain('技术说明');
 
     await act(async () => {
