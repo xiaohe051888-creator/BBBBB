@@ -1,5 +1,5 @@
 import React from 'react';
-import { Collapse, Drawer, Tag } from 'antd';
+import { Button, Collapse, Drawer, Tag } from 'antd';
 
 import type { AnalysisOutcome } from '../../types/models';
 
@@ -71,14 +71,23 @@ const bodyTextStyle: React.CSSProperties = {
 };
 
 export const AnalysisDetailDrawer: React.FC<AnalysisDetailDrawerProps> = ({ open, onClose, outcome }) => {
+  const handleClose = () => {
+    onClose();
+  };
+
   return (
     <Drawer
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="推理详情"
       placement="bottom"
       size="large"
       destroyOnClose
+      extra={
+        <Button type="text" onClick={handleClose} style={{ fontWeight: 600 }}>
+          收起详情
+        </Button>
+      }
       styles={{
         body: {
           padding: 14,
