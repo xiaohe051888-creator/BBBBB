@@ -382,6 +382,7 @@ class AdminUser(Base):
     must_change_password = Column(Boolean, default=True, comment="首次登录必须修改密码")
     login_attempts = Column(Integer, default=0, comment="连续登录失败次数")
     locked_until = Column(DateTime, nullable=True, comment="锁定截止时间")
+    acknowledged_alert_log_id = Column(Integer, nullable=True, comment="已确认到的最新严重告警日志ID")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
