@@ -117,6 +117,7 @@ class Settings:
     # 注意：ThreeModelService已实现永不降级机制（5次指数退避重试+备用模型轮换）
     # 以下配置仅作为兼容性保留，实际逻辑由服务层控制
     MODEL_TIMEOUT: int = 30  # API调用超时时间（秒）
+    ANALYSIS_TASK_TIMEOUT_SECONDS: int = int(os.getenv("ANALYSIS_TASK_TIMEOUT_SECONDS", "45"))
     
     # 管理员配置
     DEFAULT_ADMIN_PASSWORD: str = os.getenv("ADMIN_DEFAULT_PASSWORD", "8888")
