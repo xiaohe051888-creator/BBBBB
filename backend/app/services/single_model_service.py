@@ -339,10 +339,10 @@ class SingleModelService:
             )
         return await self._call_raw(prompt)
 
-    def _build_prompt(
+    def _build_prediction_contract_prompt(
         self,
-        game_number: int,
         boot_number: int,
+        game_number: int,
         game_history: list[dict[str, Any]],
         road_data: dict[str, Any],
         mistake_context: list[dict[str, Any]],
@@ -353,12 +353,22 @@ class SingleModelService:
         encoded_road_features = jsonable_encoder(road_features) if road_features else None
         encoded_mistakes = jsonable_encoder(mistake_context)
         return (
-            "你是百家乐单AI预测引擎，请基于当前靴的全量历史局与全量五路走势图，预测下一局庄/闲。\n"
+            "你是百家乐单AI正式预测模型。\n"
+            "你的唯一任务，是基于当前靴历史、五路特征、五路走势和错题上下文，推理并预测下一局是庄还是闲。\n"
+            "你正在预测下一局百家乐结果，你只能在 庄 和 闲 中二选一。\n"
+            "你的任务不是讨论是否预测，而是完成预测。\n\n"
+            "【决策规则】\n"
+            "1. 先阅读五路特征摘要，再核对五路原始点位。\n"
+            "2. 再结合历史结果与错题上下文，判断下一局更偏庄还是更偏闲。\n"
+            "3. 即使信号冲突，也必须选庄或闲。\n"
+            "4. 不允许输出“无法判断”“继续观察”“等待更多数据”。\n"
+            "5. 如果把握不高，只能通过降低 confidence 表达不确定性。\n\n"
+            "【输出契约】\n"
             "你可以先内部深度思考，但最终只输出严格 JSON。\n"
-            "不要输出 Markdown，不要输出代码块，不要输出任何额外解释。\n"
-            "你必须逐路核对五条路（大路/珠盘路/大眼仔/小路/螳螂），并先使用五路特征摘要进行投票汇总，再结合全量五路点位解释。\n"
-            "输出必须是严格 JSON（不要任何额外文字），字段如下：\n"
-            '{"final_prediction":"庄或闲","confidence":0-1,"bet_tier":"保守/标准/激进","summary":"一句话摘要","reasoning_points":["要点1","要点2"],"reasoning_detail":"更详细的解释版推理"}\n'
+            "不要输出 Markdown，不要输出代码块，不要输出任何额外解释，不要输出 JSON 之外的任何前后缀。\n"
+            "输出必须是一个 JSON 对象，字段如下：\n"
+            '{"final_prediction":"庄或闲","confidence":0-1,"bet_tier":"保守/标准/激进","summary":"一句话说明为什么偏向这个方向","reasoning_points":["要点1","要点2"],"reasoning_detail":"解释为什么预测下一局是这个方向"}\n\n'
+            "【输入数据】\n"
             f"靴号: {boot_number}\n"
             f"局号: {game_number}\n"
             f"连续失准: {consecutive_errors}\n"
@@ -366,6 +376,26 @@ class SingleModelService:
             f"五路特征摘要: {json.dumps(encoded_road_features, ensure_ascii=False) if encoded_road_features else ''}\n"
             f"五路: {json.dumps(encoded_road_data, ensure_ascii=False)}\n"
             f"错题: {json.dumps(encoded_mistakes, ensure_ascii=False)}\n"
+        )
+
+    def _build_prompt(
+        self,
+        game_number: int,
+        boot_number: int,
+        game_history: list[dict[str, Any]],
+        road_data: dict[str, Any],
+        mistake_context: list[dict[str, Any]],
+        consecutive_errors: int,
+        road_features: Optional[dict[str, Any]] = None,
+    ) -> str:
+        return self._build_prediction_contract_prompt(
+            boot_number=boot_number,
+            game_number=game_number,
+            game_history=game_history,
+            road_data=road_data,
+            mistake_context=mistake_context,
+            consecutive_errors=consecutive_errors,
+            road_features=road_features,
         )
 
     def _build_prompt_with_template(
