@@ -178,23 +178,28 @@ async def get_system_state(_: dict = Depends(get_current_user)):
 
 @router.get("/state-public")
 async def get_system_state_public():
+    from app.services.game.state import get_or_create_state
+
+    async with async_session() as db:
+        state = await get_or_create_state(db)
+
     mem_state = await get_current_state()
     return {
-        "status": mem_state.get("status"),
-        "boot_number": mem_state.get("boot_number"),
-        "game_number": (mem_state.get("next_game_number") or 1) - 1,
+        "status": mem_state.get("status") or state.status,
+        "boot_number": state.boot_number,
+        "game_number": state.game_number,
         "current_game_result": None,
-        "prediction_mode": mem_state.get("prediction_mode", "rule"),
+        "prediction_mode": mem_state.get("prediction_mode", state.prediction_mode or "rule"),
         "predict_direction": None,
         "predict_confidence": None,
         "current_model_version": None,
         "current_bet_tier": mem_state.get("predict_bet_tier") or "标准",
-        "balance": None,
+        "balance": state.balance,
         "consecutive_errors": mem_state.get("consecutive_errors") or 0,
         "health_score": None,
         "pending_bet": None,
-        "next_game_number": mem_state.get("next_game_number"),
-        "analysis_cycle": _serialize_analysis_cycle(mem_state.get("analysis_cycle"), None),
+        "next_game_number": mem_state.get("next_game_number") or ((state.game_number or 0) + 1),
+        "analysis_cycle": _serialize_analysis_cycle(mem_state.get("analysis_cycle"), state),
     }
 
 
