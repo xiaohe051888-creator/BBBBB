@@ -16,6 +16,7 @@ import { GameTable, BetTable, LogTable } from '../components/tables';
 import { LearningStatusPanel } from '../components/learning';
 import { SmartAlerts } from '../components/ui';
 import { AdminAlertsBar } from '../components/dashboard/AdminAlertsBar';
+import { InstallAppEntry } from '../components/dashboard/InstallAppEntry';
 import { getModelVersionDisplay } from '../utils/modelVersionDisplay';
 import {
   applyDashboardRealtimeUpdate,
@@ -42,6 +43,7 @@ import {
   useUpdateStateOptimistically,
   useWebSocket,
 } from '../hooks';
+import { useInstallPromptState } from '../hooks/useInstallPromptState';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryClient';
 
@@ -50,6 +52,7 @@ const DashboardPage: React.FC = () => {
   const queryClient = useQueryClient();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const installPrompt = useInstallPromptState();
 
   // 系统实时诊断
   const { diagnostics, dismissIssue, retryConnection, addIssue } = useSystemDiagnostics({});
@@ -419,6 +422,16 @@ const DashboardPage: React.FC = () => {
         systemState={systemState ?? null}
         onOpenReveal={handleOpenReveal}
         workflowStage={workflowStage}
+      />
+
+      <InstallAppEntry
+        visible={installPrompt.visible}
+        platform={installPrompt.platform}
+        guideVisible={installPrompt.guideVisible}
+        onInstall={installPrompt.triggerInstall}
+        onOpenGuide={installPrompt.openGuide}
+        onCloseGuide={installPrompt.closeGuide}
+        onDismiss={installPrompt.dismiss}
       />
 
       <AdminAlertsBar />

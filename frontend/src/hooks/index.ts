@@ -5,6 +5,7 @@ export { useWebSocket } from './useWebSocket';
 export { useWaitTimer } from './useWaitTimer';
 export { useLoading } from './useLoading';
 export { useDataRefreshIndicator } from './useDataRefreshIndicator';
+export { useInstallPromptState } from './useInstallPromptState';
 
 // 智能检测系统
 export { useSmartDetection } from './useSmartDetection';
