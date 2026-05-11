@@ -8,6 +8,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DashboardPage from './DashboardPage';
 
+const installPromptStateMock = vi.hoisted(() => ({
+  value: {
+    visible: true,
+    platform: 'android-help' as const,
+    guideVisible: false,
+    helpVisible: true,
+    triggerInstall: vi.fn(),
+    openGuide: vi.fn(),
+    closeGuide: vi.fn(),
+    openHelp: vi.fn(),
+    closeHelp: vi.fn(),
+  },
+}));
+
 const hooksMock = vi.hoisted(() => ({
   useSmartDetection: vi.fn(() => ({
     integrityIssues: [],
@@ -40,7 +54,12 @@ const hooksMock = vi.hoisted(() => ({
   useWebSocket: vi.fn(),
 }));
 
+const installEntryMock = vi.hoisted(() => vi.fn(() => <div>install-entry-fixed</div>));
+
 vi.mock('../hooks', () => hooksMock);
+vi.mock('../hooks/useInstallPromptState', () => ({
+  useInstallPromptState: () => installPromptStateMock.value,
+}));
 vi.mock('../components/dashboard', async () => {
   const actual = await vi.importActual<typeof import('../components/dashboard')>('../components/dashboard');
   return {
@@ -60,7 +79,7 @@ vi.mock('../components/roads', () => ({ FiveRoadChart: () => <div>roads</div> })
 vi.mock('../components/learning', () => ({ LearningStatusPanel: () => <div>learning</div> }));
 vi.mock('../components/ui', () => ({ SmartAlerts: () => <div>alerts</div> }));
 vi.mock('../components/dashboard/AdminAlertsBar', () => ({ AdminAlertsBar: () => <div>admin alerts</div> }));
-vi.mock('../components/dashboard/InstallAppEntry', () => ({ InstallAppEntry: () => <div>install-entry</div> }));
+vi.mock('../components/dashboard/InstallAppEntry', () => ({ InstallAppEntry: installEntryMock }));
 
 describe('DashboardPage install entry', () => {
   beforeEach(() => {
@@ -85,7 +104,7 @@ describe('DashboardPage install entry', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the install entry near the top dashboard helpers', async () => {
+  it('renders fixed install entry between workflow and admin alerts', async () => {
     const queryClient = new QueryClient();
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -102,8 +121,23 @@ describe('DashboardPage install entry', () => {
     });
 
     expect(container.innerHTML).toContain('workflow');
-    expect(container.innerHTML).toContain('install-entry');
+    expect(container.innerHTML).toContain('install-entry-fixed');
     expect(container.innerHTML).toContain('admin alerts');
+
+    expect(installEntryMock).toHaveBeenCalled();
+    const installEntryProps = installEntryMock.mock.calls[0]?.[0];
+    expect(installEntryProps).toMatchObject({
+      visible: true,
+      platform: 'android-help',
+      guideVisible: false,
+      helpVisible: true,
+      onInstall: installPromptStateMock.value.triggerInstall,
+      onOpenGuide: installPromptStateMock.value.openGuide,
+      onCloseGuide: installPromptStateMock.value.closeGuide,
+      onOpenHelp: installPromptStateMock.value.openHelp,
+      onCloseHelp: installPromptStateMock.value.closeHelp,
+    });
+    expect(installEntryProps).not.toHaveProperty('onDismiss');
 
     await act(async () => root.unmount());
     container.remove();
