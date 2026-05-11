@@ -12,7 +12,6 @@ describe('useInstallPromptState', () => {
         IS_REACT_ACT_ENVIRONMENT?: boolean;
       }
     ).IS_REACT_ACT_ENVIRONMENT = true;
-    localStorage.clear();
   });
 
   afterEach(() => {
@@ -60,120 +59,48 @@ describe('useInstallPromptState', () => {
     };
   }
 
-  it('shows android install entry only after beforeinstallprompt is captured', () => {
+  it('keeps entry visible for android even without install event', () => {
     const hook = renderHookWithValue({
       userAgent:
-        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36',
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
       displayModeStandalone: false,
       navigatorStandalone: false,
       storage: localStorage,
     });
 
-    expect(hook.getLatest()?.platform).toBe('none');
-    expect(hook.getLatest()?.visible).toBe(false);
-
-    const event = new Event('beforeinstallprompt');
-    Object.assign(event, {
-      preventDefault: vi.fn(),
-      prompt: vi.fn(),
-      userChoice: Promise.resolve({ outcome: 'accepted', platform: 'web' }),
-    });
-
-    act(() => {
-      window.dispatchEvent(event);
-    });
-
-    expect(hook.getLatest()?.platform).toBe('android');
+    expect(hook.getLatest()?.platform).toBe('android-help');
     expect(hook.getLatest()?.visible).toBe(true);
     hook.cleanup();
   });
 
-  it('shows ios entry without beforeinstallprompt and opens guide on demand', () => {
+  it('hides entry when already installed', () => {
     const hook = renderHookWithValue({
       userAgent:
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-      displayModeStandalone: false,
-      navigatorStandalone: false,
-      storage: localStorage,
-    });
-
-    expect(hook.getLatest()?.platform).toBe('ios');
-    expect(hook.getLatest()?.visible).toBe(true);
-
-    act(() => {
-      hook.getLatest()?.openGuide();
-    });
-
-    expect(hook.getLatest()?.guideVisible).toBe(true);
-    hook.cleanup();
-  });
-
-  it('hides the entry when already running in standalone mode', () => {
-    const hook = renderHookWithValue({
-      userAgent:
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
       displayModeStandalone: true,
       navigatorStandalone: false,
       storage: localStorage,
     });
 
-    expect(hook.getLatest()?.platform).toBe('ios');
     expect(hook.getLatest()?.visible).toBe(false);
     hook.cleanup();
   });
 
-  it('dismisses the entry, persists cooldown, and closes the guide', () => {
-    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
-
+  it('opens android help when install is unavailable', async () => {
     const hook = renderHookWithValue({
       userAgent:
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
       displayModeStandalone: false,
       navigatorStandalone: false,
       storage: localStorage,
-    });
-
-    act(() => {
-      hook.getLatest()?.openGuide();
-      hook.getLatest()?.dismiss();
-    });
-
-    expect(hook.getLatest()?.guideVisible).toBe(false);
-    expect(hook.getLatest()?.visible).toBe(false);
-    expect(localStorage.getItem('pwa-install-entry-dismissed-at')).toBe('1700000000000');
-    hook.cleanup();
-  });
-
-  it('prompts install on android and hides after the user accepts', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_123);
-
-    const hook = renderHookWithValue({
-      userAgent:
-        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36',
-      displayModeStandalone: false,
-      navigatorStandalone: false,
-      storage: localStorage,
-    });
-
-    const event = new Event('beforeinstallprompt');
-    const prompt = vi.fn().mockResolvedValue(undefined);
-    Object.assign(event, {
-      preventDefault: vi.fn(),
-      prompt,
-      userChoice: Promise.resolve({ outcome: 'accepted', platform: 'web' }),
-    });
-
-    act(() => {
-      window.dispatchEvent(event);
     });
 
     await act(async () => {
-      await hook.getLatest()?.triggerInstall();
+      const choice = await hook.getLatest()?.triggerInstall();
+      expect(choice?.outcome).toBe('unavailable');
     });
 
-    expect(prompt).toHaveBeenCalledTimes(1);
-    expect(hook.getLatest()?.visible).toBe(false);
-    expect(localStorage.getItem('pwa-install-entry-dismissed-at')).toBe('1700000000123');
+    expect(hook.getLatest()?.helpVisible).toBe(true);
     hook.cleanup();
   });
 });

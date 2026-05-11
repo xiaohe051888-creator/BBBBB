@@ -1,6 +1,3 @@
-export const INSTALL_PROMPT_DISMISS_KEY = 'pwa-install-entry-dismissed-at';
-export const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
 type DetectInstallPlatformArgs = {
   userAgent: string;
   hasBeforeInstallPrompt: boolean;
@@ -14,7 +11,7 @@ type StandaloneArgs = {
 export function detectInstallPlatform({
   userAgent,
   hasBeforeInstallPrompt,
-}: DetectInstallPlatformArgs): 'android' | 'ios' | 'none' {
+}: DetectInstallPlatformArgs): 'android-ready' | 'android-help' | 'ios' {
   const ua = userAgent.toLowerCase();
   const isIphone = /iphone|ipad|ipod/.test(ua);
   const isSafari = /safari/.test(ua) && !/crios|fxios|edgios|chrome/.test(ua);
@@ -25,10 +22,10 @@ export function detectInstallPlatform({
   }
 
   if (isAndroid && hasBeforeInstallPrompt) {
-    return 'android';
+    return 'android-ready';
   }
 
-  return 'none';
+  return 'android-help';
 }
 
 export function isStandaloneDisplayMode({
@@ -36,12 +33,4 @@ export function isStandaloneDisplayMode({
   navigatorStandalone,
 }: StandaloneArgs): boolean {
   return displayModeStandalone || navigatorStandalone;
-}
-
-export function isDismissedRecently(lastDismissedAt: number | null, now = Date.now()): boolean {
-  if (!lastDismissedAt) {
-    return false;
-  }
-
-  return now - lastDismissedAt < DISMISS_TTL_MS;
 }

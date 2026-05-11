@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import {
-  INSTALL_PROMPT_DISMISS_KEY,
-  detectInstallPlatform,
-  isDismissedRecently,
-  isStandaloneDisplayMode,
-} from '../pwa/installPrompt';
+import { detectInstallPlatform, isStandaloneDisplayMode } from '../pwa/installPrompt';
 
 type InstallChoice = {
   outcome: 'accepted' | 'dismissed';
@@ -26,31 +21,21 @@ type Options = {
   storage?: InstallPromptStorage;
 };
 
-type InstallPlatform = 'android' | 'ios' | 'none';
+type InstallPlatform = 'android-ready' | 'android-help' | 'ios';
 
 type InstallResult = InstallChoice | { outcome: 'unavailable' };
-
-function readDismissedAt(storage: InstallPromptStorage): number | null {
-  const rawValue = storage.getItem(INSTALL_PROMPT_DISMISS_KEY);
-  if (!rawValue) {
-    return null;
-  }
-
-  const parsed = Number(rawValue);
-  return Number.isFinite(parsed) ? parsed : null;
-}
 
 export function useInstallPromptState(options: Options = {}) {
   const {
     userAgent = navigator.userAgent,
     displayModeStandalone = window.matchMedia('(display-mode: standalone)').matches,
     navigatorStandalone = Boolean((navigator as Navigator & { standalone?: boolean }).standalone),
-    storage = window.localStorage,
+    storage: _storage = window.localStorage,
   } = options;
 
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEventLike | null>(null);
   const [guideVisible, setGuideVisible] = useState(false);
-  const [dismissedAt, setDismissedAt] = useState<number | null>(() => readDismissedAt(storage));
+  const [helpVisible, setHelpVisible] = useState(false);
 
   useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
@@ -78,7 +63,7 @@ export function useInstallPromptState(options: Options = {}) {
     displayModeStandalone,
     navigatorStandalone,
   });
-  const visible = !installed && platform !== 'none' && !isDismissedRecently(dismissedAt);
+  const visible = !installed;
 
   const closeGuide = useCallback(() => {
     setGuideVisible(false);
@@ -88,34 +73,39 @@ export function useInstallPromptState(options: Options = {}) {
     setGuideVisible(true);
   }, []);
 
+  const closeHelp = useCallback(() => {
+    setHelpVisible(false);
+  }, []);
+
+  const openHelp = useCallback(() => {
+    setHelpVisible(true);
+  }, []);
+
   const dismiss = useCallback(() => {
-    const now = Date.now();
-    storage.setItem(INSTALL_PROMPT_DISMISS_KEY, String(now));
-    setDismissedAt(now);
     setGuideVisible(false);
-  }, [storage]);
+    setHelpVisible(false);
+  }, []);
 
   const triggerInstall = useCallback(async (): Promise<InstallResult> => {
     if (!installEvent) {
+      setHelpVisible(true);
       return { outcome: 'unavailable' };
     }
 
     await installEvent.prompt();
     const choice = await installEvent.userChoice;
-
-    if (choice.outcome === 'accepted') {
-      dismiss();
-    }
-
     return choice;
-  }, [dismiss, installEvent]);
+  }, [installEvent]);
 
   return {
     platform,
     visible,
     guideVisible,
+    helpVisible,
     openGuide,
     closeGuide,
+    openHelp,
+    closeHelp,
     dismiss,
     triggerInstall,
   };
