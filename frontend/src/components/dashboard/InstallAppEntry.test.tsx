@@ -16,118 +16,45 @@ describe('InstallAppEntry', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows android install action and triggers prompt callback', async () => {
-    const onInstall = vi.fn().mockResolvedValue(undefined);
+  it('renders only one install button when visible', async () => {
+    const onInstall = vi.fn();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
 
     await act(async () => {
-      root.render(
-        <InstallAppEntry
-          visible
-          platform="android-ready"
-          guideVisible={false}
-          helpVisible={false}
-          onInstall={onInstall}
-          onOpenGuide={vi.fn()}
-          onCloseGuide={vi.fn()}
-          onOpenHelp={vi.fn()}
-          onCloseHelp={vi.fn()}
-        />,
-      );
+      root.render(<InstallAppEntry visible onInstall={onInstall} />);
     });
 
-    const button = Array.from(container.querySelectorAll('button')).find((node) =>
-      (node.textContent || '').includes('安装 App'),
-    );
-    expect(button).toBeTruthy();
+    const buttons = Array.from(container.querySelectorAll('button'));
+    expect(buttons).toHaveLength(1);
+    expect(container.innerHTML).toContain('安装 App');
+    expect(container.innerHTML).not.toContain('像 App 一样打开');
+    expect(container.innerHTML).not.toContain('安装到桌面');
 
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('calls install handler when clicked', async () => {
+    const onInstall = vi.fn();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<InstallAppEntry visible onInstall={onInstall} />);
+    });
+
+    const button = container.querySelector('button');
     await act(async () => {
       button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
     expect(onInstall).toHaveBeenCalledTimes(1);
-    await act(async () => {
-      root.unmount();
-    });
-    container.remove();
-  });
 
-  it('shows ios wording and opens the guide instead of triggering install', async () => {
-    const onOpenGuide = vi.fn();
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const root = createRoot(container);
-
-    await act(async () => {
-      root.render(
-        <InstallAppEntry
-          visible
-          platform="ios"
-          guideVisible={false}
-          helpVisible={false}
-          onInstall={vi.fn()}
-          onOpenGuide={onOpenGuide}
-          onCloseGuide={vi.fn()}
-          onOpenHelp={vi.fn()}
-          onCloseHelp={vi.fn()}
-        />,
-      );
-    });
-
-    const html = container.innerHTML;
-    expect(html).toContain('安装到桌面');
-    expect(html).toContain('像 App 一样打开');
-
-    const button = Array.from(container.querySelectorAll('button')).find((node) =>
-      (node.textContent || '').includes('安装到桌面'),
-    );
-    expect(button).toBeTruthy();
-
-    await act(async () => {
-      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(onOpenGuide).toHaveBeenCalledTimes(1);
-    await act(async () => {
-      root.unmount();
-    });
-    container.remove();
-  });
-
-  it('shows android help instead of doing nothing when install is unavailable', async () => {
-    const onOpenHelp = vi.fn();
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const root = createRoot(container);
-
-    await act(async () => {
-      root.render(
-        <InstallAppEntry
-          visible
-          platform="android-help"
-          guideVisible={false}
-          helpVisible={false}
-          onInstall={vi.fn()}
-          onOpenGuide={vi.fn()}
-          onCloseGuide={vi.fn()}
-          onOpenHelp={onOpenHelp}
-          onCloseHelp={vi.fn()}
-        />,
-      );
-    });
-
-    const button = Array.from(container.querySelectorAll('button')).find((node) =>
-      (node.textContent || '').includes('安装 App'),
-    );
-    expect(button).toBeTruthy();
-
-    await act(async () => {
-      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(onOpenHelp).toHaveBeenCalledTimes(1);
     await act(async () => {
       root.unmount();
     });
