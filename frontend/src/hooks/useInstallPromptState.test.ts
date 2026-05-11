@@ -65,7 +65,6 @@ describe('useInstallPromptState', () => {
         'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
       displayModeStandalone: false,
       navigatorStandalone: false,
-      storage: localStorage,
     });
 
     expect(hook.getLatest()?.platform).toBe('android-help');
@@ -79,7 +78,6 @@ describe('useInstallPromptState', () => {
         'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
       displayModeStandalone: true,
       navigatorStandalone: false,
-      storage: localStorage,
     });
 
     expect(hook.getLatest()?.visible).toBe(false);
@@ -92,7 +90,6 @@ describe('useInstallPromptState', () => {
         'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
       displayModeStandalone: false,
       navigatorStandalone: false,
-      storage: localStorage,
     });
 
     await act(async () => {

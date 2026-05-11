@@ -12,13 +12,10 @@ type BeforeInstallPromptEventLike = Event & {
   userChoice: Promise<InstallChoice>;
 };
 
-type InstallPromptStorage = Pick<Storage, 'getItem' | 'setItem'>;
-
 type Options = {
   userAgent?: string;
   displayModeStandalone?: boolean;
   navigatorStandalone?: boolean;
-  storage?: InstallPromptStorage;
 };
 
 type InstallPlatform = 'android-ready' | 'android-help' | 'ios';
@@ -30,7 +27,6 @@ export function useInstallPromptState(options: Options = {}) {
     userAgent = navigator.userAgent,
     displayModeStandalone = window.matchMedia('(display-mode: standalone)').matches,
     navigatorStandalone = Boolean((navigator as Navigator & { standalone?: boolean }).standalone),
-    storage: _storage = window.localStorage,
   } = options;
 
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEventLike | null>(null);

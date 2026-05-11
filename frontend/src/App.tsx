@@ -18,7 +18,6 @@ const RoadMapPage = React.lazy(() => import('./pages/RoadMapPage'));
 const BetRecordsPage = React.lazy(() => import('./pages/BetRecordsPage'));
 const LogsPage = React.lazy(() => import('./pages/LogsPage'));
 const MistakeBookPage = React.lazy(() => import('./pages/MistakeBookPage'));
-const AdminPage = React.lazy(() => import('./pages/AdminPage'));
 const AdminEntryPage = React.lazy(() => import('./pages/AdminEntryPage'));
 const UploadDataPage = React.lazy(() => import('./pages/UploadDataPage'));
 const ModeSelectPage = React.lazy(() => import('./pages/ModeSelectPage'));

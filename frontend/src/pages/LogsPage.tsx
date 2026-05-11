@@ -558,104 +558,101 @@ const LogsPage: React.FC = () => {
     }
   };
 
-  // 表格列定义 - 自适应布局，避免横向滚动
-  const columns: ColumnsType<LogEntry> = [
-    {
-      title: '时间',
-      dataIndex: 'log_time',
-      width: '14%',
-      render: (v: string) => (
-        <span style={{ fontFamily: 'monospace', fontSize: 11, whiteSpace: 'nowrap' }}>
-          {v ? formatBeijing(v, 'HH:mm:ss') : ''}
-        </span>
-      ),
-      sorter: (a, b) => beijingValueOf(a.log_time) - beijingValueOf(b.log_time),
-      defaultSortOrder: 'descend' as const,
-    },
-    {
-      title: '局号',
-      dataIndex: 'game_number',
-      width: '6%',
-      render: (v: number | null) => v ?? '-',
-    },
-    {
-      title: '优先级',
-      dataIndex: 'priority',
-      width: '10%',
-      render: (v: string) => (
-        <Tag color={PRIORITY_COLORS[v]} style={{ fontSize: 10, fontWeight: 600, padding: '0 4px' }}>
-          {v === 'P0' ? '致命' : v === 'P1' ? '严重' : v === 'P2' ? '警告' : v === 'P3' ? '信息' : '未知'}
-        </Tag>
-      ),
-    },
-    {
-      title: '类别',
-      dataIndex: 'category',
-      width: '10%',
-      render: (v: string) => (
-        <Tag style={{ fontSize: 10, padding: '0 4px' }}>{v ? v.slice(0, 4) : '-'}</Tag>
-      ),
-    },
-    {
-      title: '事件',
-      dataIndex: 'event_type',
-      width: '15%',
-      render: (v: string, record: LogEntry) => (
-        <Space size={2}>
-          {record.is_pinned && (
-            <span style={{ color: '#ff4d4f' }}><Icons.Pin /></span>
-          )}
-          <span style={{ fontWeight: 500, color: PRIORITY_COLORS[record.priority] || '#58a6ff', fontSize: 12 }}>
-            {v}
+  const columnsWithCell = useMemo<ColumnsType<LogEntry>>(() => (
+    [
+      {
+        title: '时间',
+        dataIndex: 'log_time',
+        width: '14%',
+        render: (v: string) => (
+          <span style={{ fontFamily: 'monospace', fontSize: 11, whiteSpace: 'nowrap' }}>
+            {v ? formatBeijing(v, 'HH:mm:ss') : ''}
           </span>
-        </Space>
-      ),
-    },
-    {
-      title: '结果',
-      dataIndex: 'event_result',
-      width: '8%',
-      render: (v: string) =>
-        v === '成功'
-          ? <Tag color="success" style={{ fontSize: 10, padding: '0 4px' }}><Icons.Success /></Tag>
-          : v === '失败'
-            ? <Tag color="error" style={{ fontSize: 10, padding: '0 4px' }}><Icons.Error /></Tag>
-            : '-',
-    },
-    {
-      title: '说明',
-      dataIndex: 'description',
-      ellipsis: true,
-      render: (_: string, record: LogEntry) => {
-        const t = typeof record.id === 'number' ? humanTitleById.get(record.id) : undefined;
-        const title = t || humanizeLog(record).title;
-        return <span title={record.description || ''}>{title}</span>;
+        ),
+        sorter: (a: LogEntry, b: LogEntry) => beijingValueOf(a.log_time) - beijingValueOf(b.log_time),
+        defaultSortOrder: 'descend' as const,
       },
-    },
-    {
-      title: '操作',
-      width: '8%',
-      render: (_: unknown, record: LogEntry) => (
-        <Button
-          type="link"
-          size="small"
-          style={{ padding: 0, fontSize: 11 }}
-          onClick={() => { setSelectedLog(record); setDetailModalOpen(true); }}
-        >
-          详情
-        </Button>
-      ),
-    },
-  ];
-
-  const columnsWithCell = useMemo(() => (
-    columns.map(col => ({
+      {
+        title: '局号',
+        dataIndex: 'game_number',
+        width: '6%',
+        render: (v: number | null) => v ?? '-',
+      },
+      {
+        title: '优先级',
+        dataIndex: 'priority',
+        width: '10%',
+        render: (v: string) => (
+          <Tag color={PRIORITY_COLORS[v]} style={{ fontSize: 10, fontWeight: 600, padding: '0 4px' }}>
+            {v === 'P0' ? '致命' : v === 'P1' ? '严重' : v === 'P2' ? '警告' : v === 'P3' ? '信息' : '未知'}
+          </Tag>
+        ),
+      },
+      {
+        title: '类别',
+        dataIndex: 'category',
+        width: '10%',
+        render: (v: string) => (
+          <Tag style={{ fontSize: 10, padding: '0 4px' }}>{v ? v.slice(0, 4) : '-'}</Tag>
+        ),
+      },
+      {
+        title: '事件',
+        dataIndex: 'event_type',
+        width: '15%',
+        render: (v: string, record: LogEntry) => (
+          <Space size={2}>
+            {record.is_pinned && (
+              <span style={{ color: '#ff4d4f' }}><Icons.Pin /></span>
+            )}
+            <span style={{ fontWeight: 500, color: PRIORITY_COLORS[record.priority] || '#58a6ff', fontSize: 12 }}>
+              {v}
+            </span>
+          </Space>
+        ),
+      },
+      {
+        title: '结果',
+        dataIndex: 'event_result',
+        width: '8%',
+        render: (v: string) =>
+          v === '成功'
+            ? <Tag color="success" style={{ fontSize: 10, padding: '0 4px' }}><Icons.Success /></Tag>
+            : v === '失败'
+              ? <Tag color="error" style={{ fontSize: 10, padding: '0 4px' }}><Icons.Error /></Tag>
+              : '-',
+      },
+      {
+        title: '说明',
+        dataIndex: 'description',
+        ellipsis: true,
+        render: (_: string, record: LogEntry) => {
+          const t = typeof record.id === 'number' ? humanTitleById.get(record.id) : undefined;
+          const title = t || humanizeLog(record).title;
+          return <span title={record.description || ''}>{title}</span>;
+        },
+      },
+      {
+        title: '操作',
+        width: '8%',
+        render: (_: unknown, record: LogEntry) => (
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0, fontSize: 11 }}
+            onClick={() => { setSelectedLog(record); setDetailModalOpen(true); }}
+          >
+            详情
+          </Button>
+        ),
+      },
+    ].map(col => ({
       ...col,
       onCell: () => ({
         'data-label': typeof col.title === 'string' ? col.title : '',
       } as React.HTMLAttributes<HTMLElement>),
     }))
-  ), [columns]);
+  ), [humanTitleById]);
 
   // 重置筛选
   const handleResetFilters = () => {

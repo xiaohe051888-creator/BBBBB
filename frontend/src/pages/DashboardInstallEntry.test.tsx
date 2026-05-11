@@ -54,7 +54,11 @@ const hooksMock = vi.hoisted(() => ({
   useWebSocket: vi.fn(),
 }));
 
-const installEntryMock = vi.hoisted(() => vi.fn(() => <div>install-entry-fixed</div>));
+const installEntryMock = vi.hoisted(() =>
+  vi.fn((props: Record<string, unknown>) => (
+    <div data-visible={String(props.visible)}>install-entry-fixed</div>
+  )),
+);
 
 vi.mock('../hooks', () => hooksMock);
 vi.mock('../hooks/useInstallPromptState', () => ({
@@ -125,7 +129,7 @@ describe('DashboardPage install entry', () => {
     expect(container.innerHTML).toContain('admin alerts');
 
     expect(installEntryMock).toHaveBeenCalled();
-    const installEntryProps = installEntryMock.mock.calls[0]?.[0];
+    const installEntryProps = installEntryMock.mock.calls[0][0];
     expect(installEntryProps).toMatchObject({
       visible: true,
       platform: 'android-help',

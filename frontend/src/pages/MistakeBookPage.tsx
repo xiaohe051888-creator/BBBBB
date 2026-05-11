@@ -286,18 +286,6 @@ const MistakeBookPage: React.FC = () => {
     return parts.join(' ');
   };
 
-  const renderConfidence = (value: number | null) => (
-    value !== null ? (
-      <Progress
-        percent={Math.round(value * 100)}
-        size="small"
-        strokeColor={value >= 0.75 ? '#ff4d4f' : value >= 0.5 ? '#faad14' : '#52c41a'}
-        format={(p) => `${p}%`}
-        style={{ margin: 0 }}
-      />
-    ) : <span style={{ color: '#555' }}>-</span>
-  );
-
   return (
     <div className="page-wrapper mistakes-page">
       {/* 顶部导航 */}
