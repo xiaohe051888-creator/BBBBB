@@ -2,32 +2,42 @@ import React from 'react';
 import { Button } from 'antd';
 
 import { InstallAppGuide } from './InstallAppGuide';
+import { InstallAppHelp } from './InstallAppHelp';
 
 type Props = {
   visible: boolean;
-  platform: 'android' | 'ios' | 'none';
+  platform: 'android-ready' | 'android-help' | 'ios';
   guideVisible: boolean;
+  helpVisible: boolean;
   onInstall: () => Promise<unknown> | unknown;
   onOpenGuide: () => void;
   onCloseGuide: () => void;
-  onDismiss: () => void;
+  onOpenHelp: () => void;
+  onCloseHelp: () => void;
 };
 
 export function InstallAppEntry({
   visible,
   platform,
   guideVisible,
+  helpVisible,
   onInstall,
   onOpenGuide,
   onCloseGuide,
-  onDismiss,
+  onOpenHelp,
+  onCloseHelp,
 }: Props) {
-  if (!visible || platform === 'none') {
+  if (!visible) {
     return null;
   }
 
   const isIos = platform === 'ios';
-  const handlePrimaryClick = isIos ? onOpenGuide : () => void onInstall();
+  const isAndroidHelp = platform === 'android-help';
+  const handlePrimaryClick = isIos
+    ? onOpenGuide
+    : isAndroidHelp
+      ? onOpenHelp
+      : () => void onInstall();
 
   return (
     <>
@@ -40,12 +50,10 @@ export function InstallAppEntry({
           <Button size="small" type="default" onClick={handlePrimaryClick}>
             {isIos ? '安装到桌面' : '安装 App'}
           </Button>
-          <Button size="small" type="text" onClick={onDismiss}>
-            稍后
-          </Button>
         </div>
       </div>
       <InstallAppGuide visible={guideVisible} onClose={onCloseGuide} />
+      <InstallAppHelp visible={helpVisible} onClose={onCloseHelp} />
     </>
   );
 }

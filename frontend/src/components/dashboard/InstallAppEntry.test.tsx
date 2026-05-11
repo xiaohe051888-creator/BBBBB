@@ -26,12 +26,14 @@ describe('InstallAppEntry', () => {
       root.render(
         <InstallAppEntry
           visible
-          platform="android"
+          platform="android-ready"
           guideVisible={false}
+          helpVisible={false}
           onInstall={onInstall}
           onOpenGuide={vi.fn()}
           onCloseGuide={vi.fn()}
-          onDismiss={vi.fn()}
+          onOpenHelp={vi.fn()}
+          onCloseHelp={vi.fn()}
         />,
       );
     });
@@ -64,10 +66,12 @@ describe('InstallAppEntry', () => {
           visible
           platform="ios"
           guideVisible={false}
+          helpVisible={false}
           onInstall={vi.fn()}
           onOpenGuide={onOpenGuide}
           onCloseGuide={vi.fn()}
-          onDismiss={vi.fn()}
+          onOpenHelp={vi.fn()}
+          onCloseHelp={vi.fn()}
         />,
       );
     });
@@ -86,6 +90,44 @@ describe('InstallAppEntry', () => {
     });
 
     expect(onOpenGuide).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('shows android help instead of doing nothing when install is unavailable', async () => {
+    const onOpenHelp = vi.fn();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <InstallAppEntry
+          visible
+          platform="android-help"
+          guideVisible={false}
+          helpVisible={false}
+          onInstall={vi.fn()}
+          onOpenGuide={vi.fn()}
+          onCloseGuide={vi.fn()}
+          onOpenHelp={onOpenHelp}
+          onCloseHelp={vi.fn()}
+        />,
+      );
+    });
+
+    const button = Array.from(container.querySelectorAll('button')).find((node) =>
+      (node.textContent || '').includes('安装 App'),
+    );
+    expect(button).toBeTruthy();
+
+    await act(async () => {
+      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onOpenHelp).toHaveBeenCalledTimes(1);
     await act(async () => {
       root.unmount();
     });
