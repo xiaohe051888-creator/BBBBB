@@ -426,14 +426,7 @@ const DashboardPage: React.FC = () => {
 
       <InstallAppEntry
         visible={installPrompt.visible}
-        platform={installPrompt.platform}
-        guideVisible={installPrompt.guideVisible}
-        helpVisible={installPrompt.helpVisible}
         onInstall={installPrompt.triggerInstall}
-        onOpenGuide={installPrompt.openGuide}
-        onCloseGuide={installPrompt.closeGuide}
-        onOpenHelp={installPrompt.openHelp}
-        onCloseHelp={installPrompt.closeHelp}
       />
 
       <AdminAlertsBar />

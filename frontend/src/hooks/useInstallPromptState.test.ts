@@ -59,23 +59,22 @@ describe('useInstallPromptState', () => {
     };
   }
 
-  it('keeps entry visible for android even without install event', () => {
+  it('returns visible when app is not installed', () => {
     const hook = renderHookWithValue({
-      userAgent:
-        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
       displayModeStandalone: false,
       navigatorStandalone: false,
     });
 
-    expect(hook.getLatest()?.platform).toBe('android-help');
     expect(hook.getLatest()?.visible).toBe(true);
+    expect(typeof hook.getLatest()?.triggerInstall).toBe('function');
+    expect(hook.getLatest()).not.toHaveProperty('platform');
+    expect(hook.getLatest()).not.toHaveProperty('helpVisible');
+    expect(hook.getLatest()).not.toHaveProperty('guideVisible');
     hook.cleanup();
   });
 
   it('hides entry when already installed', () => {
     const hook = renderHookWithValue({
-      userAgent:
-        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
       displayModeStandalone: true,
       navigatorStandalone: false,
     });
@@ -84,10 +83,8 @@ describe('useInstallPromptState', () => {
     hook.cleanup();
   });
 
-  it('opens android help when install is unavailable', async () => {
+  it('returns unavailable when install event does not exist', async () => {
     const hook = renderHookWithValue({
-      userAgent:
-        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
       displayModeStandalone: false,
       navigatorStandalone: false,
     });
@@ -97,7 +94,6 @@ describe('useInstallPromptState', () => {
       expect(choice?.outcome).toBe('unavailable');
     });
 
-    expect(hook.getLatest()?.helpVisible).toBe(true);
     hook.cleanup();
   });
 });

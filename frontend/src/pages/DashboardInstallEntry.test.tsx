@@ -11,14 +11,7 @@ import DashboardPage from './DashboardPage';
 const installPromptStateMock = vi.hoisted(() => ({
   value: {
     visible: true,
-    platform: 'android-help' as const,
-    guideVisible: false,
-    helpVisible: true,
     triggerInstall: vi.fn(),
-    openGuide: vi.fn(),
-    closeGuide: vi.fn(),
-    openHelp: vi.fn(),
-    closeHelp: vi.fn(),
   },
 }));
 
@@ -108,7 +101,7 @@ describe('DashboardPage install entry', () => {
     vi.clearAllMocks();
   });
 
-  it('renders fixed install entry between workflow and admin alerts', async () => {
+  it('wires top install button with visible and onInstall only', async () => {
     const queryClient = new QueryClient();
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -132,16 +125,11 @@ describe('DashboardPage install entry', () => {
     const installEntryProps = installEntryMock.mock.calls[0][0];
     expect(installEntryProps).toMatchObject({
       visible: true,
-      platform: 'android-help',
-      guideVisible: false,
-      helpVisible: true,
       onInstall: installPromptStateMock.value.triggerInstall,
-      onOpenGuide: installPromptStateMock.value.openGuide,
-      onCloseGuide: installPromptStateMock.value.closeGuide,
-      onOpenHelp: installPromptStateMock.value.openHelp,
-      onCloseHelp: installPromptStateMock.value.closeHelp,
     });
-    expect(installEntryProps).not.toHaveProperty('onDismiss');
+    expect(installEntryProps).not.toHaveProperty('platform');
+    expect(installEntryProps).not.toHaveProperty('helpVisible');
+    expect(installEntryProps).not.toHaveProperty('guideVisible');
 
     await act(async () => root.unmount());
     container.remove();
